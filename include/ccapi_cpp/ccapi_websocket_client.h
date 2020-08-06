@@ -780,7 +780,7 @@ class WebsocketClient {
     }
     this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
     bool shouldConflate = optionMap.at(
-    CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+    CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
     if (shouldConflate) {
       this->copySnapshot(
           true, snapshotBid,
@@ -800,7 +800,7 @@ class WebsocketClient {
       this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] =
           previousConflateTp;
       if (optionMap.at(
-          CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
+          CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
         auto interval = std::chrono::milliseconds(std::stoi(optionMap.at(
         CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)));
         auto gracePeriod = std::chrono::milliseconds(std::stoi(optionMap.at(
@@ -885,7 +885,7 @@ class WebsocketClient {
       CCAPI_LOGGER_TRACE("maxMarketDepth = " + toString(maxMarketDepth));
       CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
       bool shouldConflate = optionMap.at(
-      CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+      CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
       CCAPI_LOGGER_TRACE("shouldConflate = " + toString(shouldConflate));
       TimePoint conflateTp =
           shouldConflate ?
