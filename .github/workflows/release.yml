@@ -1,0 +1,31 @@
+name: Release
+on:
+  push:
+    branches:
+      - master
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        # with:
+        #   node-version: 12
+      - run: 'echo ''{
+          "name": "ccapi_cpp",
+          "version": "1.0.0",
+          "devDependencies": {
+            "semantic-release": "^17.1.1"
+          },
+          "release": {
+            "branches": ["master"],
+            "plugins": ["@semantic-release/commit-analyzer", "@semantic-release/release-notes-generator", "@semantic-release/github"]
+          }
+        }'' > "package.json"'
+      - run: npm install
+      - run: npm ci
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
