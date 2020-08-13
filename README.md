@@ -20,6 +20,7 @@
   * OpenSSL: libcrypto
 * Troubleshoot:
   * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try cmake -DOPENSSL_ROOT_DIR=...(e.g. /usr/local/opt/openssl)
+  * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
 
 ## Examples
 
