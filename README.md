@@ -3,6 +3,7 @@
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost. Follow us on https://medium.com/@cryptochassis and our publication on https://medium.com/open-crypto-market-data-initiative.
 * For historical data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
+* Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
 
 ## Build
@@ -100,7 +101,7 @@ Top 10 bids and asks at 2020-07-27T23:56:51.935993000Z are:
 ### Advanced
 **Multiple exchanges and/or instruments**
 
-Instantiate SessionConfigs with the desired exchange names, instrument names specified by you, instrument names specified by the exchange. Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
+Instantiate SessionConfigs with the desired exchange names, instrument names specified by you, instrument names specified by the exchange.
 
 **Specify market depth**
 
