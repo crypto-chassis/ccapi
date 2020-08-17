@@ -1,8 +1,9 @@
 # ccapi_cpp
 * A header-only C++ library for streaming public market data directly from cryptocurrency exchanges.
-* It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, SSE2/SSE4.2 support, etc.
+* It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost. Follow us on https://medium.com/@cryptochassis and our publication on https://medium.com/open-crypto-market-data-initiative.
 * For historical data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
+* Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
 
 ## Build
@@ -18,6 +19,9 @@
 * Link libraries:
   * OpenSSL: libssl
   * OpenSSL: libcrypto
+* Troubleshoot:
+  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try cmake -DOPENSSL_ROOT_DIR=...(e.g. /usr/local/opt/openssl)
+  * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
 
 ## Examples
 
@@ -97,7 +101,7 @@ Top 10 bids and asks at 2020-07-27T23:56:51.935993000Z are:
 ### Advanced
 **Multiple exchanges and/or instruments**
 
-Instantiate SessionConfigs with the desired exchange names, instrument names specified by you, instrument names specified by the exchange. Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
+Instantiate SessionConfigs with the desired exchange names, instrument names specified by you, instrument names specified by the exchange.
 
 **Specify market depth**
 
@@ -116,6 +120,7 @@ Subscription subscription(topic, fields, options, correlationId);
 ```
 
 **Only receive events at periodic intervals including when the market depth snapshot hasn't changed yet**
+
 Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval and CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS to be your network latency, e.g. if you want to only receive market depth snapshots at each and every second regardless of whether the market depth snapshot hasn't changed or not, and your network is faster than the speed of light
 ```
 std::string options = std::string(CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) + "=1000&" + CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0";
@@ -123,8 +128,14 @@ Subscription subscription(topic, fields, options, correlationId);
 ```
 
 **Dispatching events from multiple threads**
+
 Instantiate EventDispatcher with numDispatcherThreads set to be the desired number, e.g.
 ```
 EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
 ```
+
+### Contributing
+* (Required) Submit a pull request to the master branch.
+* (Required) Pass Github checks: https://docs.github.com/en/rest/reference/checks.
+* (Optional) Commit message format: https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-eslint#eslint-convention.
