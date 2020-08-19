@@ -97,6 +97,7 @@ class WebsocketClient {
   }
   virtual void onOpen(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    auto now = std::chrono::system_clock::now();
     WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
         this->tlsClient.get_con_from_hdl(hdl));
     wsConnection.status = WebsocketConnection::Status::OPEN;
@@ -105,6 +106,7 @@ class WebsocketClient {
     Event event;
     event.setType(Event::Type::SESSION_STATUS);
     Message message;
+    message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_UP);
     Element element;
     element.insert(CCAPI_EXCHANGE_NAME_CONNECTION, toString(wsConnection));
@@ -261,6 +263,7 @@ class WebsocketClient {
   }
   virtual void onClose(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    auto now = std::chrono::system_clock::now();
     TlsClient::connection_ptr con = this->tlsClient.get_con_from_hdl(hdl);
     WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(con);
     wsConnection.status = WebsocketConnection::Status::CLOSED;
@@ -274,6 +277,7 @@ class WebsocketClient {
     Event event;
     event.setType(Event::Type::SESSION_STATUS);
     Message message;
+    message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
     element.insert(CCAPI_EXCHANGE_NAME_CONNECTION, toString(wsConnection));
@@ -770,6 +774,7 @@ class WebsocketClient {
     this->updateElementListWithInitialMarketDepth(fieldSet, optionMap, snapshotBid, snapshotAsk, elementList);
     if (!elementList.empty()) {
       Message message;
+      message.setTimeReceived(timeReceived);
       message.setType(Message::Type::MARKET_DATA_EVENTS);
       message.setRecapType(Message::RecapType::SOLICITED);
       message.setElementList(elementList);
@@ -924,21 +929,25 @@ class WebsocketClient {
                                                        snapshotAsk, snapshotAskPrevious, elementList, false);
         }
         CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
-        if (shouldConflate) {
-          this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
-              productId) = conflateTp;
-        }
         if (!elementList.empty()) {
           Message message;
+          message.setTimeReceived(timeReceived);
           message.setType(Message::Type::MARKET_DATA_EVENTS);
           message.setRecapType(Message::RecapType::NONE);
-          message.setTime(conflateTp);
+          TimePoint time = shouldConflate ? this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId) + std::chrono::milliseconds(std::stoll(optionMap.at(
+              CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS))) : conflateTp;
+          message.setTime(time);
+//          message.setTime(conflateTp);
           message.setElementList(elementList);
           message.setCorrelationIdList(correlationIdList);
           messageList.push_back(std::move(message));
         }
         if (!messageList.empty()) {
           event.addMessages(messageList);
+        }
+        if (shouldConflate) {
+          this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
+              productId) = conflateTp;
         }
       }
     }
@@ -1053,15 +1062,26 @@ class WebsocketClient {
   virtual void onIncorrectStatesFound(WebsocketConnection& wsConnection, wspp::connection_hdl hdl,
                                       const std::string& textMessage, const TimePoint& timeReceived,
                                       const std::string& exchangeSubscriptionId, std::string const & reason) {
-    CCAPI_LOGGER_ERROR("incorrect states found: connection = "+toString(wsConnection)+
+    std::string errorMessage = "incorrect states found: connection = "+toString(wsConnection)+
         ", textMessage = "+textMessage+
-        ", timeReceived = "+UtilTime::getISOTimestamp(timeReceived)+", exchangeSubscriptionId = "+exchangeSubscriptionId+", reason = "+reason);
+        ", timeReceived = "+UtilTime::getISOTimestamp(timeReceived)+", exchangeSubscriptionId = "+exchangeSubscriptionId+", reason = "+reason;
+    CCAPI_LOGGER_ERROR(errorMessage);
     ErrorCode ec;
     this->close(wsConnection, hdl, websocketpp::close::status::normal, "incorrect states found: " + reason, ec);
     if (ec) {
       CCAPI_LOGGER_ERROR(ec.message());
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
+    Event event;
+    event.setType(Event::Type::SESSION_STATUS);
+    Message message;
+    message.setTime(timeReceived);
+    message.setType(Message::Type::SESSION_INCORRECT_STATES_FOUND);
+    Element element;
+    element.insert(CCAPI_EXCHANGE_NAME_ERROR_MESSAGE, errorMessage);
+    message.setElementList({ element });
+    event.setMessageList({ message });
+    this->wsEventHandler(event);
   }
   int calculateMarketDepthSubscribedToExchange(int depthWanted, std::vector<int> availableMarketDepth) {
     int i = ceilSearch(availableMarketDepth, 0, availableMarketDepth.size(), depthWanted);
@@ -1113,6 +1133,7 @@ class WebsocketClient {
                           std::vector<Message> messageList;
                           if (!elementList.empty()) {
                             Message message;
+                            message.setTimeReceived(conflateTp);
                             message.setType(Message::Type::MARKET_DATA_EVENTS);
                             message.setRecapType(Message::RecapType::NONE);
                             message.setTime(conflateTp);
