@@ -6,7 +6,7 @@
 namespace ccapi {
 class WebsocketClientKraken final : public WebsocketClient {
  public:
-    WebsocketClientKraken(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs) {
+    WebsocketClientKraken(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
       this->name = CCAPI_EXCHANGE_NAME_KRAKEN;
       this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
       this->shouldAlignSnapshot = true;
@@ -17,7 +17,7 @@ class WebsocketClientKraken final : public WebsocketClient {
       CCAPI_LOGGER_FUNCTION_ENTER;
       WebsocketClient::onOpen(hdl);
 //      this->onOpen_2(hdl);
-      WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+      WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
       std::vector<std::string> requestStringList;
       for (auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
         auto channelId = subscriptionListByChannelIdProductId.first;
@@ -40,11 +40,11 @@ class WebsocketClientKraken final : public WebsocketClient {
             document.SetObject();
             rj::Document::AllocatorType& allocator = document.GetAllocator();
             document.AddMember("event", rj::Value("subscribe").Move(), allocator);
-            rj::Value pair(rj::kArrayType);
+            rj::Value instrument(rj::kArrayType);
             for (const auto &productId : productIdList) {
-              pair.PushBack(rj::Value(productId.c_str(), allocator).Move(), allocator);
+              instrument.PushBack(rj::Value(productId.c_str(), allocator).Move(), allocator);
             }
-            document.AddMember("pair", pair, allocator);
+            document.AddMember("instrument", instrument, allocator);
             rj::Value subscription(rj::kObjectType);
             subscription.AddMember("depth", rj::Value(marketDepthSubscribedToExchange).Move(), allocator);
             subscription.AddMember("name", rj::Value(std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK).c_str(), allocator).Move(), allocator);
@@ -77,7 +77,7 @@ class WebsocketClientKraken final : public WebsocketClient {
     }
     std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
       CCAPI_LOGGER_FUNCTION_ENTER;
-      WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+      WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
       rj::Document document;
       rj::Document::AllocatorType& allocator = document.GetAllocator();
       document.Parse(textMessage.c_str());

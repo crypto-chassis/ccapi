@@ -32,6 +32,7 @@
 #include "ccapi_cpp/ccapi_event_dispatcher.h"
 #include "ccapi_cpp/ccapi_event_handler.h"
 #include "ccapi_cpp/ccapi_event.h"
+#include "ccapi_cpp/ccapi_service_context.h"
 namespace ccapi {
 class Session final {
  public:
@@ -68,12 +69,12 @@ class Session final {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::unordered_set<CorrelationId, CorrelationIdHash> correlationIdSet;
     std::unordered_set<CorrelationId, CorrelationIdHash> duplicateCorrelationIdSet;
-    std::unordered_set<std::string> unsupportedExchangePairSet;
+    std::unordered_set<std::string> unsupportedExchangeInstrumentSet;
     std::unordered_set<std::string> unsupportedExchangeFieldSet;
     std::map<std::string, SubscriptionList> subscriptionListByExchangeMap;
     std::unordered_set<std::string> unsupportedExchangeMarketDepthSet;
-    auto exchangePairMap = this->sessionConfigs.getExchangePairMap();
-    CCAPI_LOGGER_DEBUG("exchangePairMap = "+toString(exchangePairMap));
+    auto exchangeInstrumentMap = this->sessionConfigs.getExchangeInstrumentMap();
+    CCAPI_LOGGER_DEBUG("exchangeInstrumentMap = "+toString(exchangeInstrumentMap));
     auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
     CCAPI_LOGGER_DEBUG("exchangeFieldMap = "+toString(exchangeFieldMap));
     for (auto & subscription : subscriptionList.getSubscriptionList()) {
@@ -85,14 +86,14 @@ class Session final {
       }
       auto exchange = subscription.getExchange();
       CCAPI_LOGGER_DEBUG("exchange = "+exchange);
-      auto pair = subscription.getPair();
-      CCAPI_LOGGER_DEBUG("pair = "+pair);
+      auto instrument = subscription.getInstrument();
+      CCAPI_LOGGER_DEBUG("instrument = "+instrument);
       auto fieldSet = subscription.getFieldSet();
       auto optionMap = subscription.getOptionMap();
-      if (exchangePairMap.find(exchange) == exchangePairMap.end()
-          || std::find(exchangePairMap.find(exchange)->second.begin(), exchangePairMap.find(exchange)->second.end(),
-                       pair) == exchangePairMap.find(exchange)->second.end()) {
-        unsupportedExchangePairSet.insert(exchange + "|" + pair);
+      if (exchangeInstrumentMap.find(exchange) == exchangeInstrumentMap.end()
+          || std::find(exchangeInstrumentMap.find(exchange)->second.begin(), exchangeInstrumentMap.find(exchange)->second.end(),
+                       instrument) == exchangeInstrumentMap.find(exchange)->second.end()) {
+        unsupportedExchangeInstrumentSet.insert(exchange + "|" + instrument);
       }
       for (auto & field : fieldSet) {
         CCAPI_LOGGER_DEBUG("field = "+field);
@@ -118,8 +119,8 @@ class Session final {
     if (!duplicateCorrelationIdSet.empty()) {
       CCAPI_LOGGER_FATAL("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
     }
-    if (!unsupportedExchangePairSet.empty()) {
-      CCAPI_LOGGER_FATAL("unsupported exchange pairs: " + toString(unsupportedExchangePairSet));
+    if (!unsupportedExchangeInstrumentSet.empty()) {
+      CCAPI_LOGGER_FATAL("unsupported exchange instruments: " + toString(unsupportedExchangeInstrumentSet));
     }
     if (!unsupportedExchangeFieldSet.empty()) {
       CCAPI_LOGGER_FATAL("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
@@ -133,85 +134,141 @@ class Session final {
     if (this->eventDispatcher) {
       this->eventDispatcher->start();
     }
-    std::vector<std::thread> sessionWsThreads;
+    std::function<void(Event& event)> wsEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1);
+    auto sessionOptions = this->sessionOptions;
+    auto sessionConfigs = this->sessionConfigs;
+    ServiceContext* serviceConext = new ServiceContext();
+    serviceConext->initialize();
+    std::vector<WebsocketClient*> wsList;
+//    std::vector<std::thread> sessionWsThreads;
     for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
       auto exchange = subscriptionListByExchange.first;
       auto subscriptionList = subscriptionListByExchange.second;
       CCAPI_LOGGER_DEBUG("exchange = "+exchange);
       CCAPI_LOGGER_DEBUG("subscriptionList = "+toString(subscriptionList));
-      std::function<void(Event& event)> wsEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1);
-      auto sessionOptions = this->sessionOptions;
-      auto sessionConfigs = this->sessionConfigs;
-      sessionWsThreads.push_back(
-          std::thread([=]() {
-            // for unknown reasons, here making websocket clients living on the heap results in 2x faster!!!
-              bool found = false;
+      WebsocketClient* ws;
+      bool found = false;
 #ifdef ENABLE_COINBASE
-              if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-                WebsocketClientCoinbase* ws = new WebsocketClientCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-                found = true;
-                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-                ws->connect();
-                delete ws;
-              }
+      if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
+        ws = new WebsocketClientCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
 #endif
 #ifdef ENABLE_GEMINI
-              if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-                WebsocketClientGemini* ws = new WebsocketClientGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-                found = true;
-                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-                ws->connect();
-                delete ws;
-              }
+      if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
+        ws = new WebsocketClientGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
 #endif
 #ifdef ENABLE_KRAKEN
-              if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-                WebsocketClientKraken* ws = new WebsocketClientKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-                found = true;
-                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-                ws->connect();
-                delete ws;
-              }
+      if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
+        ws = new WebsocketClientKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
 #endif
 #ifdef ENABLE_BITSTAMP
-              if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-                WebsocketClientBitstamp* ws = new WebsocketClientBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-                found = true;
-                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-                ws->connect();
-                delete ws;
-              }
+      if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
+        ws = new WebsocketClientBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
 #endif
 #ifdef ENABLE_BITFINEX
-              if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-                WebsocketClientBitfinex* ws = new WebsocketClientBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-                found = true;
-                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-                ws->connect();
-                delete ws;
-              }
+      if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
+        ws = new WebsocketClientBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
 #endif
 #ifdef ENABLE_BITMEX
-              if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-                WebsocketClientBitmex* ws = new WebsocketClientBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-                found = true;
-                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-                ws->connect();
-                delete ws;
-              }
+      if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
+        ws = new WebsocketClientBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
 #endif
-              if (!found) {
-                CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
-              }
-              //    CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-              //    ws->connect();
-              //    delete ws;
-            }));
+      if (!found) {
+        CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
+      }
+      ws->connect();
+      wsList.push_back(ws);
     }
-    for (auto& sessionWsThread : sessionWsThreads) {
-      sessionWsThread.join();
-      CCAPI_LOGGER_TRACE("this thread has joined");
-    }
+
+//      sessionWsThreads.push_back(
+//          std::thread([=]() {
+//            // for unknown reasons, here making websocket clients living on the heap results in 2x faster!!!
+//              bool found = false;
+//#ifdef ENABLE_COINBASE
+//              if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
+//                WebsocketClientCoinbase* ws = new WebsocketClientCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                found = true;
+//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
+//                ws->connect();
+//                delete ws;
+//              }
+//#endif
+//#ifdef ENABLE_GEMINI
+//              if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
+//                WebsocketClientGemini* ws = new WebsocketClientGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                found = true;
+//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
+//                ws->connect();
+//                delete ws;
+//              }
+//#endif
+//#ifdef ENABLE_KRAKEN
+//              if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
+//                WebsocketClientKraken* ws = new WebsocketClientKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                found = true;
+//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
+//                ws->connect();
+//                delete ws;
+//              }
+//#endif
+//#ifdef ENABLE_BITSTAMP
+//              if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
+//                WebsocketClientBitstamp* ws = new WebsocketClientBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                found = true;
+//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
+//                ws->connect();
+//                delete ws;
+//              }
+//#endif
+//#ifdef ENABLE_BITFINEX
+//              if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
+//                WebsocketClientBitfinex* ws = new WebsocketClientBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                found = true;
+//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
+//                ws->connect();
+//                delete ws;
+//              }
+//#endif
+//#ifdef ENABLE_BITMEX
+//              if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
+//                WebsocketClientBitmex* ws = new WebsocketClientBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                found = true;
+//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
+//                ws->connect();
+//                delete ws;
+//              }
+//#endif
+//              if (!found) {
+//                CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
+//              }
+//              //    CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
+//              //    ws->connect();
+//              //    delete ws;
+//            }));
+//    }
+//    if (sessionOptions.enableSharedServiceContext) {
+      serviceConext->run();
+      for (const auto & ws : wsList) {
+        delete ws;
+      }
+      delete serviceConext;
+//    } else {
+//      for (auto& sessionWsThread : sessionWsThreads) {
+//        sessionWsThread.join();
+//        CCAPI_LOGGER_TRACE("this thread has joined");
+//      }
+//    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onEvent(Event& event) {
@@ -240,7 +297,7 @@ class Session final {
   EventQueue eventQueue;
 
  private:
-  std::string serviceName;
+//  std::string serviceName;
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   EventHandler* eventHandler;

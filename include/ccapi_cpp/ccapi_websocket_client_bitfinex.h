@@ -7,7 +7,7 @@
 namespace ccapi {
 class WebsocketClientBitfinex final : public WebsocketClient {
  public:
-  WebsocketClientBitfinex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs) {
+  WebsocketClientBitfinex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_BITFINEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -37,7 +37,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
     WebsocketClient::onClose(hdl);
@@ -51,7 +51,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
   }
   std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -261,7 +261,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
   }
   std::string calculateOrderBookChecksum(
-      const std::map<UDecimal, std::string>& snapshotBid, const std::map<UDecimal, std::string>& snapshotAsk) {
+      const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
     auto i = 0;
     auto i1 = snapshotBid.rbegin();
     auto i2 = snapshotAsk.begin();
@@ -284,7 +284,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
-  bool checkOrderBookChecksum(const std::map<UDecimal, std::string>& snapshotBid, const std::map<UDecimal, std::string>& snapshotAsk, const std::string& receivedOrderBookChecksumStr,
+  bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk, const std::string& receivedOrderBookChecksumStr,
       bool& shouldProcessRemainingMessage) override {
     if (this->sessionOptions.enableCheckOrderBookChecksum) {
       std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(

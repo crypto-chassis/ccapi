@@ -21,17 +21,17 @@ Logger* Logger::logger = 0;  // This line is needed.
 int main(int argc, char **argv) {
   using namespace ccapi;  // NOLINT(build/namespaces)
   SessionOptions sessionOptions;
-  std::string pair = "I want to name BTC against USD this";
+  std::string instrument = "my cool naming";
   std::string symbol = "BTC-USD";  // This is how Coinbase names BTC/USD
   SessionConfigs sessionConfigs({{
     CCAPI_EXCHANGE_NAME_COINBASE, {{
-        pair, symbol
+        instrument, symbol
     }}
   }});
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   SubscriptionList subscriptionList;
-  std::string topic = std::string("/") + CCAPI_EXCHANGE_NAME_COINBASE + "/" + pair;
+  std::string topic = std::string("/") + CCAPI_EXCHANGE_NAME_COINBASE + "/" + instrument;
   std::string fields = CCAPI_EXCHANGE_NAME_MARKET_DEPTH;
   std::string options = "";
   CorrelationId correlationId("This is my correlation id");

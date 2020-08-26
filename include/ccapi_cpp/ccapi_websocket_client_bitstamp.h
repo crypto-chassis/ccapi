@@ -6,7 +6,7 @@
 namespace ccapi {
 class WebsocketClientBitstamp final : public WebsocketClient {
  public:
-  WebsocketClientBitstamp(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs) {
+  WebsocketClientBitstamp(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_BITSTAMP;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -16,17 +16,17 @@ class WebsocketClientBitstamp final : public WebsocketClient {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WebsocketClient::onOpen(hdl);
 //    this->onOpen_2(hdl);
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     std::vector<std::string> requestStringList;
     for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdProductId.first;
-      for (auto & subscriptionListByPair : subscriptionListByChannelIdProductId.second) {
+      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdProductId.second) {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         document.AddMember("event", rj::Value("bts:subscribe").Move(), allocator);
         rj::Value data(rj::kObjectType);
-        auto productId = subscriptionListByPair.first;
+        auto productId = subscriptionListByInstrument.first;
         if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITSTAMP_CHANNEL_ORDER_BOOK) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
         }
@@ -57,13 +57,13 @@ class WebsocketClientBitstamp final : public WebsocketClient {
   }
   void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    TlsClient::connection_ptr con = this->tlsClient.get_con_from_hdl(hdl);
+    TlsClient::connection_ptr con = this->tlsClient->get_con_from_hdl(hdl);
     WebsocketClient::onTextMessage(hdl, textMessage, timeReceived);
 //    this->onTextMessage_2(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse(textMessage.c_str());

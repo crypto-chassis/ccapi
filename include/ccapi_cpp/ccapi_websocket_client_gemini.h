@@ -6,7 +6,7 @@
 namespace ccapi {
 class WebsocketClientGemini final : public WebsocketClient {
  public:
-  WebsocketClientGemini(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs) {
+  WebsocketClientGemini(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -16,11 +16,11 @@ class WebsocketClientGemini final : public WebsocketClient {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WebsocketClient::onOpen(hdl);
 //    this->onOpen_2(hdl);
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdProductId.first;
-      for (auto & subscriptionListByPair : subscriptionListByChannelIdProductId.second) {
-        auto productId = subscriptionListByPair.first;
+      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdProductId.second) {
+        auto productId = subscriptionListByInstrument.first;
         int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
         if (marketDepthSubscribedToExchange == 1) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
@@ -40,7 +40,7 @@ class WebsocketClientGemini final : public WebsocketClient {
   }
   std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     rj::Document document;
     document.Parse(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
@@ -108,7 +108,7 @@ class WebsocketClientGemini final : public WebsocketClient {
   std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) {
     std::map<std::string, std::set<std::string> > parameterBySymbolMap;
     for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto symbol = this->sessionConfigs.getExchangePairSymbolMap().at(this->name).at(subscription.getPair());
+      auto symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(subscription.getInstrument());
       auto fieldSet = subscription.getFieldSet();
       for (auto const& field : fieldSet) {
         auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(CCAPI_EXCHANGE_NAME_GEMINI).at(field), ",");
@@ -118,7 +118,7 @@ class WebsocketClientGemini final : public WebsocketClient {
     }
     std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
     for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto symbol = this->sessionConfigs.getExchangePairSymbolMap().at(this->name).at(subscription.getPair());
+      auto symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(subscription.getInstrument());
       std::string url = this->baseUrl + symbol;
       url += "?";
       std::set<std::string> parameterSet = parameterBySymbolMap[symbol];
@@ -191,7 +191,7 @@ class WebsocketClientGemini final : public WebsocketClient {
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
     WebsocketClient::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
