@@ -2,22 +2,22 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_COINBASE
-#include "ccapi_cpp/ccapi_websocket_client_coinbase.h"
+#include "ccapi_cpp/ccapi_market_data_service_coinbase.h"
 #endif
 #ifdef ENABLE_GEMINI
-#include "ccapi_cpp/ccapi_websocket_client_gemini.h"
+#include "ccapi_cpp/ccapi_market_data_service_gemini.h"
 #endif
 #ifdef ENABLE_KRAKEN
-#include "ccapi_cpp/ccapi_websocket_client_kraken.h"
+#include "ccapi_cpp/ccapi_market_data_service_kraken.h"
 #endif
 #ifdef ENABLE_BITSTAMP
-#include "ccapi_cpp/ccapi_websocket_client_bitstamp.h"
+#include "ccapi_cpp/ccapi_market_data_service_bitstamp.h"
 #endif
 #ifdef ENABLE_BITFINEX
-#include "ccapi_cpp/ccapi_websocket_client_bitfinex.h"
+#include "ccapi_cpp/ccapi_market_data_service_bitfinex.h"
 #endif
 #ifdef ENABLE_BITMEX
-#include "ccapi_cpp/ccapi_websocket_client_bitmex.h"
+#include "ccapi_cpp/ccapi_market_data_service_bitmex.h"
 #endif
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
@@ -139,48 +139,48 @@ class Session final {
     auto sessionConfigs = this->sessionConfigs;
     ServiceContext* serviceConext = new ServiceContext();
     serviceConext->initialize();
-    std::vector<WebsocketClient*> wsList;
+    std::vector<MarketDataService*> wsList;
 //    std::vector<std::thread> sessionWsThreads;
     for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
       auto exchange = subscriptionListByExchange.first;
       auto subscriptionList = subscriptionListByExchange.second;
       CCAPI_LOGGER_DEBUG("exchange = "+exchange);
       CCAPI_LOGGER_DEBUG("subscriptionList = "+toString(subscriptionList));
-      WebsocketClient* ws;
+      MarketDataService* ws;
       bool found = false;
 #ifdef ENABLE_COINBASE
       if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-        ws = new WebsocketClientCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        ws = new MarketDataServiceCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
         found = true;
       }
 #endif
 #ifdef ENABLE_GEMINI
       if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-        ws = new WebsocketClientGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        ws = new MarketDataServiceGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
         found = true;
       }
 #endif
 #ifdef ENABLE_KRAKEN
       if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-        ws = new WebsocketClientKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        ws = new MarketDataServiceKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
         found = true;
       }
 #endif
 #ifdef ENABLE_BITSTAMP
       if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-        ws = new WebsocketClientBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        ws = new MarketDataServiceBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
         found = true;
       }
 #endif
 #ifdef ENABLE_BITFINEX
       if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-        ws = new WebsocketClientBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        ws = new MarketDataServiceBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
         found = true;
       }
 #endif
 #ifdef ENABLE_BITMEX
       if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-        ws = new WebsocketClientBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        ws = new MarketDataServiceBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
         found = true;
       }
 #endif
@@ -197,7 +197,7 @@ class Session final {
 //              bool found = false;
 //#ifdef ENABLE_COINBASE
 //              if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-//                WebsocketClientCoinbase* ws = new WebsocketClientCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                MarketDataServiceCoinbase* ws = new MarketDataServiceCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
 //                found = true;
 //                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
 //                ws->connect();
@@ -206,7 +206,7 @@ class Session final {
 //#endif
 //#ifdef ENABLE_GEMINI
 //              if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-//                WebsocketClientGemini* ws = new WebsocketClientGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                MarketDataServiceGemini* ws = new MarketDataServiceGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
 //                found = true;
 //                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
 //                ws->connect();
@@ -215,7 +215,7 @@ class Session final {
 //#endif
 //#ifdef ENABLE_KRAKEN
 //              if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-//                WebsocketClientKraken* ws = new WebsocketClientKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                MarketDataServiceKraken* ws = new MarketDataServiceKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
 //                found = true;
 //                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
 //                ws->connect();
@@ -224,7 +224,7 @@ class Session final {
 //#endif
 //#ifdef ENABLE_BITSTAMP
 //              if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-//                WebsocketClientBitstamp* ws = new WebsocketClientBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                MarketDataServiceBitstamp* ws = new MarketDataServiceBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
 //                found = true;
 //                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
 //                ws->connect();
@@ -233,7 +233,7 @@ class Session final {
 //#endif
 //#ifdef ENABLE_BITFINEX
 //              if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-//                WebsocketClientBitfinex* ws = new WebsocketClientBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                MarketDataServiceBitfinex* ws = new MarketDataServiceBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
 //                found = true;
 //                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
 //                ws->connect();
@@ -242,7 +242,7 @@ class Session final {
 //#endif
 //#ifdef ENABLE_BITMEX
 //              if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-//                WebsocketClientBitmex* ws = new WebsocketClientBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
+//                MarketDataServiceBitmex* ws = new MarketDataServiceBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
 //                found = true;
 //                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
 //                ws->connect();

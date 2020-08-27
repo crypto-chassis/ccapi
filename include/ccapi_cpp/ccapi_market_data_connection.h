@@ -1,12 +1,12 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CONNECTION_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CONNECTION_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_CONNECTION_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_CONNECTION_H_
 #include <string>
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
 namespace ccapi {
-class WebsocketConnection final {
+class MarketDataConnection final {
  public:
-  WebsocketConnection(std::string url, SubscriptionList subscriptionList)
+  MarketDataConnection(std::string url, SubscriptionList subscriptionList)
       : url(url),
         subscriptionList(subscriptionList) {
     this->assignDummyId();
@@ -15,7 +15,7 @@ class WebsocketConnection final {
     this->id = this->url + "|" + ccapi::toString(this->subscriptionList);
   }
   std::string toString() const {
-    std::string output = "WebsocketConnection [id = " + id + ", url = " + url + ", subscriptionList = "
+    std::string output = "MarketDataConnection [id = " + id + ", url = " + url + ", subscriptionList = "
         + ccapi::toString(subscriptionList) + ", status = " + statusToString(status) + "]";
     return output;
   }
@@ -59,4 +59,4 @@ class WebsocketConnection final {
   Status status{Status::UNKNOWN};
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CONNECTION_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_CONNECTION_H_

@@ -1,12 +1,12 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_BITMEX_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_BITMEX_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_BITMEX
-#include "ccapi_cpp/ccapi_websocket_client.h"
+#include "ccapi_cpp/ccapi_market_data_service.h"
 namespace ccapi {
-class WebsocketClientBitmex final : public WebsocketClient {
+class MarketDataServiceBitmex final : public MarketDataService {
  public:
-  WebsocketClientBitmex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
+  MarketDataServiceBitmex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_BITMEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -14,17 +14,17 @@ class WebsocketClientBitmex final : public WebsocketClient {
  private:
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     this->priceByConnectionIdChannelIdProductIdPriceIdMap.erase(wsConnection.id);
-    WebsocketClient::onClose(hdl);
+    MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > priceByConnectionIdChannelIdProductIdPriceIdMap;
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketClient::onOpen(hdl);
+    MarketDataService::onOpen(hdl);
 //    this->onOpen_2(hdl);
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     std::vector<std::string> requestStringList;
     rj::Document document;
     document.SetObject();
@@ -66,28 +66,28 @@ class WebsocketClientBitmex final : public WebsocketClient {
   void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     TlsClient::connection_ptr con = this->tlsClient->get_con_from_hdl(hdl);
-    WebsocketClient::onTextMessage(hdl, textMessage, timeReceived);
+    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
 //    this->onTextMessage_2(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
+  std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_TRACE("quotedTextMessage = "+quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
-    std::vector<WebsocketMessage> wsMessageList;
+    std::vector<MarketDataMessage> wsMessageList;
     if (document.IsObject() && document.HasMember("table")) {
       std::string channelId = document["table"].GetString();
       if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10 || channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE) {
         std::string action = document["action"].GetString();
-        WebsocketMessage::RecapType recapType;
+        MarketDataMessage::RecapType recapType;
         if (action == "partial") {
-          recapType = WebsocketMessage::RecapType::SOLICITED;
+          recapType = MarketDataMessage::RecapType::SOLICITED;
         } else {
-          recapType = WebsocketMessage::RecapType::NONE;
+          recapType = MarketDataMessage::RecapType::NONE;
         }
         int i = 0;
         std::string productId;
@@ -97,32 +97,32 @@ class WebsocketClientBitmex final : public WebsocketClient {
             productId = x["symbol"].GetString();
             exchangeSubscriptionId = channelId + ":" + productId;
           }
-          WebsocketMessage wsMessage;
-          wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+          MarketDataMessage wsMessage;
+          wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
           wsMessage.recapType = recapType;
           wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           wsMessage.tp = UtilTime::parse(std::string(x["timestamp"].GetString()));
           if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE) {
-            WebsocketMessage::TypeForDataPoint dataPointBid;
-            dataPointBid.insert({WebsocketMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(x["bidPrice"].GetString())});
-            dataPointBid.insert({WebsocketMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(x["bidSize"].GetString())});
-            wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPointBid));
-            WebsocketMessage::TypeForDataPoint dataPointAsk;
-            dataPointAsk.insert({WebsocketMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(x["askPrice"].GetString())});
-            dataPointAsk.insert({WebsocketMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(x["askSize"].GetString())});
-            wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPointAsk));
+            MarketDataMessage::TypeForDataPoint dataPointBid;
+            dataPointBid.insert({MarketDataMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(x["bidPrice"].GetString())});
+            dataPointBid.insert({MarketDataMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(x["bidSize"].GetString())});
+            wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPointBid));
+            MarketDataMessage::TypeForDataPoint dataPointAsk;
+            dataPointAsk.insert({MarketDataMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(x["askPrice"].GetString())});
+            dataPointAsk.insert({MarketDataMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(x["askSize"].GetString())});
+            wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPointAsk));
           } else {
             for (const auto& y : x["bids"].GetArray()) {
-              WebsocketMessage::TypeForDataPoint dataPoint;
-              dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(y[0].GetString())});
-              dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(y[1].GetString())});
-              wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+              MarketDataMessage::TypeForDataPoint dataPoint;
+              dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(y[0].GetString())});
+              dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(y[1].GetString())});
+              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             }
             for (const auto& y : x["asks"].GetArray()) {
-              WebsocketMessage::TypeForDataPoint dataPoint;
-              dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(y[0].GetString())});
-              dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(y[1].GetString())});
-              wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+              MarketDataMessage::TypeForDataPoint dataPoint;
+              dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(y[0].GetString())});
+              dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(y[1].GetString())});
+              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           }
           wsMessageList.push_back(std::move(wsMessage));
@@ -130,13 +130,13 @@ class WebsocketClientBitmex final : public WebsocketClient {
         }
       } else if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2 || channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25) {
         std::string action = document["action"].GetString();
-        WebsocketMessage wsMessage;
-        wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+        MarketDataMessage wsMessage;
+        wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
         wsMessage.tp = timeReceived;
         if (action == "partial") {
-          wsMessage.recapType = WebsocketMessage::RecapType::SOLICITED;
+          wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
         } else {
-          wsMessage.recapType = WebsocketMessage::RecapType::NONE;
+          wsMessage.recapType = MarketDataMessage::RecapType::NONE;
         }
         int i = 0;
         std::string productId;
@@ -147,7 +147,7 @@ class WebsocketClientBitmex final : public WebsocketClient {
             exchangeSubscriptionId = channelId + ":" + productId;
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           }
-          WebsocketMessage::TypeForDataPoint dataPoint;
+          MarketDataMessage::TypeForDataPoint dataPoint;
           std::string price;
           std::string size;
           std::string priceId = x["id"].GetString();
@@ -169,9 +169,9 @@ class WebsocketClientBitmex final : public WebsocketClient {
             }
           }
           std::string side = x["side"].GetString();
-          dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, price});
-          dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, size});
-          wsMessage.data[side == "Buy" ? WebsocketMessage::DataType::BID : WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, price});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, size});
+          wsMessage.data[side == "Buy" ? MarketDataMessage::DataType::BID : MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
           ++i;
         }
         if (i > 0) {
@@ -187,4 +187,4 @@ class WebsocketClientBitmex final : public WebsocketClient {
 };
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_BITMEX_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_

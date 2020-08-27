@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_H_
 
 #ifndef WEBSOCKETPP_USE_BOOST_ASIO
 #define ASIO_STANDALONE
@@ -15,7 +15,7 @@
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
 #include "ccapi_cpp/ccapi_exchange.h"
-#include "ccapi_cpp/ccapi_websocket_message.h"
+#include "ccapi_market_data_message.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
@@ -26,28 +26,28 @@
 #include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
-#include "ccapi_cpp/ccapi_websocket_connection.h"
+#include "ccapi_market_data_connection.h"
 #include "ccapi_service_context.h"
 namespace wspp = websocketpp;
 namespace rj = rapidjson;
 namespace ccapi {
-class WebsocketClient {
+class MarketDataService {
  public:
-  WebsocketClient(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler,
+  MarketDataService(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler,
                   SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext)
       : subscriptionList(subscriptionList),
         wsEventHandler(wsEventHandler),
         sessionOptions(sessionOptions),
         sessionConfigs(sessionConfigs) {
     this->tlsClient = &serviceContext.tlsClient;
-    this->tlsClient->set_tls_init_handler(std::bind(&WebsocketClient::onTlsInit, std::placeholders::_1));
+    this->tlsClient->set_tls_init_handler(std::bind(&MarketDataService::onTlsInit, std::placeholders::_1));
     CCAPI_LOGGER_DEBUG("endpoint tls init handler set");
     this->pingIntervalMilliSeconds = sessionOptions.pingIntervalMilliSeconds;
     CCAPI_LOGGER_INFO("this->pingIntervalMilliSeconds = "+toString(this->pingIntervalMilliSeconds));
     this->pongTimeoutMilliSeconds = sessionOptions.pongTimeoutMilliSeconds;
     CCAPI_LOGGER_INFO("this->pongTimeoutMilliSeconds = "+toString(this->pongTimeoutMilliSeconds));
   }
-  virtual ~WebsocketClient() {
+  virtual ~MarketDataService() {
   }
   void connect() {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -57,10 +57,10 @@ class WebsocketClient {
 //    this->tlsClient->init_asio();
 //    this->tlsClient->start_perpetual();
 //    CCAPI_LOGGER_DEBUG("endpoint asio initialized");
-//    this->tlsClient->set_tls_init_handler(std::bind(&WebsocketClient::onTlsInit, this, std::placeholders::_1));
+//    this->tlsClient->set_tls_init_handler(std::bind(&MarketDataService::onTlsInit, this, std::placeholders::_1));
 //    CCAPI_LOGGER_DEBUG("endpoint tls init handler set");
-    this->wsConnectionMap = this->buildWebsocketConnectionMap(this->baseUrl, this->subscriptionList);
-    std::map<std::string, WebsocketConnection> actualWebsocketwsConnectionMap;
+    this->wsConnectionMap = this->buildMarketDataConnectionMap(this->baseUrl, this->subscriptionList);
+    std::map<std::string, MarketDataConnection> actualWebsocketwsConnectionMap;
     for (const auto & x : this->wsConnectionMap) {
       auto wsConnectionId = x.first;
       CCAPI_LOGGER_DEBUG("dummy wsConnectionId = "+wsConnectionId);
@@ -68,7 +68,7 @@ class WebsocketClient {
       CCAPI_LOGGER_DEBUG("wsConnection = "+toString(wsConnection));
       this->connect(wsConnection);
       CCAPI_LOGGER_DEBUG("wsConnectionId "+wsConnectionId+" requested");
-      actualWebsocketwsConnectionMap.insert(std::pair<std::string, WebsocketConnection>(wsConnection.id, wsConnection));
+      actualWebsocketwsConnectionMap.insert(std::pair<std::string, MarketDataConnection>(wsConnection.id, wsConnection));
     }
     this->wsConnectionMap = actualWebsocketwsConnectionMap;
     CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
@@ -102,14 +102,14 @@ class WebsocketClient {
     return ctx;
   }
 //  SslContext onTlsInit(wspp::connection_hdl hdl) {
-//    return WebsocketClient::onTlsInitStatic(hdl);
+//    return MarketDataService::onTlsInitStatic(hdl);
 //  }
   virtual void onOpen(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto now = std::chrono::system_clock::now();
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
         this->tlsClient->get_con_from_hdl(hdl));
-    wsConnection.status = WebsocketConnection::Status::OPEN;
+    wsConnection.status = MarketDataConnection::Status::OPEN;
     CCAPI_LOGGER_INFO("connection " +toString(wsConnection) + " established");
     this->connectNumRetryOnFailByConnectionUrlMap[wsConnection.url] = 0;
     Event event;
@@ -126,7 +126,7 @@ class WebsocketClient {
       this->setPingPongTimer(wsConnection, hdl);
     }
     CCAPI_LOGGER_TRACE("this->subscriptionList = "+toString(this->subscriptionList));
-//    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+//    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
 //        this->tlsClient->get_con_from_hdl(hdl));
     for (const auto & subscription : this->wsConnectionMap.at(wsConnection.id).subscriptionList.getSubscriptionList()) {
       auto instrument = subscription.getInstrument();
@@ -182,7 +182,7 @@ class WebsocketClient {
 //  void onOpen_2(wspp::connection_hdl hdl) {
 //    CCAPI_LOGGER_FUNCTION_ENTER;
 //    CCAPI_LOGGER_TRACE("this->subscriptionList = "+toString(this->subscriptionList));
-//    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+//    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
 //        this->tlsClient->get_con_from_hdl(hdl));
 //    for (const auto & subscription : this->wsConnectionMap.at(wsConnection.id).subscriptionList.getSubscriptionList()) {
 //      auto instrument = subscription.getInstrument();
@@ -237,11 +237,11 @@ class WebsocketClient {
 //  }
   virtual void onFail(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
         this->tlsClient->get_con_from_hdl(hdl));
-    wsConnection.status = WebsocketConnection::Status::FAILED;
+    wsConnection.status = MarketDataConnection::Status::FAILED;
     CCAPI_LOGGER_ERROR("connection " + toString(wsConnection) + " has failed before opening");
-    WebsocketConnection thisWsConnection = wsConnection;
+    MarketDataConnection thisWsConnection = wsConnection;
     this->wsConnectionMap.erase(thisWsConnection.id);
     long seconds = std::round(
         UtilAlgorithm::exponentialBackoff(
@@ -263,7 +263,7 @@ class WebsocketClient {
                   auto thatWsConnection = thisWsConnection;
                   thatWsConnection.assignDummyId();
                   this->connect(thatWsConnection);
-                  this->wsConnectionMap.insert(std::pair<std::string, WebsocketConnection>(thatWsConnection.id, thatWsConnection));
+                  this->wsConnectionMap.insert(std::pair<std::string, MarketDataConnection>(thatWsConnection.id, thatWsConnection));
                   this->connectNumRetryOnFailByConnectionUrlMap[thatWsConnection.url] += 1;
                 }
               }
@@ -274,8 +274,8 @@ class WebsocketClient {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto now = std::chrono::system_clock::now();
     TlsClient::connection_ptr con = this->tlsClient->get_con_from_hdl(hdl);
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(con);
-    wsConnection.status = WebsocketConnection::Status::CLOSED;
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(con);
+    wsConnection.status = MarketDataConnection::Status::CLOSED;
     CCAPI_LOGGER_INFO("connection " +toString(wsConnection) + " is closed");
     std::stringstream s;
     s << "close code: " << con->get_remote_close_code() << " ("
@@ -328,19 +328,19 @@ class WebsocketClient {
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
     }
     this->orderBookChecksumByConnectionIdProductIdMap.erase(wsConnection.id);
-    WebsocketConnection thisWsConnection = wsConnection;
+    MarketDataConnection thisWsConnection = wsConnection;
     this->wsConnectionMap.erase(thisWsConnection.id);
     thisWsConnection.assignDummyId();
     this->connect(thisWsConnection);
-    this->wsConnectionMap.insert(std::pair<std::string, WebsocketConnection>(thisWsConnection.id, thisWsConnection));
+    this->wsConnectionMap.insert(std::pair<std::string, MarketDataConnection>(thisWsConnection.id, thisWsConnection));
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onMessage(wspp::connection_hdl hdl, TlsClient::message_ptr msg) {
     auto now = std::chrono::system_clock::now();
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
         this->tlsClient->get_con_from_hdl(hdl));
     CCAPI_LOGGER_DEBUG("received a message from connection "+toString(wsConnection));
-    if (wsConnection.status == WebsocketConnection::Status::CLOSING
+    if (wsConnection.status == MarketDataConnection::Status::CLOSING
         && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
       CCAPI_LOGGER_WARN("should not process remaining message on closing");
       return;
@@ -359,14 +359,14 @@ class WebsocketClient {
   void onPong(wspp::connection_hdl hdl, std::string payload) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto now = std::chrono::system_clock::now();
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
         this->tlsClient->get_con_from_hdl(hdl));
     lastPongTpByConnectionIdMap[wsConnection.id] = now;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
         this->tlsClient->get_con_from_hdl(hdl));
     auto wsMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_TRACE("websocketMessageList = "+toString(wsMessageList));
@@ -374,8 +374,8 @@ class WebsocketClient {
       for (auto const & wsMessage : wsMessageList) {
         Event event;
         bool shouldEmitEvent = true;
-        if (wsMessage.type == WebsocketMessage::Type::MARKET_DATA_EVENTS) {
-          if (wsMessage.recapType == WebsocketMessage::RecapType::NONE
+        if (wsMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
+          if (wsMessage.recapType == MarketDataMessage::RecapType::NONE
               && this->sessionOptions.warnLateEventMaxMilliSeconds > 0
               && std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - wsMessage.tp).count()
                   > this->sessionOptions.warnLateEventMaxMilliSeconds) {
@@ -395,14 +395,14 @@ class WebsocketClient {
           auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
           auto correlationIdList =
               this->correlationIdListByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
-          if (wsMessage.data.find(WebsocketMessage::DataType::BID) != wsMessage.data.end()
-              || wsMessage.data.find(WebsocketMessage::DataType::ASK) != wsMessage.data.end()) {
+          if (wsMessage.data.find(MarketDataMessage::DataType::BID) != wsMessage.data.end()
+              || wsMessage.data.find(MarketDataMessage::DataType::ASK) != wsMessage.data.end()) {
             std::map<Decimal, std::string>& snapshotBid =
                 this->snapshotBidByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
             std::map<Decimal, std::string>& snapshotAsk =
                 this->snapshotAskByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
             if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]
-                && wsMessage.recapType == WebsocketMessage::RecapType::NONE) {
+                && wsMessage.recapType == MarketDataMessage::RecapType::NONE) {
               this->processUpdateSnapshot(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
                                             timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList,
                                             snapshotBid, snapshotAsk);
@@ -433,7 +433,7 @@ class WebsocketClient {
                   return;
                 }
               }
-            } else if (wsMessage.recapType == WebsocketMessage::RecapType::SOLICITED) {
+            } else if (wsMessage.recapType == MarketDataMessage::RecapType::SOLICITED) {
               this->processInitialSnapshot(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
                                              timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList,
                                              snapshotBid, snapshotAsk);
@@ -460,7 +460,7 @@ class WebsocketClient {
   }
 //  void onTextMessage_2(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) {
 //    CCAPI_LOGGER_FUNCTION_ENTER;
-//    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(
+//    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
 //        this->tlsClient->get_con_from_hdl(hdl));
 //    auto wsMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
 //    CCAPI_LOGGER_TRACE("websocketMessageList = "+toString(wsMessageList));
@@ -468,8 +468,8 @@ class WebsocketClient {
 //      for (auto const & wsMessage : wsMessageList) {
 //        Event event;
 //        bool shouldEmitEvent = true;
-//        if (wsMessage.type == WebsocketMessage::Type::MARKET_DATA_EVENTS) {
-//          if (wsMessage.recapType == WebsocketMessage::RecapType::NONE
+//        if (wsMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
+//          if (wsMessage.recapType == MarketDataMessage::RecapType::NONE
 //              && this->sessionOptions.warnLateEventMaxMilliSeconds > 0
 //              && std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - wsMessage.tp).count()
 //                  > this->sessionOptions.warnLateEventMaxMilliSeconds) {
@@ -489,14 +489,14 @@ class WebsocketClient {
 //          auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
 //          auto correlationIdList =
 //              this->correlationIdListByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
-//          if (wsMessage.data.find(WebsocketMessage::DataType::BID) != wsMessage.data.end()
-//              || wsMessage.data.find(WebsocketMessage::DataType::ASK) != wsMessage.data.end()) {
+//          if (wsMessage.data.find(MarketDataMessage::DataType::BID) != wsMessage.data.end()
+//              || wsMessage.data.find(MarketDataMessage::DataType::ASK) != wsMessage.data.end()) {
 //            std::map<Decimal, std::string>& snapshotBid =
 //                this->snapshotBidByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
 //            std::map<Decimal, std::string>& snapshotAsk =
 //                this->snapshotAskByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
 //            if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]
-//                && wsMessage.recapType == WebsocketMessage::RecapType::NONE) {
+//                && wsMessage.recapType == MarketDataMessage::RecapType::NONE) {
 //              this->processUpdateSnapshot(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
 //                                            timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList,
 //                                            snapshotBid, snapshotAsk);
@@ -527,7 +527,7 @@ class WebsocketClient {
 //                  return;
 //                }
 //              }
-//            } else if (wsMessage.recapType == WebsocketMessage::RecapType::SOLICITED) {
+//            } else if (wsMessage.recapType == MarketDataMessage::RecapType::SOLICITED) {
 //              this->processInitialSnapshot(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
 //                                             timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList,
 //                                             snapshotBid, snapshotAsk);
@@ -552,21 +552,21 @@ class WebsocketClient {
 //    }
 //    CCAPI_LOGGER_FUNCTION_EXIT;
 //  }
-  virtual std::map<std::string, WebsocketConnection> buildWebsocketConnectionMap(
+  virtual std::map<std::string, MarketDataConnection> buildMarketDataConnectionMap(
       std::string url, const SubscriptionList& subscriptionList) {
     if (this->sessionOptions.enableOneConnectionPerSubscription) {
-      std::map<std::string, WebsocketConnection> wsConnectionMap;
+      std::map<std::string, MarketDataConnection> wsConnectionMap;
       CCAPI_LOGGER_TRACE("subscriptionList = "+toString(subscriptionList));
       for (const auto & subscription : subscriptionList.getSubscriptionList()) {
         SubscriptionList subSubscriptionList;
         subSubscriptionList.add(subscription);
-        WebsocketConnection wsConnection(url, subSubscriptionList);
-        wsConnectionMap.insert(std::pair<std::string, WebsocketConnection>(wsConnection.id, wsConnection));
+        MarketDataConnection wsConnection(url, subSubscriptionList);
+        wsConnectionMap.insert(std::pair<std::string, MarketDataConnection>(wsConnection.id, wsConnection));
       }
       CCAPI_LOGGER_TRACE("wsConnectionMap = "+toString(wsConnectionMap));
       return wsConnectionMap;
     } else {
-      WebsocketConnection wsConnection(url, subscriptionList);
+      MarketDataConnection wsConnection(url, subscriptionList);
       return { {wsConnection.id, wsConnection}};
     }
   }
@@ -702,8 +702,8 @@ class WebsocketClient {
 //        return std::make_pair(Decimal("0"), "");
 //      }
 //    }
-  void connect(WebsocketConnection& wsConnection) {
-    wsConnection.status = WebsocketConnection::Status::CONNECTING;
+  void connect(MarketDataConnection& wsConnection) {
+    wsConnection.status = MarketDataConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on dummy id "+wsConnection.id);
     std::string url = wsConnection.url;
     ErrorCode ec;
@@ -713,23 +713,23 @@ class WebsocketClient {
     if (ec) {
       CCAPI_LOGGER_FATAL("connection initialization error: " + ec.message());
     }
-    con->set_open_handler(std::bind(&WebsocketClient::onOpen, this, std::placeholders::_1));
-    con->set_fail_handler(std::bind(&WebsocketClient::onFail, this, std::placeholders::_1));
-    con->set_close_handler(std::bind(&WebsocketClient::onClose, this, std::placeholders::_1));
+    con->set_open_handler(std::bind(&MarketDataService::onOpen, this, std::placeholders::_1));
+    con->set_fail_handler(std::bind(&MarketDataService::onFail, this, std::placeholders::_1));
+    con->set_close_handler(std::bind(&MarketDataService::onClose, this, std::placeholders::_1));
     con->set_message_handler(
-        std::bind(&WebsocketClient::onMessage, this, std::placeholders::_1, std::placeholders::_2));
+        std::bind(&MarketDataService::onMessage, this, std::placeholders::_1, std::placeholders::_2));
     if (this->sessionOptions.enableCheckHeartbeat) {
-      con->set_pong_handler(std::bind(&WebsocketClient::onPong, this, std::placeholders::_1, std::placeholders::_2));
+      con->set_pong_handler(std::bind(&MarketDataService::onPong, this, std::placeholders::_1, std::placeholders::_2));
     }
     this->tlsClient->connect(con);
   }
-  void close(WebsocketConnection& wsConnection, wspp::connection_hdl hdl, wspp::close::status::value const code,
+  void close(MarketDataConnection& wsConnection, wspp::connection_hdl hdl, wspp::close::status::value const code,
              std::string const & reason, ErrorCode & ec) {
-    if (wsConnection.status == WebsocketConnection::Status::CLOSING) {
+    if (wsConnection.status == MarketDataConnection::Status::CLOSING) {
       CCAPI_LOGGER_WARN("websocket connection is already in the state of closing");
       return;
     }
-    wsConnection.status = WebsocketConnection::Status::CLOSING;
+    wsConnection.status = MarketDataConnection::Status::CLOSING;
     this->tlsClient->close(hdl, code, reason, ec);
   }
   void send(wspp::connection_hdl hdl, std::string const & payload, wspp::frame::opcode::value op, ErrorCode & ec) {
@@ -747,9 +747,9 @@ class WebsocketClient {
       std::copy_n(original.begin(), nToCopy, std::inserter(copy, copy.end()));
     }
   }
-  void processInitialSnapshot(const WebsocketConnection& wsConnection, const std::string& channelId,
+  void processInitialSnapshot(const MarketDataConnection& wsConnection, const std::string& channelId,
                                 const std::string& productId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
-                                const TimePoint& timeReceived, const WebsocketMessage::TypeForData & input,
+                                const TimePoint& timeReceived, const MarketDataMessage::TypeForData & input,
                                 const std::set<std::string>& fieldSet,
                                 const std::map<std::string, std::string>& optionMap,
                                 const std::vector<CorrelationId>& correlationIdList,
@@ -761,22 +761,22 @@ class WebsocketClient {
     for (const auto & x : input) {
       auto type = x.first;
       auto priceLevelList = x.second;
-      if (type == WebsocketMessage::DataType::BID) {
+      if (type == MarketDataMessage::DataType::BID) {
         for (const auto & y : priceLevelList) {
-          auto price = y.at(WebsocketMessage::DataFieldType::PRICE);
-          auto size = y.at(WebsocketMessage::DataFieldType::SIZE);
+          auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
+          auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
           snapshotBid.insert(std::pair<Decimal, std::string>(Decimal(price), size));
         }
         CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, "+toString(maxMarketDepth)+") = "+lastNToString(snapshotBid, maxMarketDepth));
-      } else if (type == WebsocketMessage::DataType::ASK) {
+      } else if (type == MarketDataMessage::DataType::ASK) {
         for (const auto & y : priceLevelList) {
-          auto price = y.at(WebsocketMessage::DataFieldType::PRICE);
-          auto size = y.at(WebsocketMessage::DataFieldType::SIZE);
+          auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
+          auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
           snapshotAsk.insert(std::pair<Decimal, std::string>(Decimal(price), size));
         }
         CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, "+toString(maxMarketDepth)+") = "+firstNToString(snapshotAsk, maxMarketDepth));
       } else {
-        CCAPI_LOGGER_WARN("extra type "+WebsocketMessage::dataTypeToString(type));
+        CCAPI_LOGGER_WARN("extra type "+MarketDataMessage::dataTypeToString(type));
       }
     }
     std::vector<Element> elementList;
@@ -824,15 +824,15 @@ class WebsocketClient {
       }
     }
   }
-  void processUpdateSnapshot(const WebsocketConnection& wsConnection, const std::string& channelId,
+  void processUpdateSnapshot(const MarketDataConnection& wsConnection, const std::string& channelId,
                                const std::string& productId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
-                               const TimePoint& timeReceived, const WebsocketMessage::TypeForData& input,
+                               const TimePoint& timeReceived, const MarketDataMessage::TypeForData& input,
                                const std::set<std::string>& fieldSet,
                                const std::map<std::string, std::string>& optionMap,
                                const std::vector<CorrelationId>& correlationIdList,
                                std::map<Decimal, std::string>& snapshotBid,
                                std::map<Decimal, std::string>& snapshotAsk) {
-    CCAPI_LOGGER_TRACE("input = " + WebsocketMessage::dataToString(input));
+    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
     if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
       std::vector<Message> messageList;
       CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
@@ -847,31 +847,31 @@ class WebsocketClient {
       CCAPI_LOGGER_TRACE(
           "firstNToString(snapshotAsk, "+toString(maxMarketDepth)+") = " + firstNToString(snapshotAsk, maxMarketDepth));
       if (this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
-        if (input.find(WebsocketMessage::DataType::BID) != input.end()) {
+        if (input.find(MarketDataMessage::DataType::BID) != input.end()) {
           snapshotBid.clear();
         }
-        if (input.find(WebsocketMessage::DataType::ASK) != input.end()) {
+        if (input.find(MarketDataMessage::DataType::ASK) != input.end()) {
           snapshotAsk.clear();
         }
       }
       for (const auto & x : input) {
         auto type = x.first;
         auto priceLevelList = x.second;
-        if (type == WebsocketMessage::DataType::BID) {
+        if (type == MarketDataMessage::DataType::BID) {
           for (const auto & y : priceLevelList) {
-            auto price = y.at(WebsocketMessage::DataFieldType::PRICE);
-            auto size = y.at(WebsocketMessage::DataFieldType::SIZE);
+            auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
+            auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
             this->updateOrderBook(snapshotBid, Decimal(price), size);
           }
-        } else if (type == WebsocketMessage::DataType::ASK) {
+        } else if (type == MarketDataMessage::DataType::ASK) {
           for (const auto & y : priceLevelList) {
-            auto price = y.at(WebsocketMessage::DataFieldType::PRICE);
-            auto size = y.at(WebsocketMessage::DataFieldType::SIZE);
+            auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
+            auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
             this->updateOrderBook(snapshotAsk, Decimal(price), size);
           }
         } else {
           CCAPI_LOGGER_WARN(
-              "extra type " + WebsocketMessage::dataTypeToString(type));
+              "extra type " + MarketDataMessage::dataTypeToString(type));
         }
       }
       CCAPI_LOGGER_TRACE(
@@ -961,9 +961,9 @@ class WebsocketClient {
       }
     }
   }
-  virtual std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage,
+  virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage,
                                                            TimePoint& timeReceived) {
-    std::vector<WebsocketMessage> x;
+    std::vector<MarketDataMessage> x;
     return x;
   }
   virtual void alignSnapshot(std::map<Decimal, std::string>& snapshotBid, std::map<Decimal, std::string>& snapshotAsk,
@@ -979,7 +979,7 @@ class WebsocketClient {
     }
     CCAPI_LOGGER_TRACE("snapshotAsk.size() = "+toString(snapshotAsk.size()));
   }
-  WebsocketConnection& getWebsocketConnectionFromConnectionPtr(TlsClient::connection_ptr connectionPtr) {
+  MarketDataConnection& getMarketDataConnectionFromConnectionPtr(TlsClient::connection_ptr connectionPtr) {
     return this->wsConnectionMap.at(this->connectionAddressToString(connectionPtr));
   }
   std::string connectionAddressToString(const TlsClient::connection_ptr con) {
@@ -988,9 +988,9 @@ class WebsocketClient {
     ss << address;
     return ss.str();
   }
-  void setPingPongTimer(WebsocketConnection& wsConnection, wspp::connection_hdl hdl) {
+  void setPingPongTimer(MarketDataConnection& wsConnection, wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    if (wsConnection.status == WebsocketConnection::Status::OPEN) {
+    if (wsConnection.status == MarketDataConnection::Status::OPEN) {
       if (this->pingTimerByConnectionIdMap.find(wsConnection.id) != this->pingTimerByConnectionIdMap.end()) {
         this->pingTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       }
@@ -1002,7 +1002,7 @@ class WebsocketClient {
                   if (ec) {
                     CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", ping timer error: "+ec.message());
                   } else {
-                    if (this->wsConnectionMap.at(wsConnection.id).status == WebsocketConnection::Status::OPEN) {
+                    if (this->wsConnectionMap.at(wsConnection.id).status == MarketDataConnection::Status::OPEN) {
                       ErrorCode ec;
                       this->ping(hdl, "", ec);
                       if (ec) {
@@ -1016,7 +1016,7 @@ class WebsocketClient {
                               if (ec) {
                                 CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", pong time out timer error: "+ec.message());
                               } else {
-                                if (this->wsConnectionMap.at(wsConnection.id).status == WebsocketConnection::Status::OPEN) {
+                                if (this->wsConnectionMap.at(wsConnection.id).status == MarketDataConnection::Status::OPEN) {
                                   auto now = std::chrono::system_clock::now();
                                   if (this->lastPongTpByConnectionIdMap.find(wsConnection.id) != this->lastPongTpByConnectionIdMap.end() &&
                                       std::chrono::duration_cast<std::chrono::milliseconds>(now - this->lastPongTpByConnectionIdMap.at(wsConnection.id)).count() >= this->pongTimeoutMilliSeconds) {
@@ -1068,7 +1068,7 @@ class WebsocketClient {
     }
     return true;
   }
-  virtual void onIncorrectStatesFound(WebsocketConnection& wsConnection, wspp::connection_hdl hdl,
+  virtual void onIncorrectStatesFound(MarketDataConnection& wsConnection, wspp::connection_hdl hdl,
                                       const std::string& textMessage, const TimePoint& timeReceived,
                                       const std::string& exchangeSubscriptionId, std::string const & reason) {
     std::string errorMessage = "incorrect states found: connection = "+toString(wsConnection)+
@@ -1100,12 +1100,12 @@ class WebsocketClient {
     return availableMarketDepth[i];
   }
   void setConflateTimer(const TimePoint& previousConflateTp, const std::chrono::milliseconds& interval,
-                        const std::chrono::milliseconds& gracePeriod, const WebsocketConnection& wsConnection,
+                        const std::chrono::milliseconds& gracePeriod, const MarketDataConnection& wsConnection,
                         const std::string& channelId, const std::string& productId,
                         const std::set<std::string>& fieldSet, const std::map<std::string, std::string>& optionMap,
                         const std::vector<CorrelationId>& correlationIdList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    if (wsConnection.status == WebsocketConnection::Status::OPEN) {
+    if (wsConnection.status == MarketDataConnection::Status::OPEN) {
       if (this->conflateTimerMapByConnectionIdChannelIdProductIdMap.find(wsConnection.id)
           != this->conflateTimerMapByConnectionIdChannelIdProductIdMap.end()
           && this->conflateTimerMapByConnectionIdChannelIdProductIdMap[wsConnection.id].find(channelId)
@@ -1126,7 +1126,7 @@ class WebsocketClient {
                       CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", conflate timer error: "+ec.message());
                       //      }
                     } else {
-                      if (this->wsConnectionMap.at(wsConnection.id).status == WebsocketConnection::Status::OPEN) {
+                      if (this->wsConnectionMap.at(wsConnection.id).status == MarketDataConnection::Status::OPEN) {
                         auto conflateTp = previousConflateTp + interval;
                         if (conflateTp > this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId)) {
                           Event event;
@@ -1171,7 +1171,7 @@ class WebsocketClient {
   TlsClient* tlsClient;
   std::string baseUrl;
   std::string name;
-  std::map<std::string, WebsocketConnection> wsConnectionMap;
+  std::map<std::string, MarketDataConnection> wsConnectionMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::set<std::string> > > > fieldSetByConnectionIdChannelIdProductIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > optionMapByConnectionIdChannelIdProductIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, int> > > marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap;
@@ -1202,4 +1202,4 @@ class WebsocketClient {
   std::function<void(Event& event)> wsEventHandler;
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_H_

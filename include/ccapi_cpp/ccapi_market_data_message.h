@@ -1,10 +1,10 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_MESSAGE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_MESSAGE_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_MESSAGE_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_MESSAGE_H_
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util.h"
 // #include "ccapi_message.h"
 namespace ccapi {
-class WebsocketMessage final {
+class MarketDataMessage final {
  public:
   enum class Type {
     UNKNOWN,
@@ -129,7 +129,7 @@ class WebsocketMessage final {
     return output;
   }
   std::string toString() const {
-    std::string output = "WebsocketMessage [type = " + typeToString(type) + ", recapType = "
+    std::string output = "MarketDataMessage [type = " + typeToString(type) + ", recapType = "
         + recapTypeToString(recapType) + ", tp = " + ccapi::toString(tp) + ", exchangeSubscriptionId = "
         + exchangeSubscriptionId + ", data = " + dataToString(data) + "]";
     return output;
@@ -141,4 +141,4 @@ class WebsocketMessage final {
   TypeForData data;
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_MESSAGE_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_MESSAGE_H_

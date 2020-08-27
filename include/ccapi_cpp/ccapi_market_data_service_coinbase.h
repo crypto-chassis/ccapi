@@ -1,12 +1,12 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_COINBASE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_COINBASE_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_COINBASE_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_COINBASE_H_
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_COINBASE
-#include "ccapi_cpp/ccapi_websocket_client.h"
+#include "ccapi_cpp/ccapi_market_data_service.h"
 namespace ccapi {
-class WebsocketClientCoinbase final : public WebsocketClient {
+class MarketDataServiceCoinbase final : public MarketDataService {
  public:
-  WebsocketClientCoinbase(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
+  MarketDataServiceCoinbase(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -14,9 +14,9 @@ class WebsocketClientCoinbase final : public WebsocketClient {
  private:
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketClient::onOpen(hdl);
+    MarketDataService::onOpen(hdl);
 //    this->onOpen_2(hdl);
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     std::vector<std::string> requestStringList;
     rj::Document document;
     document.SetObject();
@@ -66,37 +66,37 @@ class WebsocketClientCoinbase final : public WebsocketClient {
   }
   void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketClient::onTextMessage(hdl, textMessage, timeReceived);
+    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
 //    this->onTextMessage_2(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
+  std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<WebsocketMessage> wsMessageList;
+    std::vector<MarketDataMessage> wsMessageList;
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = "+type);
     if (type == "l2update") {
       auto productId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
       "|"+productId;
-      WebsocketMessage wsMessage;
-      wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+      MarketDataMessage wsMessage;
+      wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       wsMessage.tp = UtilTime::parse(std::string(document["time"].GetString()));
-      wsMessage.recapType = WebsocketMessage::RecapType::NONE;
+      wsMessage.recapType = MarketDataMessage::RecapType::NONE;
       const rj::Value& changes = document["changes"];
       for (auto& change : changes.GetArray()) {
         auto side = std::string(change[0].GetString());
-        WebsocketMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(change[1].GetString())});
-        dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(change[2].GetString())});
+        MarketDataMessage::TypeForDataPoint dataPoint;
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(change[1].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(change[2].GetString())});
         if (side == "buy") {
-          wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+          wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
         } else {
-          wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+          wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
         }
       }
       wsMessageList.push_back(std::move(wsMessage));
@@ -108,23 +108,23 @@ class WebsocketClientCoinbase final : public WebsocketClient {
       auto productId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
       "|"+productId;
-      WebsocketMessage wsMessage;
-      wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+      MarketDataMessage wsMessage;
+      wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-      wsMessage.recapType = WebsocketMessage::RecapType::SOLICITED;
+      wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
       const rj::Value& bids = document["bids"];
       for (auto& x : bids.GetArray()) {
-        WebsocketMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-        dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-        wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+        MarketDataMessage::TypeForDataPoint dataPoint;
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+        wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
       }
       const rj::Value& asks = document["asks"];
       for (auto& x : asks.GetArray()) {
-        WebsocketMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-        dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-        wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+        MarketDataMessage::TypeForDataPoint dataPoint;
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+        wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
       }
       wsMessageList.push_back(std::move(wsMessage));
     } else if (type == "subscriptions") {
@@ -138,4 +138,4 @@ class WebsocketClientCoinbase final : public WebsocketClient {
 };
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_COINBASE_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_COINBASE_H_
