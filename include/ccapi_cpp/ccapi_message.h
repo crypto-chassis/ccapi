@@ -116,6 +116,7 @@ class Message final {
   void setTimeReceived(TimePoint timeReceived) {
     this->timeReceived = timeReceived;
   }
+
  private:
   TimePoint time{std::chrono::seconds{0}};
   TimePoint timeReceived{std::chrono::seconds{0}};

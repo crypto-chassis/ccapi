@@ -108,7 +108,7 @@ class Decimal final {
 //    return Decimal(midString);
 //  }
   friend bool operator<(const Decimal& l, const Decimal& r) {
-    if (l.sign and r.sign) {
+    if (l.sign && r.sign) {
       if (l.before < r.before) {
         return true;
       } else if (l.before > r.before) {
@@ -116,9 +116,9 @@ class Decimal final {
       } else {
         return l.frac < r.frac;
       }
-    } else if (l.sign and !r.sign) {
+    } else if (l.sign && !r.sign) {
       return false;
-    } else if (!l.sign and r.sign) {
+    } else if (!l.sign && r.sign) {
       return true;
     } else {
       Decimal nl = l;

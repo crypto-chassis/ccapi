@@ -13,7 +13,7 @@ class ServiceContext final {
   };
   typedef wspp::client<CustomClientConfig> TlsClient;
   typedef wspp::lib::error_code ErrorCode;
-  ServiceContext(){}
+  ServiceContext() {}
   ServiceContext(const ServiceContext&) = delete;
   ServiceContext& operator=(const ServiceContext&) = delete;
   void initialize() {
@@ -35,7 +35,6 @@ class ServiceContext final {
   }
   IoContext ioContext;
   TlsClient tlsClient;
-
 };
 
 } /* namespace ccapi */

@@ -3,7 +3,7 @@ namespace ccapi {
 Logger* Logger::logger = 0;  // This line is needed.
 class MyLogger final: public Logger {
  public:
-  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
+  void logMessage(Logger::Severity severity, std::thread::id threadId,
                           std::chrono::system_clock::time_point time,
                           std::string fileName, int lineNumber,
                           std::string message) override {

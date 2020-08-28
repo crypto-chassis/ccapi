@@ -15,7 +15,7 @@
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
 #include "ccapi_cpp/ccapi_exchange.h"
-#include "ccapi_market_data_message.h"
+#include "ccapi_cpp/ccapi_market_data_message.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
@@ -26,8 +26,8 @@
 #include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
-#include "ccapi_market_data_connection.h"
-#include "ccapi_service_context.h"
+#include "ccapi_cpp/ccapi_market_data_connection.h"
+#include "ccapi_cpp/ccapi_service_context.h"
 namespace wspp = websocketpp;
 namespace rj = rapidjson;
 namespace ccapi {

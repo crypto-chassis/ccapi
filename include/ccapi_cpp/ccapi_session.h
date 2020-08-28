@@ -191,85 +191,11 @@ class Session final {
       ws->connect();
       wsList.push_back(ws);
     }
-
-//      sessionWsThreads.push_back(
-//          std::thread([=]() {
-//            // for unknown reasons, here making websocket clients living on the heap results in 2x faster!!!
-//              bool found = false;
-//#ifdef ENABLE_COINBASE
-//              if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-//                MarketDataServiceCoinbase* ws = new MarketDataServiceCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-//                found = true;
-//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-//                ws->connect();
-//                delete ws;
-//              }
-//#endif
-//#ifdef ENABLE_GEMINI
-//              if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-//                MarketDataServiceGemini* ws = new MarketDataServiceGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-//                found = true;
-//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-//                ws->connect();
-//                delete ws;
-//              }
-//#endif
-//#ifdef ENABLE_KRAKEN
-//              if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-//                MarketDataServiceKraken* ws = new MarketDataServiceKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-//                found = true;
-//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-//                ws->connect();
-//                delete ws;
-//              }
-//#endif
-//#ifdef ENABLE_BITSTAMP
-//              if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-//                MarketDataServiceBitstamp* ws = new MarketDataServiceBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-//                found = true;
-//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-//                ws->connect();
-//                delete ws;
-//              }
-//#endif
-//#ifdef ENABLE_BITFINEX
-//              if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-//                MarketDataServiceBitfinex* ws = new MarketDataServiceBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-//                found = true;
-//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-//                ws->connect();
-//                delete ws;
-//              }
-//#endif
-//#ifdef ENABLE_BITMEX
-//              if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-//                MarketDataServiceBitmex* ws = new MarketDataServiceBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs);
-//                found = true;
-//                CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-//                ws->connect();
-//                delete ws;
-//              }
-//#endif
-//              if (!found) {
-//                CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
-//              }
-//              //    CCAPI_LOGGER_DEBUG("about to connect "+ws->getBaseUrl());
-//              //    ws->connect();
-//              //    delete ws;
-//            }));
-//    }
-//    if (sessionOptions.enableSharedServiceContext) {
-      serviceConext->run();
-      for (const auto & ws : wsList) {
-        delete ws;
-      }
-      delete serviceConext;
-//    } else {
-//      for (auto& sessionWsThread : sessionWsThreads) {
-//        sessionWsThread.join();
-//        CCAPI_LOGGER_TRACE("this thread has joined");
-//      }
-//    }
+    serviceConext->run();
+    for (const auto & ws : wsList) {
+      delete ws;
+    }
+    delete serviceConext;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onEvent(Event& event) {
