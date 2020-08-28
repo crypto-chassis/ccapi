@@ -1,5 +1,6 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
+Logger* Logger::logger = 0;  // This line is needed.
 class MyLogger final: public Logger {
  public:
   virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
   using namespace ccapi;  // NOLINT(build/namespaces)
   MyLogger myLogger;
   Logger::logger = &myLogger;
-  std::vector modeList = {
+  std::vector<std::string> modeList = {
       "multiple_exchanges_instruments",
       "specify_market_depth",
       "only_receive_events_at_periodic_intervals",
@@ -41,7 +42,7 @@ int main(int argc, char **argv) {
       "dispatching_events_from_multiple_threads"
   };
   if (argc != 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
-    CCAPI_LOGGER_INFO("Please provide one command line argument from this list: "+toString(modeList));
+    std::cout << "Please provide one command line argument from this list: "+toString(modeList) << std::endl;
     return 0;
   }
   std::string mode(argv[1]);

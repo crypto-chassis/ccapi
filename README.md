@@ -10,7 +10,7 @@
 ## Build
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
-  * If you need all supported exchanges, define ENABLE_ALL_EXCHANGE. Otherwise, define exchange specific macros such as ENABLE_COINBASE, etc. See include/ccapi_cpp/ccapi_enable_exchange.h.
+  * If you need all supported exchanges, define macro ENABLE_ALL_EXCHANGE. Otherwise, define exchange specific macros such as ENABLE_COINBASE, etc. See include/ccapi_cpp/ccapi_enable_exchange.h.
 * Inlcude directories:
   * include
   * dependency/websocketpp_tag_0.8.2
@@ -146,6 +146,27 @@ Instantiate EventDispatcher with numDispatcherThreads set to be the desired numb
 ```
 EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
+```
+
+**Enable library logging**
+Add one of the following macros in the compiler command line: ENABLE_TRACE_LOG, ENABLE_DEBUG_LOG, ENABLE_INFO_LOG, ENABLE_WARN_LOG, ENABLE_ERROR_LOG, ENABLE_FATAL_LOG. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
+```
+Logger* Logger::logger = 0;  // This line is needed.
+class MyLogger final: public Logger {
+ public:
+  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
+                          std::chrono::system_clock::time_point time,
+                          std::string fileName, int lineNumber,
+                          std::string message) override {
+    std::cout << threadId << ": [" << UtilTime::getISOTimestamp(time) << "] {"
+        << fileName << ":" << lineNumber << "} "
+        << Logger::severityToString(severity) << std::string(8, ' ') << message
+        << std::endl;
+  }
+};
+...
+MyLogger myLogger;
+Logger::logger = &myLogger;
 ```
 
 ### Contributing
