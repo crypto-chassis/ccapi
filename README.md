@@ -1,6 +1,7 @@
 # ccapi_cpp
-* A header-only C++ library for streaming public market data directly from cryptocurrency exchanges.
+* A header-only C++ library for streaming public market data directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
+* Supported exchanges: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost. Follow us on https://medium.com/@cryptochassis and our publication on https://medium.com/open-crypto-market-data-initiative.
 * For historical data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
@@ -34,6 +35,7 @@ For a specific exchange and instrument, whenever the top 10 bids' or asks' price
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
+Logger* Logger::logger = 0;  // This line is needed.
 class MyEventHandler : public EventHandler {
   bool processEvent(const Event& event, Session *session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
@@ -50,22 +52,27 @@ class MyEventHandler : public EventHandler {
     return true;
   }
 };
-Logger* Logger::logger = 0;  // This line is needed.
 } /* namespace ccapi */
 int main(int argc, char **argv) {
   using namespace ccapi;  // NOLINT(build/namespaces)
   SessionOptions sessionOptions;
-  std::string pair = "I want to name BTC against USD this";
-  std::string symbol = "BTC-USD";  // This is how Coinbase names BTC/USD
+  std::string instrument = "my cool naming";
+  std::string symbol = "BTC-USD";
+  // Coinbase names a trading pair using upper case concatenated by dash
+  // Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
   SessionConfigs sessionConfigs({{
     CCAPI_EXCHANGE_NAME_COINBASE, {{
-        pair, symbol
+        instrument, symbol
     }}
   }});
-  MyEventHandler myEventHandler;
-  Session session(sessionOptions, sessionConfigs, &myEventHandler);
+  MyEventHandler eventHandler;
+  Session session(sessionOptions, sessionConfigs, &eventHandler);
   SubscriptionList subscriptionList;
-  Subscription subscription(std::string("/") + CCAPI_EXCHANGE_NAME_COINBASE + "/" + pair, CCAPI_EXCHANGE_NAME_MARKET_DEPTH, "", CorrelationId("This is my correlation id"));
+  std::string topic = std::string("/") + CCAPI_EXCHANGE_NAME_COINBASE + "/" + instrument;
+  std::string fields = CCAPI_EXCHANGE_NAME_MARKET_DEPTH;
+  std::string options;
+  CorrelationId correlationId("this is my correlation id");
+  Subscription subscription(topic, fields, options, correlationId);
   subscriptionList.add(subscription);
   session.subscribe(subscriptionList);
   return 0;
@@ -101,7 +108,13 @@ Top 10 bids and asks at 2020-07-27T23:56:51.935993000Z are:
 ### Advanced
 **Multiple exchanges and/or instruments**
 
-Instantiate SessionConfigs with the desired exchange names, instrument names specified by you, instrument names specified by the exchange.
+Instantiate SessionConfigs with a map containing the exchange names, the instrument names specified by you, and the instrument names specified by the exchange.
+```
+std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
+exchangeInstrumentSymbolMap[CCAPI_EXCHANGE_NAME_COINBASE]["btc-usd name specified by you"] = "BTC-USD"; // Coinbase names a trading pair using upper case concatenated by dash
+exchangeInstrumentSymbolMap[CCAPI_EXCHANGE_NAME_COINBASE]["eth-usd name specified by you"] = "ETH-USD"; // Coinbase names a trading pair using upper case concatenated by dash
+SessionConfigs sessionConfigs(exchangeInstrumentSymbolMap);
+```
 
 **Specify market depth**
 
@@ -119,7 +132,7 @@ std::string options = std::string(CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISEC
 Subscription subscription(topic, fields, options, correlationId);
 ```
 
-**Only receive events at periodic intervals including when the market depth snapshot hasn't changed yet**
+**Only receive events at periodic intervals including when the market depth snapshot has not changed yet**
 
 Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval and CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS to be your network latency, e.g. if you want to only receive market depth snapshots at each and every second regardless of whether the market depth snapshot hasn't changed or not, and your network is faster than the speed of light
 ```

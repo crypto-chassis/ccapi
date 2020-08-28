@@ -52,6 +52,7 @@ class Session final {
         throw std::runtime_error("undefined behavior");
       }
     }
+    this->eventQueue.setMaxSize(options.maxEventQueueSize);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 //  bool openService(std::string serviceName = "") {
