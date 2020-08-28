@@ -1,0 +1,16 @@
+name: DocToc
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+jobs:
+  doctoc:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-node@v1
+    - run: npm install -g doctoc
+    - run: ! doctoc . -s | grep -q 'should be updated'
