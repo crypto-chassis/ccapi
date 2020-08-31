@@ -22,6 +22,7 @@
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
 
 ## Build
+* This library is header-only.
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
   * If you need all supported exchanges, define macro ENABLE_ALL_EXCHANGE. Otherwise, define exchange specific macros such as ENABLE_COINBASE, etc. See include/ccapi_cpp/ccapi_enable_exchange.h.
