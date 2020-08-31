@@ -39,7 +39,8 @@ class Message final {
     SUBSCRIPTION_STARTED,
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
-    SESSION_CONNECTION_DOWN
+    SESSION_CONNECTION_DOWN,
+    SESSION_INCORRECT_STATES_FOUND
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -65,6 +66,9 @@ class Message final {
       case Type::SESSION_CONNECTION_DOWN:
         output = "SESSION_CONNECTION_DOWN";
         break;
+      case Type::SESSION_INCORRECT_STATES_FOUND:
+        output = "SESSION_INCORRECT_STATES_FOUND";
+        break;
       default:
         CCAPI_LOGGER_FATAL("");
     }
@@ -72,7 +76,7 @@ class Message final {
   }
   std::string toString() const {
     std::string output = "Message [type = " + typeToString(type) + ", recapType = " + recapTypeToString(recapType)
-        + ", time = " + UtilTime::getISOTimestamp(time) + ", elementList = " + ccapi::firstNToString(elementList, 10)
+        + ", time = " + UtilTime::getISOTimestamp(time) + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ", elementList = " + ccapi::firstNToString(elementList, 10)
         + ", correlationIdList = " + ccapi::toString(correlationIdList) + "]";
     return output;
   }
@@ -106,9 +110,16 @@ class Message final {
   void setType(Type type) {
     this->type = type;
   }
+  TimePoint getTimeReceived() const {
+    return timeReceived;
+  }
+  void setTimeReceived(TimePoint timeReceived) {
+    this->timeReceived = timeReceived;
+  }
 
  private:
   TimePoint time{std::chrono::seconds{0}};
+  TimePoint timeReceived{std::chrono::seconds{0}};
   std::vector<Element> elementList;
   std::vector<CorrelationId> correlationIdList;
   Type type{Type::UNKNOWN};

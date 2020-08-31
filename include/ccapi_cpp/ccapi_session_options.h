@@ -23,8 +23,10 @@ class SessionOptions final {
   bool enableCheckOrderBookCrossed{};
   bool enableCheckHeartbeat{};
   bool enableOneConnectionPerSubscription{};
+//  bool enableSharedServiceContext{};
   long pingIntervalMilliSeconds{10000};
   long pongTimeoutMilliSeconds{5000};
+  long maxEventQueueSize{-1};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_

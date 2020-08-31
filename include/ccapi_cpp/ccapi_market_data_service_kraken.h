@@ -1,12 +1,12 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_KRAKEN_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_KRAKEN_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_KRAKEN_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_KRAKEN_H_
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_KRAKEN
-#include "ccapi_cpp/ccapi_websocket_client.h"
+#include "ccapi_cpp/ccapi_market_data_service.h"
 namespace ccapi {
-class WebsocketClientKraken final : public WebsocketClient {
+class MarketDataServiceKraken final : public MarketDataService {
  public:
-    WebsocketClientKraken(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs) {
+    MarketDataServiceKraken(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
       this->name = CCAPI_EXCHANGE_NAME_KRAKEN;
       this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
       this->shouldAlignSnapshot = true;
@@ -15,9 +15,9 @@ class WebsocketClientKraken final : public WebsocketClient {
  private:
     void onOpen(wspp::connection_hdl hdl) override {
       CCAPI_LOGGER_FUNCTION_ENTER;
-      WebsocketClient::onOpen(hdl);
+      MarketDataService::onOpen(hdl);
 //      this->onOpen_2(hdl);
-      WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+      MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
       std::vector<std::string> requestStringList;
       for (auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
         auto channelId = subscriptionListByChannelIdProductId.first;
@@ -40,11 +40,11 @@ class WebsocketClientKraken final : public WebsocketClient {
             document.SetObject();
             rj::Document::AllocatorType& allocator = document.GetAllocator();
             document.AddMember("event", rj::Value("subscribe").Move(), allocator);
-            rj::Value pair(rj::kArrayType);
+            rj::Value instrument(rj::kArrayType);
             for (const auto &productId : productIdList) {
-              pair.PushBack(rj::Value(productId.c_str(), allocator).Move(), allocator);
+              instrument.PushBack(rj::Value(productId.c_str(), allocator).Move(), allocator);
             }
-            document.AddMember("pair", pair, allocator);
+            document.AddMember("instrument", instrument, allocator);
             rj::Value subscription(rj::kObjectType);
             subscription.AddMember("depth", rj::Value(marketDepthSubscribedToExchange).Move(), allocator);
             subscription.AddMember("name", rj::Value(std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK).c_str(), allocator).Move(), allocator);
@@ -71,17 +71,17 @@ class WebsocketClientKraken final : public WebsocketClient {
     }
     void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) override {
       CCAPI_LOGGER_FUNCTION_ENTER;
-      WebsocketClient::onTextMessage(hdl, textMessage, timeReceived);
+      MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
 //      this->onTextMessage_2(hdl, textMessage, timeReceived);
       CCAPI_LOGGER_FUNCTION_EXIT;
     }
-    std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
+    std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
       CCAPI_LOGGER_FUNCTION_ENTER;
-      WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+      MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
       rj::Document document;
       rj::Document::AllocatorType& allocator = document.GetAllocator();
       document.Parse(textMessage.c_str());
-      std::vector<WebsocketMessage> wsMessageList;
+      std::vector<MarketDataMessage> wsMessageList;
       if (document.IsArray() && document.Size() >= 4 && document.Size() <= 5) {
         auto documentSize = document.Size();
         auto channelNameWithSuffix = std::string(document[documentSize-2].GetString());
@@ -124,45 +124,45 @@ class WebsocketClientKraken final : public WebsocketClient {
                 }
               }
             }
-            WebsocketMessage wsMessage;
-            wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+            MarketDataMessage wsMessage;
+            wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             wsMessage.tp = latestTp;
-            wsMessage.recapType = WebsocketMessage::RecapType::NONE;
+            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
             if (anonymous2.HasMember("b")) {
               for (const auto& x : anonymous2["b"].GetArray()) {
-                WebsocketMessage::TypeForDataPoint dataPoint;
-                dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-                dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-                wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+                MarketDataMessage::TypeForDataPoint dataPoint;
+                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+                wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
               }
             }
             if (anonymous2.HasMember("a")) {
               for (const auto& x : anonymous2["a"].GetArray()) {
-                WebsocketMessage::TypeForDataPoint dataPoint;
-                dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-                dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-                wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+                MarketDataMessage::TypeForDataPoint dataPoint;
+                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+                wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
               }
             }
             wsMessageList.push_back(std::move(wsMessage));
           } else if (anonymous.IsObject() && anonymous.HasMember("as") && anonymous.HasMember("bs")) {
             CCAPI_LOGGER_TRACE("this is snapshot");
-            WebsocketMessage wsMessage;
-            wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+            MarketDataMessage wsMessage;
+            wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-            wsMessage.recapType = WebsocketMessage::RecapType::SOLICITED;
+            wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
             for (const auto& x : anonymous["bs"].GetArray()) {
-              WebsocketMessage::TypeForDataPoint dataPoint;
-              dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-              dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+              MarketDataMessage::TypeForDataPoint dataPoint;
+              dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+              dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             }
             for (const auto& x : anonymous["as"].GetArray()) {
-              WebsocketMessage::TypeForDataPoint dataPoint;
-              dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-              dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+              MarketDataMessage::TypeForDataPoint dataPoint;
+              dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+              dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
             wsMessageList.push_back(std::move(wsMessage));
           }
@@ -181,7 +181,7 @@ class WebsocketClientKraken final : public WebsocketClient {
           //          tp += std::chrono::nanoseconds(timePair.second);
           //          auto price = UtilString::normalizeDecimalString(x[0].GetString());
           //          auto size = UtilString::normalizeDecimalString(x[1].GetString());
-          //          WebsocketClient::SingleTrade singleTrade{price, size};
+          //          MarketDataService::SingleTrade singleTrade{price, size};
           //          input[tp].push_back(std::move(singleTrade));
           //        }
           //      if (!input.empty()) {
@@ -204,4 +204,4 @@ class WebsocketClientKraken final : public WebsocketClient {
 };
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_KRAKEN_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_KRAKEN_H_

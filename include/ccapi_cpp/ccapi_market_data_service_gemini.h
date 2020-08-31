@@ -1,12 +1,12 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_GEMINI_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_GEMINI_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_GEMINI_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_GEMINI_H_
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_GEMINI
-#include "ccapi_cpp/ccapi_websocket_client.h"
+#include "ccapi_cpp/ccapi_market_data_service.h"
 namespace ccapi {
-class WebsocketClientGemini final : public WebsocketClient {
+class MarketDataServiceGemini final : public MarketDataService {
  public:
-  WebsocketClientGemini(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs) {
+  MarketDataServiceGemini(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -14,13 +14,13 @@ class WebsocketClientGemini final : public WebsocketClient {
  private:
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketClient::onOpen(hdl);
+    MarketDataService::onOpen(hdl);
 //    this->onOpen_2(hdl);
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdProductId.first;
-      for (auto & subscriptionListByPair : subscriptionListByChannelIdProductId.second) {
-        auto productId = subscriptionListByPair.first;
+      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdProductId.second) {
+        auto productId = subscriptionListByInstrument.first;
         int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
         if (marketDepthSubscribedToExchange == 1) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
@@ -34,18 +34,18 @@ class WebsocketClientGemini final : public WebsocketClient {
   }
   void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketClient::onTextMessage(hdl, textMessage, timeReceived);
+    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
 //    this->onTextMessage_2(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
+  std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     rj::Document document;
     document.Parse(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = "+type);
-    std::vector<WebsocketMessage> wsMessageList;
+    std::vector<MarketDataMessage> wsMessageList;
     if (this->sessionOptions.enableCheckSequence) {
       int sequence = document["socket_sequence"].GetInt();
       if (!this->checkSequence(wsConnection, sequence)) {
@@ -54,43 +54,43 @@ class WebsocketClientGemini final : public WebsocketClient {
       }
     }
     if (type == "update") {
-      WebsocketMessage wsMessage;
-      wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+      MarketDataMessage wsMessage;
+      wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       wsMessage.exchangeSubscriptionId = wsConnection.url;
       for (auto & event : document["events"].GetArray()) {
         auto gType = std::string(event["type"].GetString());
         if (gType == "change") {
-          WebsocketMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(event["price"].GetString())});
-          dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(event["remaining"].GetString())});
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(event["price"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(event["remaining"].GetString())});
           auto isBid = std::string(event["side"].GetString()) == "bid";
           std::string reason = event["reason"].GetString();
           if (reason == "place" || reason == "cancel" || reason == "trade") {
-            wsMessage.recapType = WebsocketMessage::RecapType::NONE;
+            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
             wsMessage.tp = TimePoint(std::chrono::milliseconds(document["timestampms"].GetInt64()));
             if (isBid) {
-              wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             } else {
-              wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           } else if (reason == "initial") {
-            wsMessage.recapType = WebsocketMessage::RecapType::SOLICITED;
+            wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
             if (isBid) {
-              wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             } else {
-              wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           } else if (reason == "top-of-book") {
             wsMessage.tp = TimePoint(std::chrono::milliseconds(document["timestampms"].GetInt64()));
-            wsMessage.recapType = WebsocketMessage::RecapType::NONE;
+            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
             if (isBid) {
-              wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             } else {
-              wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           }
         } else if (gType == "trade") {
-          //        wsMessage.recapType = WebsocketMessage::RecapType::NONE;
+          //        wsMessage.recapType = MarketDataMessage::RecapType::NONE;
           //        auto makerSide = std::string(event["makerSide"].GetString());
           //        if (makerSide == "bid" || makerSide == "ask") {
           //          Element element;
@@ -108,7 +108,7 @@ class WebsocketClientGemini final : public WebsocketClient {
   std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) {
     std::map<std::string, std::set<std::string> > parameterBySymbolMap;
     for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto symbol = this->sessionConfigs.getExchangePairSymbolMap().at(this->name).at(subscription.getPair());
+      auto symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(subscription.getInstrument());
       auto fieldSet = subscription.getFieldSet();
       for (auto const& field : fieldSet) {
         auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(CCAPI_EXCHANGE_NAME_GEMINI).at(field), ",");
@@ -118,7 +118,7 @@ class WebsocketClientGemini final : public WebsocketClient {
     }
     std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
     for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto symbol = this->sessionConfigs.getExchangePairSymbolMap().at(this->name).at(subscription.getPair());
+      auto symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(subscription.getInstrument());
       std::string url = this->baseUrl + symbol;
       url += "?";
       std::set<std::string> parameterSet = parameterBySymbolMap[symbol];
@@ -144,15 +144,15 @@ class WebsocketClientGemini final : public WebsocketClient {
     }
     return subscriptionListByUrlMap;
   }
-  std::map<std::string, WebsocketConnection> buildWebsocketConnectionMap(std::string url, const SubscriptionList& subscriptionList) override {
-    std::map<std::string, WebsocketConnection> wsConnectionMap;
+  std::map<std::string, MarketDataConnection> buildMarketDataConnectionMap(std::string url, const SubscriptionList& subscriptionList) override {
+    std::map<std::string, MarketDataConnection> wsConnectionMap;
     for (const auto & x : this->groupSubscriptionListByUrl(this->subscriptionList)) {
-      WebsocketConnection wsConnection(x.first, x.second);
-      wsConnectionMap.insert(std::pair<std::string, WebsocketConnection>(wsConnection.id, wsConnection));
+      MarketDataConnection wsConnection(x.first, x.second);
+      wsConnectionMap.insert(std::pair<std::string, MarketDataConnection>(wsConnection.id, wsConnection));
     }
     return wsConnectionMap;
   }
-  bool checkSequence(const WebsocketConnection& wsConnection, int sequence) {
+  bool checkSequence(const MarketDataConnection& wsConnection, int sequence) {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
       if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->name)) {
         CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = "+toString(wsConnection));
@@ -171,7 +171,7 @@ class WebsocketClientGemini final : public WebsocketClient {
       }
     }
   }
-  void onOutOfSequence(WebsocketConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
+  void onOutOfSequence(MarketDataConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
       const std::string& exchangeSubscriptionId) {
     int previous = 0;
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
@@ -191,13 +191,13 @@ class WebsocketClientGemini final : public WebsocketClient {
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
-    WebsocketClient::onClose(hdl);
+    MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::map<std::string, int> sequenceByConnectionIdMap;
 };
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_GEMINI_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_GEMINI_H_

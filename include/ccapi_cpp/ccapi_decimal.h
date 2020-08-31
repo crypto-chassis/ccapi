@@ -1,13 +1,19 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_U_DECIMAL_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_U_DECIMAL_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #include <string>
 namespace ccapi {
 // minimalistic just for the purpose of being used as the key of a map
-class UDecimal final {
+class Decimal final {
  public:
-  explicit UDecimal(std::string value) {
-    if (value.at(0) == '-') {
-      throw std::runtime_error("UDecimal could only be used to represent unsigned decimal.");
+  explicit Decimal(std::string originalValue) {
+//    if (value.at(0) == '-') {
+//      throw std::runtime_error("Decimal could only be used to represent unsigned decimal.");
+//    }
+    std::string value = originalValue;
+    this->sign = true;
+    if (originalValue.at(0) == '-') {
+      value.erase(0);
+      this->sign = false;
     }
     std::string fixedPointValue = value;
     if (value.find("e") != std::string::npos) {
@@ -41,19 +47,35 @@ class UDecimal final {
       }
     }
     std::vector<std::string> splitted = UtilString::split(fixedPointValue, ".");
-    this->whole = splitted.at(0);
+    this->before = std::stoul(splitted.at(0));
     if (splitted.size() > 1) {
       this->frac = splitted.at(1);
       UtilString::rtrim(this->frac, "0");
-    } else {
-      this->frac = "";
     }
-    this->value = this->frac.empty() ? this->whole : this->whole + "." + this->frac;
+
+
+//    this->whole = splitted.at(0);
+//    if (splitted.size() > 1) {
+//      this->frac = splitted.at(1);
+//      UtilString::rtrim(this->frac, "0");
+//    } else {
+//      this->frac = "";
+//    }
+//    this->value = this->frac.empty() ? this->whole : this->whole + "." + this->frac;
   }
   std::string toString() const {
-    return value;
+    std::string stringValue;
+    if (!this->sign) {
+      stringValue += "-";
+    }
+    stringValue += std::to_string(this->before);
+    if (!this->frac.empty()) {
+      stringValue += ".";
+      stringValue += this->frac;
+    }
+    return stringValue;
   }
-//  UDecimal static mid(const UDecimal& a, const UDecimal& b) {
+//  Decimal static mid(const Decimal& a, const Decimal& b) {
 //    auto aScale = a.frac.length();
 //    auto bScale = b.frac.length();
 //    unsigned long long ua;
@@ -83,43 +105,88 @@ class UDecimal final {
 //    if (divResult.rem > 0) {
 //      midString += "5";
 //    }
-//    return UDecimal(midString);
+//    return Decimal(midString);
 //  }
-  friend bool operator<(const UDecimal& l, const UDecimal& r) {
-    if (l.whole.length() < r.whole.length()) {
-      return true;
-    } else if (l.whole.length() == r.whole.length()) {
-      if (l.whole < r.whole) {
+  friend bool operator<(const Decimal& l, const Decimal& r) {
+    if (l.sign && r.sign) {
+      if (l.before < r.before) {
         return true;
-      } else if (l.whole == r.whole) {
-        return l.frac < r.frac;
-      } else {
+      } else if (l.before > r.before) {
         return false;
+      } else {
+        return l.frac < r.frac;
       }
-    } else {
+    } else if (l.sign && !r.sign) {
       return false;
+    } else if (!l.sign && r.sign) {
+      return true;
+    } else {
+      Decimal nl = l;
+      nl.sign = true;
+      Decimal nr = r;
+      nr.sign = true;
+      return nl > nr;
     }
+
+
+
+
+//    if (l.whole.length() < r.whole.length()) {
+//      return true;
+//    } else if (l.whole.length() == r.whole.length()) {
+//      if (l.whole < r.whole) {
+//        return true;
+//      } else if (l.whole == r.whole) {
+//        return l.frac < r.frac;
+//      } else {
+//        return false;
+//      }
+//    } else {
+//      return false;
+//    }
   }
-  friend bool operator>(const UDecimal& l, const UDecimal& r) {
+//  friend bool operator<(const Decimal& l, const Decimal& r) {
+//    if (l.whole.length() < r.whole.length()) {
+//      return true;
+//    } else if (l.whole.length() == r.whole.length()) {
+//      if (l.whole < r.whole) {
+//        return true;
+//      } else if (l.whole == r.whole) {
+//        return l.frac < r.frac;
+//      } else {
+//        return false;
+//      }
+//    } else {
+//      return false;
+//    }
+//  }
+  friend bool operator>(const Decimal& l, const Decimal& r) {
     return r < l;
   }
-  friend bool operator<=(const UDecimal& l, const UDecimal& r) {
+  friend bool operator<=(const Decimal& l, const Decimal& r) {
     return !(l > r);
   }
-  friend bool operator>=(const UDecimal& l, const UDecimal& r) {
+  friend bool operator>=(const Decimal& l, const Decimal& r) {
     return !(l < r);
   }
-  friend bool operator==(const UDecimal& l, const UDecimal& r) {
+  friend bool operator==(const Decimal& l, const Decimal& r) {
     return !(l > r) && !(l < r);
   }
-  friend bool operator!=(const UDecimal& l, const UDecimal& r) {
+  friend bool operator!=(const Decimal& l, const Decimal& r) {
     return !(l == r);
   }
 
  private:
-  std::string value;
-  std::string whole;
+//  std::string stringValue;
+
+//  std::string whole;
+//  std::string frac;
+
+//  {-}bbbb.aaaa
+  unsigned long before{};
   std::string frac;
+  // -1 means negative sign needed
+  bool sign{};
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_U_DECIMAL_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_

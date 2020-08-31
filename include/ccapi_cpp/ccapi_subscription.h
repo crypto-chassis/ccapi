@@ -17,7 +17,7 @@ class Subscription final {
     }
     auto splittedTopic = UtilString::split(trimmedTopic, "/");
     this->exchange = splittedTopic.at(0);
-    this->pair = splittedTopic.at(1);
+    this->instrument = splittedTopic.at(1);
     std::vector<std::string> fieldList = UtilString::split(fields, ",");
     this->fieldSet = std::set<std::string>(fieldList.begin(), fieldList.end());
     std::vector<std::string> optionList;
@@ -31,12 +31,12 @@ class Subscription final {
     this->optionMap[CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS] =
     CCAPI_EXCHANGE_VALUE_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
     for (const auto & option : optionList) {
-      auto optionPair = UtilString::split(option, "=");
-      this->optionMap[optionPair.at(0)] = optionPair.at(1);
+      auto optionKeyValue = UtilString::split(option, "=");
+      this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
   }
   std::string toString() const {
-    std::string output = "Subscription [exchange = " + exchange + ", pair = " + pair + ", fieldSet = "
+    std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", fieldSet = "
         + ccapi::toString(fieldSet) + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
         + correlationId.toString() + "]";
     return output;
@@ -47,8 +47,8 @@ class Subscription final {
   const std::string& getExchange() const {
     return exchange;
   }
-  const std::string& getPair() const {
-    return pair;
+  const std::string& getInstrument() const {
+    return instrument;
   }
   const std::set<std::string>& getFieldSet() const {
     return fieldSet;
@@ -59,7 +59,7 @@ class Subscription final {
 
  private:
   std::string exchange;
-  std::string pair;
+  std::string instrument;
   std::set<std::string> fieldSet;
   std::map<std::string, std::string> optionMap;
   CorrelationId correlationId;

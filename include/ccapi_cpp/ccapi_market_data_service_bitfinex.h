@@ -1,13 +1,13 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_BITFINEX_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_BITFINEX_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_BITFINEX
-#include "ccapi_cpp/ccapi_websocket_client.h"
+#include "ccapi_cpp/ccapi_market_data_service.h"
 #include <regex>
 namespace ccapi {
-class WebsocketClientBitfinex final : public WebsocketClient {
+class MarketDataServiceBitfinex final : public MarketDataService {
  public:
-  WebsocketClientBitfinex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs): WebsocketClient(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs) {
+  MarketDataServiceBitfinex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_BITFINEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -15,7 +15,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
  private:
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketClient::onOpen(hdl);
+    MarketDataService::onOpen(hdl);
 //    this->onOpen_2(hdl);
     rj::Document document;
     document.SetObject();
@@ -37,28 +37,28 @@ class WebsocketClientBitfinex final : public WebsocketClient {
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
-    WebsocketClient::onClose(hdl);
+    MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketClient::onTextMessage(hdl, textMessage, timeReceived);
+    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
 //    this->onTextMessage_2(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<WebsocketMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
+  std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WebsocketConnection& wsConnection = this->getWebsocketConnectionFromConnectionPtr(this->tlsClient.get_con_from_hdl(hdl));
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("([,\\[:])(-?\\d+\\.?\\d*e?-?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_TRACE("quotedTextMessage = "+quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
-    std::vector<WebsocketMessage> wsMessageList;
+    std::vector<MarketDataMessage> wsMessageList;
     CCAPI_LOGGER_TRACE("document.IsObject() = "+toString(document.IsObject()));
     if (document.IsArray() && document.Size() >= 1) {
       auto exchangeSubscriptionId = std::string(document[0].GetString());
@@ -84,55 +84,55 @@ class WebsocketClientBitfinex final : public WebsocketClient {
               int sequence = std::stoi(document[2].GetString());
               CCAPI_LOGGER_INFO("snapshot sequence is "+toString(sequence));
             }
-            WebsocketMessage wsMessage;
-            wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+            MarketDataMessage wsMessage;
+            wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-            wsMessage.recapType = WebsocketMessage::RecapType::SOLICITED;
+            wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
             for (const auto& x : content.GetArray()) {
-              WebsocketMessage::TypeForDataPoint dataPoint;
-              dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+              MarketDataMessage::TypeForDataPoint dataPoint;
+              dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
               auto count = std::string(x[1].GetString());
               auto amount = UtilString::normalizeDecimalString(x[2].GetString());
               if (count != "0") {
                 if (amount.at(0) == '-') {
-                  dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, amount.substr(1)});
-                  wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+                  dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount.substr(1)});
+                  wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
                 } else {
-                  dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, amount});
-                  wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+                  dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount});
+                  wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
                 }
               } else {
                 if (amount.at(0) == '-') {
-                  dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, "0"});
-                  wsMessage.data[WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+                  dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
+                  wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
                 } else {
-                  dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, "0"});
-                  wsMessage.data[WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+                  dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
+                  wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
                 }
               }
             }
             wsMessageList.push_back(std::move(wsMessage));
           } else {
             const rj::Value& x = content;
-            WebsocketMessage::TypeForDataPoint dataPoint;
-            dataPoint.insert({WebsocketMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+            MarketDataMessage::TypeForDataPoint dataPoint;
+            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
             auto count = std::string(x[1].GetString());
             auto amount = UtilString::normalizeDecimalString(x[2].GetString());
             if (count != "0") {
               if (amount.at(0) == '-') {
-                dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, amount.substr(1)});
-                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount.substr(1)});
+                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
               } else {
-                dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, amount});
-                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount});
+                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
               }
             } else {
               if (amount.at(0) == '-') {
-                dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, "0"});
-                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][WebsocketMessage::DataType::ASK].push_back(std::move(dataPoint));
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
+                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
               } else {
-                dataPoint.insert({WebsocketMessage::DataFieldType::SIZE, "0"});
-                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][WebsocketMessage::DataType::BID].push_back(std::move(dataPoint));
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
+                this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
               }
             }
           }
@@ -150,14 +150,14 @@ class WebsocketClientBitfinex final : public WebsocketClient {
               this->orderBookChecksumByConnectionIdProductIdMap[wsConnection.id][productId] =
               intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoi(document[2].GetString()))));
             }
-            WebsocketMessage wsMessage;
-            wsMessage.type = WebsocketMessage::Type::MARKET_DATA_EVENTS;
+            MarketDataMessage wsMessage;
+            wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
             std::string timestampInMilliseconds = document[4].GetString();
             timestampInMilliseconds.insert(timestampInMilliseconds.size() - 3, ".");
             wsMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(timestampInMilliseconds));
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             CCAPI_LOGGER_TRACE("NONE");
-            wsMessage.recapType = WebsocketMessage::RecapType::NONE;
+            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
             std::swap(wsMessage.data, this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]);
             wsMessageList.push_back(std::move(wsMessage));
           } else if (str == "hb") {
@@ -222,7 +222,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return wsMessageList;
   }
-  bool checkSequence(const WebsocketConnection& wsConnection, int sequence) {
+  bool checkSequence(const MarketDataConnection& wsConnection, int sequence) {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
       if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->name)) {
         CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = "+toString(wsConnection));
@@ -241,7 +241,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
       }
     }
   }
-  void onOutOfSequence(WebsocketConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
+  void onOutOfSequence(MarketDataConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
       const std::string& exchangeSubscriptionId) {
     int previous = 0;
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
@@ -261,7 +261,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
   }
   std::string calculateOrderBookChecksum(
-      const std::map<UDecimal, std::string>& snapshotBid, const std::map<UDecimal, std::string>& snapshotAsk) {
+      const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
     auto i = 0;
     auto i1 = snapshotBid.rbegin();
     auto i2 = snapshotAsk.begin();
@@ -284,7 +284,7 @@ class WebsocketClientBitfinex final : public WebsocketClient {
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
-  bool checkOrderBookChecksum(const std::map<UDecimal, std::string>& snapshotBid, const std::map<UDecimal, std::string>& snapshotAsk, const std::string& receivedOrderBookChecksumStr,
+  bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk, const std::string& receivedOrderBookChecksumStr,
       bool& shouldProcessRemainingMessage) override {
     if (this->sessionOptions.enableCheckOrderBookChecksum) {
       std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(
@@ -300,18 +300,18 @@ class WebsocketClientBitfinex final : public WebsocketClient {
     }
     return true;
   }
-  void onIncorrectStatesFound(WebsocketConnection& wsConnection,
+  void onIncorrectStatesFound(MarketDataConnection& wsConnection,
       wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, const std::string& exchangeSubscriptionId, std::string const & reason) override {
     CCAPI_LOGGER_ERROR("incorrect states found: connection = "+toString(wsConnection)+
         ", textMessage = "+textMessage+
         ", timeReceived = "+UtilTime::getISOTimestamp(timeReceived) +", reason = "+reason);
     this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId].clear();
-    WebsocketClient::onIncorrectStatesFound(wsConnection,
+    MarketDataService::onIncorrectStatesFound(wsConnection,
         hdl, textMessage, timeReceived, exchangeSubscriptionId, reason);
   }
-  std::map<std::string, std::map<std::string, WebsocketMessage::TypeForData > > wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap;
+  std::map<std::string, std::map<std::string, MarketDataMessage::TypeForData > > wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap;
   std::map<std::string, int> sequenceByConnectionIdMap;
 };
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WEBSOCKET_CLIENT_BITFINEX_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_

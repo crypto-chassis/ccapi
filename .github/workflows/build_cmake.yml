@@ -153,7 +153,7 @@ jobs:
 
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-            -S ./example/simple
+            -S ./example
             -B build
             -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
             -G Ninja

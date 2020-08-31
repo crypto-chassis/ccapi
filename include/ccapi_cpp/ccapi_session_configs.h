@@ -11,20 +11,20 @@ class SessionConfigs final {
  public:
   SessionConfigs() {
   }
-  explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangePairSymbolMap)
-      : exchangePairSymbolMap(exchangePairSymbolMap) {
+  explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap)
+      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap) {
     this->update();
   }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangePairSymbolMap() const {
-    return exchangePairSymbolMap;
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const {
+    return exchangeInstrumentSymbolMap;
   }
-  void setExchangePairSymbolMap(
-      const std::map<std::string, std::map<std::string, std::string> >& exchangePairSymbolMap) {
-    this->exchangePairSymbolMap = exchangePairSymbolMap;
+  void setExchangeInstrumentSymbolMap(
+      const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
+    this->exchangeInstrumentSymbolMap = exchangeInstrumentSymbolMap;
     this->update();
   }
-  const std::map<std::string, std::vector<std::string> >& getExchangePairMap() const {
-    return exchangePairMap;
+  const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const {
+    return exchangeInstrumentMap;
   }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const {
     return exchangeFieldMap;
@@ -47,9 +47,9 @@ class SessionConfigs final {
 
  private:
   void update() {
-    for (const auto & x : exchangePairSymbolMap) {
+    for (const auto & x : exchangeInstrumentSymbolMap) {
       for (const auto & y : x.second) {
-        this->exchangePairMap[x.first].push_back(y.first);
+        this->exchangeInstrumentMap[x.first].push_back(y.first);
       }
     }
     std::map<std::string, std::string> fieldWebsocketChannelMapCoinbase = { {
@@ -129,8 +129,8 @@ class SessionConfigs final {
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
-  std::map<std::string, std::map<std::string, std::string> > exchangePairSymbolMap;
-  std::map<std::string, std::vector<std::string> > exchangePairMap;
+  std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
+  std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
   std::map<std::string, std::vector<std::string> > exchangeFieldMap;
   std::map<std::string, std::map<std::string, std::string> > exchangeFieldWebsocketChannelMap;
   std::map<std::string, std::vector<int> > websocketAvailableMarketDepth;
