@@ -23,6 +23,7 @@
 
 ## Build
 * This library is header-only.
+* Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
   * If you need all supported exchanges, define macro ENABLE_ALL_EXCHANGE. Otherwise, define exchange specific macros such as ENABLE_COINBASE, etc. See include/ccapi_cpp/ccapi_enable_exchange.h.
