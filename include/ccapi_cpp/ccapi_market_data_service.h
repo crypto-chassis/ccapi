@@ -136,7 +136,7 @@ class MarketDataService {
       for (auto & field : fieldSet) {
         std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field);
         if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
-          if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX) {
+          if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US) {
             int marketDepthSubscribedToExchange = 1;
             marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
                 std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)),
