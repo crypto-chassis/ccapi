@@ -92,11 +92,11 @@ class MarketDataService {
   typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
   typedef wspp::lib::function<void(ErrorCode const &)> TimerHandler;
   static SslContext onTlsInit(wspp::connection_hdl hdl) {
-    SslContext ctx = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+    SslContext ctx = std::make_shared<wspp::lib::asio::ssl::context>(wspp::lib::asio::ssl::context::sslv23);
     ctx->set_options(
-        asio::ssl::context::default_workarounds | asio::ssl::context::no_sslv2 | asio::ssl::context::no_sslv3
-            | asio::ssl::context::single_dh_use);
-    ctx->set_verify_mode(asio::ssl::verify_none);
+        wspp::lib::asio::ssl::context::default_workarounds | wspp::lib::asio::ssl::context::no_sslv2 | wspp::lib::asio::ssl::context::no_sslv3
+            | wspp::lib::asio::ssl::context::single_dh_use);
+    ctx->set_verify_mode(wspp::lib::asio::ssl::verify_none);
     // TODO(cryptochassis): verify ssl certificate to strengthen security
     // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp
     return ctx;
