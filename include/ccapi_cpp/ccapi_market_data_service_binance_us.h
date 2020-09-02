@@ -31,7 +31,7 @@ class MarketDataServiceBinanceUs final : public MarketDataService {
           this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
         }
         int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
-        std::string exchangeSubscriptionId = productId + "@" + std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_US_CHANNEL_PARTIAL_BOOK_DEPTH);
+        std::string exchangeSubscriptionId = productId + "@" + std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_US_CHANNEL_PARTIAL_BOOK_DEPTH) + std::to_string(marketDepthSubscribedToExchange);
         params.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
         this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
         this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
@@ -39,7 +39,7 @@ class MarketDataServiceBinanceUs final : public MarketDataService {
       }
     }
     document.AddMember("params", params, allocator);
-    subscription.AddMember("id", rj::Value(exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
+    document.AddMember("id", rj::Value(exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
     exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -86,7 +86,7 @@ class MarketDataServiceBinanceUs final : public MarketDataService {
       std::string productId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID];
       auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
-      CCAPI_LOGGER_TRACE("channel = "+channelId);
+      CCAPI_LOGGER_TRACE("channelId = "+channelId);
       const rj::Value& data = document["data"];
       if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_US_CHANNEL_PARTIAL_BOOK_DEPTH, 0) == 0) {
         wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
