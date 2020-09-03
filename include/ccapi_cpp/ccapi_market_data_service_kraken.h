@@ -44,7 +44,7 @@ class MarketDataServiceKraken final : public MarketDataService {
             for (const auto &productId : productIdList) {
               instrument.PushBack(rj::Value(productId.c_str(), allocator).Move(), allocator);
             }
-            document.AddMember("instrument", instrument, allocator);
+            document.AddMember("pair", instrument, allocator);
             rj::Value subscription(rj::kObjectType);
             subscription.AddMember("depth", rj::Value(marketDepthSubscribedToExchange).Move(), allocator);
             subscription.AddMember("name", rj::Value(std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK).c_str(), allocator).Move(), allocator);
