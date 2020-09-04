@@ -164,6 +164,18 @@ EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
 ```
 
+**Synchronous Event Handling**
+
+Instantiate Session without EventHandler, then obtain the events to be processed by calling session.eventQueue.purge(), e.g.
+```
+Session session(sessionOptions, sessionConfigs);
+...
+while (true) {
+  std::vector<Event> eventList = session.eventQueue.purge();
+  ...
+}
+```
+
 **Enable library logging**
 
 Add one of the following macros in the compiler command line: ENABLE_TRACE_LOG, ENABLE_DEBUG_LOG, ENABLE_INFO_LOG, ENABLE_WARN_LOG, ENABLE_ERROR_LOG, ENABLE_FATAL_LOG. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
