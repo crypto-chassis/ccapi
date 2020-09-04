@@ -19,6 +19,15 @@
 #ifdef ENABLE_BITMEX
 #include "ccapi_cpp/ccapi_market_data_service_bitmex.h"
 #endif
+#ifdef ENABLE_BINANCE_US
+#include "ccapi_cpp/ccapi_market_data_service_binance_us.h"
+#endif
+#ifdef ENABLE_BINANCE
+#include "ccapi_cpp/ccapi_market_data_service_binance.h"
+#endif
+#ifdef ENABLE_BINANCE_FUTURES
+#include "ccapi_cpp/ccapi_market_data_service_binance_futures.h"
+#endif
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
@@ -182,6 +191,24 @@ class Session final {
 #ifdef ENABLE_BITMEX
       if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
         ws = new MarketDataServiceBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
+#endif
+#ifdef ENABLE_BINANCE_US
+      if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
+        ws = new MarketDataServiceBinanceUs(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
+#endif
+#ifdef ENABLE_BINANCE
+      if (exchange == CCAPI_EXCHANGE_NAME_BINANCE) {
+        ws = new MarketDataServiceBinance(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
+        found = true;
+      }
+#endif
+#ifdef ENABLE_BINANCE_FUTURES
+      if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
+        ws = new MarketDataServiceBinanceFutures(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
         found = true;
       }
 #endif

@@ -19,5 +19,14 @@
 #ifndef ENABLE_BITMEX
 #define ENABLE_BITMEX
 #endif
+#ifndef ENABLE_BINANCE_US
+#define ENABLE_BINANCE_US
+#endif
+#ifndef ENABLE_BINANCE
+#define ENABLE_BINANCE
+#endif
+#ifndef ENABLE_BINANCE_FUTURES
+#define ENABLE_BINANCE_FUTURES
+#endif
 #endif
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_ENABLE_EXCHANGE_H_

@@ -27,7 +27,7 @@
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
   * If you need all supported exchanges, define macro ENABLE_ALL_EXCHANGE. Otherwise, define exchange specific macros such as ENABLE_COINBASE, etc. See include/ccapi_cpp/ccapi_enable_exchange.h.
-* Inlcude directories:
+* Include directories:
   * include
   * dependency/websocketpp_tag_0.8.2
   * dependency/asio_tag_asio-1-17-0/asio/include (If you use Boost Asio, this should be your Boost include directory, and you also need to define WEBSOCKETPP_USE_BOOST_ASIO in the compiler command line)
@@ -162,6 +162,18 @@ Instantiate EventDispatcher with numDispatcherThreads set to be the desired numb
 ```
 EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
+```
+
+**Synchronous Event Handling**
+
+Instantiate Session without EventHandler, then obtain the events to be processed by calling session.eventQueue.purge(), e.g.
+```
+Session session(sessionOptions, sessionConfigs);
+...
+while (true) {
+  std::vector<Event> eventList = session.eventQueue.purge();
+  ...
+}
 ```
 
 **Enable library logging**

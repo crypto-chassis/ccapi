@@ -84,6 +84,19 @@ class SessionConfigs final {
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_TRADE }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2 }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBinanceUs = { {
+    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_TRADE }, {
+    CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBinance = { {
+    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_TRADE }, {
+    CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBinanceFutures = { {
+    CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -102,6 +115,15 @@ class SessionConfigs final {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitmex) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITMEX].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinanceUs) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE_US].push_back(fieldWebsocketChannel.first);
+    }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinance) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE].push_back(fieldWebsocketChannel.first);
+    }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinanceFutures) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE_FUTURES].push_back(fieldWebsocketChannel.first);
+    }
     CCAPI_LOGGER_TRACE("this->exchangeFieldMap = "+toString(this->exchangeFieldMap));
     this->exchangeFieldWebsocketChannelMap = {
       { CCAPI_EXCHANGE_NAME_COINBASE, fieldWebsocketChannelMapCoinbase},
@@ -109,12 +131,18 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_KRAKEN, fieldWebsocketChannelMapKraken},
       { CCAPI_EXCHANGE_NAME_BITSTAMP, fieldWebsocketChannelMapBitstamp},
       { CCAPI_EXCHANGE_NAME_BITFINEX, fieldWebsocketChannelMapBitfinex},
-      { CCAPI_EXCHANGE_NAME_BITMEX, fieldWebsocketChannelMapBitmex}
+      { CCAPI_EXCHANGE_NAME_BITMEX, fieldWebsocketChannelMapBitmex},
+      { CCAPI_EXCHANGE_NAME_BINANCE_US, fieldWebsocketChannelMapBinanceUs},
+      { CCAPI_EXCHANGE_NAME_BINANCE, fieldWebsocketChannelMapBinance},
+      { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures}
     };
     this->websocketAvailableMarketDepth = {
       { CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})},
       { CCAPI_EXCHANGE_NAME_BITFINEX, std::vector<int>({1, 25, 100})},
       { CCAPI_EXCHANGE_NAME_BITMEX, std::vector<int>({1, 10, 25})},
+      { CCAPI_EXCHANGE_NAME_BINANCE_US, std::vector<int>({5, 10, 20})},
+      { CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
+      { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},
     };
     this->websocketMaxAvailableMarketDepth = {
       { CCAPI_EXCHANGE_NAME_BITSTAMP, 100}
@@ -126,6 +154,9 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_BITSTAMP, "wss://ws.bitstamp.net"},
       { CCAPI_EXCHANGE_NAME_BITFINEX, "wss://api-pub.bitfinex.com/ws/2"},
       { CCAPI_EXCHANGE_NAME_BITMEX, "wss://www.bitmex.com/realtime"},
+      { CCAPI_EXCHANGE_NAME_BINANCE_US, "wss://stream.binance.us:9443/stream"},
+      { CCAPI_EXCHANGE_NAME_BINANCE, "wss://stream.binance.com:9443/stream"},
+      { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
