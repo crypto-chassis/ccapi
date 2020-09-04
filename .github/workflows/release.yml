@@ -16,11 +16,14 @@ jobs:
           "name": "ccapi_cpp",
           "version": "1.0.0",
           "devDependencies": {
-            "semantic-release": "^17.1.1"
+            "semantic-release": "^17.1.1",
+            "conventional-changelog-eslint":"^3.0.8"
           },
           "release": {
             "branches": ["master"],
-            "plugins": ["@semantic-release/commit-analyzer", "@semantic-release/release-notes-generator", "@semantic-release/github"]
+            "plugins": [["@semantic-release/commit-analyzer", {
+                        "preset": "eslint"
+                      }], "@semantic-release/release-notes-generator", "@semantic-release/github"]
           }
         }'' > "package.json"'
       - run: npm install

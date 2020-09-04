@@ -10,6 +10,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
   }
   virtual ~MarketDataServiceBinanceBase() {
   }
+
  protected:
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
