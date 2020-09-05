@@ -8,12 +8,12 @@ class ServiceContext final {
  public:
   typedef wspp::lib::asio::io_service IoContext;
   struct CustomClientConfig : public wspp::config::asio_tls_client {
-    //#ifdef DISABLE_MULTITHREADING
-        typedef wspp::config::asio_tls_client base;
-        static bool const enable_multithreading = false;
-        struct transport_config : public base::transport_config {
-          static bool const enable_multithreading = false;
-        };
+    //#ifdef WEBSOCKETPP_ENABLE_SINGLE_THREADING
+//        typedef wspp::config::asio_tls_client base;
+//        static bool const enable_multithreading = false;
+//        struct transport_config : public base::transport_config {
+//          static bool const enable_multithreading = false;
+//        };
     //#endif
     static const wspp::log::level alog_level = wspp::log::alevel::none;
     static const wspp::log::level elog_level = wspp::log::elevel::none;
