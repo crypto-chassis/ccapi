@@ -105,7 +105,7 @@ class MarketDataServiceGemini final : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return wsMessageList;
   }
-  std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) {
+  std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) override {
     std::map<std::string, std::set<std::string> > parameterBySymbolMap;
     for (auto const& subscription : subscriptionList.getSubscriptionList()) {
       auto symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(subscription.getInstrument());
@@ -144,14 +144,14 @@ class MarketDataServiceGemini final : public MarketDataService {
     }
     return subscriptionListByUrlMap;
   }
-  std::map<std::string, MarketDataConnection> buildMarketDataConnectionMap(std::string url, const SubscriptionList& subscriptionList) override {
-    std::map<std::string, MarketDataConnection> wsConnectionMap;
-    for (const auto & x : this->groupSubscriptionListByUrl(this->subscriptionList)) {
-      MarketDataConnection wsConnection(x.first, x.second);
-      wsConnectionMap.insert(std::pair<std::string, MarketDataConnection>(wsConnection.id, wsConnection));
-    }
-    return wsConnectionMap;
-  }
+//  std::map<std::string, MarketDataConnection> buildMarketDataConnectionMap(std::string url, const SubscriptionList& subscriptionList) override {
+//    std::map<std::string, MarketDataConnection> wsConnectionMap;
+//    for (const auto & x : this->groupSubscriptionListByUrl(this->subscriptionList)) {
+//      MarketDataConnection wsConnection(x.first, x.second);
+//      wsConnectionMap.insert(std::pair<std::string, MarketDataConnection>(wsConnection.id, wsConnection));
+//    }
+//    return wsConnectionMap;
+//  }
   bool checkSequence(const MarketDataConnection& wsConnection, int sequence) {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
       if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->name)) {
