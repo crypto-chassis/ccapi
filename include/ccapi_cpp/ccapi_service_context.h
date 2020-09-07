@@ -8,6 +8,13 @@ class ServiceContext final {
  public:
   typedef wspp::lib::asio::io_service IoContext;
   struct CustomClientConfig : public wspp::config::asio_tls_client {
+    #ifdef WEBSOCKETPP_ENABLE_SINGLE_THREADING
+      typedef wspp::config::asio_tls_client base;
+      static bool const enable_multithreading = false;
+      struct transport_config : public base::transport_config {
+        static bool const enable_multithreading = false;
+      };
+    #endif
     static const wspp::log::level alog_level = wspp::log::alevel::none;
     static const wspp::log::level elog_level = wspp::log::elevel::none;
   };
@@ -17,8 +24,8 @@ class ServiceContext final {
   ServiceContext(const ServiceContext&) = delete;
   ServiceContext& operator=(const ServiceContext&) = delete;
   void initialize() {
-    this->tlsClient.clear_access_channels(websocketpp::log::alevel::all);
-    this->tlsClient.clear_error_channels(websocketpp::log::elevel::all);
+    this->tlsClient.set_access_channels(websocketpp::log::alevel::none);
+    this->tlsClient.set_error_channels(websocketpp::log::elevel::none);
     ErrorCode ec;
     CCAPI_LOGGER_DEBUG("asio initialization start");
     this->tlsClient.init_asio(&this->ioContext, ec);

@@ -23,7 +23,7 @@ class SessionOptions final {
   bool enableCheckOrderBookCrossed{};
   bool enableCheckHeartbeat{};
   bool enableOneConnectionPerSubscription{};
-//  bool enableSharedServiceContext{};
+  bool enableOneIoContextPerExchange{};
   long pingIntervalMilliSeconds{10000};
   long pongTimeoutMilliSeconds{5000};
   long maxEventQueueSize{-1};

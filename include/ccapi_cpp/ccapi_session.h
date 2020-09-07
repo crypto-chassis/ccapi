@@ -147,82 +147,161 @@ class Session final {
     std::function<void(Event& event)> wsEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1);
     auto sessionOptions = this->sessionOptions;
     auto sessionConfigs = this->sessionConfigs;
-    ServiceContext* serviceConext = new ServiceContext();
-    serviceConext->initialize();
-    std::vector<MarketDataService*> wsList;
-//    std::vector<std::thread> sessionWsThreads;
-    for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
-      auto exchange = subscriptionListByExchange.first;
-      auto subscriptionList = subscriptionListByExchange.second;
-      CCAPI_LOGGER_DEBUG("exchange = "+exchange);
-      CCAPI_LOGGER_DEBUG("subscriptionList = "+toString(subscriptionList));
-      MarketDataService* ws;
-      bool found = false;
+    CCAPI_LOGGER_TRACE("sessionOptions.enableOneIoContextPerExchange = "+toString(sessionOptions.enableOneIoContextPerExchange));
+    if (sessionOptions.enableOneIoContextPerExchange) {
+      std::vector<std::thread> sessionWsThreads;
+      for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
+        auto exchange = subscriptionListByExchange.first;
+        auto subscriptionList = subscriptionListByExchange.second;
+        sessionWsThreads.push_back(std::thread([=](){
+          bool found = false;
+          ServiceContext* serviceContext = new ServiceContext();
+          serviceContext->initialize();
+          MarketDataService* ws;
 #ifdef ENABLE_COINBASE
-      if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-        ws = new MarketDataServiceCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
+            ws = new MarketDataServiceCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_GEMINI
-      if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-        ws = new MarketDataServiceGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
+            ws = new MarketDataServiceGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_KRAKEN
-      if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-        ws = new MarketDataServiceKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
+            ws = new MarketDataServiceKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_BITSTAMP
-      if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-        ws = new MarketDataServiceBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
+            ws = new MarketDataServiceBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_BITFINEX
-      if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-        ws = new MarketDataServiceBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
+            ws = new MarketDataServiceBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_BITMEX
-      if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-        ws = new MarketDataServiceBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
+            ws = new MarketDataServiceBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_BINANCE_US
-      if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
-        ws = new MarketDataServiceBinanceUs(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
+            ws = new MarketDataServiceBinanceUs(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_BINANCE
-      if (exchange == CCAPI_EXCHANGE_NAME_BINANCE) {
-        ws = new MarketDataServiceBinance(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE) {
+            ws = new MarketDataServiceBinance(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
 #ifdef ENABLE_BINANCE_FUTURES
-      if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
-        ws = new MarketDataServiceBinanceFutures(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceConext);
-        found = true;
-      }
+          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
+            ws = new MarketDataServiceBinanceFutures(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
 #endif
-      if (!found) {
-        CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
+          if (!found) {
+            CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
+          }
+          ws->connect();
+          serviceContext->run();
+          delete ws;
+          delete serviceContext;
+        }));
       }
-      ws->connect();
-      wsList.push_back(ws);
+      for (auto& sessionWsThread : sessionWsThreads) {
+        sessionWsThread.join();
+        CCAPI_LOGGER_TRACE("this thread has joined");
+      }
+    } else {
+      ServiceContext* serviceContext = new ServiceContext();
+      serviceContext->initialize();
+      std::vector<MarketDataService*> wsList;
+      for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
+        auto exchange = subscriptionListByExchange.first;
+        auto subscriptionList = subscriptionListByExchange.second;
+        CCAPI_LOGGER_DEBUG("exchange = "+exchange);
+        CCAPI_LOGGER_DEBUG("subscriptionList = "+toString(subscriptionList));
+        MarketDataService* ws;
+        bool found = false;
+#ifdef ENABLE_COINBASE
+        if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
+          ws = new MarketDataServiceCoinbase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_GEMINI
+        if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
+          ws = new MarketDataServiceGemini(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_KRAKEN
+        if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
+          ws = new MarketDataServiceKraken(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_BITSTAMP
+        if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
+          ws = new MarketDataServiceBitstamp(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_BITFINEX
+        if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
+          ws = new MarketDataServiceBitfinex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_BITMEX
+        if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
+          ws = new MarketDataServiceBitmex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_BINANCE_US
+        if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
+          ws = new MarketDataServiceBinanceUs(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_BINANCE
+        if (exchange == CCAPI_EXCHANGE_NAME_BINANCE) {
+          ws = new MarketDataServiceBinance(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_BINANCE_FUTURES
+        if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
+          ws = new MarketDataServiceBinanceFutures(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+        if (!found) {
+          CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
+        }
+        ws->connect();
+        wsList.push_back(ws);
+      }
+      serviceContext->run();
+      for (const auto & ws : wsList) {
+        delete ws;
+      }
+      delete serviceContext;
     }
-    serviceConext->run();
-    for (const auto & ws : wsList) {
-      delete ws;
-    }
-    delete serviceConext;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onEvent(Event& event) {
