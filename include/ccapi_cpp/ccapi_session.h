@@ -231,7 +231,7 @@ class Session final {
           delete serviceContext;
         }));
       }
-      for ( auto& sessionWsThread : sessionWsThreads) {
+      for (auto& sessionWsThread : sessionWsThreads) {
         sessionWsThread.join();
         CCAPI_LOGGER_TRACE("this thread has joined");
       }
