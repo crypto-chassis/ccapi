@@ -23,7 +23,9 @@ jobs:
             "branches": ["master"],
             "plugins": [["@semantic-release/commit-analyzer", {
                         "preset": "eslint"
-                      }], "@semantic-release/release-notes-generator", "@semantic-release/github"]
+                      }], ["@semantic-release/release-notes-generator", {
+                        "preset": "eslint"
+                      }], "@semantic-release/github"]
           }
         }'' > "package.json"'
       - run: npm install

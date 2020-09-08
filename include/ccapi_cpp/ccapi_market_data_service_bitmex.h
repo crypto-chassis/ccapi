@@ -3,6 +3,7 @@
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_BITMEX
 #include "ccapi_cpp/ccapi_market_data_service.h"
+#include <regex>
 namespace ccapi {
 class MarketDataServiceBitmex final : public MarketDataService {
  public:

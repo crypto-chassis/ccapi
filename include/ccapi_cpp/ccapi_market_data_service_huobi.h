@@ -3,6 +3,7 @@
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_HUOBI
 #include "ccapi_cpp/ccapi_market_data_service.h"
+#include <regex>
 namespace ccapi {
 class MarketDataServiceHuobi final : public MarketDataService {
  public:
@@ -15,12 +16,9 @@ class MarketDataServiceHuobi final : public MarketDataService {
   std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) override {
     std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
     for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto fieldSet = subscription.getFieldSet()
-      if (fieldSet.find(CCAPI_EXCHANGE_NAME_TRADE) != fieldSet.end()) {
+      auto fieldSet = subscription.getFieldSet();
+      if (fieldSet.find(CCAPI_EXCHANGE_NAME_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
         subscriptionListByUrlMap[this->baseUrl + "/ws"].add(subscription);
-      }
-      if (fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
-        subscriptionListByUrlMap[this->baseUrl + "/feed"].add(subscription);
       }
     }
     return subscriptionListByUrlMap;
@@ -37,13 +35,13 @@ class MarketDataServiceHuobi final : public MarketDataService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         auto productId = subscriptionListByInstrument.first;
-        if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH) {
+        if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH, 0) == 0) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
         }
-        std::string exchangeSubscriptionId(channelId);
+        std::string exchangeSubscriptionId(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH);
         std::string toReplace("$symbol");
         exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), productId);
-        document.AddMember("sub", exchangeSubscriptionId, allocator);
+        document.AddMember("sub", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
@@ -89,12 +87,12 @@ class MarketDataServiceHuobi final : public MarketDataService {
       auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
       CCAPI_LOGGER_TRACE("channel = "+channelId);
-      std::smatch match;
+//      std::smatch match;
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-      if (std::regex_search(channelId.begin(), channelId.end(), match, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
+      if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
         //id always increasing?
         wsMessage.recapType = MarketDataMessage::RecapType::NONE;
-        wsMessage.tp = TimePoint(std::chrono::milliseconds(data["tick"]["ts"].GetInt64()));
+        wsMessage.tp = TimePoint(std::chrono::milliseconds(document["tick"]["ts"].GetInt64()));
         wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         const rj::Value& data = document["tick"]["data"];
         for (const auto& x : data.GetArray()) {
@@ -105,7 +103,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
           wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
         }
-      } else if (std::regex_search(channelId.begin(), channelId.end(), match, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
+      } else if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
 //        wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
         if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
           wsMessage.recapType = MarketDataMessage::RecapType::NONE;
