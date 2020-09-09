@@ -87,33 +87,30 @@ class MarketDataServiceHuobi final : public MarketDataService {
       auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
       CCAPI_LOGGER_TRACE("channel = "+channelId);
-//      std::smatch match;
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
-        CCAPI_LOGGER_TRACE("it is trade");
-        //id always increasing?
-        wsMessage.recapType = MarketDataMessage::RecapType::NONE;
-        wsMessage.tp = TimePoint(std::chrono::milliseconds(document["tick"]["ts"].GetInt64()));
-        wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-        const rj::Value& data = document["tick"]["data"];
-        for (const auto& x : data.GetArray()) {
-          MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x["price"].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x["amount"].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::ID, x["tradeId"].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
-          wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-        }
+//        CCAPI_LOGGER_TRACE("it is trade");
+//        //  id always increasing?
+//        wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+//        wsMessage.tp = TimePoint(std::chrono::milliseconds(document["tick"]["ts"].GetInt64()));
+//        wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+//        const rj::Value& data = document["tick"]["data"];
+//        for (const auto& x : data.GetArray()) {
+//          MarketDataMessage::TypeForDataPoint dataPoint;
+//          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x["price"].GetString())});
+//          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x["amount"].GetString())});
+//          dataPoint.insert({MarketDataMessage::DataFieldType::ID, x["tradeId"].GetString()});
+//          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
+//          wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+//        }
       } else if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
         CCAPI_LOGGER_TRACE("it is snapshot");
-//        wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
         if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
           wsMessage.recapType = MarketDataMessage::RecapType::NONE;
         } else {
           wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
         }
         const rj::Value& data = document["tick"];
-//        wsMessage.tp = TimePoint(std::chrono::milliseconds(data["ts"].GetInt64()));
         std::string ts = data["ts"].GetString();
         ts.insert(ts.size() - 3, ".");
         wsMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(ts));
