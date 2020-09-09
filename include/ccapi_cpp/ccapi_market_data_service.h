@@ -322,7 +322,7 @@ class MarketDataService {
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
 #ifdef ENABLE_HUOBI
-      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI){
+      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI) {
         std::string decompressed;
         std::string payload = msg->get_payload();
         try {
@@ -331,7 +331,7 @@ class MarketDataService {
           if (ec1) {
             CCAPI_LOGGER_FATAL(ec1.message());
           }
-          ErrorCode ec2 = this->deflate.decompress(reinterpret_cast<const uint8_t*>(&payload[0]),payload.size(),decompressed);
+          ErrorCode ec2 = this->deflate.decompress(reinterpret_cast<const uint8_t*>(&payload[0]), payload.size(), decompressed);
           if (ec2) {
             CCAPI_LOGGER_FATAL(ec2.message());
           }
