@@ -53,7 +53,7 @@ class MarketDataServiceKraken final : public MarketDataService {
             rj::Writer<rj::StringBuffer> writer(stringBuffer);
             document.Accept(writer);
             std::string requestString = stringBuffer.GetString();
-            CCAPI_LOGGER_INFO("requestString = "+requestString);
+//            CCAPI_LOGGER_INFO("requestString = "+requestString);
             requestStringList.push_back(requestString);
           }
         }
