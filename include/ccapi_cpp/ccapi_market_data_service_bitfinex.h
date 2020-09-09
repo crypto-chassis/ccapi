@@ -55,7 +55,7 @@ class MarketDataServiceBitfinex final : public MarketDataService {
     CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
-    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("([,\\[:])(-?\\d+\\.?\\d*e?-?\\d*)"), "$1\"$2\"");
+    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_TRACE("quotedTextMessage = "+quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
     std::vector<MarketDataMessage> wsMessageList;

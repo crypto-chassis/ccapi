@@ -74,12 +74,12 @@ class MarketDataServiceHuobi final : public MarketDataService {
     MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
-    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*[Ee]?-?\\d*)"), "$1\"$2\"");
+//    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_TRACE("quotedTextMessage = "+quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
     std::vector<MarketDataMessage> wsMessageList;
-    if (document.IsObject() && document.HasMember("status") && document.HasMember("subbed")) {
-    } else if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
+    if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
       MarketDataMessage wsMessage;
       std::string exchangeSubscriptionId = document["ch"].GetString();
       std::string channelId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
@@ -90,6 +90,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
 //      std::smatch match;
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
+        CCAPI_LOGGER_TRACE("it is trade");
         //id always increasing?
         wsMessage.recapType = MarketDataMessage::RecapType::NONE;
         wsMessage.tp = TimePoint(std::chrono::milliseconds(document["tick"]["ts"].GetInt64()));
@@ -104,6 +105,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
           wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
         }
       } else if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
+        CCAPI_LOGGER_TRACE("it is snapshot");
 //        wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
         if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
           wsMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -111,10 +113,11 @@ class MarketDataServiceHuobi final : public MarketDataService {
           wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
         }
         const rj::Value& data = document["tick"];
-        wsMessage.tp = TimePoint(std::chrono::milliseconds(data["ts"].GetInt64()));
-//        std::string microtimestamp = data["microtimestamp"].GetString();
-//        microtimestamp.insert(microtimestamp.size() - 6, ".");
-//        wsMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(microtimestamp));
+//        wsMessage.tp = TimePoint(std::chrono::milliseconds(data["ts"].GetInt64()));
+        std::string ts = data["ts"].GetString();
+        ts.insert(ts.size() - 3, ".");
+        wsMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(ts));
+        CCAPI_LOGGER_TRACE("wsMessage.tp = " + toString(wsMessage.tp));
         wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         int bidIndex = 0;
         int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
@@ -141,6 +144,17 @@ class MarketDataServiceHuobi final : public MarketDataService {
         }
         wsMessageList.push_back(std::move(wsMessage));
       }
+    } else if (document.IsObject() && document.HasMember("ping")) {
+      std::string payload("{\"pong\":");
+      payload += document["ping"].GetString();
+      payload += "}";
+      ErrorCode ec;
+      this->send(hdl, payload, wspp::frame::opcode::text, ec);
+      if (ec) {
+        CCAPI_LOGGER_ERROR(ec.message());
+        // TODO(cryptochassis): implement
+      }
+    } else if (document.IsObject() && document.HasMember("status") && document.HasMember("subbed")) {
     }
     return wsMessageList;
   }

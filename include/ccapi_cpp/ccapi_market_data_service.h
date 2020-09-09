@@ -28,6 +28,11 @@
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include "ccapi_cpp/ccapi_market_data_connection.h"
 #include "ccapi_cpp/ccapi_service_context.h"
+#ifdef ENABLE_HUOBI
+#include <sstream>
+#include <iomanip>
+#include "ccapi_cpp/websocketpp_decompress_workaround.h"
+#endif
 namespace wspp = websocketpp;
 namespace rj = rapidjson;
 namespace ccapi {
@@ -304,6 +309,8 @@ class MarketDataService {
       CCAPI_LOGGER_WARN("should not process remaining message on closing");
       return;
     }
+    auto opcode = msg->get_opcode();
+    CCAPI_LOGGER_DEBUG("opcode = "+toString(opcode));
     if (msg->get_opcode() == websocketpp::frame::opcode::text) {
       std::string textMessage = msg->get_payload();
       CCAPI_LOGGER_DEBUG("received a text message: "+textMessage);
@@ -313,6 +320,34 @@ class MarketDataService {
         CCAPI_LOGGER_ERROR(e.what());
         CCAPI_LOGGER_ERROR("textMessage = "+textMessage);
       }
+    } else if (opcode == websocketpp::frame::opcode::binary) {
+#ifdef ENABLE_HUOBI
+      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI){
+        std::string decompressed;
+        std::string payload = msg->get_payload();
+        try {
+          //  why need to init for each message instead of only once, because otherwise it doesn't work
+          ErrorCode ec1 = this->deflate.init(false);
+          if (ec1) {
+            CCAPI_LOGGER_FATAL(ec1.message());
+          }
+          ErrorCode ec2 = this->deflate.decompress(reinterpret_cast<const uint8_t*>(&payload[0]),payload.size(),decompressed);
+          if (ec2) {
+            CCAPI_LOGGER_FATAL(ec2.message());
+          }
+          CCAPI_LOGGER_DEBUG("decompressed = "+decompressed);
+          this->onTextMessage(hdl, decompressed, now);
+        } catch (const std::exception& e) {
+          CCAPI_LOGGER_ERROR(e.what());
+          std::stringstream ss;
+          ss << std::hex << std::setfill('0');
+          for (int i = 0; i < payload.size(); ++i) {
+              ss << std::setw(2) << static_cast<unsigned>(reinterpret_cast<const uint8_t*>(&payload[0])[i]);
+          }
+          CCAPI_LOGGER_ERROR("binaryMessage = "+ss.str());
+        }
+      }
+#endif
     }
   }
   void onPong(wspp::connection_hdl hdl, std::string payload) {
@@ -1047,6 +1082,10 @@ class MarketDataService {
   SessionConfigs sessionConfigs;
 //  ServiceContext& serviceContext;
   std::function<void(Event& event)> wsEventHandler;
+#ifdef ENABLE_HUOBI
+  struct monostate {};
+  websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> deflate;
+#endif
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_H_
