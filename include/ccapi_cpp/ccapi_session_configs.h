@@ -35,9 +35,9 @@ class SessionConfigs final {
   const std::map<std::string, std::vector<int> >& getWebsocketAvailableMarketDepth() const {
     return websocketAvailableMarketDepth;
   }
-  const std::map<std::string, int>& getWebsocketMaxAvailableMarketDepth() const {
-    return websocketMaxAvailableMarketDepth;
-  }
+//  const std::map<std::string, int>& getWebsocketMaxAvailableMarketDepth() const {
+//    return websocketMaxAvailableMarketDepth;
+//  }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const {
     return urlWebsocketBase;
   }
@@ -53,50 +53,55 @@ class SessionConfigs final {
       }
     }
     std::map<std::string, std::string> fieldWebsocketChannelMapCoinbase = { {
-    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_TRADE,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_MATCH }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_LEVEL2 }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapGemini =
         { {
-        CCAPI_EXCHANGE_NAME_LAST,
+        CCAPI_EXCHANGE_NAME_TRADE,
         CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_TRADES }, {
         CCAPI_EXCHANGE_NAME_MARKET_DEPTH, std::string(
         CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_BIDS) + ","
             + CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_OFFERS }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapKraken = { {
-    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_TRADE,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_TRADE }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitstamp = { {
-    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_TRADE,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITSTAMP_CHANNEL_LIVE_TRADES }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITSTAMP_CHANNEL_ORDER_BOOK }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitfinex = { {
-    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_TRADE,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITFINEX_CHANNEL_TRADES }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITFINEX_CHANNEL_BOOK }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitmex = { {
-    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_TRADE,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_TRADE }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2 }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapBinanceUs = { {
-    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_TRADE,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_TRADE }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapBinance = { {
-    CCAPI_EXCHANGE_NAME_LAST,
+    CCAPI_EXCHANGE_NAME_TRADE,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_TRADE }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapBinanceFutures = { {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapHuobi = { {
+    CCAPI_EXCHANGE_NAME_TRADE,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL }, {
+    CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH }, };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -124,6 +129,9 @@ class SessionConfigs final {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinanceFutures) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE_FUTURES].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHuobi) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HUOBI].push_back(fieldWebsocketChannel.first);
+    }
     CCAPI_LOGGER_TRACE("this->exchangeFieldMap = "+toString(this->exchangeFieldMap));
     this->exchangeFieldWebsocketChannelMap = {
       { CCAPI_EXCHANGE_NAME_COINBASE, fieldWebsocketChannelMapCoinbase},
@@ -134,19 +142,22 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_BITMEX, fieldWebsocketChannelMapBitmex},
       { CCAPI_EXCHANGE_NAME_BINANCE_US, fieldWebsocketChannelMapBinanceUs},
       { CCAPI_EXCHANGE_NAME_BINANCE, fieldWebsocketChannelMapBinance},
-      { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures}
+      { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures},
+      { CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi}
     };
     this->websocketAvailableMarketDepth = {
       { CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})},
+      { CCAPI_EXCHANGE_NAME_BITSTAMP, std::vector<int>({100})},
       { CCAPI_EXCHANGE_NAME_BITFINEX, std::vector<int>({1, 25, 100})},
       { CCAPI_EXCHANGE_NAME_BITMEX, std::vector<int>({1, 10, 25})},
       { CCAPI_EXCHANGE_NAME_BINANCE_US, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},
+      { CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})}
     };
-    this->websocketMaxAvailableMarketDepth = {
-      { CCAPI_EXCHANGE_NAME_BITSTAMP, 100}
-    };
+//    this->websocketMaxAvailableMarketDepth = {
+//      { CCAPI_EXCHANGE_NAME_BITSTAMP, 100}
+//    };
     this->urlWebsocketBase = {
       { CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},
       { CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata/"},
@@ -157,6 +168,7 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_BINANCE_US, "wss://stream.binance.us:9443/stream"},
       { CCAPI_EXCHANGE_NAME_BINANCE, "wss://stream.binance.com:9443/stream"},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
+      { CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }

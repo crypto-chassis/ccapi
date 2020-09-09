@@ -29,10 +29,10 @@
   * If you need all supported exchanges, define macro ENABLE_ALL_EXCHANGE. Otherwise, define exchange specific macros such as ENABLE_COINBASE, etc. See include/ccapi_cpp/ccapi_enable_exchange.h.
 * Include directories:
   * include
-  * dependency/websocketpp_tag_0.8.2
-  * dependency/asio_tag_asio-1-17-0/asio/include (If you use Boost Asio, this should be your Boost include directory, and you also need to define WEBSOCKETPP_USE_BOOST_ASIO in the compiler command line)
-  * dependency/rapidjson_tag_v1.1.0/include
-  * dependency/date_tag_v3.0.0/include
+  * dependency/websocketpp
+  * dependency/asio/asio/include (If you use Boost Asio, this should be your Boost include directory, and you also need to define WEBSOCKETPP_USE_BOOST_ASIO in the compiler command line)
+  * dependency/rapidjson/include
+  * dependency/date/include
 * Link libraries:
   * OpenSSL: libssl
   * OpenSSL: libcrypto
