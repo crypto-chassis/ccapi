@@ -31,5 +31,8 @@
 #ifndef ENABLE_HUOBI
 #define ENABLE_HUOBI
 #endif
+#ifndef ENABLE_OKEX
+#define ENABLE_OKEX
+#endif
 #endif
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_ENABLE_EXCHANGE_H_

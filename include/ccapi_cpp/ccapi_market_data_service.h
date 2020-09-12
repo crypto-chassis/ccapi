@@ -28,7 +28,7 @@
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include "ccapi_cpp/ccapi_market_data_connection.h"
 #include "ccapi_cpp/ccapi_service_context.h"
-#ifdef ENABLE_HUOBI
+#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
 #include <sstream>
 #include <iomanip>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
@@ -156,7 +156,7 @@ class MarketDataService {
         std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field);
         if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
           if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX
-              || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US || this->name == CCAPI_EXCHANGE_NAME_BINANCE || this->name == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES  || this->name == CCAPI_EXCHANGE_NAME_HUOBI) {
+              || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US || this->name == CCAPI_EXCHANGE_NAME_BINANCE || this->name == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES  || this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
             int marketDepthSubscribedToExchange = 1;
             marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
                 std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)),
@@ -321,8 +321,8 @@ class MarketDataService {
         CCAPI_LOGGER_ERROR("textMessage = "+textMessage);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
-#ifdef ENABLE_HUOBI
-      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI) {
+#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
+      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
         std::string payload = msg->get_payload();
         try {
@@ -1082,7 +1082,7 @@ class MarketDataService {
   SessionConfigs sessionConfigs;
 //  ServiceContext& serviceContext;
   std::function<void(Event& event)> wsEventHandler;
-#ifdef ENABLE_HUOBI
+#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> deflate;
 #endif
