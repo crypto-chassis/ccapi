@@ -270,7 +270,8 @@ public:
 
         ret = inflateInit2(
             &m_istate,
-            31
+            -1*inflate_bits
+//            31
         );
 
         if (ret != Z_OK) {

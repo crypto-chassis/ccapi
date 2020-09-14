@@ -432,6 +432,8 @@ class MarketDataService {
                                              timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList,
                                              snapshotBid, snapshotAsk);
             }
+            CCAPI_LOGGER_TRACE("snapshotBid.size() = "+toString(snapshotBid.size()));
+            CCAPI_LOGGER_TRACE("snapshotAsk.size() = "+toString(snapshotAsk.size()));
           }
         } else {
           CCAPI_LOGGER_WARN("websocket event type is unknown!");
