@@ -57,7 +57,7 @@ class MarketDataMessage final {
   enum class DataFieldType {
     PRICE = 0,
     SIZE = 1,
-    ID = 2,
+    TRADE_ID = 2,
     IS_BUYER_MAKER = 3
   };
   static std::string dataFieldTypeToString(DataFieldType dataFieldType) {

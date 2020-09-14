@@ -26,7 +26,7 @@ class MarketDataServiceOkex final : public MarketDataService {
       auto channelId = subscriptionListByChannelIdProductId.first;
       for (const auto & subscriptionListByProductId : subscriptionListByChannelIdProductId.second) {
         std::string productId = subscriptionListByProductId.first;
-        std::string exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400)+
+        std::string exchangeSubscriptionId = UtilString::split(channelId, "?").at(0)+
         ":"+productId;
         args.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
         this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
@@ -63,32 +63,50 @@ class MarketDataServiceOkex final : public MarketDataService {
     std::vector<MarketDataMessage> wsMessageList;
     if (document.IsObject() && document.HasMember("table")) {
       std::string table = document["table"].GetString();
-      std::string action = document["action"].GetString();
-      CCAPI_LOGGER_TRACE("action = " + toString(action));
-      for (const auto& data : document["data"].GetArray()) {
-        std::string exchangeSubscriptionId = table + ":" + data["instrument_id"].GetString();
-        std::string channelId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
-        std::string productId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID];
-        auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
-        MarketDataMessage wsMessage;
-        wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-        wsMessage.recapType = action == "update" ? MarketDataMessage::RecapType::NONE : MarketDataMessage::RecapType::SOLICITED;
-        wsMessage.tp = UtilTime::parse(std::string(data["timestamp"].GetString()));
-        CCAPI_LOGGER_TRACE("wsMessage.tp = " + toString(wsMessage.tp));
-        wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-        for (const auto& x : data["bids"].GetArray()) {
-          MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-          wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+      if (table == CCAPI_EXCHANGE_NAME_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400) {
+        std::string action = document["action"].GetString();
+        CCAPI_LOGGER_TRACE("action = " + toString(action));
+        for (const auto& datum : document["data"].GetArray()) {
+          std::string exchangeSubscriptionId = table + ":" + datum["instrument_id"].GetString();
+//          std::string channelId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
+//          std::string productId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID];
+//          auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+          MarketDataMessage wsMessage;
+          wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          wsMessage.recapType = action == "update" ? MarketDataMessage::RecapType::NONE : MarketDataMessage::RecapType::SOLICITED;
+          wsMessage.tp = UtilTime::parse(std::string(datum["timestamp"].GetString()));
+          CCAPI_LOGGER_TRACE("wsMessage.tp = " + toString(wsMessage.tp));
+          wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+          for (const auto& x : datum["bids"].GetArray()) {
+            MarketDataMessage::TypeForDataPoint dataPoint;
+            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+            wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+          }
+          for (const auto& x : datum["asks"].GetArray()) {
+            MarketDataMessage::TypeForDataPoint dataPoint;
+            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+            wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+          }
+          wsMessageList.push_back(std::move(wsMessage));
         }
-        for (const auto& x : data["asks"].GetArray()) {
+      } else if (table == CCAPI_EXCHANGE_NAME_WEBSOCKET_OKEX_CHANNEL_TRADE) {
+        for (const auto& datum : document["data"].GetArray()) {
+          std::string exchangeSubscriptionId = table + ":" + datum["instrument_id"].GetString();
+          MarketDataMessage wsMessage;
+          wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+          wsMessage.tp = UtilTime::parse(std::string(datum["timestamp"].GetString()));
+          wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-          wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["price"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["size"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["trade_id"].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "sell" ? "1" : "0"});
+          wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+          wsMessageList.push_back(std::move(wsMessage));
         }
-        wsMessageList.push_back(std::move(wsMessage));
       }
     }
     return wsMessageList;

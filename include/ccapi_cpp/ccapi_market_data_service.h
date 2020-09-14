@@ -435,6 +435,10 @@ class MarketDataService {
             CCAPI_LOGGER_TRACE("snapshotBid.size() = "+toString(snapshotBid.size()));
             CCAPI_LOGGER_TRACE("snapshotAsk.size() = "+toString(snapshotAsk.size()));
           }
+          if (wsMessage.data.find(MarketDataMessage::DataType::TRADE) != wsMessage.data.end()) {
+            this->processTrade(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
+                                                        timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList);
+          }
         } else {
           CCAPI_LOGGER_WARN("websocket event type is unknown!");
         }
@@ -572,6 +576,30 @@ class MarketDataService {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  void updateElementListWithTrade(const std::set<std::string>& fieldSet,
+                                              const std::map<std::string, std::string>& optionMap,
+                                              const MarketDataMessage::TypeForData& input,
+                                              std::vector<Element>& elementList) {
+    for (const auto & x : input) {
+      auto type = x.first;
+      auto detail = x.second;
+      if (type == MarketDataMessage::DataType::TRADE) {
+        for (const auto & y : detail) {
+          auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
+          auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
+          Element element;
+          element.insert(CCAPI_EXCHANGE_NAME_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
+          element.insert(CCAPI_EXCHANGE_NAME_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
+          element.insert(CCAPI_EXCHANGE_NAME_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
+          element.insert(CCAPI_EXCHANGE_NAME_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
+          elementList.push_back(std::move(element));
+        }
+      } else {
+        CCAPI_LOGGER_WARN(
+            "extra type " + MarketDataMessage::dataTypeToString(type));
+      }
+    }
+  }
 //    std::pair<Decimal, std::string> getBestBid(const std::map<Decimal, std::string>& snapshotBid){
 //      if (!snapshotBid.empty()) {
 //        return std::make_pair(snapshotBid.rbegin()->first, snapshotBid.rbegin()->second);
@@ -644,16 +672,16 @@ class MarketDataService {
     int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
     for (const auto & x : input) {
       auto type = x.first;
-      auto priceLevelList = x.second;
+      auto detail = x.second;
       if (type == MarketDataMessage::DataType::BID) {
-        for (const auto & y : priceLevelList) {
+        for (const auto & y : detail) {
           auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
           snapshotBid.insert(std::pair<Decimal, std::string>(Decimal(price), size));
         }
         CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, "+toString(maxMarketDepth)+") = "+lastNToString(snapshotBid, maxMarketDepth));
       } else if (type == MarketDataMessage::DataType::ASK) {
-        for (const auto & y : priceLevelList) {
+        for (const auto & y : detail) {
           auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
           snapshotAsk.insert(std::pair<Decimal, std::string>(Decimal(price), size));
@@ -740,15 +768,15 @@ class MarketDataService {
       }
       for (const auto & x : input) {
         auto type = x.first;
-        auto priceLevelList = x.second;
+        auto detail = x.second;
         if (type == MarketDataMessage::DataType::BID) {
-          for (const auto & y : priceLevelList) {
+          for (const auto & y : detail) {
             auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
             auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
             this->updateOrderBook(snapshotBid, Decimal(price), size);
           }
         } else if (type == MarketDataMessage::DataType::ASK) {
-          for (const auto & y : priceLevelList) {
+          for (const auto & y : detail) {
             auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
             auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
             this->updateOrderBook(snapshotAsk, Decimal(price), size);
@@ -843,6 +871,31 @@ class MarketDataService {
               productId) = conflateTp;
         }
       }
+    }
+  }
+  void processTrade(const MarketDataConnection& wsConnection, const std::string& channelId,
+                               const std::string& productId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
+                               const TimePoint& timeReceived, const MarketDataMessage::TypeForData& input,
+                               const std::set<std::string>& fieldSet,
+                               const std::map<std::string, std::string>& optionMap,
+                               const std::vector<CorrelationId>& correlationIdList) {
+    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
+    std::vector<Message> messageList;
+    std::vector<Element> elementList;
+      this->updateElementListWithTrade(fieldSet, optionMap, input, elementList);
+    CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
+    if (!elementList.empty()) {
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::MARKET_DATA_EVENTS);
+      message.setRecapType(Message::RecapType::NONE);
+      message.setTime(tp);
+      message.setElementList(elementList);
+      message.setCorrelationIdList(correlationIdList);
+      messageList.push_back(std::move(message));
+    }
+    if (!messageList.empty()) {
+      event.addMessages(messageList);
     }
   }
   virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage,
