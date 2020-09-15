@@ -69,6 +69,12 @@ class MarketDataMessage final {
       case DataFieldType::SIZE:
         output = "SIZE";
         break;
+      case DataFieldType::TRADE_ID:
+        output = "TRADE_ID";
+        break;
+      case DataFieldType::IS_BUYER_MAKER:
+        output = "IS_BUYER_MAKER";
+        break;
       default:
         CCAPI_LOGGER_FATAL("");
     }

@@ -378,17 +378,19 @@ class MarketDataService {
           event.setType(Event::Type::SUBSCRIPTION_DATA);
           std::string exchangeSubscriptionId = wsMessage.exchangeSubscriptionId;
           std::string channelId =
-              this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
+              this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
           std::string productId =
-              this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID];
-          auto fieldSet = this->fieldSetByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+              this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_PRODUCT_ID);
+          auto fieldSet = this->fieldSetByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
           CCAPI_LOGGER_TRACE("this->optionMapByConnectionIdChannelIdProductIdMap = "+toString(this->optionMapByConnectionIdChannelIdProductIdMap));
           CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
           CCAPI_LOGGER_TRACE("channelId = "+toString(channelId));
           CCAPI_LOGGER_TRACE("productId = "+toString(productId));
-          auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+          auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
+          CCAPI_LOGGER_TRACE("optionMap = "+toString(optionMap));
           auto correlationIdList =
-              this->correlationIdListByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+              this->correlationIdListByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
+          CCAPI_LOGGER_TRACE("correlationIdList = "+toString(correlationIdList));
           if (wsMessage.data.find(MarketDataMessage::DataType::BID) != wsMessage.data.end()
               || wsMessage.data.find(MarketDataMessage::DataType::ASK) != wsMessage.data.end()) {
             std::map<Decimal, std::string>& snapshotBid =
