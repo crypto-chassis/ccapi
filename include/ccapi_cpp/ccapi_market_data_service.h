@@ -327,7 +327,12 @@ class MarketDataService {
         std::string payload = msg->get_payload();
         try {
           //  why need to init for each message instead of only once, because otherwise it doesn't work
-          ErrorCode ec1 = this->deflate.init(false);
+          ErrorCode ec1;
+          if (this->name == CCAPI_EXCHANGE_NAME_HUOBI) {
+            ErrorCode ec1 = this->deflate.init(false, 31);
+          } else {
+            ErrorCode ec1 = this->deflate.init(false);
+          }
           if (ec1) {
             CCAPI_LOGGER_FATAL(ec1.message());
           }
