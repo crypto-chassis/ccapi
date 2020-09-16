@@ -243,7 +243,7 @@ public:
      * @param is_server True to initialize as a server, false for a client.
      * @return A code representing the error that occurred, if any
      */
-    lib::error_code init(bool is_server) {
+    lib::error_code init(bool is_server, int inflate_bits_override = 0) {
         uint8_t deflate_bits;
         uint8_t inflate_bits;
 
@@ -268,10 +268,18 @@ public:
             return make_error_code(error::zlib_error);
         }
 
-        ret = inflateInit2(
-            &m_istate,
-            31
-        );
+        if (inflate_bits_override == 0) {
+          ret = inflateInit2(
+              &m_istate,
+              -1*inflate_bits
+          );
+        } else {
+          ret = inflateInit2(
+              &m_istate,
+              inflate_bits_override
+  //            31
+          );
+        }
 
         if (ret != Z_OK) {
             return make_error_code(error::zlib_error);

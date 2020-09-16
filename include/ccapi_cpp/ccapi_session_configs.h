@@ -102,6 +102,11 @@ class SessionConfigs final {
     CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL }, {
     CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
     CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapOkex = { {
+    CCAPI_EXCHANGE_NAME_TRADE,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_OKEX_CHANNEL_TRADE }, {
+    CCAPI_EXCHANGE_NAME_MARKET_DEPTH,
+    CCAPI_EXCHANGE_NAME_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400 }, };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -132,6 +137,9 @@ class SessionConfigs final {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHuobi) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HUOBI].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapOkex) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_OKEX].push_back(fieldWebsocketChannel.first);
+    }
     CCAPI_LOGGER_TRACE("this->exchangeFieldMap = "+toString(this->exchangeFieldMap));
     this->exchangeFieldWebsocketChannelMap = {
       { CCAPI_EXCHANGE_NAME_COINBASE, fieldWebsocketChannelMapCoinbase},
@@ -143,7 +151,8 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_BINANCE_US, fieldWebsocketChannelMapBinanceUs},
       { CCAPI_EXCHANGE_NAME_BINANCE, fieldWebsocketChannelMapBinance},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures},
-      { CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi}
+      { CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi},
+      { CCAPI_EXCHANGE_NAME_OKEX, fieldWebsocketChannelMapOkex}
     };
     this->websocketAvailableMarketDepth = {
       { CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})},
@@ -153,7 +162,8 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_BINANCE_US, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},
-      { CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})}
+      { CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})},
+      { CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({400})}
     };
 //    this->websocketMaxAvailableMarketDepth = {
 //      { CCAPI_EXCHANGE_NAME_BITSTAMP, 100}
@@ -169,6 +179,7 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_BINANCE, "wss://stream.binance.com:9443/stream"},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
       { CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
+      { CCAPI_EXCHANGE_NAME_OKEX, "wss://real.okex.com:8443/ws/v3"},
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }

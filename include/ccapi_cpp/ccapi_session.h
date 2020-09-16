@@ -31,6 +31,9 @@
 #ifdef ENABLE_HUOBI
 #include "ccapi_cpp/ccapi_market_data_service_huobi.h"
 #endif
+#ifdef ENABLE_OKEX
+#include "ccapi_cpp/ccapi_market_data_service_okex.h"
+#endif
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
@@ -117,7 +120,7 @@ class Session final {
         }
         if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
           auto depth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
-          if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI)
+          if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI || exchange == CCAPI_EXCHANGE_NAME_OKEX)
               && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
 //              || (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP
 //                  && depth > this->sessionConfigs.getWebsocketMaxAvailableMarketDepth().at(exchange))
@@ -222,6 +225,12 @@ class Session final {
             found = true;
           }
 #endif
+#ifdef ENABLE_OKEX
+          if (exchange == CCAPI_EXCHANGE_NAME_OKEX) {
+            ws = new MarketDataServiceOkex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+            found = true;
+          }
+#endif
           if (!found) {
             CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
           }
@@ -303,6 +312,12 @@ class Session final {
 #ifdef ENABLE_HUOBI
         if (exchange == CCAPI_EXCHANGE_NAME_HUOBI) {
           ws = new MarketDataServiceHuobi(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
+          found = true;
+        }
+#endif
+#ifdef ENABLE_OKEX
+        if (exchange == CCAPI_EXCHANGE_NAME_OKEX) {
+          ws = new MarketDataServiceOkex(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, *serviceContext);
           found = true;
         }
 #endif
