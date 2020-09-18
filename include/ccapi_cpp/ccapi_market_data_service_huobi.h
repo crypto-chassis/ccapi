@@ -10,6 +10,10 @@ class MarketDataServiceHuobi final : public MarketDataService {
   MarketDataServiceHuobi(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_HUOBI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    ErrorCode ec = this->inflater.init(false, 31);
+    if (ec) {
+      CCAPI_LOGGER_FATAL(ec.message());
+    }
   }
 
  private:

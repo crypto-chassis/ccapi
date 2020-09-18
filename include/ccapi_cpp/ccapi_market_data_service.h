@@ -326,19 +326,9 @@ class MarketDataService {
         std::string decompressed;
         std::string payload = msg->get_payload();
         try {
-          //  why need to init for each message instead of only once, because otherwise it doesn't work
-          ErrorCode ec1;
-          if (this->name == CCAPI_EXCHANGE_NAME_HUOBI) {
-            ErrorCode ec1 = this->deflate.init(false, 31);
-          } else {
-            ErrorCode ec1 = this->deflate.init(false);
-          }
-          if (ec1) {
-            CCAPI_LOGGER_FATAL(ec1.message());
-          }
-          ErrorCode ec2 = this->deflate.decompress(reinterpret_cast<const uint8_t*>(&payload[0]), payload.size(), decompressed);
-          if (ec2) {
-            CCAPI_LOGGER_FATAL(ec2.message());
+          ErrorCode ec = this->inflater.decompress(reinterpret_cast<const uint8_t*>(&payload[0]), payload.size(), decompressed);
+          if (ec) {
+            CCAPI_LOGGER_FATAL(ec.message());
           }
           CCAPI_LOGGER_DEBUG("decompressed = "+decompressed);
           this->onTextMessage(hdl, decompressed, now);
@@ -350,6 +340,10 @@ class MarketDataService {
               ss << std::setw(2) << static_cast<unsigned>(reinterpret_cast<const uint8_t*>(&payload[0])[i]);
           }
           CCAPI_LOGGER_ERROR("binaryMessage = "+ss.str());
+        }
+        ErrorCode ec = this->inflater.inflate_reset();
+        if (ec) {
+          CCAPI_LOGGER_ERROR(ec.message());
         }
       }
 #endif
@@ -1146,7 +1140,7 @@ class MarketDataService {
   std::function<void(Event& event)> wsEventHandler;
 #if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
   struct monostate {};
-  websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> deflate;
+  websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> inflater;
 #endif
 };
 } /* namespace ccapi */
