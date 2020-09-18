@@ -298,6 +298,14 @@ public:
         return lib::error_code();
     }
 
+    lib::error_code inflate_reset() {
+      int ret = inflateReset(&m_istate);
+      if (ret != Z_OK) {
+        return make_error_code(error::zlib_error);
+      }
+      return lib::error_code();
+    }
+
     /// Test if this object implements the permessage-deflate specification
     /**
      * Because this object does implieent it, it will always return true.

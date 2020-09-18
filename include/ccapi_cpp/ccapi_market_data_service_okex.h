@@ -9,6 +9,10 @@ class MarketDataServiceOkex final : public MarketDataService {
   MarketDataServiceOkex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
     this->name = CCAPI_EXCHANGE_NAME_OKEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    ErrorCode ec = this->inflater.init(false);
+    if (ec) {
+      CCAPI_LOGGER_FATAL(ec.message());
+    }
   }
 
  private:
