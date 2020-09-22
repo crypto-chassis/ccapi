@@ -7,6 +7,13 @@
   - [Examples](#examples)
     - [Simple](#simple)
     - [Advanced](#advanced)
+      - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments)
+      - [Specify market depth](#specify-market-depth)
+      - [Only receive events at periodic intervals](#only-receive-events-at-periodic-intervals)
+      - [Only receive events at periodic intervals including when the market depth snapshot has not changed yet](#only-receive-events-at-periodic-intervals-including-when-the-market-depth-snapshot-has-not-changed-yet)
+      - [Dispatching events from multiple threads](#dispatching-events-from-multiple-threads)
+      - [Synchronous Event Handling](#synchronous-event-handling)
+      - [Enable library logging](#enable-library-logging)
     - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -15,7 +22,7 @@
 * A header-only C++ library for streaming public market data directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
-* Supported exchanges: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex.
+* Supported exchanges: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, okex.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost. Follow us on https://medium.com/@cryptochassis and our publication on https://medium.com/open-crypto-market-data-initiative.
 * For historical data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
@@ -36,6 +43,7 @@
 * Link libraries:
   * OpenSSL: libssl
   * OpenSSL: libcrypto
+  * If you need huobi or okex, also link ZLIB.
 * Troubleshoot:
   * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try cmake -DOPENSSL_ROOT_DIR=...(e.g. /usr/local/opt/openssl)
   * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
@@ -122,7 +130,7 @@ Top 10 bids and asks at 2020-07-27T23:56:51.935993000Z are:
 ```
 
 ### Advanced
-**Multiple exchanges and/or instruments**
+#### Multiple exchanges and/or instruments
 
 Instantiate SessionConfigs with a map containing the exchange names, the instrument names specified by you, and the instrument names specified by the exchange.
 ```
@@ -132,7 +140,7 @@ exchangeInstrumentSymbolMap[CCAPI_EXCHANGE_NAME_COINBASE]["eth-usd name specifie
 SessionConfigs sessionConfigs(exchangeInstrumentSymbolMap);
 ```
 
-**Specify market depth**
+#### Specify market depth
 
 Instantiate Subscription with option CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX set to be the desired market depth, e.g.
 ```
@@ -140,7 +148,7 @@ std::string options = std::string(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX) + "=2";
 Subscription subscription(topic, fields, options, correlationId);
 ```
 
-**Only receive events at periodic intervals**
+#### Only receive events at periodic intervals
 
 Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval, e.g. if you want to only receive market depth snapshots at whole seconds
 ```
@@ -148,7 +156,7 @@ std::string options = std::string(CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISEC
 Subscription subscription(topic, fields, options, correlationId);
 ```
 
-**Only receive events at periodic intervals including when the market depth snapshot has not changed yet**
+#### Only receive events at periodic intervals including when the market depth snapshot has not changed yet
 
 Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval and CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS to be your network latency, e.g. if you want to only receive market depth snapshots at each and every second regardless of whether the market depth snapshot hasn't changed or not, and your network is faster than the speed of light
 ```
@@ -156,7 +164,7 @@ std::string options = std::string(CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISEC
 Subscription subscription(topic, fields, options, correlationId);
 ```
 
-**Dispatching events from multiple threads**
+#### Dispatching events from multiple threads
 
 Instantiate EventDispatcher with numDispatcherThreads set to be the desired number, e.g.
 ```
@@ -164,7 +172,7 @@ EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
 ```
 
-**Synchronous Event Handling**
+#### Synchronous Event Handling
 
 Instantiate Session without EventHandler, then obtain the events to be processed by calling session.eventQueue.purge(), e.g.
 ```
@@ -176,7 +184,7 @@ while (true) {
 }
 ```
 
-**Enable library logging**
+#### Enable library logging
 
 Add one of the following macros in the compiler command line: ENABLE_TRACE_LOG, ENABLE_DEBUG_LOG, ENABLE_INFO_LOG, ENABLE_WARN_LOG, ENABLE_ERROR_LOG, ENABLE_FATAL_LOG. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
 ```
