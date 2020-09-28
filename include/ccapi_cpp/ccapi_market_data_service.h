@@ -357,6 +357,12 @@ class MarketDataService {
     lastPongTpByConnectionIdMap[wsConnection.id] = now;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  bool onPing(wspp::connection_hdl hdl, std::string payload) {
+    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
+        this->tlsClient->get_con_from_hdl(hdl));
+    CCAPI_LOGGER_INFO("received a ping from " + toString(wsConnection));
+    return true;
+  }
   virtual void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
@@ -634,6 +640,7 @@ class MarketDataService {
     if (this->sessionOptions.enableCheckHeartbeat) {
       con->set_pong_handler(std::bind(&MarketDataService::onPong, this, std::placeholders::_1, std::placeholders::_2));
     }
+    con->set_ping_handler(std::bind(&MarketDataService::onPing, this, std::placeholders::_1, std::placeholders::_2));
     this->tlsClient->connect(con);
   }
   void close(MarketDataConnection& wsConnection, wspp::connection_hdl hdl, wspp::close::status::value const code,
