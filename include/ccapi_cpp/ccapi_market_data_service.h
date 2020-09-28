@@ -360,7 +360,7 @@ class MarketDataService {
   bool onPing(wspp::connection_hdl hdl, std::string payload) {
     MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
         this->tlsClient->get_con_from_hdl(hdl));
-    CCAPI_LOGGER_INFO("received a ping from " + toString(wsConnection));
+    CCAPI_LOGGER_TRACE("received a ping from " + toString(wsConnection));
     return true;
   }
   virtual void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) {
