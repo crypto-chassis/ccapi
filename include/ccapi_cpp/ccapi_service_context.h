@@ -55,4 +55,4 @@ class ServiceContext final {
 
 } /* namespace ccapi */
 
-#endif /* INCLUDE_CCAPI_CPP_CCAPI_SERVICE_CONTEXT_H_ */
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_SERVICE_CONTEXT_H_
