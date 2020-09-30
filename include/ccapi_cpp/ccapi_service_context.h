@@ -20,6 +20,7 @@ class ServiceContext final {
   };
   typedef wspp::client<CustomClientConfig> TlsClient;
   typedef wspp::lib::error_code ErrorCode;
+  typedef wspp::lib::shared_ptr<wspp::lib::asio::ssl::context> SslContext;
   ServiceContext() {}
   ServiceContext(const ServiceContext&) = delete;
   ServiceContext& operator=(const ServiceContext&) = delete;
@@ -34,6 +35,13 @@ class ServiceContext final {
     }
     CCAPI_LOGGER_DEBUG("asio initialization end");
     this->tlsClient.start_perpetual();
+    this->sslContext = std::make_shared<wspp::lib::asio::ssl::context>(wspp::lib::asio::ssl::context::sslv23);
+    this->sslContext->set_options(
+        wspp::lib::asio::ssl::context::default_workarounds | wspp::lib::asio::ssl::context::no_sslv2 | wspp::lib::asio::ssl::context::no_sslv3
+            | wspp::lib::asio::ssl::context::single_dh_use);
+    this->sslContext->set_verify_mode(wspp::lib::asio::ssl::verify_none);
+    // TODO(cryptochassis): verify ssl certificate to strengthen security
+    // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp
   }
   void run() {
     CCAPI_LOGGER_INFO("about to start client asio io_service run loop");
@@ -42,6 +50,7 @@ class ServiceContext final {
   }
   IoContext ioContext;
   TlsClient tlsClient;
+  SslContext sslContext;
 };
 
 } /* namespace ccapi */
