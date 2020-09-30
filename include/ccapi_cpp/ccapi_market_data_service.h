@@ -45,7 +45,8 @@ class MarketDataService {
         sessionOptions(sessionOptions),
         sessionConfigs(sessionConfigs) {
     this->tlsClient = &serviceContext.tlsClient;
-    this->tlsClient->set_tls_init_handler(std::bind(&MarketDataService::onTlsInit, std::placeholders::_1));
+    this->sslContext = serviceContext.sslContext;
+    this->tlsClient->set_tls_init_handler(std::bind(&MarketDataService::onTlsInit, this, std::placeholders::_1));
     CCAPI_LOGGER_DEBUG("endpoint tls init handler set");
     this->pingIntervalMilliSeconds = sessionOptions.pingIntervalMilliSeconds;
     CCAPI_LOGGER_INFO("this->pingIntervalMilliSeconds = "+toString(this->pingIntervalMilliSeconds));
@@ -101,7 +102,7 @@ class MarketDataService {
   }
 
  protected:
-  typedef wspp::lib::shared_ptr<wspp::lib::asio::ssl::context> SslContext;
+  typedef ServiceContext::SslContext SslContext;
 //  struct CustomClientConfig : public wspp::config::asio_tls_client {
 //    static const wspp::log::level alog_level = wspp::log::alevel::none;
 //    static const wspp::log::level elog_level = wspp::log::elevel::none;
@@ -110,15 +111,8 @@ class MarketDataService {
   typedef wspp::lib::error_code ErrorCode;
   typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
   typedef wspp::lib::function<void(ErrorCode const &)> TimerHandler;
-  static SslContext onTlsInit(wspp::connection_hdl hdl) {
-    SslContext ctx = std::make_shared<wspp::lib::asio::ssl::context>(wspp::lib::asio::ssl::context::sslv23);
-    ctx->set_options(
-        wspp::lib::asio::ssl::context::default_workarounds | wspp::lib::asio::ssl::context::no_sslv2 | wspp::lib::asio::ssl::context::no_sslv3
-            | wspp::lib::asio::ssl::context::single_dh_use);
-    ctx->set_verify_mode(wspp::lib::asio::ssl::verify_none);
-    // TODO(cryptochassis): verify ssl certificate to strengthen security
-    // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp
-    return ctx;
+  SslContext onTlsInit(wspp::connection_hdl hdl) {
+    return this->sslContext;
   }
 //  SslContext onTlsInit(wspp::connection_hdl hdl) {
 //    return MarketDataService::onTlsInitStatic(hdl);
@@ -1114,6 +1108,7 @@ class MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   TlsClient* tlsClient;
+  SslContext sslContext;
   std::string baseUrl;
   std::string name;
   std::map<std::string, MarketDataConnection> wsConnectionMap;
