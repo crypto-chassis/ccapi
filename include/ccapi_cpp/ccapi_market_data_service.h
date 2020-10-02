@@ -900,8 +900,8 @@ class MarketDataService {
       event.addMessages(messageList);
     }
   }
-  virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage,
-                                                           TimePoint& timeReceived) {
+  virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage,
+                                                           const TimePoint& timeReceived) {
     std::vector<MarketDataMessage> x;
     return x;
   }
