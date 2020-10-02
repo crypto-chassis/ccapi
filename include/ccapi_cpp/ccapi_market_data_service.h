@@ -357,7 +357,7 @@ class MarketDataService {
     CCAPI_LOGGER_TRACE("received a ping from " + toString(wsConnection));
     return true;
   }
-  virtual void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) {
+  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(
         this->tlsClient->get_con_from_hdl(hdl));
