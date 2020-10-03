@@ -6,7 +6,7 @@
 namespace ccapi {
 class MarketDataServiceBinanceFutures final : public MarketDataServiceBinanceBase {
  public:
-  MarketDataServiceBinanceFutures(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataServiceBinanceBase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
+  MarketDataServiceBinanceFutures(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataServiceBinanceBase(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
     this->isFutures = true;
