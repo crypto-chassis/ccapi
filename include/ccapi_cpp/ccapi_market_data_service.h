@@ -26,7 +26,7 @@
 #include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
-#include "ccapi_ws_connection.h"
+#include "ccapi_cpp/ccapi_ws_connection.h"
 #include "ccapi_cpp/ccapi_service_context.h"
 #if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
 #include <sstream>
