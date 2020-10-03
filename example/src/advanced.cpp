@@ -80,5 +80,5 @@ int main(int argc, char **argv) {
     subscriptionList.add(subscription);
   }
   session.subscribe(subscriptionList);
-  return 0;
+  return EXIT_SUCCESS;
 }
