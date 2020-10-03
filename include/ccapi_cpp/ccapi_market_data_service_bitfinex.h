@@ -37,7 +37,7 @@ class MarketDataServiceBitfinex final : public MarketDataService {
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
@@ -51,7 +51,7 @@ class MarketDataServiceBitfinex final : public MarketDataService {
   }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -222,7 +222,7 @@ class MarketDataServiceBitfinex final : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return wsMessageList;
   }
-  bool checkSequence(const MarketDataConnection& wsConnection, int sequence) {
+  bool checkSequence(const WsConnection& wsConnection, int sequence) {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
       if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->name)) {
         CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = "+toString(wsConnection));
@@ -241,7 +241,7 @@ class MarketDataServiceBitfinex final : public MarketDataService {
       }
     }
   }
-  void onOutOfSequence(MarketDataConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
+  void onOutOfSequence(WsConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
       const std::string& exchangeSubscriptionId) {
     int previous = 0;
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
@@ -300,7 +300,7 @@ class MarketDataServiceBitfinex final : public MarketDataService {
     }
     return true;
   }
-  void onIncorrectStatesFound(MarketDataConnection& wsConnection,
+  void onIncorrectStatesFound(WsConnection& wsConnection,
       wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, const std::string& exchangeSubscriptionId, std::string const & reason) override {
     CCAPI_LOGGER_ERROR("incorrect states found: connection = "+toString(wsConnection)+
         ", textMessage = "+textMessage+
