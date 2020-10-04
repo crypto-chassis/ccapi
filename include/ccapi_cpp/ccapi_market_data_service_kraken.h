@@ -6,7 +6,7 @@
 namespace ccapi {
 class MarketDataServiceKraken final : public MarketDataService {
  public:
-    MarketDataServiceKraken(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContext& serviceContext): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContext) {
+    MarketDataServiceKraken(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
       this->name = CCAPI_EXCHANGE_NAME_KRAKEN;
       this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
       this->shouldAlignSnapshot = true;
@@ -17,7 +17,7 @@ class MarketDataServiceKraken final : public MarketDataService {
       CCAPI_LOGGER_FUNCTION_ENTER;
       MarketDataService::onOpen(hdl);
 //      this->onOpen_2(hdl);
-      MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
+      WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
       std::vector<std::string> requestStringList;
       for (auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
         auto channelId = subscriptionListByChannelIdProductId.first;
@@ -69,15 +69,15 @@ class MarketDataServiceKraken final : public MarketDataService {
       }
       CCAPI_LOGGER_FUNCTION_EXIT;
     }
-    void onTextMessage(wspp::connection_hdl hdl, std::string textMessage, TimePoint timeReceived) override {
+    void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
       CCAPI_LOGGER_FUNCTION_ENTER;
       MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
 //      this->onTextMessage_2(hdl, textMessage, timeReceived);
       CCAPI_LOGGER_FUNCTION_EXIT;
     }
-    std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, std::string& textMessage, TimePoint& timeReceived) override {
+    std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
       CCAPI_LOGGER_FUNCTION_ENTER;
-      MarketDataConnection& wsConnection = this->getMarketDataConnectionFromConnectionPtr(this->tlsClient->get_con_from_hdl(hdl));
+      WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
       rj::Document document;
       rj::Document::AllocatorType& allocator = document.GetAllocator();
       document.Parse(textMessage.c_str());

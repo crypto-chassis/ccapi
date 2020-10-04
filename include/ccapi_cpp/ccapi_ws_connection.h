@@ -1,12 +1,12 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_CONNECTION_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_CONNECTION_H_
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
 #include <string>
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
 namespace ccapi {
-class MarketDataConnection final {
+class WsConnection final {
  public:
-  MarketDataConnection(std::string url, SubscriptionList subscriptionList)
+  WsConnection(std::string url, SubscriptionList subscriptionList)
       : url(url),
         subscriptionList(subscriptionList) {
     this->assignDummyId();
@@ -15,7 +15,7 @@ class MarketDataConnection final {
     this->id = this->url + "|" + ccapi::toString(this->subscriptionList);
   }
   std::string toString() const {
-    std::string output = "MarketDataConnection [id = " + id + ", url = " + url + ", subscriptionList = "
+    std::string output = "WsConnection [id = " + id + ", url = " + url + ", subscriptionList = "
         + ccapi::toString(subscriptionList) + ", status = " + statusToString(status) + "]";
     return output;
   }
@@ -59,4 +59,4 @@ class MarketDataConnection final {
   Status status{Status::UNKNOWN};
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_CONNECTION_H_
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_

@@ -49,7 +49,7 @@
   * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
 
 ## Examples
-
+[Detail](example)
 ### Simple
 **Objective:**
 

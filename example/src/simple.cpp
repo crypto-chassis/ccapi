@@ -40,5 +40,5 @@ int main(int argc, char **argv) {
   Subscription subscription(topic, fields, options, correlationId);
   subscriptionList.add(subscription);
   session.subscribe(subscriptionList);
-  return 0;
+  return EXIT_SUCCESS;
 }
