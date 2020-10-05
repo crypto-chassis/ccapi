@@ -10,7 +10,7 @@ class Queue {
  public:
   std::string EXCEPTION_QUEUE_FULL = "queue is full";
   std::string EXCEPTION_QUEUE_EMPTY = "queue is empty";
-  Queue(const size_t maxSize = 0)
+  explicit Queue(const size_t maxSize = 0)
         : maxSize(maxSize) {}
   void pushBack(T&& t) {
     std::lock_guard<std::mutex> lock(this->m);
