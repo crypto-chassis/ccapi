@@ -42,7 +42,7 @@
 #include <vector>
 #include <map>
 #include <unordered_set>
-#include "ccapi_cpp/ccapi_event_queue.h"
+#include "ccapi_cpp/ccapi_queue.h"
 #include "ccapi_cpp/ccapi_exchange.h"
 #include "ccapi_cpp/ccapi_event_dispatcher.h"
 #include "ccapi_cpp/ccapi_event_handler.h"
@@ -56,7 +56,8 @@ class Session final {
       : sessionOptions(options),
         sessionConfigs(configs),
         eventHandler(eventHandler),
-        eventDispatcher(eventDispatcher) {
+        eventDispatcher(eventDispatcher),
+        eventQueue(options.maxEventQueueSize) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (this->eventHandler) {
       if (!this->eventDispatcher) {
@@ -67,7 +68,6 @@ class Session final {
         throw std::runtime_error("undefined behavior");
       }
     }
-    this->eventQueue.setMaxSize(options.maxEventQueueSize);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 //  bool openService(std::string serviceName = "") {
@@ -151,7 +151,7 @@ class Session final {
     if (this->eventDispatcher) {
       this->eventDispatcher->start();
     }
-    std::function<void(Event& event)> wsEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1);
+    std::function<void(Event& event)> wsEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, nullptr);
     auto sessionOptions = this->sessionOptions;
     auto sessionConfigs = this->sessionConfigs;
     CCAPI_LOGGER_TRACE("sessionOptions.enableOneIoContextPerExchange = "+toString(sessionOptions.enableOneIoContextPerExchange));
@@ -327,10 +327,10 @@ class Session final {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void onEvent(Event& event) {
+  void onEvent(Event& event, Queue<Event> *eventQueue) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = "+toString(event));
-    if (this->eventHandler) {
+    if (this->eventHandler && !eventQueue) {
       CCAPI_LOGGER_TRACE("handle event asynchronously");
       this->eventDispatcher->dispatch([&, event] {
         bool shouldContinue = true;
@@ -346,11 +346,15 @@ class Session final {
       });
     } else {
       CCAPI_LOGGER_TRACE("handle event synchronously");
-      this->eventQueue.push(std::move(event));
+      if (eventQueue) {
+        eventQueue->pushBack(std::move(event));
+      } else {
+        this->eventQueue.pushBack(std::move(event));
+      }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  EventQueue eventQueue;
+  Queue<Event> eventQueue;
 
  private:
 //  std::string serviceName;
