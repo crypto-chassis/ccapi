@@ -68,6 +68,9 @@ class Session final {
         throw std::runtime_error("undefined behavior");
       }
     }
+    if (this->eventDispatcher) {
+      this->eventDispatcher->start();
+    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 //  bool openService(std::string serviceName = "") {
@@ -148,9 +151,6 @@ class Session final {
               + ", exceeded max market depth available");
     }
     CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = "+toString(subscriptionListByExchangeMap));
-    if (this->eventDispatcher) {
-      this->eventDispatcher->start();
-    }
     std::function<void(Event& event)> wsEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, nullptr);
     auto sessionOptions = this->sessionOptions;
     auto sessionConfigs = this->sessionConfigs;
