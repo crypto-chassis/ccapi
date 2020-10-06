@@ -14,7 +14,7 @@
 #include "websocketpp/common/connection_hdl.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
-#include "ccapi_cpp/ccapi_exchange.h"
+#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_market_data_message.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"

@@ -13,7 +13,7 @@
 namespace ccapi {
 class EventDispatcher final {
  public:
-  explicit EventDispatcher(size_t numDispatcherThreads = 1)
+  explicit EventDispatcher(const size_t numDispatcherThreads = 1)
       : numDispatcherThreads(numDispatcherThreads) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("numDispatcherThreads = "+size_tToString(numDispatcherThreads));

@@ -26,7 +26,7 @@ class SessionOptions final {
   bool enableOneIoContextPerExchange{};
   long pingIntervalMilliSeconds{10000};
   long pongTimeoutMilliSeconds{5000};
-  long maxEventQueueSize{-1};
+  long maxEventQueueSize{0};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
