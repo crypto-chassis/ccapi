@@ -1,9 +1,9 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_
+#include "ccapi_cpp/ccapi_macro.h"
 #include <string>
 #include <set>
 #include "ccapi_cpp/ccapi_correlationId.h"
-#include "ccapi_cpp/ccapi_exchange.h"
 #include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
 class Subscription final {

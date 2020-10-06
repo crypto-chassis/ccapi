@@ -1,10 +1,10 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_CONFIGS_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_CONFIGS_H_
+#include "ccapi_cpp/ccapi_macro.h"
 #include <string>
 #include <map>
 #include <vector>
 #include <set>
-#include "ccapi_cpp/ccapi_exchange.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
 class SessionConfigs final {

@@ -43,7 +43,7 @@
 #include <map>
 #include <unordered_set>
 #include "ccapi_cpp/ccapi_queue.h"
-#include "ccapi_cpp/ccapi_exchange.h"
+#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_event_dispatcher.h"
 #include "ccapi_cpp/ccapi_event_handler.h"
 #include "ccapi_cpp/ccapi_event.h"
