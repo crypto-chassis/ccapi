@@ -11,20 +11,33 @@ class SessionConfigs final {
  public:
   SessionConfigs() {
   }
-  explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap)
-      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap) {
-    this->update();
+  SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap, std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {}, std::map<std::string, std::string > credential = {})
+      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap), exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest), credential(credential) {
+    this->updateExchangeInstrumentMap();
+    this->updateExchangeInstrumentMapRest();
   }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const {
     return exchangeInstrumentSymbolMap;
   }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMapRest() const {
+    return exchangeInstrumentSymbolMapRest;
+  }
   void setExchangeInstrumentSymbolMap(
       const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
     this->exchangeInstrumentSymbolMap = exchangeInstrumentSymbolMap;
-    this->update();
+    this->updateExchangeInstrumentMap();
+    this->updateExchangeInstrumentMapRest();
+  }
+  void setExchangeInstrumentSymbolMapRest(
+      const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMapRest) {
+    this->exchangeInstrumentSymbolMapRest = exchangeInstrumentSymbolMapRest;
+    this->updateExchangeInstrumentMapRest();
   }
   const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const {
     return exchangeInstrumentMap;
+  }
+  const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const {
+    return exchangeInstrumentMapRest;
   }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const {
     return exchangeFieldMap;
@@ -44,9 +57,15 @@ class SessionConfigs final {
   const std::map<std::string, int>& getInitialSequenceByExchangeMap() const {
     return initialSequenceByExchangeMap;
   }
+  const std::map<std::string, std::string>& getCredential() const {
+    return credential;
+  }
+  void setCredential(const std::map<std::string, std::string>& credential) {
+    this->credential = credential;
+  }
 
  private:
-  void update() {
+  void updateExchangeInstrumentMap() {
     for (const auto & x : exchangeInstrumentSymbolMap) {
       for (const auto & y : x.second) {
         this->exchangeInstrumentMap[x.first].push_back(y.first);
@@ -183,14 +202,24 @@ class SessionConfigs final {
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
+  void updateExchangeInstrumentMapRest() {
+    for (const auto & x : exchangeInstrumentSymbolMapRest) {
+      for (const auto & y : x.second) {
+        this->exchangeInstrumentMapRest[x.first].push_back(y.first);
+      }
+    }
+  }
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
+  std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest;
   std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
   std::map<std::string, std::vector<std::string> > exchangeFieldMap;
+  std::map<std::string, std::vector<std::string> > exchangeInstrumentMapRest;
   std::map<std::string, std::map<std::string, std::string> > exchangeFieldWebsocketChannelMap;
   std::map<std::string, std::vector<int> > websocketAvailableMarketDepth;
   std::map<std::string, int> websocketMaxAvailableMarketDepth;
   std::map<std::string, std::string> urlWebsocketBase;
   std::map<std::string, int> initialSequenceByExchangeMap;
+  std::map<std::string, std::string> credential;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_CONFIGS_H_

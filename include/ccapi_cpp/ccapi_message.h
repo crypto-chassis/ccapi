@@ -40,7 +40,9 @@ class Message final {
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
     SESSION_CONNECTION_DOWN,
-    SESSION_INCORRECT_STATES_FOUND
+    SESSION_INCORRECT_STATES_FOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_ERROR
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -68,6 +70,12 @@ class Message final {
         break;
       case Type::SESSION_INCORRECT_STATES_FOUND:
         output = "SESSION_INCORRECT_STATES_FOUND";
+        break;
+      case Type::RESPONSE_SUCCESS:
+        output = "RESPONSE_SUCCESS";
+        break;
+      case Type::RESPONSE_ERROR:
+        output = "RESPONSE_ERROR";
         break;
       default:
         CCAPI_LOGGER_FATAL("");

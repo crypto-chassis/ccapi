@@ -34,11 +34,17 @@ class Subscription final {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
+    this->serviceName = CCAPI_EXCHANGE_NAME_MARKET_DATA_SERVICE;
+  }
+  Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument="", CorrelationId correlationId =
+      CorrelationId()): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
+    this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
   }
   std::string toString() const {
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", fieldSet = "
         + ccapi::toString(fieldSet) + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
-        + correlationId.toString() + "]";
+        + correlationId.toString() + ", credential = "
+        + ccapi::toString(credential) + ", serviceName = " + serviceName + "]";
     return output;
   }
   const CorrelationId& getCorrelationId() const {
@@ -56,6 +62,12 @@ class Subscription final {
   const std::map<std::string, std::string>& getOptionMap() const {
     return optionMap;
   }
+  const std::map<std::string, std::string>& getCredential() const {
+    return credential;
+  }
+  const std::string& getServiceName() const {
+    return serviceName;
+  }
 
  private:
   std::string exchange;
@@ -63,6 +75,8 @@ class Subscription final {
   std::set<std::string> fieldSet;
   std::map<std::string, std::string> optionMap;
   CorrelationId correlationId;
+  std::map<std::string, std::string> credential;
+  std::string serviceName;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_

@@ -14,6 +14,9 @@
 #include <sstream>
 #include <algorithm>
 #include <iostream>
+//#include <openssl/evp.h>
+//#include <openssl/hmac.h>
+#include <iomanip>
 #include "date/date.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
@@ -144,6 +147,25 @@ class UtilAlgorithm final {
     return initial + multiplier * (pow(base, exponent) - 1);
   }
   template<typename InputIterator> static uint_fast32_t crc(InputIterator first, InputIterator last);
+  static std::string hmacHex(std::string key, std::string msg)
+  {
+      unsigned char hash[32];
+      HMAC_CTX *hmac = HMAC_CTX_new();
+//      HMAC_CTX_init(&hmac);
+      HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
+      HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
+      unsigned int len = 32;
+      HMAC_Final(hmac, hash, &len);
+//      HMAC_CTX_cleanup(&hmac);
+      HMAC_CTX_free(hmac);
+      std::stringstream ss;
+      ss << std::hex << std::setfill('0');
+      for (int i = 0; i < len; i++)
+      {
+          ss << std::hex << std::setw(2)  << (unsigned int)hash[i];
+      }
+      return (ss.str());
+  }
 };
 class UtilSystem final {
  public:
