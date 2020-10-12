@@ -9,7 +9,6 @@
 #include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
 class Request final {
-
  public:
   enum class Operation {
       UNKNOWN,
@@ -38,7 +37,6 @@ class Request final {
       : operation(operation), credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
     this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
   }
-
   std::string toString() const {
     std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = "+serviceName+", correlationId = "
         + correlationId.toString() +", paramMap = "+ccapi::toString(paramMap)+ ", credential = "
@@ -81,8 +79,6 @@ class Request final {
   std::map<std::string, std::string> paramMap;
   std::map<std::string, std::string> credential;
   Operation operation;
-//  std::condition_variable cv;
-//  std::mutex m;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
