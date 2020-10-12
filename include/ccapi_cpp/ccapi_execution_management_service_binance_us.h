@@ -6,7 +6,6 @@
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_BINANCE_US
-//#include "ccapi_cpp/ccapi_service_context.h"
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
@@ -32,15 +31,10 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 namespace beast = boost::beast;
-// from <boost/beast.hpp>
 namespace http = beast::http;
-// from <boost/beast/http.hpp>
 namespace net = boost::asio;
-// from <boost/asio.hpp>
 namespace ssl = boost::asio::ssl;
-// from <boost/asio/ssl.hpp>
 using tcp = boost::asio::ip::tcp;
-// from <boost/asio/ip/tcp.hpp>
 namespace rj = rapidjson;
 namespace ccapi {
 class ExecutionManagementServiceBinanceUs final : public Service, public std::enable_shared_from_this<ExecutionManagementServiceBinanceUs> {
@@ -69,7 +63,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   }
   http::request<http::string_body> convertRequest(const Request& request) {
     std::map<std::string, std::string> credential = request.getCredential().empty() ? this->sessionConfigs.getCredential() : request.getCredential();
-//    CCAPI_LOGGER_TRACE("credential = "+toString(credential));
     std::string instrument = request.getInstrument();
     std::string symbol = instrument;
     if (!instrument.empty()) {
@@ -90,7 +83,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     req.set(beast::http::field::content_type, "application/json");
     req.set("X-MBX-APIKEY", credential.at("BINANCE_US_API_KEY"));
     if (operation == Request::Operation::CREATE_ORDER) {
-      // extract from req to get
       req.method(http::verb::post);
       req.target("/api/v3/order");
       std::string bodyString;
@@ -125,11 +117,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
         bodyString += "&";
       }
-//      if (paramMap.find("recvWindow") == paramMap.end()) {
-//        bodyString += "recvWindow=";
-//        bodyString += std::to_string(this->sessionOptions.httpRequestTimeoutMilliSeconds);
-//        bodyString += "&";
-//      }
       bodyString.pop_back();
       CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
       std::string signature = UtilAlgorithm::hmacHex(credential.at(BINANCE_US_API_SECRET), bodyString);
@@ -162,9 +149,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           if(ec)
           return that->onError(ec, "connect");
           CCAPI_LOGGER_TRACE("connected");
-//          stream.async_handshake(ssl::stream_base::client, [](beast::error_code ec){
-//            CCAPI_LOGGER_TRACE("async_handshake callback start");
-//          });
           beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
           CCAPI_LOGGER_TRACE("before async_handshake");
           stream.async_handshake(
@@ -185,10 +169,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                       if(ec)
                       return that->onError(ec, "write");
                       CCAPI_LOGGER_TRACE("written");
-//                      std::cout<<"write"<<std::endl;
-                      // Receive the HTTP response
-                      std::shared_ptr<beast::flat_buffer> bufferPtr(new beast::flat_buffer());// (Must persist between reads)
-//                      http::response<http::string_body> res();
+                      std::shared_ptr<beast::flat_buffer> bufferPtr(new beast::flat_buffer());
                       std::shared_ptr<http::response< http::string_body >> resPtr(new http::response < http::string_body >());
                       beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
                       CCAPI_LOGGER_TRACE("before async_read");
@@ -228,14 +209,11 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                                     }
                                   }
                               }
-  #if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
+#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
                               std::ostringstream oss;
                               oss << *resPtr;
                               CCAPI_LOGGER_DEBUG("res = \n"+oss.str());
-  #endif
-  //                            std::cout<<"read"<<std::endl;
-                              // Write the message to standard out
-  //                            std::cout << *resPtr << std::endl;
+#endif
                             try {
                               int statusCode = resPtr->result_int();
                               std::string body = resPtr->body();
@@ -300,14 +278,9 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
       }
 
       if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
-
-//        httpConnection.id = this->connectionAddressToString(httpConnection);
         std::string host = "api.binance.us";
         std::string port = "443";
-//        httpConnection.request = request;
         std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
-//        beast::ssl_stream <beast::tcp_stream> stream();
-//        httpConnection.streamPtr = std::make_shared(stream);
         // Set SNI Hostname (many hosts need this to handshake successfully)
         if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), "api.binance.us")) {
           beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
@@ -318,21 +291,17 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         HttpConnection httpConnection(host, port, streamPtr);
         this->performRequest(httpConnection, request, req, retry);
       } else {
-//        boost::asio::post(this->strandPtr.get(), []()->{
         std::unique_ptr<HttpConnection> httpConnectionPtr(nullptr);
         try {
           HttpConnection httpConnection = this->httpConnectionPool.popBack();
           httpConnectionPtr.reset(&httpConnection);
-//          httpConnection = std::make_shared<HttpConnection>(httpConnection);
         } catch (const std::runtime_error& e) {
           if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
             CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
           }
           std::string host = "api.binance.us";
           std::string port = "443";
-//          httpConnection.request = request;
           std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
-//          httpConnection.streamPtr = std::make_shared(stream);
           // Set SNI Hostname (many hosts need this to handshake successfully)
           if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), "api.binance.us")) {
             beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
@@ -341,24 +310,14 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           }
           httpConnectionPtr = std::make_unique<HttpConnection>(host, port, streamPtr);
         }
-//          HttpConnection httpConnection = std::move(this->httpConnectionPool.back());
-
-//          HttpConnection httpConnection = this->httpConnectionPool.popBack()
-          HttpConnection httpConnection = *httpConnectionPtr;
-          this->performRequest(httpConnection, request, req, retry);
-//        });
+        HttpConnection httpConnection = *httpConnectionPtr;
+        this->performRequest(httpConnection, request, req, retry);
       }
     } else {
       // error event: exceed max retry or redirect
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  // A successful request will generate zero or more PARTIAL_RESPONSE
-          // Messages followed by exactly one RESPONSE Message. Once the final
-          // RESPONSE Message has been received the correlation ID associated
-          // with this request may be re-used. If the request fails at any stage
-          // a REQUEST_STATUS will be generated after which the correlation ID
-          // associated with the request may be re-used.
   void sendRequest(const Request& request, bool block) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
@@ -367,10 +326,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
 #if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
     std::ostringstream oss;
     oss << req;
-//    std::string reqStr = oss.str();
-//    reqStr.erase(std::unique(reqStr.begin(), reqStr.end(),
-//                          [] (char a, char b) {return a == '\n' && b == '\n';}),
-//                 reqStr.end());
     CCAPI_LOGGER_DEBUG("req = \n"+oss.str());
 #endif
     std::promise<void>* promisePtrRaw = nullptr;
@@ -387,12 +342,12 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
       CCAPI_LOGGER_TRACE("after future wait");
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
-}
+  }
+
  private:
   tcp::resolver resolver;
   tcp::resolver::results_type tcpResolverResults;
   Queue<HttpConnection> httpConnectionPool;
-
 };
 } /* namespace ccapi */
 #endif
