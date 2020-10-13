@@ -46,8 +46,20 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         httpConnectionPool(sessionOptions.httpConnectionPoolMaxSize)
   {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    this->name = CCAPI_EXCHANGE_NAME_BINANCE_US;
+    CCAPI_LOGGER_TRACE(this->name);
+    CCAPI_LOGGER_TRACE(toString(sessionConfigs.getUrlRestBase()));
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->name);
+    auto splitted1 = UtilString::split(baseUrlRest, "://");
+    auto splitted2 = UtilString::split(UtilString::split(splitted1[1], "/")[0], ":");
+    this->host = splitted2[0];
+    if (splitted1[0] == "https") {
+      this->port = "443";
+    } else {
+      this->port = "80";
+    }
     try {
-      this->tcpResolverResults = this->resolver.resolve("api.binance.us", "443");
+      this->tcpResolverResults = this->resolver.resolve(this->host, this->port);
     }
     catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
@@ -78,13 +90,13 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     Request::Operation operation = request.getOperation();
     http::request < http::string_body > req;
     req.version(11);
-    req.set(http::field::host, "api.binance.us");
+    req.set(http::field::host, this->host+":"+this->port);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     req.set(beast::http::field::content_type, "application/json");
     req.set("X-MBX-APIKEY", credential.at("BINANCE_US_API_KEY"));
     if (operation == Request::Operation::CREATE_ORDER) {
       req.method(http::verb::post);
-      req.target("/api/v3/order");
+      req.target("/api/v3/order/test");
       std::string bodyString;
       const std::map<std::string, std::string>& paramMap = request.getParamMap();
       for (const auto& kv : paramMap) {
@@ -221,7 +233,10 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                                 rj::Document document;
                                 rj::Document::AllocatorType& allocator = document.GetAllocator();
                                 document.Parse(body.c_str());
-                                std::string orderId = std::to_string(document["orderId"].GetInt64());
+                                std::string orderId;
+                                if (document.HasMember("orderId")) {
+                                  orderId = std::to_string(document["orderId"].GetInt64());
+                                }
                                 Event event;
                                 event.setType(Event::Type::RESPONSE);
                                 std::vector<Element> elementList;
@@ -231,7 +246,9 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                                 CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
                                 std::vector<Message> messageList;
                                 Message message;
-                                message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
+                                if (document.HasMember("transactTime")) {
+                                  message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
+                                }
                                 message.setTimeReceived(now);
                                 message.setType(Message::Type::RESPONSE_SUCCESS);
                                 message.setElementList(elementList);
@@ -276,19 +293,17 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         req.set(http::field::host, host);
         req.target(url.target);
       }
-
       if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
-        std::string host = "api.binance.us";
-        std::string port = "443";
+//        std::string host = this->host;
+//        std::string port = this->port;
         std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
         // Set SNI Hostname (many hosts need this to handshake successfully)
-        if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), "api.binance.us")) {
+        if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (this->host+":"+this->port).c_str())) {
           beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
           std::cerr << ec.message() << "\n";
           return;
         }
-
-        HttpConnection httpConnection(host, port, streamPtr);
+        HttpConnection httpConnection(this->host, this->port, streamPtr);
         this->performRequest(httpConnection, request, req, retry);
       } else {
         std::unique_ptr<HttpConnection> httpConnectionPtr(nullptr);
@@ -299,16 +314,16 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
             CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
           }
-          std::string host = "api.binance.us";
-          std::string port = "443";
+          std::string host = this->host;
+          std::string port = this->port;
           std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
           // Set SNI Hostname (many hosts need this to handshake successfully)
-          if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), "api.binance.us")) {
+          if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (this->host+":"+this->port).c_str())) {
             beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
             std::cerr << ec.message() << "\n";
             return;
           }
-          httpConnectionPtr = std::make_unique<HttpConnection>(host, port, streamPtr);
+          httpConnectionPtr = std::make_unique<HttpConnection>(this->host, this->port, streamPtr);
         }
         HttpConnection httpConnection = *httpConnectionPtr;
         this->performRequest(httpConnection, request, req, retry);
@@ -345,6 +360,8 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   }
 
  private:
+  std::string host;
+  std::string port;
   tcp::resolver resolver;
   tcp::resolver::results_type tcpResolverResults;
   Queue<HttpConnection> httpConnectionPool;

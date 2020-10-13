@@ -54,7 +54,7 @@ int main(int argc, char** argv)
   request.setParam(CCAPI_EM_QUANTITY, "0.04");
   request.setParam(CCAPI_EM_LIMIT_PRICE, "300");
   Queue<Event> eventQueue;
-  for(int i=1; i<=3; i++){
+  for(int i=1; i<=1; i++){
 
     session.sendRequest(request);
   }

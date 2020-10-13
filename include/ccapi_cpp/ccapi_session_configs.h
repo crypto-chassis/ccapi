@@ -9,7 +9,7 @@
 namespace ccapi {
 class SessionConfigs final {
  public:
-  SessionConfigs() {
+  SessionConfigs() : SessionConfigs({}, {}, {}) {
   }
   SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap, std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {}, std::map<std::string, std::string > credential = {})
       : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap), exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest), credential(credential) {
@@ -53,6 +53,9 @@ class SessionConfigs final {
 //  }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const {
     return urlWebsocketBase;
+  }
+  const std::map<std::string, std::string>& getUrlRestBase() const {
+    return urlRestBase;
   }
   const std::map<std::string, int>& getInitialSequenceByExchangeMap() const {
     return initialSequenceByExchangeMap;
@@ -189,7 +192,7 @@ class SessionConfigs final {
 //    };
     this->urlWebsocketBase = {
       { CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},
-      { CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata/"},
+      { CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata"},
       { CCAPI_EXCHANGE_NAME_KRAKEN, "wss://ws.kraken.com"},
       { CCAPI_EXCHANGE_NAME_BITSTAMP, "wss://ws.bitstamp.net"},
       { CCAPI_EXCHANGE_NAME_BITFINEX, "wss://api-pub.bitfinex.com/ws/2"},
@@ -208,6 +211,9 @@ class SessionConfigs final {
         this->exchangeInstrumentMapRest[x.first].push_back(y.first);
       }
     }
+    this->urlRestBase = {
+      { CCAPI_EXCHANGE_NAME_BINANCE_US, "https://api.binance.us"},
+    };
   }
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest;
@@ -218,6 +224,7 @@ class SessionConfigs final {
   std::map<std::string, std::vector<int> > websocketAvailableMarketDepth;
   std::map<std::string, int> websocketMaxAvailableMarketDepth;
   std::map<std::string, std::string> urlWebsocketBase;
+  std::map<std::string, std::string> urlRestBase;
   std::map<std::string, int> initialSequenceByExchangeMap;
   std::map<std::string, std::string> credential;
 };

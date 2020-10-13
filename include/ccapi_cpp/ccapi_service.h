@@ -20,6 +20,8 @@ class Service {
   }
 
  protected:
+  std::string name;
+  std::string baseUrlRest;
   std::function<void(Event& event)> eventHandler;
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
