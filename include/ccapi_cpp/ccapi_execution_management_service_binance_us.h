@@ -78,12 +78,12 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     std::string instrument = request.getInstrument();
     std::string symbol = instrument;
     if (!instrument.empty()) {
-      if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find("binance-us") != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at("binance-us").find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at("binance-us").end()) {
-        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at("binance-us").at(instrument);
-      } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find("binance-us") != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMap().at("binance-us").find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at("binance-us").end()) {
-        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at("binance-us").at(instrument);
+      if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
+          this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
+        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
+      } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+          this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
+        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
       }
     }
     CCAPI_LOGGER_TRACE("instrument = "+instrument);
@@ -294,8 +294,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         req.target(url.target);
       }
       if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
-//        std::string host = this->host;
-//        std::string port = this->port;
         std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
         // Set SNI Hostname (many hosts need this to handshake successfully)
         if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (this->host+":"+this->port).c_str())) {
