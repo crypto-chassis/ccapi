@@ -112,7 +112,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     }
     CCAPI_LOGGER_TRACE("instrument = "+instrument);
     Request::Operation operation = request.getOperation();
-    http::request < http::string_body > req;
+    http::request<http::string_body> req;
     req.version(11);
     req.set(http::field::host, this->host+":"+this->port);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
@@ -169,7 +169,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
 //    ss << address;
 //    return ss.str();
 //  }
-  void performRequest(const HttpConnection& httpConnection, const Request& request, http::request < http::string_body >& req, const HttpRetry& retry) {
+  void performRequest(const HttpConnection& httpConnection, const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("httpConnection = "+toString(httpConnection));
     CCAPI_LOGGER_DEBUG("retry = "+toString(retry));
@@ -179,162 +179,168 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
         this->tcpResolverResults,
-        [that = shared_from_this(),httpConnection,request,req,retry](beast::error_code ec, tcp::resolver::results_type::endpoint_type){
-      CCAPI_LOGGER_TRACE("async_connect callback start");
-          if(ec) {
-            that->onFailure(ec, "connect");
-            return;
-          }
-          CCAPI_LOGGER_TRACE("connected");
-          beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
-          CCAPI_LOGGER_TRACE("before async_handshake");
-          stream.async_handshake(
-              ssl::stream_base::client,
-              [that,httpConnection,request,req,retry](beast::error_code ec){
-                CCAPI_LOGGER_TRACE("async_handshake callback start");
-                if(ec) {
-                  that->onFailure(ec, "handshake");
-                  return;
-                }
-                CCAPI_LOGGER_TRACE("handshaked");
-                beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
-                std::shared_ptr<http::request< http::string_body >> reqPtr(new http::request < http::string_body >(std::move(req)));
-                CCAPI_LOGGER_TRACE("before async_write");
-                http::async_write(stream, *reqPtr,
-                    [that,httpConnection,request,reqPtr,retry](beast::error_code ec,
-                        std::size_t bytes_transferred){
-                      CCAPI_LOGGER_TRACE("async_write callback start");
-                      boost::ignore_unused(bytes_transferred);
-                      if(ec) {
-                        that->onFailure(ec, "write");
-                        return;
-                      }
-                      CCAPI_LOGGER_TRACE("written");
-                      std::shared_ptr<beast::flat_buffer> bufferPtr(new beast::flat_buffer());
-                      std::shared_ptr<http::response< http::string_body >> resPtr(new http::response < http::string_body >());
-                      beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
-                      CCAPI_LOGGER_TRACE("before async_read");
-                      http::async_read(stream, *bufferPtr, *resPtr,
-                          [that,httpConnection,request,reqPtr,retry,bufferPtr,resPtr](beast::error_code ec,
-                              std::size_t bytes_transferred){
-                            CCAPI_LOGGER_TRACE("async_read callback start");
-                            auto now = std::chrono::system_clock::now();
-                            boost::ignore_unused(bytes_transferred);
-                            if(ec) {
-                              that->onFailure(ec, "read");
-                              return;
-                            }
-                            if (that->sessionOptions.enableOneHttpConnectionPerRequest) {
-                              beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
-                              CCAPI_LOGGER_TRACE("before async_shutdown");
-                              stream.async_shutdown(
-                                  [that,httpConnection](beast::error_code ec){
-                                CCAPI_LOGGER_TRACE("async_shutdown callback start");
-                                if(ec == net::error::eof)
-                                {
-                                    // Rationale:
-                                    // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-                                    ec = {};
-                                }
-                                if(ec) {
-                                  that->onFailure(ec, "shutdown");
-                                  return;
-                                }
-                                CCAPI_LOGGER_TRACE("shutdown");
-                                // If we get here then the connection is closed gracefully
-                              });
-                              CCAPI_LOGGER_TRACE("after async_shutdown");
-                              } else {
-                                  auto thatHttpConnection = httpConnection;
-                                  try {
-                                    that->httpConnectionPool.pushBack(std::move(thatHttpConnection));
-                                  } catch (const std::runtime_error& e) {
-                                    if (e.what() != that->httpConnectionPool.EXCEPTION_QUEUE_FULL) {
-                                      CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-                                    }
-                                  }
-                              }
-#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
-                              std::ostringstream oss;
-                              oss << *resPtr;
-                              CCAPI_LOGGER_DEBUG("res = \n"+oss.str());
-#endif
-                            int statusCode = resPtr->result_int();
-                            std::string body = resPtr->body();
-                            try {
-                              if (statusCode / 100 == 2) {
-                                rj::Document document;
-                                rj::Document::AllocatorType& allocator = document.GetAllocator();
-                                document.Parse(body.c_str());
-                                std::string orderId;
-                                if (document.HasMember("orderId")) {
-                                  orderId = std::to_string(document["orderId"].GetInt64());
-                                }
-                                Event event;
-                                event.setType(Event::Type::RESPONSE);
-                                std::vector<Element> elementList;
-                                Element element;
-                                element.insert(CCAPI_EM_ORDER_ID, orderId);
-                                elementList.push_back(std::move(element));
-                                CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
-                                std::vector<Message> messageList;
-                                Message message;
-                                if (document.HasMember("transactTime")) {
-                                  message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
-                                }
-                                message.setTimeReceived(now);
-                                message.setType(Message::Type::CREATE_ORDER);
-                                message.setElementList(elementList);
-                                message.setCorrelationIdList({request.getCorrelationId()});
-                                messageList.push_back(std::move(message));
-                                event.addMessages(messageList);
-                                that->eventHandler(event);
-                              } else if (statusCode / 100 == 3) {
-                                if (resPtr->base().find("Location") != resPtr->base().end()) {
-                                  Url url(resPtr->base()["Location"].to_string());
-                                  std::string host(url.host);
-                                  if (!url.port.empty()) {
-                                    host += ":";
-                                    host += url.port;
-                                  }
-                                  reqPtr->set(http::field::host, host);
-                                  reqPtr->target(url.target);
-                                  auto thatRetry = retry;
-                                  thatRetry.numRedirect += 1;
-                                  that->tryRequest(request, *reqPtr, thatRetry);
-                                } else {
-                                  that->onResponseError(statusCode, body);
-                                }
-                              } else if (statusCode / 100 == 4) {
-                                that->onResponseError(statusCode, body);
-                              } else if (statusCode / 100 == 5) {
-                                that->onResponseError(statusCode, body);
-                                auto thatRetry = retry;
-                                thatRetry.numRetry += 1;
-                                that->tryRequest(request, *reqPtr, thatRetry);
-                              }
-                            }
-                            catch (const std::exception& e) {
-                              CCAPI_LOGGER_ERROR(e.what());
-                              std::ostringstream oss;
-                              oss << *resPtr;
-                              CCAPI_LOGGER_ERROR("res = " + oss.str());
-                            }
-                            CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
-                            if (retry.promisePtr) {
-                              retry.promisePtr->set_value();
-                            }
-                          });
-                      CCAPI_LOGGER_TRACE("after async_read");
-                    });
-                CCAPI_LOGGER_TRACE("after async_write");
-              });
-          CCAPI_LOGGER_TRACE("after async_handshake");
-        });
+        beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onConnect, shared_from_this(), httpConnection,request,req,retry));
     CCAPI_LOGGER_TRACE("after async_connect");
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void tryRequest(const Request& request, http::request < http::string_body >& req, const HttpRetry& retry) {
+  void onConnect(HttpConnection httpConnection,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
+    CCAPI_LOGGER_TRACE("async_connect callback start");
+        if(ec) {
+          this->onFailure(ec, "connect");
+          return;
+        }
+        CCAPI_LOGGER_TRACE("connected");
+        beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+        CCAPI_LOGGER_TRACE("before async_handshake");
+        stream.async_handshake(
+            ssl::stream_base::client,
+            beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onHandshake, shared_from_this(), httpConnection,request,req,retry));
+        CCAPI_LOGGER_TRACE("after async_handshake");
+  }
+  void onHandshake(HttpConnection httpConnection,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec) {
+    CCAPI_LOGGER_TRACE("async_handshake callback start");
+    if(ec) {
+      this->onFailure(ec, "handshake");
+      return;
+    }
+    CCAPI_LOGGER_TRACE("handshaked");
+    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+    std::shared_ptr<http::request< http::string_body> > reqPtr(new http::request<http::string_body>(std::move(req)));
+    CCAPI_LOGGER_TRACE("before async_write");
+    http::async_write(stream, *reqPtr,
+                      beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onWrite, shared_from_this(), httpConnection,request,reqPtr,retry));
+    CCAPI_LOGGER_TRACE("after async_write");
+  }
+  void onWrite(HttpConnection httpConnection,Request request,std::shared_ptr<http::request< http::string_body> > reqPtr,HttpRetry retry, beast::error_code ec, std::size_t bytes_transferred) {
+    CCAPI_LOGGER_TRACE("async_write callback start");
+    boost::ignore_unused(bytes_transferred);
+    if(ec) {
+      this->onFailure(ec, "write");
+      return;
+    }
+    CCAPI_LOGGER_TRACE("written");
+    std::shared_ptr<beast::flat_buffer> bufferPtr(new beast::flat_buffer());
+    std::shared_ptr<http::response<http::string_body> > resPtr(new http::response < http::string_body >());
+    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+    CCAPI_LOGGER_TRACE("before async_read");
+    http::async_read(stream, *bufferPtr, *resPtr,
+                     beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onRead, shared_from_this(), httpConnection,request,reqPtr,retry,bufferPtr,resPtr)
+        );
+    CCAPI_LOGGER_TRACE("after async_read");
+  }
+  void onRead(HttpConnection httpConnection, Request request, std::shared_ptr<http::request<http::string_body> > reqPtr, HttpRetry retry, std::shared_ptr<beast::flat_buffer> bufferPtr, std::shared_ptr<http::response<http::string_body> > resPtr, beast::error_code ec, std::size_t bytes_transferred) {
+    CCAPI_LOGGER_TRACE("async_read callback start");
+    auto now = std::chrono::system_clock::now();
+    boost::ignore_unused(bytes_transferred);
+    if(ec) {
+      this->onFailure(ec, "read");
+      return;
+    }
+    if (this->sessionOptions.enableOneHttpConnectionPerRequest) {
+      beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+      CCAPI_LOGGER_TRACE("before async_shutdown");
+      stream.async_shutdown(
+          beast::bind_front_handler(
+                          &ExecutionManagementServiceBinanceUs::onShutdown,
+                          shared_from_this(), httpConnection));
+      CCAPI_LOGGER_TRACE("after async_shutdown");
+      } else {
+//          auto thatHttpConnection = httpConnection;
+          try {
+            this->httpConnectionPool.pushBack(std::move(httpConnection));
+          } catch (const std::runtime_error& e) {
+            if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_FULL) {
+              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+            }
+          }
+      }
+#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
+      std::ostringstream oss;
+      oss << *resPtr;
+      CCAPI_LOGGER_DEBUG("res = \n"+oss.str());
+#endif
+    int statusCode = resPtr->result_int();
+    std::string body = resPtr->body();
+    try {
+      if (statusCode / 100 == 2) {
+        rj::Document document;
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        document.Parse(body.c_str());
+        std::string orderId;
+        if (document.HasMember("orderId")) {
+          orderId = std::to_string(document["orderId"].GetInt64());
+        }
+        Event event;
+        event.setType(Event::Type::RESPONSE);
+        std::vector<Element> elementList;
+        Element element;
+        element.insert(CCAPI_EM_ORDER_ID, orderId);
+        elementList.push_back(std::move(element));
+        CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
+        std::vector<Message> messageList;
+        Message message;
+        if (document.HasMember("transactTime")) {
+          message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
+        }
+        message.setTimeReceived(now);
+        message.setType(Message::Type::CREATE_ORDER);
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        messageList.push_back(std::move(message));
+        event.addMessages(messageList);
+        this->eventHandler(event);
+      } else if (statusCode / 100 == 3) {
+        if (resPtr->base().find("Location") != resPtr->base().end()) {
+          Url url(resPtr->base()["Location"].to_string());
+          std::string host(url.host);
+          if (!url.port.empty()) {
+            host += ":";
+            host += url.port;
+          }
+          reqPtr->set(http::field::host, host);
+          reqPtr->target(url.target);
+//          auto thatRetry = retry;
+          retry.numRedirect += 1;
+          this->tryRequest(request, *reqPtr, retry);
+        } else {
+          this->onResponseError(statusCode, body);
+        }
+      } else if (statusCode / 100 == 4) {
+        this->onResponseError(statusCode, body);
+      } else if (statusCode / 100 == 5) {
+        this->onResponseError(statusCode, body);
+//        auto thatRetry = retry;
+        retry.numRetry += 1;
+        this->tryRequest(request, *reqPtr, retry);
+      }
+    }
+    catch (const std::exception& e) {
+      CCAPI_LOGGER_ERROR(e.what());
+      std::ostringstream oss;
+      oss << *resPtr;
+      CCAPI_LOGGER_ERROR("res = " + oss.str());
+    }
+    CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
+    if (retry.promisePtr) {
+      retry.promisePtr->set_value();
+    }
+  }
+  void onShutdown(HttpConnection httpConnection, beast::error_code ec) {
+    CCAPI_LOGGER_TRACE("async_shutdown callback start");
+    if(ec == net::error::eof)
+    {
+        // Rationale:
+        // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+        ec = {};
+    }
+    if(ec) {
+      this->onFailure(ec, "shutdown");
+      return;
+    }
+    CCAPI_LOGGER_TRACE("shutdown");
+    // If we get here then the connection is closed gracefully
+  }
+  void tryRequest(const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("retry = " + toString(retry));
     if (retry.numRetry <= this->sessionOptions.httpMaxNumRetry && retry.numRedirect <= this->sessionOptions.httpMaxNumRedirect) {
@@ -406,7 +412,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("block = "+toString(block));
     auto now = std::chrono::system_clock::now();
-    http::request < http::string_body > req = this->convertRequest(request, now);
+    http::request<http::string_body> req = this->convertRequest(request, now);
 #if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
     std::ostringstream oss;
     oss << req;
