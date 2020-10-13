@@ -66,12 +66,36 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void onError(beast::error_code ec, const std::string & what) {
+  void onFailure(beast::error_code ec, const std::string & what) {
     std::string errorMessage = what + ": " + ec.message();
-    CCAPI_LOGGER_ERROR(errorMessage);
+    CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
+    Event event;
+    event.setType(Event::Type::REQUEST_STATUS);
+    Message message;
+    auto now = std::chrono::system_clock::now();
+    message.setTimeReceived(now);
+    message.setType(Message::Type::REQUEST_FAILURE);
+    Element element;
+    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
+    message.setElementList({ element });
+    event.setMessageList({ message });
+    this->eventHandler(event);
   }
-  void onHttpResponseError(int statusCode, const std::string & errorMessage) {
-
+  void onResponseError(int statusCode, const std::string & errorMessage) {
+    std::string statusCodeStr = std::to_string(statusCode);
+    CCAPI_LOGGER_ERROR("statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
+    Event event;
+    event.setType(Event::Type::REQUEST_STATUS);
+    Message message;
+    auto now = std::chrono::system_clock::now();
+    message.setTimeReceived(now);
+    message.setType(Message::Type::RESPONSE_ERROR);
+    Element element;
+    element.insert(CCAPI_HTTP_STATUS_CODE, statusCodeStr);
+    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
+    message.setElementList({ element });
+    event.setMessageList({ message });
+    this->eventHandler(event);
   }
   http::request<http::string_body> convertRequest(const Request& request) {
     std::map<std::string, std::string> credential = request.getCredential().empty() ? this->sessionConfigs.getCredential() : request.getCredential();
@@ -146,7 +170,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
 //    ss << address;
 //    return ss.str();
 //  }
-  void performRequest(const HttpConnection& httpConnection, const Request& request, const http::request < http::string_body >& req, HttpRetry& retry) {
+  void performRequest(const HttpConnection& httpConnection, const Request& request, http::request < http::string_body >& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("httpConnection = "+toString(httpConnection));
     CCAPI_LOGGER_DEBUG("retry = "+toString(retry));
@@ -158,8 +182,10 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         this->tcpResolverResults,
         [that = shared_from_this(),httpConnection,request,req,retry](beast::error_code ec, tcp::resolver::results_type::endpoint_type){
       CCAPI_LOGGER_TRACE("async_connect callback start");
-          if(ec)
-          return that->onError(ec, "connect");
+          if(ec) {
+            that->onFailure(ec, "connect");
+            return;
+          }
           CCAPI_LOGGER_TRACE("connected");
           beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
           CCAPI_LOGGER_TRACE("before async_handshake");
@@ -167,8 +193,10 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
               ssl::stream_base::client,
               [that,httpConnection,request,req,retry](beast::error_code ec){
                 CCAPI_LOGGER_TRACE("async_handshake callback start");
-                if(ec)
-                return that->onError(ec, "handshake");
+                if(ec) {
+                  that->onFailure(ec, "handshake");
+                  return;
+                }
                 CCAPI_LOGGER_TRACE("handshaked");
                 beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
                 std::shared_ptr<http::request< http::string_body >> reqPtr(new http::request < http::string_body >(std::move(req)));
@@ -178,21 +206,25 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                         std::size_t bytes_transferred){
                       CCAPI_LOGGER_TRACE("async_write callback start");
                       boost::ignore_unused(bytes_transferred);
-                      if(ec)
-                      return that->onError(ec, "write");
+                      if(ec) {
+                        that->onFailure(ec, "write");
+                        return;
+                      }
                       CCAPI_LOGGER_TRACE("written");
                       std::shared_ptr<beast::flat_buffer> bufferPtr(new beast::flat_buffer());
                       std::shared_ptr<http::response< http::string_body >> resPtr(new http::response < http::string_body >());
                       beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
                       CCAPI_LOGGER_TRACE("before async_read");
                       http::async_read(stream, *bufferPtr, *resPtr,
-                          [that,httpConnection,request,retry,bufferPtr,resPtr](beast::error_code ec,
+                          [that,httpConnection,request,reqPtr,retry,bufferPtr,resPtr](beast::error_code ec,
                               std::size_t bytes_transferred){
                             CCAPI_LOGGER_TRACE("async_read callback start");
                             auto now = std::chrono::system_clock::now();
                             boost::ignore_unused(bytes_transferred);
-                            if(ec)
-                            return that->onError(ec, "read");
+                            if(ec) {
+                              that->onFailure(ec, "read");
+                              return;
+                            }
                             if (that->sessionOptions.enableOneHttpConnectionPerRequest) {
                               beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
                               CCAPI_LOGGER_TRACE("before async_shutdown");
@@ -205,8 +237,10 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                                     // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
                                     ec = {};
                                 }
-                                if(ec)
-                                    return that->onError(ec, "shutdown");
+                                if(ec) {
+                                  that->onFailure(ec, "shutdown");
+                                  return;
+                                }
                                 CCAPI_LOGGER_TRACE("shutdown");
                                 // If we get here then the connection is closed gracefully
                               });
@@ -226,9 +260,9 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                               oss << *resPtr;
                               CCAPI_LOGGER_DEBUG("res = \n"+oss.str());
 #endif
+                            int statusCode = resPtr->result_int();
+                            std::string body = resPtr->body();
                             try {
-                              int statusCode = resPtr->result_int();
-                              std::string body = resPtr->body();
                               if (statusCode / 100 == 2) {
                                 rj::Document document;
                                 rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -250,14 +284,35 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                                   message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
                                 }
                                 message.setTimeReceived(now);
-                                message.setType(Message::Type::RESPONSE_SUCCESS);
+                                message.setType(Message::Type::CREATE_ORDER);
                                 message.setElementList(elementList);
                                 message.setCorrelationIdList({request.getCorrelationId()});
                                 messageList.push_back(std::move(message));
                                 event.addMessages(messageList);
                                 that->eventHandler(event);
-                              } else {
-                                that->onHttpResponseError(statusCode, body);
+                              } else if (statusCode / 100 == 3) {
+                                if (resPtr->base().find("Location") != resPtr->base().end()) {
+                                  Url url(resPtr->base()["Location"].to_string());
+                                  std::string host(url.host);
+                                  if (!url.port.empty()) {
+                                    host += ":";
+                                    host += url.port;
+                                  }
+                                  reqPtr->set(http::field::host, host);
+                                  reqPtr->target(url.target);
+                                  auto thatRetry = retry;
+                                  thatRetry.numRedirect += 1;
+                                  that->tryRequest(request, *reqPtr, thatRetry);
+                                } else {
+                                  that->onResponseError(statusCode, body);
+                                }
+                              } else if (statusCode / 100 == 4) {
+                                that->onResponseError(statusCode, body);
+                              } else if (statusCode / 100 == 5) {
+                                that->onResponseError(statusCode, body);
+                                auto thatRetry = retry;
+                                thatRetry.numRetry += 1;
+                                that->tryRequest(request, *reqPtr, thatRetry);
                               }
                             }
                             catch (const std::exception& e) {
@@ -280,25 +335,26 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_TRACE("after async_connect");
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void tryRequest(const Request& request, http::request < http::string_body >& req, HttpRetry& retry) {
+  void tryRequest(const Request& request, http::request < http::string_body >& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_TRACE("retry = " + toString(retry));
     if (retry.numRetry <= this->sessionOptions.httpMaxNumRetry && retry.numRedirect <= this->sessionOptions.httpMaxNumRedirect) {
-      if (!retry.redirectUrlStr.empty()) {
-        Url url(retry.redirectUrlStr);
-        std::string host(url.host);
-        if (!url.port.empty()) {
-          host += ":";
-          host += url.port;
-        }
-        req.set(http::field::host, host);
-        req.target(url.target);
-      }
+//      if (!retry.redirectUrlStr.empty()) {
+//        Url url(retry.redirectUrlStr);
+//        std::string host(url.host);
+//        if (!url.port.empty()) {
+//          host += ":";
+//          host += url.port;
+//        }
+//        req.set(http::field::host, host);
+//        req.target(url.target);
+//      }
       if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
-        std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
-        // Set SNI Hostname (many hosts need this to handshake successfully)
-        if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (this->host+":"+this->port).c_str())) {
-          beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
-          std::cerr << ec.message() << "\n";
+        std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
+        try {
+          streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host, this->port);
+        } catch (const beast::error_code& ec) {
+          this->onFailure(ec, "create stream");
           return;
         }
         HttpConnection httpConnection(this->host, this->port, streamPtr);
@@ -312,13 +368,18 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
             CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
           }
-          std::string host = this->host;
-          std::string port = this->port;
-          std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
-          // Set SNI Hostname (many hosts need this to handshake successfully)
-          if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (this->host+":"+this->port).c_str())) {
-            beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
-            std::cerr << ec.message() << "\n";
+//          std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
+//          // Set SNI Hostname (many hosts need this to handshake successfully)
+//          if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (this->host+":"+this->port).c_str())) {
+//            beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
+//            std::cerr << ec.message() << "\n";
+//            return;
+//          }
+          std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
+          try {
+            streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host, this->port);
+          } catch (const beast::error_code& ec) {
+            this->onFailure(ec, "create stream");
             return;
           }
           httpConnectionPtr = std::make_unique<HttpConnection>(this->host, this->port, streamPtr);
@@ -327,11 +388,21 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         this->performRequest(httpConnection, request, req, retry);
       }
     } else {
-      // error event: exceed max retry or redirect
+      CCAPI_LOGGER_ERROR(this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded");
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const Request& request, bool block) override {
+  std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host, const std::string& port) {
+    std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*iocPtr, *ctxPtr));
+    // Set SNI Hostname (many hosts need this to handshake successfully)
+    if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (host+":"+port).c_str())) {
+      beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
+      CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+      throw ec;
+    }
+    return streamPtr;
+  }
+  void sendRequest(const Request& request, const bool block) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("block = "+toString(block));

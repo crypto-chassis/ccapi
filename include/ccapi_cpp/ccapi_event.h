@@ -11,6 +11,7 @@ class Event final {
     ADMIN,
     SESSION_STATUS,
     SUBSCRIPTION_STATUS,
+    REQUEST_STATUS,
     RESPONSE,
     PARTIAL_RESPONSE,
     SUBSCRIPTION_DATA,
@@ -37,9 +38,9 @@ class Event final {
       case Type::SUBSCRIPTION_STATUS:
         output = "SUBSCRIPTION_STATUS";
         break;
-//      case Type::REQUEST_STATUS:
-//        output = "REQUEST_STATUS";
-//        break;
+      case Type::REQUEST_STATUS:
+        output = "REQUEST_STATUS";
+        break;
       case Type::RESPONSE:
         output = "RESPONSE";
         break;

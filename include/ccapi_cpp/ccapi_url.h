@@ -35,7 +35,7 @@ class Url final {
     for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
       std::string::value_type c = (*i);
         // Keep alphanumeric and other accepted characters intact
-        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+        if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
             escaped << c;
             continue;
         }
