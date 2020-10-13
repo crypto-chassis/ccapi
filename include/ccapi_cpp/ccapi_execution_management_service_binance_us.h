@@ -97,7 +97,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     event.setMessageList({ message });
     this->eventHandler(event);
   }
-  http::request<http::string_body> convertRequest(const Request& request) {
+  http::request<http::string_body> convertRequest(const Request& request, const TimePoint& now) {
     std::map<std::string, std::string> credential = request.getCredential().empty() ? this->sessionConfigs.getCredential() : request.getCredential();
     std::string instrument = request.getInstrument();
     std::string symbol = instrument;
@@ -148,7 +148,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         }
       }
       if (paramMap.find("timestamp") == paramMap.end()) {
-        auto now = std::chrono::system_clock::now();
         bodyString += "timestamp=";
         bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
         bodyString += "&";
@@ -406,7 +405,8 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("block = "+toString(block));
-    http::request < http::string_body > req = this->convertRequest(request);
+    auto now = std::chrono::system_clock::now();
+    http::request < http::string_body > req = this->convertRequest(request, now);
 #if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
     std::ostringstream oss;
     oss << req;
