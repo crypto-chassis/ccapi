@@ -60,9 +60,7 @@
 namespace ccapi {
 class Session final {
  public:
-  //Delete the copy constructor
   Session(const Session&) = delete;
-  //Delete the Assignment opeartor
   Session& operator=(const Session&) = delete;
   Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
           EventHandler* eventHandler = 0, EventDispatcher* eventDispatcher = 0)
@@ -71,7 +69,7 @@ class Session final {
         eventHandler(eventHandler),
         eventDispatcher(eventDispatcher),
         eventQueue(sessionOptions.maxEventQueueSize),
-        serviceContextPtr(new ServiceContext()){
+        serviceContextPtr(new ServiceContext()) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (this->eventHandler) {
       if (!this->eventDispatcher) {
@@ -409,14 +407,14 @@ class Session final {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const Request& request, Queue<Event> *eventQueuePtr=0) {
+  void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto serviceName = request.getServiceName();
     if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
       CCAPI_LOGGER_ERROR("unsupported service: "+serviceName);
       return;
     }
-    std::map<std::string,wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+    std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
     auto exchange = request.getExchange();
     if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
       CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
@@ -439,7 +437,7 @@ class Session final {
   EventDispatcher* eventDispatcher;
   EventDispatcher defaultEventDispatcher;
   wspp::lib::shared_ptr<ServiceContext> serviceContextPtr;
-  std::map<std::string, std::map<std::string,wspp::lib::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
+  std::map<std::string, std::map<std::string, wspp::lib::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
   std::thread t;
 };
 } /* namespace ccapi */

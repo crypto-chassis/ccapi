@@ -32,7 +32,7 @@ class Request final {
     }
     return output;
   }
-  Request(Operation operation, std::map<std::string, std::string> credential, std::string exchange, std::string instrument="", CorrelationId correlationId =
+  Request(Operation operation, std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", CorrelationId correlationId =
                    CorrelationId())
       : operation(operation), credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
     this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;

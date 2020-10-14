@@ -36,7 +36,7 @@ class Subscription final {
     }
     this->serviceName = CCAPI_EXCHANGE_NAME_MARKET_DATA_SERVICE;
   }
-  Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument="", CorrelationId correlationId =
+  Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", CorrelationId correlationId =
       CorrelationId()): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
     this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
   }

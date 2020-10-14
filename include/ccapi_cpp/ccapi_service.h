@@ -9,8 +9,7 @@ class Service {
       :
         eventHandler(eventHandler),
         sessionOptions(sessionOptions),
-        sessionConfigs(sessionConfigs),serviceContextPtr(serviceContextPtr)
-  {
+        sessionConfigs(sessionConfigs), serviceContextPtr(serviceContextPtr) {
   }
   virtual ~Service() {
   }

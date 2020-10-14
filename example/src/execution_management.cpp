@@ -2,7 +2,7 @@
 namespace ccapi {
 class ExampleLogger final: public Logger {
  public:
-  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
+  void logMessage(Logger::Severity severity, std::thread::id threadId,
                           std::chrono::system_clock::time_point time,
                           std::string fileName, int lineNumber,
                           std::string message) override {
@@ -24,8 +24,7 @@ class MyEventHandler : public EventHandler {
   }
 };
 } /* namespace ccapi */
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
   using namespace ccapi;  // NOLINT(build/namespaces)
   ExampleLogger exampleLogger;
   Logger::logger = &exampleLogger;
@@ -36,11 +35,10 @@ int main(int argc, char** argv)
   Request::Operation operation = Request::Operation::CREATE_ORDER;
   std::map<std::string, std::string> credential = {
       {BINANCE_US_API_KEY, UtilSystem::getEnvAsString(BINANCE_US_API_KEY)},
-      {BINANCE_US_API_SECRET, UtilSystem::getEnvAsString(BINANCE_US_API_SECRET)}};
+      {BINANCE_US_API_SECRET, UtilSystem::getEnvAsString(BINANCE_US_API_SECRET)}
+  };
   CorrelationId correlationId("this is my correlation id");
-  Request request(operation, credential,
-                  CCAPI_EXCHANGE_NAME_BINANCE_US,"ETHUSD",
-                  correlationId);
+  Request request(operation, credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "ETHUSD", correlationId);
   request.setParam(CCAPI_EM_SIDE, CCAPI_EM_SIDE_BUY);
   request.setParam(CCAPI_EM_QUANTITY, "0.04");
   request.setParam(CCAPI_EM_LIMIT_PRICE, "300");
