@@ -67,7 +67,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onFailure(beast::error_code ec, const std::string & what) {
-    std::string errorMessage = what + ": " + ec.message();
+    std::string errorMessage = what + ": " + ec.message() + ", category: " + ec.category().name();
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
     Event event;
     event.setType(Event::Type::REQUEST_STATUS);
@@ -186,6 +186,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   void onConnect(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
     CCAPI_LOGGER_TRACE("async_connect callback start");
         if(ec) {
+          CCAPI_LOGGER_TRACE("fail");
           this->onFailure(ec, "connect");
           return;
         }
@@ -200,6 +201,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   void onHandshake(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_handshake callback start");
     if(ec) {
+      CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "handshake");
       return;
     }
@@ -215,6 +217,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_TRACE("async_write callback start");
     boost::ignore_unused(bytes_transferred);
     if(ec) {
+      CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "write");
       return;
     }
@@ -233,6 +236,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     auto now = std::chrono::system_clock::now();
     boost::ignore_unused(bytes_transferred);
     if(ec) {
+      CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "read");
       return;
     }
@@ -297,11 +301,12 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
             host += ":";
             host += url.port;
           }
-          reqPtr->set(http::field::host, host);
-          reqPtr->target(url.target);
-//          auto thatRetry = retry;
+          auto now = std::chrono::system_clock::now();
+          auto req = this->convertRequest(request, now);
+          req.set(http::field::host, host);
+          req.target(url.target);
           retry.numRedirect += 1;
-          this->tryRequest(request, *reqPtr, retry);
+          this->tryRequest(request, req, retry);
           return;
         } else {
           this->onResponseError(statusCode, body);
@@ -336,6 +341,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         ec = {};
     }
     if(ec) {
+      CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "shutdown");
       return;
     }
@@ -361,6 +367,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         try {
           streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host, this->port);
         } catch (const beast::error_code& ec) {
+          CCAPI_LOGGER_TRACE("fail");
           this->onFailure(ec, "create stream");
           return;
         }
@@ -385,6 +392,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           try {
             streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host, this->port);
           } catch (const beast::error_code& ec) {
+            CCAPI_LOGGER_TRACE("fail");
             this->onFailure(ec, "create stream");
             return;
           }
@@ -417,7 +425,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("block = "+toString(block));
     auto now = std::chrono::system_clock::now();
-    http::request<http::string_body> req = this->convertRequest(request, now);
+    auto req = this->convertRequest(request, now);
 #if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
     std::ostringstream oss;
     oss << req;
