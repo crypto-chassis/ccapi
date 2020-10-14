@@ -119,7 +119,7 @@ jobs:
       run: |
         if ("${{ runner.os }}" STREQUAL "macOS")
           execute_process(
-            COMMAND brew install openssl
+            COMMAND brew reinstall openssl@1.1
           )
         endif()
 
