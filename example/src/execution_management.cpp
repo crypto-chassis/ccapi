@@ -30,7 +30,7 @@ int main(int argc, char** argv)
   ExampleLogger exampleLogger;
   Logger::logger = &exampleLogger;
   SessionOptions sessionOptions;
-  sessionOptions.enableOneHttpConnectionPerRequest = false;
+//  sessionOptions.enableOneHttpConnectionPerRequest = false;
   std::string instrument = "my cool naming";
   std::string symbol = "BTC-USD";
   // Coinbase names a trading pair using upper case concatenated by dash
@@ -45,22 +45,19 @@ int main(int argc, char** argv)
       {BINANCE_US_API_KEY, UtilSystem::getEnvAsString(BINANCE_US_API_KEY)},
       {BINANCE_US_API_SECRET, UtilSystem::getEnvAsString(BINANCE_US_API_SECRET)}};
   CorrelationId correlationId("this is my correlation id");
-//  std::string topic = std::string("/") + CCAPI_EXCHANGE_NAME_COINBASE + "/" + instrument;
   Request request(operation, credential,
                   CCAPI_EXCHANGE_NAME_BINANCE_US,"ETHUSD",
                   correlationId);
-//  request.setParam(CCAPI_EM_INSTRUMENT, "ethusdt");
   request.setParam(CCAPI_EM_SIDE, CCAPI_EM_SIDE_BUY);
   request.setParam(CCAPI_EM_QUANTITY, "0.04");
   request.setParam(CCAPI_EM_LIMIT_PRICE, "300");
   Queue<Event> eventQueue;
   for(int i=1; i<=1; i++){
-
-    session.sendRequest(request);
+    session.sendRequest(request, &eventQueue);
   }
-
-
-//  CCAPI_LOGGER_TRACE("about to sleep");
+  std::vector<Event> eventList = eventQueue.purge();
+  CCAPI_LOGGER_TRACE(toString(eventList));
+  CCAPI_LOGGER_TRACE("about to exit main");
 //  std::this_thread::sleep_for (std::chrono::seconds(5));
   return EXIT_SUCCESS;
 }

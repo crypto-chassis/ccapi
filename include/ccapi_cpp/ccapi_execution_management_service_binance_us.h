@@ -169,49 +169,49 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
 //    ss << address;
 //    return ss.str();
 //  }
-  void performRequest(const HttpConnection& httpConnection, const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
+  void performRequest(std::shared_ptr<HttpConnection> httpConnectionPtr, const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_DEBUG("httpConnection = "+toString(httpConnection));
+    CCAPI_LOGGER_DEBUG("httpConnection = "+toString(*httpConnectionPtr));
     CCAPI_LOGGER_DEBUG("retry = "+toString(retry));
-    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliSeconds = "+toString(this->sessionOptions.httpRequestTimeoutMilliSeconds));
     beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
         this->tcpResolverResults,
-        beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onConnect, shared_from_this(), httpConnection,request,req,retry));
+        beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onConnect, shared_from_this(), httpConnectionPtr,request,req,retry));
     CCAPI_LOGGER_TRACE("after async_connect");
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void onConnect(HttpConnection httpConnection,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
+  void onConnect(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
     CCAPI_LOGGER_TRACE("async_connect callback start");
         if(ec) {
           this->onFailure(ec, "connect");
           return;
         }
         CCAPI_LOGGER_TRACE("connected");
-        beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+        beast::ssl_stream <beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
         CCAPI_LOGGER_TRACE("before async_handshake");
         stream.async_handshake(
             ssl::stream_base::client,
-            beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onHandshake, shared_from_this(), httpConnection,request,req,retry));
+            beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onHandshake, shared_from_this(), httpConnectionPtr,request,req,retry));
         CCAPI_LOGGER_TRACE("after async_handshake");
   }
-  void onHandshake(HttpConnection httpConnection,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec) {
+  void onHandshake(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_handshake callback start");
     if(ec) {
       this->onFailure(ec, "handshake");
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
-    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     std::shared_ptr<http::request< http::string_body> > reqPtr(new http::request<http::string_body>(std::move(req)));
     CCAPI_LOGGER_TRACE("before async_write");
     http::async_write(stream, *reqPtr,
-                      beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onWrite, shared_from_this(), httpConnection,request,reqPtr,retry));
+                      beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onWrite, shared_from_this(), httpConnectionPtr,request,reqPtr,retry));
     CCAPI_LOGGER_TRACE("after async_write");
   }
-  void onWrite(HttpConnection httpConnection,Request request,std::shared_ptr<http::request< http::string_body> > reqPtr,HttpRetry retry, beast::error_code ec, std::size_t bytes_transferred) {
+  void onWrite(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,std::shared_ptr<http::request< http::string_body> > reqPtr,HttpRetry retry, beast::error_code ec, std::size_t bytes_transferred) {
     CCAPI_LOGGER_TRACE("async_write callback start");
     boost::ignore_unused(bytes_transferred);
     if(ec) {
@@ -221,14 +221,14 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_TRACE("written");
     std::shared_ptr<beast::flat_buffer> bufferPtr(new beast::flat_buffer());
     std::shared_ptr<http::response<http::string_body> > resPtr(new http::response < http::string_body >());
-    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     CCAPI_LOGGER_TRACE("before async_read");
     http::async_read(stream, *bufferPtr, *resPtr,
-                     beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onRead, shared_from_this(), httpConnection,request,reqPtr,retry,bufferPtr,resPtr)
+                     beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onRead, shared_from_this(), httpConnectionPtr,request,reqPtr,retry,bufferPtr,resPtr)
         );
     CCAPI_LOGGER_TRACE("after async_read");
   }
-  void onRead(HttpConnection httpConnection, Request request, std::shared_ptr<http::request<http::string_body> > reqPtr, HttpRetry retry, std::shared_ptr<beast::flat_buffer> bufferPtr, std::shared_ptr<http::response<http::string_body> > resPtr, beast::error_code ec, std::size_t bytes_transferred) {
+  void onRead(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, std::shared_ptr<http::request<http::string_body> > reqPtr, HttpRetry retry, std::shared_ptr<beast::flat_buffer> bufferPtr, std::shared_ptr<http::response<http::string_body> > resPtr, beast::error_code ec, std::size_t bytes_transferred) {
     CCAPI_LOGGER_TRACE("async_read callback start");
     auto now = std::chrono::system_clock::now();
     boost::ignore_unused(bytes_transferred);
@@ -237,17 +237,17 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
       return;
     }
     if (this->sessionOptions.enableOneHttpConnectionPerRequest) {
-      beast::ssl_stream <beast::tcp_stream>& stream = *httpConnection.streamPtr;
+      beast::ssl_stream <beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
       CCAPI_LOGGER_TRACE("before async_shutdown");
       stream.async_shutdown(
           beast::bind_front_handler(
                           &ExecutionManagementServiceBinanceUs::onShutdown,
-                          shared_from_this(), httpConnection));
+                          shared_from_this()));
       CCAPI_LOGGER_TRACE("after async_shutdown");
       } else {
 //          auto thatHttpConnection = httpConnection;
           try {
-            this->httpConnectionPool.pushBack(std::move(httpConnection));
+            this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
           } catch (const std::runtime_error& e) {
             if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_FULL) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -302,6 +302,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
 //          auto thatRetry = retry;
           retry.numRedirect += 1;
           this->tryRequest(request, *reqPtr, retry);
+          return;
         } else {
           this->onResponseError(statusCode, body);
         }
@@ -312,6 +313,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
 //        auto thatRetry = retry;
         retry.numRetry += 1;
         this->tryRequest(request, *reqPtr, retry);
+        return;
       }
     }
     catch (const std::exception& e) {
@@ -325,7 +327,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
       retry.promisePtr->set_value();
     }
   }
-  void onShutdown(HttpConnection httpConnection, beast::error_code ec) {
+  void onShutdown(beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_shutdown callback start");
     if(ec == net::error::eof)
     {
@@ -362,13 +364,12 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           this->onFailure(ec, "create stream");
           return;
         }
-        HttpConnection httpConnection(this->host, this->port, streamPtr);
-        this->performRequest(httpConnection, request, req, retry);
+        std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->host, this->port, streamPtr));
+        this->performRequest(httpConnectionPtr, request, req, retry);
       } else {
-        std::unique_ptr<HttpConnection> httpConnectionPtr(nullptr);
+        std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
         try {
-          HttpConnection httpConnection = this->httpConnectionPool.popBack();
-          httpConnectionPtr.reset(&httpConnection);
+          httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
         } catch (const std::runtime_error& e) {
           if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
             CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -387,13 +388,17 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
             this->onFailure(ec, "create stream");
             return;
           }
-          httpConnectionPtr = std::make_unique<HttpConnection>(this->host, this->port, streamPtr);
+          httpConnectionPtr = std::make_shared<HttpConnection>(this->host, this->port, streamPtr);
         }
-        HttpConnection httpConnection = *httpConnectionPtr;
-        this->performRequest(httpConnection, request, req, retry);
+//        HttpConnection httpConnection = *httpConnectionPtr;
+        this->performRequest(httpConnectionPtr, request, req, retry);
       }
     } else {
       CCAPI_LOGGER_ERROR(this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded");
+      CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
+      if (retry.promisePtr) {
+        retry.promisePtr->set_value();
+      }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -439,7 +444,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   std::string port;
   tcp::resolver resolver;
   tcp::resolver::results_type tcpResolverResults;
-  Queue<HttpConnection> httpConnectionPool;
+  Queue<std::shared_ptr<HttpConnection> > httpConnectionPool;
 };
 } /* namespace ccapi */
 #endif
