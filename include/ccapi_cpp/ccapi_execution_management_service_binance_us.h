@@ -238,7 +238,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
       this->onFailure(ec, "read");
       auto now = std::chrono::system_clock::now();
       auto req = this->convertRequest(request, now);
-      retry.numRedirect += 1;
+      retry.numRetry += 1;
       this->tryRequest(request, req, retry);
       return;
     }

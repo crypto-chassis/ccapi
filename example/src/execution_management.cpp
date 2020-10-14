@@ -30,16 +30,9 @@ int main(int argc, char** argv)
   ExampleLogger exampleLogger;
   Logger::logger = &exampleLogger;
   SessionOptions sessionOptions;
-//  sessionOptions.enableOneHttpConnectionPerRequest = false;
-  std::string instrument = "my cool naming";
-  std::string symbol = "BTC-USD";
-  // Coinbase names a trading pair using upper case concatenated by dash
-  // Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
-  CCAPI_LOGGER_TRACE("before session created");
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  CCAPI_LOGGER_TRACE("session created");
   Request::Operation operation = Request::Operation::CREATE_ORDER;
   std::map<std::string, std::string> credential = {
       {BINANCE_US_API_KEY, UtilSystem::getEnvAsString(BINANCE_US_API_KEY)},
@@ -52,12 +45,8 @@ int main(int argc, char** argv)
   request.setParam(CCAPI_EM_QUANTITY, "0.04");
   request.setParam(CCAPI_EM_LIMIT_PRICE, "300");
   Queue<Event> eventQueue;
-  for(int i=1; i<=1; i++){
-    session.sendRequest(request, &eventQueue);
-  }
+  session.sendRequest(request, &eventQueue);
   std::vector<Event> eventList = eventQueue.purge();
-  CCAPI_LOGGER_TRACE(toString(eventList));
-  CCAPI_LOGGER_TRACE("about to exit main");
-//  std::this_thread::sleep_for (std::chrono::seconds(5));
+  CCAPI_LOGGER_TRACE("eventList = "+toString(eventList));
   return EXIT_SUCCESS;
 }

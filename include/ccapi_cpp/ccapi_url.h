@@ -9,20 +9,14 @@ class Url final {
  public:
   explicit Url(std::string urlStr) {
     std::regex ex("^(.*:)//([A-Za-z0-9\\-\\.]+)(:[0-9]+)?(.*)$");
-        std::cmatch what;
-        if(std::regex_match(urlStr.c_str(), what, ex))
-        {
-          this->protocol = std::string(what[1].first, what[1].second);
-          this->host = std::string(what[2].first, what[2].second);
-          this->port = std::string(what[3].first, what[3].second);
-          this->target = std::string(what[4].first, what[4].second);
-//            cout << "protocol: " << string(what[1].first, what[1].second) << endl;
-//            cout << "domain:   " << string(what[2].first, what[2].second) << endl;
-//            cout << "port:     " << string(what[3].first, what[3].second) << endl;
-//            cout << "path:     " << string(what[4].first, what[4].second) << endl;
-//            cout << "query:    " << string(what[5].first, what[5].second) << endl;
-//            cout << "fragment: " << string(what[6].first, what[6].second) << endl;
-        }
+    std::cmatch what;
+    if(std::regex_match(urlStr.c_str(), what, ex))
+    {
+      this->protocol = std::string(what[1].first, what[1].second);
+      this->host = std::string(what[2].first, what[2].second);
+      this->port = std::string(what[3].first, what[3].second);
+      this->target = std::string(what[4].first, what[4].second);
+    }
   }
   std::string toString() const {
     std::string output = "Url [protocol = " + protocol + ", host = " + host + ", port = " + port + ", target = " + target + "]";
