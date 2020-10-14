@@ -100,13 +100,15 @@ class Session final {
       auto exchangeList = kv.second;
       for (const auto& exchange : exchangeList) {
         std::shared_ptr<Service> servicePtr(nullptr);
-#ifdef ENABLE_BINANCE_US
         CCAPI_LOGGER_TRACE("serviceName = "+serviceName);
         CCAPI_LOGGER_TRACE("exchange = "+exchange);
+#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
         if (serviceName == CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT) {
+#ifdef ENABLE_BINANCE_US
           if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
             servicePtr = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
           }
+#endif
         }
 #endif
         if (servicePtr) {

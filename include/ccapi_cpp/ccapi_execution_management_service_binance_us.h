@@ -6,16 +6,16 @@
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
 #include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_BINANCE_US
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/ssl.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/strand.hpp>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
+#include <boost/beast/ssl.hpp>
+#include <boost/beast/version.hpp>
+#include <boost/asio/strand.hpp>
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
@@ -179,7 +179,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   }
   void onConnect(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
     CCAPI_LOGGER_TRACE("async_connect callback start");
-        if(ec) {
+        if (ec) {
           CCAPI_LOGGER_TRACE("fail");
           this->onFailure(ec, "connect");
           return;
@@ -194,7 +194,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   }
   void onHandshake(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,http::request<http::string_body> req,HttpRetry retry,beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_handshake callback start");
-    if(ec) {
+    if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "handshake");
       return;
@@ -210,7 +210,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   void onWrite(std::shared_ptr<HttpConnection> httpConnectionPtr,Request request,std::shared_ptr<http::request< http::string_body> > reqPtr,HttpRetry retry, beast::error_code ec, std::size_t bytes_transferred) {
     CCAPI_LOGGER_TRACE("async_write callback start");
     boost::ignore_unused(bytes_transferred);
-    if(ec) {
+    if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "write");
       auto now = std::chrono::system_clock::now();
@@ -233,7 +233,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_TRACE("async_read callback start");
     auto now = std::chrono::system_clock::now();
     boost::ignore_unused(bytes_transferred);
-    if(ec) {
+    if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "read");
       auto now = std::chrono::system_clock::now();
@@ -342,7 +342,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
         ec = {};
     }
-    if(ec) {
+    if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "shutdown");
       return;
@@ -369,7 +369,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
         try {
           httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
-          this->onHandshake(httpConnectionPtr,request,req,retry,{});
+          this->onHandshake(httpConnectionPtr, request, req, retry, {});
         } catch (const std::runtime_error& e) {
           if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
             CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -421,7 +421,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
       promisePtrRaw = new std::promise<void>();
     }
     std::shared_ptr<std::promise<void> > promisePtr(promisePtrRaw);
-    HttpRetry retry(0,0,"",promisePtr);
+    HttpRetry retry(0, 0, "", promisePtr);
     this->tryRequest(request, req, retry);
     if (block) {
       std::future<void> future = promisePtr->get_future();
