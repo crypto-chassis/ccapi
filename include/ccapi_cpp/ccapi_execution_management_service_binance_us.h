@@ -377,6 +377,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
         try {
           httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
+          this->onHandshake(httpConnectionPtr,request,req,retry,{});
         } catch (const std::runtime_error& e) {
           if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
             CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -397,9 +398,9 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
             return;
           }
           httpConnectionPtr = std::make_shared<HttpConnection>(this->host, this->port, streamPtr);
+          this->performRequest(httpConnectionPtr, request, req, retry);
         }
 //        HttpConnection httpConnection = *httpConnectionPtr;
-        this->performRequest(httpConnectionPtr, request, req, retry);
       }
     } else {
       CCAPI_LOGGER_ERROR(this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded");
