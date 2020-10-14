@@ -163,12 +163,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     }
     return req;
   }
-//  std::string connectionAddressToString(const HttpConnection& httpConnection) {
-//    const void * address = static_cast<const void*>(httpConnection);
-//    std::stringstream ss;
-//    ss << address;
-//    return ss.str();
-//  }
   void performRequest(std::shared_ptr<HttpConnection> httpConnectionPtr, const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("httpConnection = "+toString(*httpConnectionPtr));
@@ -257,14 +251,13 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
                           shared_from_this()));
       CCAPI_LOGGER_TRACE("after async_shutdown");
       } else {
-//          auto thatHttpConnection = httpConnection;
-          try {
-            this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
-          } catch (const std::runtime_error& e) {
-            if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_FULL) {
-              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-            }
+        try {
+          this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
+        } catch (const std::runtime_error& e) {
+          if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_FULL) {
+            CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
           }
+        }
       }
 #if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
       std::ostringstream oss;
@@ -323,10 +316,11 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         this->onResponseError(statusCode, body);
       } else if (statusCode / 100 == 5) {
         this->onResponseError(statusCode, body);
-//        auto thatRetry = retry;
         retry.numRetry += 1;
         this->tryRequest(request, *reqPtr, retry);
         return;
+      } else {
+        this->onResponseError(statusCode, "unhandled response");
       }
     }
     catch (const std::exception& e) {
@@ -360,16 +354,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("retry = " + toString(retry));
     if (retry.numRetry <= this->sessionOptions.httpMaxNumRetry && retry.numRedirect <= this->sessionOptions.httpMaxNumRedirect) {
-//      if (!retry.redirectUrlStr.empty()) {
-//        Url url(retry.redirectUrlStr);
-//        std::string host(url.host);
-//        if (!url.port.empty()) {
-//          host += ":";
-//          host += url.port;
-//        }
-//        req.set(http::field::host, host);
-//        req.target(url.target);
-//      }
       if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
         std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
         try {
@@ -390,13 +374,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
             CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
           }
-//          std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*this->serviceContextPtr->ioContextPtr, *this->serviceContextPtr->sslContextPtr));
-//          // Set SNI Hostname (many hosts need this to handshake successfully)
-//          if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (this->host+":"+this->port).c_str())) {
-//            beast::error_code ec { static_cast<int>(::ERR_get_error()), net::error::get_ssl_category() };
-//            std::cerr << ec.message() << "\n";
-//            return;
-//          }
           std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
           try {
             streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host, this->port);
@@ -408,7 +385,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           httpConnectionPtr = std::make_shared<HttpConnection>(this->host, this->port, streamPtr);
           this->performRequest(httpConnectionPtr, request, req, retry);
         }
-//        HttpConnection httpConnection = *httpConnectionPtr;
       }
     } else {
       CCAPI_LOGGER_ERROR(this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded");
