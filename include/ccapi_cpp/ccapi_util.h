@@ -15,6 +15,8 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
 #include "date/date.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
