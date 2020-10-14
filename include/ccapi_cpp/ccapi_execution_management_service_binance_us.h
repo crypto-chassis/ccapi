@@ -219,6 +219,10 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     if(ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "write");
+      auto now = std::chrono::system_clock::now();
+      auto req = this->convertRequest(request, now);
+      retry.numRetry += 1;
+      this->tryRequest(request, req, retry);
       return;
     }
     CCAPI_LOGGER_TRACE("written");
@@ -238,6 +242,10 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     if(ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onFailure(ec, "read");
+      auto now = std::chrono::system_clock::now();
+      auto req = this->convertRequest(request, now);
+      retry.numRedirect += 1;
+      this->tryRequest(request, req, retry);
       return;
     }
     if (this->sessionOptions.enableOneHttpConnectionPerRequest) {
