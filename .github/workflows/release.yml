@@ -17,14 +17,12 @@ jobs:
           "version": "1.0.0",
           "devDependencies": {
             "semantic-release": "^17.1.1",
-            "conventional-changelog-eslint":"^3.0.8"
+            "conventional-changelog-conventionalcommits":"^4.4.0"
           },
           "release": {
             "branches": ["master"],
             "plugins": [["@semantic-release/commit-analyzer", {
-                        "preset": "eslint"
-                      }], ["@semantic-release/release-notes-generator", {
-                        "preset": "eslint"
+                        "preset": "conventionalcommits"
                       }], "@semantic-release/github"]
           }
         }'' > "package.json"'
