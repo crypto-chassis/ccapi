@@ -409,22 +409,67 @@ class Session final {
   }
   void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    auto serviceName = request.getServiceName();
-    if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
-      CCAPI_LOGGER_ERROR("unsupported service: "+serviceName);
-      return;
+//    auto serviceName = request.getServiceName();
+//    if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
+//      CCAPI_LOGGER_ERROR("unsupported service: "+serviceName);
+//      return;
+//    }
+//    std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+//    auto exchange = request.getExchange();
+//    if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
+//      CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
+//      return;
+//    }
+//    std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
+//    if (eventQueuePtr) {
+//      servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
+//    }
+//    auto now = std::chrono::system_clock::now();
+//    if (const auto& futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now)) {
+//      CCAPI_LOGGER_TRACE("before future wait");
+//      futurePtr->wait();
+//      CCAPI_LOGGER_TRACE("after future wait");
+//    }
+    std::vector<Request> requestList;
+    requestList.push_back(request);
+    this->sendRequest(requestList, eventQueuePtr);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void sendRequest(const std::vector<Request>& requestList, Queue<Event> *eventQueuePtr = 0) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
+    std::set<std::string> serviceNameExchangeSet;
+    for (const auto& request : requestList) {
+      auto serviceName = request.getServiceName();
+      if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
+        CCAPI_LOGGER_ERROR("unsupported service: "+serviceName);
+        return;
+      }
+      std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+      auto exchange = request.getExchange();
+      if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
+        CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
+        return;
+      }
+      std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
+      std::string key = serviceName + exchange;
+      if (eventQueuePtr && serviceNameExchangeSet.find(key) != serviceNameExchangeSet.end()) {
+        servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
+        serviceNameExchangeSet.insert(key);
+      }
+      auto now = std::chrono::system_clock::now();
+      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now);
+      if (eventQueuePtr) {
+        futurePtrList.push_back(futurePtr);
+      }
     }
-    std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
-    auto exchange = request.getExchange();
-    if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-      CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
-      return;
-    }
-    std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
     if (eventQueuePtr) {
-      servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
+      for (auto& futurePtr : futurePtrList) {
+        CCAPI_LOGGER_TRACE("before future wait");
+        futurePtr->wait();
+        CCAPI_LOGGER_TRACE("after future wait");
+      }
     }
-    servicePtr->sendRequest(request, !!eventQueuePtr);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   Queue<Event> eventQueue;

@@ -13,7 +13,11 @@ class Service {
   }
   virtual ~Service() {
   }
-  virtual void sendRequest(const Request& request, bool block) {}
+  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now) {
+    return std::shared_ptr<std::future<void> >(nullptr);
+  }
+//  virtual boost::optional<std::vector<std::future<void> > > sendRequest(const std::vector<Request>& requestList, const bool useFuture, const TimePoint& now) {}
+//  virtual void sendRequest(const Request& request, bool block) {}
   void setEventHandler(const std::function<void(Event& event)>& eventHandler) {
     this->eventHandler = eventHandler;
   }
