@@ -409,27 +409,6 @@ class Session final {
   }
   void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-//    auto serviceName = request.getServiceName();
-//    if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
-//      CCAPI_LOGGER_ERROR("unsupported service: "+serviceName);
-//      return;
-//    }
-//    std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
-//    auto exchange = request.getExchange();
-//    if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-//      CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
-//      return;
-//    }
-//    std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
-//    if (eventQueuePtr) {
-//      servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
-//    }
-//    auto now = std::chrono::system_clock::now();
-//    if (const auto& futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now)) {
-//      CCAPI_LOGGER_TRACE("before future wait");
-//      futurePtr->wait();
-//      CCAPI_LOGGER_TRACE("after future wait");
-//    }
     std::vector<Request> requestList;
     requestList.push_back(request);
     this->sendRequest(requestList, eventQueuePtr);

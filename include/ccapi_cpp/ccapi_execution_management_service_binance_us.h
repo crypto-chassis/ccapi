@@ -400,32 +400,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     }
     return streamPtr;
   }
-//  void sendRequest(const Request& request, const bool useFuture) override {
-//    CCAPI_LOGGER_FUNCTION_ENTER;
-//    CCAPI_LOGGER_DEBUG("request = "+toString(request));
-//    CCAPI_LOGGER_DEBUG("useFuture = "+toString(useFuture));
-//    auto now = std::chrono::system_clock::now();
-//    auto req = this->convertRequest(request, now);
-//#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
-//    std::ostringstream oss;
-//    oss << req;
-//    CCAPI_LOGGER_DEBUG("req = \n"+oss.str());
-//#endif
-//    std::promise<void>* promisePtrRaw = nullptr;
-//    if (useFuture) {
-//      promisePtrRaw = new std::promise<void>();
-//    }
-//    std::shared_ptr<std::promise<void> > promisePtr(promisePtrRaw);
-//    HttpRetry retry(0, 0, "", promisePtr);
-//    this->tryRequest(request, req, retry);
-//    if (useFuture) {
-//      std::future<void> future = promisePtr->get_future();
-//      CCAPI_LOGGER_TRACE("before future wait");
-//      future.wait();
-//      CCAPI_LOGGER_TRACE("after future wait");
-//    }
-//    CCAPI_LOGGER_FUNCTION_EXIT;
-//  }
   std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
@@ -450,19 +424,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     return futurePtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-//  boost::optional<std::vector<std::future<void> > > sendRequest(const std::vector<Request>& requestList, const bool useFuture, const TimePoint& now) override {
-//    std::vector<std::future<void> > futureList;
-//    for (const auto& request : requestList) {
-//      if (auto& future = this->sendRequest(request, useFuture, now)) {
-//        futureList.push_back(std::move(future));
-//      }
-//    }
-//    if (useFuture) {
-//      return futureList;
-//    } else {
-//      return boost::none;
-//    }
-//  }
+
  private:
   std::string host;
   std::string port;
