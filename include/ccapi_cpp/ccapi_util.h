@@ -149,14 +149,7 @@ class UtilAlgorithm final {
   template<typename InputIterator> static uint_fast32_t crc(InputIterator first, InputIterator last);
   static std::string hmacHex(std::string key, std::string msg) {
       unsigned char hash[32];
-#if OPENSSL_VERSION_MAJOR > 1 || OPENSSL_VERSION_MAJOR == 1 && OPENSSL_VERSION_MINOR >= 1
-      HMAC_CTX *hmac = HMAC_CTX_new();
-      HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
-      HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
-      unsigned int len = 32;
-      HMAC_Final(hmac, hash, &len);
-      HMAC_CTX_free(hmac);
-#else
+#if defined(OPENSSL_VERSION_MAJOR) && defined(OPENSSL_VERSION_MINOR) && OPENSSL_VERSION_MAJOR <= 1 && (OPENSSL_VERSION_MAJOR != 1 || OPENSSL_VERSION_MINOR < 1)
       HMAC_CTX hmac;
       HMAC_CTX_init(&hmac);
       HMAC_Init_ex(&hmac, &key[0], key.length(), EVP_sha256(), NULL);
@@ -164,6 +157,13 @@ class UtilAlgorithm final {
       unsigned int len = 32;
       HMAC_Final(&hmac, hash, &len);
       HMAC_CTX_cleanup(&hmac);
+#else
+      HMAC_CTX *hmac = HMAC_CTX_new();
+      HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
+      HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
+      unsigned int len = 32;
+      HMAC_Final(hmac, hash, &len);
+      HMAC_CTX_free(hmac);
 #endif
       std::stringstream ss;
       ss << std::hex << std::setfill('0');
