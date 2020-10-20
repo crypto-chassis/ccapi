@@ -30,7 +30,7 @@
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
 
 ## Usage
-* Market data fetching, market making, arbitrage, etc.
+* Real-time market data fetching, high frequency market making, cross exchange arbitrage, etc.
 * For stability, please usa stable releases. Master branch might contain experimental features.
 
 ## Build
