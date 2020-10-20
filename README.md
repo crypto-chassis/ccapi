@@ -33,7 +33,9 @@
 * Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
+  * Define macro ENABLE_MARKET_DATA_SERVICE.
   * If you need all supported exchanges, define macro ENABLE_ALL_EXCHANGE. Otherwise, define exchange specific macros such as ENABLE_COINBASE, etc. See include/ccapi_cpp/ccapi_enable_exchange.h.
+  * If your OpenSSL version is older than 1.1, define macro OPENSSL_VERSION_MAJOR and OPENSSL_VERSION_MINOR (e.g. for OpenSSL 1.0.2s, define OPENSSL_VERSION_MAJOR to be 1 and OPENSSL_VERSION_MINOR to be 0).
 * Include directories:
   * include
   * dependency/websocketpp
