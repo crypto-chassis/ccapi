@@ -3,6 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [ccapi_cpp](#ccapi_cpp)
+  - [Usage](#usage)
   - [Build](#build)
   - [Examples](#examples)
     - [Simple](#simple)
@@ -27,6 +28,10 @@
 * For historical data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
+
+## Usage
+* Market data fetching, market making, arbitrage, etc.
+* For stability, please usa stable releases. Master branch might contain experimental features.
 
 ## Build
 * This library is header-only.
