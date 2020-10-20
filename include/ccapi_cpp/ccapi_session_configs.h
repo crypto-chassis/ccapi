@@ -9,22 +9,35 @@
 namespace ccapi {
 class SessionConfigs final {
  public:
-  SessionConfigs() {
+  SessionConfigs() : SessionConfigs({}, {}, {}) {
   }
-  explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap)
-      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap) {
-    this->update();
+  explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap, std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {}, std::map<std::string, std::string > credential = {})
+      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap), exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest), credential(credential) {
+    this->updateExchangeInstrumentMap();
+    this->updateExchangeInstrumentMapRest();
   }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const {
     return exchangeInstrumentSymbolMap;
   }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMapRest() const {
+    return exchangeInstrumentSymbolMapRest;
+  }
   void setExchangeInstrumentSymbolMap(
       const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
     this->exchangeInstrumentSymbolMap = exchangeInstrumentSymbolMap;
-    this->update();
+    this->updateExchangeInstrumentMap();
+    this->updateExchangeInstrumentMapRest();
+  }
+  void setExchangeInstrumentSymbolMapRest(
+      const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMapRest) {
+    this->exchangeInstrumentSymbolMapRest = exchangeInstrumentSymbolMapRest;
+    this->updateExchangeInstrumentMapRest();
   }
   const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const {
     return exchangeInstrumentMap;
+  }
+  const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const {
+    return exchangeInstrumentMapRest;
   }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const {
     return exchangeFieldMap;
@@ -41,12 +54,21 @@ class SessionConfigs final {
   const std::map<std::string, std::string>& getUrlWebsocketBase() const {
     return urlWebsocketBase;
   }
+  const std::map<std::string, std::string>& getUrlRestBase() const {
+    return urlRestBase;
+  }
   const std::map<std::string, int>& getInitialSequenceByExchangeMap() const {
     return initialSequenceByExchangeMap;
   }
+  const std::map<std::string, std::string>& getCredential() const {
+    return credential;
+  }
+  void setCredential(const std::map<std::string, std::string>& credential) {
+    this->credential = credential;
+  }
 
  private:
-  void update() {
+  void updateExchangeInstrumentMap() {
     for (const auto & x : exchangeInstrumentSymbolMap) {
       for (const auto & y : x.second) {
         this->exchangeInstrumentMap[x.first].push_back(y.first);
@@ -170,7 +192,7 @@ class SessionConfigs final {
 //    };
     this->urlWebsocketBase = {
       { CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},
-      { CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata/"},
+      { CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata"},
       { CCAPI_EXCHANGE_NAME_KRAKEN, "wss://ws.kraken.com"},
       { CCAPI_EXCHANGE_NAME_BITSTAMP, "wss://ws.bitstamp.net"},
       { CCAPI_EXCHANGE_NAME_BITFINEX, "wss://api-pub.bitfinex.com/ws/2"},
@@ -183,14 +205,28 @@ class SessionConfigs final {
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
+  void updateExchangeInstrumentMapRest() {
+    for (const auto & x : exchangeInstrumentSymbolMapRest) {
+      for (const auto & y : x.second) {
+        this->exchangeInstrumentMapRest[x.first].push_back(y.first);
+      }
+    }
+    this->urlRestBase = {
+      { CCAPI_EXCHANGE_NAME_BINANCE_US, "https://api.binance.us"},
+    };
+  }
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
+  std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest;
   std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
   std::map<std::string, std::vector<std::string> > exchangeFieldMap;
+  std::map<std::string, std::vector<std::string> > exchangeInstrumentMapRest;
   std::map<std::string, std::map<std::string, std::string> > exchangeFieldWebsocketChannelMap;
   std::map<std::string, std::vector<int> > websocketAvailableMarketDepth;
   std::map<std::string, int> websocketMaxAvailableMarketDepth;
   std::map<std::string, std::string> urlWebsocketBase;
+  std::map<std::string, std::string> urlRestBase;
   std::map<std::string, int> initialSequenceByExchangeMap;
+  std::map<std::string, std::string> credential;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_CONFIGS_H_

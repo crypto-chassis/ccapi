@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #include "ccapi_cpp/ccapi_enable_exchange.h"
+#ifdef ENABLE_MARKET_DATA_SERVICE
 #ifdef ENABLE_COINBASE
 #include "ccapi_cpp/ccapi_market_data_service_coinbase.h"
 #endif
@@ -34,6 +35,12 @@
 #ifdef ENABLE_OKEX
 #include "ccapi_cpp/ccapi_market_data_service_okex.h"
 #endif
+#endif
+#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
+#ifdef ENABLE_BINANCE_US
+#include "ccapi_cpp/ccapi_execution_management_service_binance_us.h"
+#endif
+#endif
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include "ccapi_cpp/ccapi_subscription_list.h"
@@ -48,16 +55,21 @@
 #include "ccapi_cpp/ccapi_event_handler.h"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_service_context.h"
+#include "ccapi_cpp/ccapi_request.h"
+#include "ccapi_cpp/ccapi_service.h"
 namespace ccapi {
 class Session final {
  public:
-  Session(const SessionOptions& options = SessionOptions(), const SessionConfigs& configs = SessionConfigs(),
+  Session(const Session&) = delete;
+  Session& operator=(const Session&) = delete;
+  Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
           EventHandler* eventHandler = 0, EventDispatcher* eventDispatcher = 0)
-      : sessionOptions(options),
-        sessionConfigs(configs),
+      : sessionOptions(sessionOptions),
+        sessionConfigs(sessionConfigs),
         eventHandler(eventHandler),
         eventDispatcher(eventDispatcher),
-        eventQueue(options.maxEventQueueSize) {
+        eventQueue(sessionOptions.maxEventQueueSize),
+        serviceContextPtr(new ServiceContext()) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (this->eventHandler) {
       if (!this->eventDispatcher) {
@@ -71,6 +83,43 @@ class Session final {
     if (this->eventDispatcher) {
       this->eventDispatcher->start();
     }
+    std::thread t([this](){
+      this->serviceContextPtr->run();
+    });
+    this->t = std::move(t);
+    std::function<void(Event& event)> serviceEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
+    std::map<std::string, std::vector<std::string> > exchanges;
+#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
+    exchanges[CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT] = { CCAPI_EXCHANGE_NAME_BINANCE_US };
+#endif
+    CCAPI_LOGGER_TRACE("exchanges = "+toString(exchanges));
+    for (const auto& kv : exchanges) {
+      auto serviceName = kv.first;
+      auto exchangeList = kv.second;
+      for (const auto& exchange : exchangeList) {
+        std::shared_ptr<Service> servicePtr(nullptr);
+        CCAPI_LOGGER_TRACE("serviceName = "+serviceName);
+        CCAPI_LOGGER_TRACE("exchange = "+exchange);
+#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
+        if (serviceName == CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT) {
+#ifdef ENABLE_BINANCE_US
+          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
+            servicePtr = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
+          }
+#endif
+        }
+#endif
+        if (servicePtr) {
+          CCAPI_LOGGER_TRACE("add service "+serviceName+" and exchange "+exchange);
+          this->serviceByServiceNameExchangeMap[serviceName][exchange] = servicePtr;
+        }
+      }
+    }
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  ~Session() {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    this->t.join();
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 //  bool openService(std::string serviceName = "") {
@@ -84,6 +133,7 @@ class Session final {
 //    CCAPI_LOGGER_FUNCTION_EXIT;
 //    return true;
 //  }
+#ifdef ENABLE_MARKET_DATA_SERVICE
   void subscribe(const SubscriptionList& subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::unordered_set<CorrelationId, CorrelationIdHash> correlationIdSet;
@@ -232,7 +282,8 @@ class Session final {
           }
 #endif
           if (!found) {
-            CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
+            CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
+            return;
           }
           wsPtr->connect();
           serviceContextPtr->run();
@@ -319,7 +370,8 @@ class Session final {
         }
 #endif
         if (!found) {
-          CCAPI_LOGGER_FATAL("unsupported exchange: "+exchange);
+          CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
+          return;
         }
         wsPtr->connect();
       }
@@ -327,6 +379,7 @@ class Session final {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+#endif
   void onEvent(Event& event, Queue<Event> *eventQueue) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = "+toString(event));
@@ -354,6 +407,50 @@ class Session final {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = 0) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    std::vector<Request> requestList;
+    requestList.push_back(request);
+    this->sendRequest(requestList, eventQueuePtr);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void sendRequest(const std::vector<Request>& requestList, Queue<Event> *eventQueuePtr = 0) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
+    std::set<std::string> serviceNameExchangeSet;
+    for (const auto& request : requestList) {
+      auto serviceName = request.getServiceName();
+      if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
+        CCAPI_LOGGER_ERROR("unsupported service: "+serviceName);
+        return;
+      }
+      std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+      auto exchange = request.getExchange();
+      if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
+        CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
+        return;
+      }
+      std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
+      std::string key = serviceName + exchange;
+      if (eventQueuePtr && serviceNameExchangeSet.find(key) != serviceNameExchangeSet.end()) {
+        servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
+        serviceNameExchangeSet.insert(key);
+      }
+      auto now = std::chrono::system_clock::now();
+      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now);
+      if (eventQueuePtr) {
+        futurePtrList.push_back(futurePtr);
+      }
+    }
+    if (eventQueuePtr) {
+      for (auto& futurePtr : futurePtrList) {
+        CCAPI_LOGGER_TRACE("before future wait");
+        futurePtr->wait();
+        CCAPI_LOGGER_TRACE("after future wait");
+      }
+    }
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
   Queue<Event> eventQueue;
 
  private:
@@ -363,6 +460,9 @@ class Session final {
   EventHandler* eventHandler;
   EventDispatcher* eventDispatcher;
   EventDispatcher defaultEventDispatcher;
+  wspp::lib::shared_ptr<ServiceContext> serviceContextPtr;
+  std::map<std::string, std::map<std::string, wspp::lib::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
+  std::thread t;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_

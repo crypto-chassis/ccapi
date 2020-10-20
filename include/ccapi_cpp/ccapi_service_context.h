@@ -1,6 +1,12 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SERVICE_CONTEXT_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SERVICE_CONTEXT_H_
+#ifndef WEBSOCKETPP_USE_BOOST_ASIO
+#define ASIO_STANDALONE
+#endif
 #include "ccapi_cpp/ccapi_logger.h"
+#include "websocketpp/common/connection_hdl.hpp"
+#include "websocketpp/config/asio_client.hpp"
+#include "websocketpp/client.hpp"
 namespace wspp = websocketpp;
 namespace ccapi {
 

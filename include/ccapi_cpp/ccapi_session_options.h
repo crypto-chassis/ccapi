@@ -27,6 +27,11 @@ class SessionOptions final {
   long pingIntervalMilliSeconds{10000};
   long pongTimeoutMilliSeconds{5000};
   long maxEventQueueSize{0};
+  bool enableOneHttpConnectionPerRequest{};
+  int httpMaxNumRetry{3};
+  int httpMaxNumRedirect{3};
+  long httpRequestTimeoutMilliSeconds{10000};
+  int httpConnectionPoolMaxSize{1};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
