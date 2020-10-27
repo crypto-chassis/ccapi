@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
 #ifdef ENABLE_BITMEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 #include <regex>
@@ -187,4 +187,4 @@ class MarketDataServiceBitmex final : public MarketDataService {
 };
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_

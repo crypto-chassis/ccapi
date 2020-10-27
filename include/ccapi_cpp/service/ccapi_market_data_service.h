@@ -1,9 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_H_
-
-//#ifndef WEBSOCKETPP_USE_BOOST_ASIO
-//#define ASIO_STANDALONE
-//#endif
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
 #endif
@@ -1146,4 +1142,4 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
 #endif
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BINANCE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BINANCE_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_H_
 #ifdef ENABLE_BINANCE
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_base.h"
 namespace ccapi {
@@ -12,4 +12,4 @@ class MarketDataServiceBinance final : public MarketDataServiceBinanceBase {
 };
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_SERVICE_BINANCE_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_H_
