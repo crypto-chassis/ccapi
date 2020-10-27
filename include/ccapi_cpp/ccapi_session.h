@@ -1,44 +1,43 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
-#include "ccapi_cpp/ccapi_enable_exchange.h"
 #ifdef ENABLE_MARKET_DATA_SERVICE
 #ifdef ENABLE_COINBASE
-#include "ccapi_cpp/ccapi_market_data_service_coinbase.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_coinbase.h"
 #endif
 #ifdef ENABLE_GEMINI
-#include "ccapi_cpp/ccapi_market_data_service_gemini.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_gemini.h"
 #endif
 #ifdef ENABLE_KRAKEN
-#include "ccapi_cpp/ccapi_market_data_service_kraken.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_kraken.h"
 #endif
 #ifdef ENABLE_BITSTAMP
-#include "ccapi_cpp/ccapi_market_data_service_bitstamp.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_bitstamp.h"
 #endif
 #ifdef ENABLE_BITFINEX
-#include "ccapi_cpp/ccapi_market_data_service_bitfinex.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_bitfinex.h"
 #endif
 #ifdef ENABLE_BITMEX
-#include "ccapi_cpp/ccapi_market_data_service_bitmex.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_bitmex.h"
 #endif
 #ifdef ENABLE_BINANCE_US
-#include "ccapi_cpp/ccapi_market_data_service_binance_us.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_binance_us.h"
 #endif
 #ifdef ENABLE_BINANCE
-#include "ccapi_cpp/ccapi_market_data_service_binance.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_binance.h"
 #endif
 #ifdef ENABLE_BINANCE_FUTURES
-#include "ccapi_cpp/ccapi_market_data_service_binance_futures.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_binance_futures.h"
 #endif
 #ifdef ENABLE_HUOBI
-#include "ccapi_cpp/ccapi_market_data_service_huobi.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_huobi.h"
 #endif
 #ifdef ENABLE_OKEX
-#include "ccapi_cpp/ccapi_market_data_service_okex.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_okex.h"
 #endif
 #endif
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
 #ifdef ENABLE_BINANCE_US
-#include "ccapi_cpp/ccapi_execution_management_service_binance_us.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 #endif
 #endif
 #include "ccapi_cpp/ccapi_session_options.h"
