@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_SERVICE_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 namespace ccapi {
 class Service {
  public:
@@ -29,4 +29,4 @@ class Service {
   ServiceContextPtr serviceContextPtr;
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_SERVICE_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
