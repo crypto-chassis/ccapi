@@ -37,7 +37,6 @@ class ServiceContext final {
       CCAPI_LOGGER_FATAL("asio initialization error: " + ec.message());
     }
     CCAPI_LOGGER_DEBUG("asio initialization end");
-    this->tlsClientPtr->start_perpetual();
     this->sslContextPtr->set_options(
         SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3
             | SslContext::single_dh_use);
@@ -47,10 +46,15 @@ class ServiceContext final {
   }
   ServiceContext(const ServiceContext&) = delete;
   ServiceContext& operator=(const ServiceContext&) = delete;
-  void run() {
+  void start() {
     CCAPI_LOGGER_INFO("about to start client asio io_service run loop");
+    this->tlsClientPtr->start_perpetual();
     this->tlsClientPtr->run();
     CCAPI_LOGGER_INFO("just exited client asio io_service run loop");
+  }
+  void stop() {
+    this->tlsClientPtr->stop();
+    this->tlsClientPtr->stop_perpetual();
   }
   IoContextPtr ioContextPtr{new IoContext()};
   TlsClientPtr tlsClientPtr{new TlsClient()};

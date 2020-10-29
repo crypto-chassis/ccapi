@@ -3,21 +3,13 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include <string>
 #include <set>
-#include "ccapi_cpp/ccapi_correlationId.h"
 #include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
 class Subscription final {
  public:
-  Subscription(std::string topic, std::string fields, std::string options = "", CorrelationId correlationId =
-                   CorrelationId())
-      : correlationId(correlationId) {
-    std::string trimmedTopic(topic);
-    if (trimmedTopic.rfind("/", 0) == 0) {
-      trimmedTopic = trimmedTopic.substr(1);
-    }
-    auto splittedTopic = UtilString::split(trimmedTopic, "/");
-    this->exchange = splittedTopic.at(0);
-    this->instrument = splittedTopic.at(1);
+  Subscription(std::string exchange, std::string instrument, std::string fields, std::string options = "", std::string correlationId =
+                   UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH))
+      : exchange(exchange), instrument(instrument), correlationId(correlationId) {
     std::vector<std::string> fieldList = UtilString::split(fields, ",");
     this->fieldSet = std::set<std::string>(fieldList.begin(), fieldList.end());
     std::vector<std::string> optionList;
@@ -34,20 +26,20 @@ class Subscription final {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
-    this->serviceName = CCAPI_EXCHANGE_NAME_MARKET_DATA_SERVICE;
+    this->serviceName = CCAPI_EXCHANGE_NAME_MARKET_DATA;
   }
-  Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", CorrelationId correlationId =
-      CorrelationId()): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
+  Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
+      UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH)): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
     this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
   }
   std::string toString() const {
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", fieldSet = "
         + ccapi::toString(fieldSet) + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
-        + correlationId.toString() + ", credential = "
+        + correlationId + ", credential = "
         + ccapi::toString(credential) + ", serviceName = " + serviceName + "]";
     return output;
   }
-  const CorrelationId& getCorrelationId() const {
+  const std::string& getCorrelationId() const {
     return correlationId;
   }
   const std::string& getExchange() const {
@@ -74,7 +66,7 @@ class Subscription final {
   std::string instrument;
   std::set<std::string> fieldSet;
   std::map<std::string, std::string> optionMap;
-  CorrelationId correlationId;
+  std::string correlationId;
   std::map<std::string, std::string> credential;
   std::string serviceName;
 };

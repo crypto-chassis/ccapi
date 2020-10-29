@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
+#include "ccapi_cpp/ccapi_request.h"
 namespace ccapi {
 class Service {
  public:
@@ -19,6 +20,8 @@ class Service {
   void setEventHandler(const std::function<void(Event& event)>& eventHandler) {
     this->eventHandler = eventHandler;
   }
+  virtual void stop() = 0;
+  virtual void subscribe(const std::vector<Subscription>& subscriptionList) = 0;
 
  protected:
   std::string name;

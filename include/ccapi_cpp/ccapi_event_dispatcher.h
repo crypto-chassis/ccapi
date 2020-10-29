@@ -21,13 +21,6 @@ class EventDispatcher final {
   }
   ~EventDispatcher() {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    std::unique_lock<std::mutex> lock(this->lock);
-    this->quit = true;
-    lock.unlock();
-    this->cv.notify_all();
-    for (auto& dispatcherThread : this->dispatcherThreads) {
-      dispatcherThread.join();
-    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void dispatch(const std::function<void()>& op) {
@@ -57,10 +50,19 @@ class EventDispatcher final {
   void pause() {
     this->shouldContinue = false;
   }
+  void stop() {
+    std::unique_lock<std::mutex> lock(this->lock);
+    this->quit = true;
+    lock.unlock();
+    this->cv.notify_all();
+    for (auto& dispatcherThread : this->dispatcherThreads) {
+      dispatcherThread.join();
+    }
+  }
 
  private:
   size_t numDispatcherThreads;
-  std::atomic<bool> shouldContinue{false};
+  std::atomic<bool> shouldContinue{};
   std::vector<std::thread> dispatcherThreads;
   std::mutex lock;
   std::queue<std::function<void()> > queue;

@@ -2,17 +2,19 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
 #include <string>
 #include "ccapi_cpp/ccapi_logger.h"
-#include "ccapi_cpp/ccapi_subscription_list.h"
+#include "ccapi_cpp/ccapi_subscription.h"
+namespace wspp = websocketpp;
 namespace ccapi {
 class WsConnection final {
  public:
-  WsConnection(std::string url, SubscriptionList subscriptionList)
+  WsConnection(std::string url, std::vector<Subscription> subscriptionList)
       : url(url),
         subscriptionList(subscriptionList) {
     this->assignDummyId();
   }
   void assignDummyId() {
     this->id = this->url + "|" + ccapi::toString(this->subscriptionList);
+    this->hdl.reset();
   }
   std::string toString() const {
     std::string output = "WsConnection [id = " + id + ", url = " + url + ", subscriptionList = "
@@ -55,8 +57,9 @@ class WsConnection final {
   }
   std::string id;
   std::string url;
-  SubscriptionList subscriptionList;
+  std::vector<Subscription> subscriptionList;
   Status status{Status::UNKNOWN};
+  wspp::connection_hdl hdl = wspp::lib::weak_ptr<void>();
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_

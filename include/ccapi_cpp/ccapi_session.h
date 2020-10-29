@@ -42,7 +42,6 @@
 #endif
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
-#include "ccapi_cpp/ccapi_subscription_list.h"
 #include <string>
 #include <utility>
 #include <vector>
@@ -79,15 +78,26 @@ class Session final {
         throw std::runtime_error("undefined behavior");
       }
     }
-    if (this->eventDispatcher) {
+    this->start();
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  ~Session() {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void start() {
+    if (this->eventDispatcher && this->eventDispatcher == &this->defaultEventDispatcher) {
       this->eventDispatcher->start();
     }
     std::thread t([this](){
-      this->serviceContextPtr->run();
+      this->serviceContextPtr->start();
     });
     this->t = std::move(t);
     std::function<void(Event& event)> serviceEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
     std::map<std::string, std::vector<std::string> > exchanges;
+#ifdef ENABLE_MARKET_DATA_SERVICE
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA] = { CCAPI_EXCHANGE_NAME_COINBASE };
+#endif
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
     exchanges[CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT] = { CCAPI_EXCHANGE_NAME_BINANCE_US };
 #endif
@@ -99,11 +109,20 @@ class Session final {
         std::shared_ptr<Service> servicePtr(nullptr);
         CCAPI_LOGGER_TRACE("serviceName = "+serviceName);
         CCAPI_LOGGER_TRACE("exchange = "+exchange);
+#ifdef ENABLE_MARKET_DATA_SERVICE
+        if (serviceName == CCAPI_EXCHANGE_NAME_MARKET_DATA) {
+#ifdef ENABLE_COINBASE
+          if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
+            servicePtr = std::make_shared<MarketDataServiceCoinbase>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+          }
+#endif
+        }
+#endif
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
         if (serviceName == CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT) {
 #ifdef ENABLE_BINANCE_US
           if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
-            servicePtr = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
+            servicePtr = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
           }
 #endif
         }
@@ -114,12 +133,18 @@ class Session final {
         }
       }
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  ~Session() {
-    CCAPI_LOGGER_FUNCTION_ENTER;
+  void stop() {
+    if (this->eventDispatcher && this->eventDispatcher == &this->defaultEventDispatcher) {
+      this->eventDispatcher->stop();
+    }
+    for (const auto & x : this->serviceByServiceNameExchangeMap) {
+      for (const auto & y : x.second) {
+        y.second->stop();
+      }
+    }
+    this->serviceContextPtr->stop();
     this->t.join();
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
 //  bool openService(std::string serviceName = "") {
 //    CCAPI_LOGGER_FUNCTION_ENTER;
@@ -127,25 +152,25 @@ class Session final {
 //      this->serviceName = this->sessionOptions.defaultSubscriptionService;
 //    }
 //    if (this->serviceName != this->sessionOptions.defaultSubscriptionService) {
-//      CCAPI_LOGGER_FATAL("unsupported service: " + this->serviceName);
+//      CCAPI_LOGGER_ERROR("unsupported service: " + this->serviceName);
 //    }
 //    CCAPI_LOGGER_FUNCTION_EXIT;
 //    return true;
 //  }
 #ifdef ENABLE_MARKET_DATA_SERVICE
-  void subscribe(const SubscriptionList& subscriptionList) {
+  void subscribe(const std::vector<Subscription>& subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    std::unordered_set<CorrelationId, CorrelationIdHash> correlationIdSet;
-    std::unordered_set<CorrelationId, CorrelationIdHash> duplicateCorrelationIdSet;
-    std::unordered_set<std::string> unsupportedExchangeInstrumentSet;
+    std::set<std::string> correlationIdSet;
+    std::set<std::string> duplicateCorrelationIdSet;
+//    std::unordered_set<std::string> unsupportedExchangeInstrumentSet;
     std::unordered_set<std::string> unsupportedExchangeFieldSet;
-    std::map<std::string, SubscriptionList> subscriptionListByExchangeMap;
+    std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
     std::unordered_set<std::string> unsupportedExchangeMarketDepthSet;
     auto exchangeInstrumentMap = this->sessionConfigs.getExchangeInstrumentMap();
     CCAPI_LOGGER_DEBUG("exchangeInstrumentMap = "+toString(exchangeInstrumentMap));
     auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
     CCAPI_LOGGER_DEBUG("exchangeFieldMap = "+toString(exchangeFieldMap));
-    for (auto & subscription : subscriptionList.getSubscriptionList()) {
+    for (const auto & subscription : subscriptionList) {
       auto correlationId = subscription.getCorrelationId();
       if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
         duplicateCorrelationIdSet.insert(correlationId);
@@ -154,15 +179,15 @@ class Session final {
       }
       auto exchange = subscription.getExchange();
       CCAPI_LOGGER_DEBUG("exchange = "+exchange);
-      auto instrument = subscription.getInstrument();
-      CCAPI_LOGGER_DEBUG("instrument = "+instrument);
+//      auto instrument = subscription.getInstrument();
+//      CCAPI_LOGGER_DEBUG("instrument = "+instrument);
       auto fieldSet = subscription.getFieldSet();
       auto optionMap = subscription.getOptionMap();
-      if (exchangeInstrumentMap.find(exchange) == exchangeInstrumentMap.end()
-          || std::find(exchangeInstrumentMap.find(exchange)->second.begin(), exchangeInstrumentMap.find(exchange)->second.end(),
-                       instrument) == exchangeInstrumentMap.find(exchange)->second.end()) {
-        unsupportedExchangeInstrumentSet.insert(exchange + "|" + instrument);
-      }
+//      if (exchangeInstrumentMap.find(exchange) == exchangeInstrumentMap.end()
+//          || std::find(exchangeInstrumentMap.find(exchange)->second.begin(), exchangeInstrumentMap.find(exchange)->second.end(),
+//                       instrument) == exchangeInstrumentMap.find(exchange)->second.end()) {
+//        unsupportedExchangeInstrumentSet.insert(exchange + "|" + instrument);
+//      }
       for (auto & field : fieldSet) {
         CCAPI_LOGGER_DEBUG("field = "+field);
         if (exchangeFieldMap.find(exchange) == exchangeFieldMap.end()
@@ -183,198 +208,30 @@ class Session final {
           }
         }
       }
-      subscriptionListByExchangeMap[exchange].add(subscription);
+      subscriptionListByExchangeMap[exchange].push_back(subscription);
     }
     if (!duplicateCorrelationIdSet.empty()) {
-      CCAPI_LOGGER_FATAL("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
+      CCAPI_LOGGER_ERROR("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
+      return;
     }
-    if (!unsupportedExchangeInstrumentSet.empty()) {
-      CCAPI_LOGGER_FATAL("unsupported exchange instruments: " + toString(unsupportedExchangeInstrumentSet));
-    }
+//    if (!unsupportedExchangeInstrumentSet.empty()) {
+//      CCAPI_LOGGER_ERROR("unsupported exchange instruments: " + toString(unsupportedExchangeInstrumentSet));
+//    }
     if (!unsupportedExchangeFieldSet.empty()) {
-      CCAPI_LOGGER_FATAL("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
+      CCAPI_LOGGER_ERROR("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
+      return;
     }
     if (!unsupportedExchangeMarketDepthSet.empty()) {
-      CCAPI_LOGGER_FATAL(
+      CCAPI_LOGGER_ERROR(
           "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet)
               + ", exceeded max market depth available");
+      return;
     }
     CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = "+toString(subscriptionListByExchangeMap));
-    std::function<void(Event& event)> wsEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, nullptr);
-    auto sessionOptions = this->sessionOptions;
-    auto sessionConfigs = this->sessionConfigs;
-    CCAPI_LOGGER_TRACE("sessionOptions.enableOneIoContextPerExchange = "+toString(sessionOptions.enableOneIoContextPerExchange));
-    if (sessionOptions.enableOneIoContextPerExchange) {
-      std::vector<std::thread> sessionWsThreads;
-      for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
-        auto exchange = subscriptionListByExchange.first;
-        auto subscriptionList = subscriptionListByExchange.second;
-        sessionWsThreads.push_back(std::thread([=](){
-          bool found = false;
-          std::shared_ptr<ServiceContext> serviceContextPtr(new ServiceContext());
-//          serviceContextPtr->initialize();
-          std::shared_ptr<MarketDataService> wsPtr;
-#ifdef ENABLE_COINBASE
-          if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-            wsPtr = std::make_shared<MarketDataServiceCoinbase>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_GEMINI
-          if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-            wsPtr = std::make_shared<MarketDataServiceGemini>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_KRAKEN
-          if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-            wsPtr = std::make_shared<MarketDataServiceKraken>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_BITSTAMP
-          if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-            wsPtr = std::make_shared<MarketDataServiceBitstamp>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_BITFINEX
-          if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-            wsPtr = std::make_shared<MarketDataServiceBitfinex>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_BITMEX
-          if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-            wsPtr = std::make_shared<MarketDataServiceBitmex>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_BINANCE_US
-          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
-            wsPtr = std::make_shared<MarketDataServiceBinanceUs>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_BINANCE
-          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE) {
-            wsPtr = std::make_shared<MarketDataServiceBinance>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_BINANCE_FUTURES
-          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
-            wsPtr = std::make_shared<MarketDataServiceBinanceFutures>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_HUOBI
-          if (exchange == CCAPI_EXCHANGE_NAME_HUOBI) {
-            wsPtr = std::make_shared<MarketDataServiceHuobi>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-#ifdef ENABLE_OKEX
-          if (exchange == CCAPI_EXCHANGE_NAME_OKEX) {
-            wsPtr = std::make_shared<MarketDataServiceOkex>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-            found = true;
-          }
-#endif
-          if (!found) {
-            CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
-            return;
-          }
-          wsPtr->connect();
-          serviceContextPtr->run();
-        }));
-      }
-      for (auto& sessionWsThread : sessionWsThreads) {
-        sessionWsThread.join();
-        CCAPI_LOGGER_TRACE("this thread has joined");
-      }
-    } else {
-      std::shared_ptr<ServiceContext> serviceContextPtr(new ServiceContext());
-//      serviceContextPtr->initialize();
-      for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
-        auto exchange = subscriptionListByExchange.first;
-        auto subscriptionList = subscriptionListByExchange.second;
-        CCAPI_LOGGER_DEBUG("exchange = "+exchange);
-        CCAPI_LOGGER_DEBUG("subscriptionList = "+toString(subscriptionList));
-        std::shared_ptr<MarketDataService> wsPtr;
-        bool found = false;
-#ifdef ENABLE_COINBASE
-        if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-          wsPtr = std::make_shared<MarketDataServiceCoinbase>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_GEMINI
-        if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-          wsPtr = std::make_shared<MarketDataServiceGemini>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_KRAKEN
-        if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-          wsPtr = std::make_shared<MarketDataServiceKraken>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_BITSTAMP
-        if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-          wsPtr = std::make_shared<MarketDataServiceBitstamp>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_BITFINEX
-        if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-          wsPtr = std::make_shared<MarketDataServiceBitfinex>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_BITMEX
-        if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-          wsPtr = std::make_shared<MarketDataServiceBitmex>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_BINANCE_US
-        if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
-          wsPtr = std::make_shared<MarketDataServiceBinanceUs>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_BINANCE
-        if (exchange == CCAPI_EXCHANGE_NAME_BINANCE) {
-          wsPtr = std::make_shared<MarketDataServiceBinance>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_BINANCE_FUTURES
-        if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
-          wsPtr = std::make_shared<MarketDataServiceBinanceFutures>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_HUOBI
-        if (exchange == CCAPI_EXCHANGE_NAME_HUOBI) {
-          wsPtr = std::make_shared<MarketDataServiceHuobi>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-#ifdef ENABLE_OKEX
-        if (exchange == CCAPI_EXCHANGE_NAME_OKEX) {
-          wsPtr = std::make_shared<MarketDataServiceOkex>(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
-          found = true;
-        }
-#endif
-        if (!found) {
-          CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
-          return;
-        }
-        wsPtr->connect();
-      }
-      serviceContextPtr->run();
+    for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
+      auto exchange = subscriptionListByExchange.first;
+      auto subscriptionList = subscriptionListByExchange.second;
+      this->serviceByServiceNameExchangeMap.at(CCAPI_EXCHANGE_NAME_MARKET_DATA).at(exchange)->subscribe(subscriptionList);
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

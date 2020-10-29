@@ -23,6 +23,19 @@ namespace ccapi {
 typedef std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> TimePoint;
 class UtilString final {
  public:
+  static std::string generateRandomString(const size_t length) {
+    auto randchar = []() -> char {
+      const char charset[] =
+      "0123456789"
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz";
+      const size_t max_index = (sizeof(charset) - 1);
+      return charset[ rand() % max_index ];
+    };
+    std::string str(length, 0);
+    std::generate_n(str.begin(), length, randchar);
+    return str;
+  }
   static std::vector<std::string> split(const std::string& original, const std::string& delimiter) {
     std::string s = original;
     std::vector<std::string> output;
