@@ -7,11 +7,9 @@
 namespace ccapi {
 class Subscription final {
  public:
-  Subscription(std::string exchange, std::string instrument, std::string fields, std::string options = "", std::string correlationId =
+  Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId =
                    UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH))
-      : exchange(exchange), instrument(instrument), correlationId(correlationId) {
-    std::vector<std::string> fieldList = UtilString::split(fields, ",");
-    this->fieldSet = std::set<std::string>(fieldList.begin(), fieldList.end());
+      : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId) {
     std::vector<std::string> optionList;
     if (!options.empty()) {
       optionList = UtilString::split(options, "&");
@@ -33,8 +31,8 @@ class Subscription final {
     this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
   }
   std::string toString() const {
-    std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", fieldSet = "
-        + ccapi::toString(fieldSet) + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
+    std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = "
+        + field + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
         + correlationId + ", credential = "
         + ccapi::toString(credential) + ", serviceName = " + serviceName + "]";
     return output;
@@ -48,8 +46,8 @@ class Subscription final {
   const std::string& getInstrument() const {
     return instrument;
   }
-  const std::set<std::string>& getFieldSet() const {
-    return fieldSet;
+  const std::string& getField() const {
+    return field;
   }
   const std::map<std::string, std::string>& getOptionMap() const {
     return optionMap;
@@ -60,11 +58,40 @@ class Subscription final {
   const std::string& getServiceName() const {
     return serviceName;
   }
-
+  enum class Status {
+    UNKNOWN,
+    SUBSCRIBING,
+    SUBSCRIBED,
+    UNSUBSCRIBING,
+    UNSUBSCRIBED
+  };
+  static std::string statusToString(Status status) {
+    std::string output;
+    switch (status) {
+      case Status::UNKNOWN:
+        output = "UNKNOWN";
+        break;
+      case Status::SUBSCRIBING:
+        output = "SUBSCRIBING";
+        break;
+      case Status::SUBSCRIBED:
+        output = "SUBSCRIBED";
+        break;
+      case Status::UNSUBSCRIBING:
+        output = "UNSUBSCRIBING";
+        break;
+      case Status::UNSUBSCRIBED:
+        output = "UNSUBSCRIBED";
+        break;
+      default:
+        CCAPI_LOGGER_FATAL("");
+    }
+    return output;
+  }
  private:
   std::string exchange;
   std::string instrument;
-  std::set<std::string> fieldSet;
+  std::string field;
   std::map<std::string, std::string> optionMap;
   std::string correlationId;
   std::map<std::string, std::string> credential;

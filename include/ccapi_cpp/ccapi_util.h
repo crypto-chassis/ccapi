@@ -494,5 +494,12 @@ template<typename T> std::string firstNToString(const std::vector<T>& c, size_t 
   output += " ]";
   return output;
 }
+template<typename K, typename V> std::map<V, std::vector<K> > invertMapMulti(const std::map<K, V>& c) {
+  std::map<V, std::vector<K> > output;
+  for (const auto& elem : c) {
+    output[elem.second].push_back(elem.first);
+  }
+  return output;
+}
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_UTIL_H_

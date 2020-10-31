@@ -98,14 +98,14 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   http::request<http::string_body> convertRequest(const Request& request, const TimePoint& now) {
     std::map<std::string, std::string> credential = request.getCredential().empty() ? this->sessionConfigs.getCredential() : request.getCredential();
     std::string instrument = request.getInstrument();
-    std::string symbol = instrument;
+    std::string productId = instrument;
     if (!instrument.empty()) {
       if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
           this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
-        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
+        productId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
       } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
           this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
-        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
+        productId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
       }
     }
     CCAPI_LOGGER_TRACE("instrument = "+instrument);
@@ -137,7 +137,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         bodyString += "&";
       }
       bodyString += "symbol=";
-      bodyString += symbol;
+      bodyString += productId;
       bodyString += "&";
       if (paramMap.find("type") == paramMap.end()) {
         bodyString += "type=LIMIT&";

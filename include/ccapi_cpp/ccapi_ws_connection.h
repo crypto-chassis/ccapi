@@ -17,7 +17,7 @@ class WsConnection final {
     this->hdl.reset();
   }
   std::string toString() const {
-    std::string output = "WsConnection [id = " + id + ", url = " + url + ", subscriptionList = "
+    std::string output = "WsConnection [id = " + id + ", url = " + url + ", instrumentGroup = " + instrumentGroup + ", subscriptionList = "
         + ccapi::toString(subscriptionList) + ", status = " + statusToString(status) + "]";
     return output;
   }
@@ -57,6 +57,7 @@ class WsConnection final {
   }
   std::string id;
   std::string url;
+  std::string instrumentGroup;
   std::vector<Subscription> subscriptionList;
   Status status{Status::UNKNOWN};
   wspp::connection_hdl hdl = wspp::lib::weak_ptr<void>();

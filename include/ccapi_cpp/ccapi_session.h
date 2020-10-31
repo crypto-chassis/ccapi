@@ -181,14 +181,14 @@ class Session final {
       CCAPI_LOGGER_DEBUG("exchange = "+exchange);
 //      auto instrument = subscription.getInstrument();
 //      CCAPI_LOGGER_DEBUG("instrument = "+instrument);
-      auto fieldSet = subscription.getFieldSet();
+      auto field = subscription.getField();
       auto optionMap = subscription.getOptionMap();
 //      if (exchangeInstrumentMap.find(exchange) == exchangeInstrumentMap.end()
 //          || std::find(exchangeInstrumentMap.find(exchange)->second.begin(), exchangeInstrumentMap.find(exchange)->second.end(),
 //                       instrument) == exchangeInstrumentMap.find(exchange)->second.end()) {
 //        unsupportedExchangeInstrumentSet.insert(exchange + "|" + instrument);
 //      }
-      for (auto & field : fieldSet) {
+//      for (auto & field : fieldSet) {
         CCAPI_LOGGER_DEBUG("field = "+field);
         if (exchangeFieldMap.find(exchange) == exchangeFieldMap.end()
             || std::find(exchangeFieldMap.find(exchange)->second.begin(), exchangeFieldMap.find(exchange)->second.end(),
@@ -207,7 +207,7 @@ class Session final {
             unsupportedExchangeMarketDepthSet.insert(exchange + "|" + toString(depth));
           }
         }
-      }
+//      }
       subscriptionListByExchangeMap[exchange].push_back(subscription);
     }
     if (!duplicateCorrelationIdSet.empty()) {

@@ -11,8 +11,7 @@ class MarketDataServiceCoinbase final : public MarketDataService {
   }
 
  private:
-  void subscribeToExchange(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     rj::Document document;
     document.SetObject();
@@ -49,22 +48,13 @@ class MarketDataServiceCoinbase final : public MarketDataService {
     document.Accept(writer);
     std::string requestString = stringBuffer.GetString();
     requestStringList.push_back(requestString);
-    for (const auto & requestString : requestStringList) {
-      CCAPI_LOGGER_INFO("requestString = "+requestString);
-      ErrorCode ec;
-      this->send(hdl, requestString, wspp::frame::opcode::text, ec);
-      if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
-        // TODO(cryptochassis): implement
-      }
-    }
+    return requestStringList;
   }
-  void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataService::onOpen(hdl);
-    this->subscribeToExchange(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
+//  void onOpen(wspp::connection_hdl hdl) override {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    MarketDataService::onOpen(hdl);
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
   void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
