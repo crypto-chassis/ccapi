@@ -95,10 +95,27 @@ class Session final {
     std::function<void(Event& event)> serviceEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
     std::map<std::string, std::vector<std::string> > exchanges;
 #ifdef ENABLE_MARKET_DATA_SERVICE
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA] = { CCAPI_EXCHANGE_NAME_COINBASE,CCAPI_EXCHANGE_NAME_GEMINI,CCAPI_EXCHANGE_NAME_KRAKEN,CCAPI_EXCHANGE_NAME_BITSTAMP,CCAPI_EXCHANGE_NAME_BITFINEX };
+#ifdef ENABLE_COINBASE
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_COINBASE);
+#endif
+#ifdef ENABLE_GEMINI
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_GEMINI);
+#endif
+#ifdef ENABLE_KRAKEN
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_KRAKEN);
+#endif
+#ifdef ENABLE_BITSTAMP
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_BITSTAMP);
+#endif
+#ifdef ENABLE_BITFINEX
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_BITFINEX);
+#endif
+#ifdef ENABLE_BITMEX
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_BITMEX);
+#endif
 #endif
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
-    exchanges[CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT] = { CCAPI_EXCHANGE_NAME_BINANCE_US };
+    exchanges[CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT].push_back(CCAPI_EXCHANGE_NAME_BINANCE_US);
 #endif
     CCAPI_LOGGER_TRACE("exchanges = "+toString(exchanges));
     for (const auto& kv : exchanges) {
@@ -133,6 +150,11 @@ class Session final {
 #ifdef ENABLE_BITFINEX
           if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
             servicePtr = std::make_shared<MarketDataServiceBitfinex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+          }
+#endif
+#ifdef ENABLE_BITMEX
+          if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
+            servicePtr = std::make_shared<MarketDataServiceBitmex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
           }
 #endif
         }

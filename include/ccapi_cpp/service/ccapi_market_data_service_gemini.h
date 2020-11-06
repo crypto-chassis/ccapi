@@ -30,6 +30,13 @@ class MarketDataServiceGemini final : public MarketDataService {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  void onClose(wspp::connection_hdl hdl) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->sequenceByConnectionIdMap.erase(wsConnection.id);
+    MarketDataService::onClose(hdl);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
 //  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
 //    CCAPI_LOGGER_FUNCTION_ENTER;
 //    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
@@ -183,13 +190,6 @@ class MarketDataServiceGemini final : public MarketDataService {
       CCAPI_LOGGER_ERROR(ec.message());
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
-  }
-  void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->sequenceByConnectionIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::map<std::string, int> sequenceByConnectionIdMap;
 };
