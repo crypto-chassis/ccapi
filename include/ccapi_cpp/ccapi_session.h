@@ -93,87 +93,95 @@ class Session final {
     });
     this->t = std::move(t);
     std::function<void(Event& event)> serviceEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
-    std::map<std::string, std::vector<std::string> > exchanges;
+//    std::map<std::string, std::vector<std::string> > exchanges;
 #ifdef ENABLE_MARKET_DATA_SERVICE
 #ifdef ENABLE_COINBASE
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_COINBASE);
+//    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_COINBASE);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXCHANGE_NAME_MARKET_DATA][CCAPI_EXCHANGE_NAME_COINBASE] = std::make_shared<MarketDataServiceCoinbase>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_GEMINI
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_GEMINI);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXCHANGE_NAME_MARKET_DATA][CCAPI_EXCHANGE_NAME_GEMINI] = std::make_shared<MarketDataServiceGemini>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_KRAKEN
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_KRAKEN);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXCHANGE_NAME_MARKET_DATA][CCAPI_EXCHANGE_NAME_KRAKEN] = std::make_shared<MarketDataServiceKraken>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_BITSTAMP
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_BITSTAMP);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXCHANGE_NAME_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITSTAMP] = std::make_shared<MarketDataServiceBitstamp>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_BITFINEX
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_BITFINEX);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXCHANGE_NAME_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITFINEX] = std::make_shared<MarketDataServiceBitfinex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_BITMEX
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA].push_back(CCAPI_EXCHANGE_NAME_BITMEX);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXCHANGE_NAME_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMEX] = std::make_shared<MarketDataServiceBitmex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
-    exchanges[CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT].push_back(CCAPI_EXCHANGE_NAME_BINANCE_US);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXCHANGE_NAME_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<MarketDataServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-    CCAPI_LOGGER_TRACE("exchanges = "+toString(exchanges));
-    for (const auto& kv : exchanges) {
-      auto serviceName = kv.first;
-      auto exchangeList = kv.second;
-      for (const auto& exchange : exchangeList) {
-        std::shared_ptr<Service> servicePtr(nullptr);
-        CCAPI_LOGGER_TRACE("serviceName = "+serviceName);
-        CCAPI_LOGGER_TRACE("exchange = "+exchange);
-#ifdef ENABLE_MARKET_DATA_SERVICE
-        if (serviceName == CCAPI_EXCHANGE_NAME_MARKET_DATA) {
-#ifdef ENABLE_COINBASE
-          if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
-            servicePtr = std::make_shared<MarketDataServiceCoinbase>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-          }
-#endif
-#ifdef ENABLE_GEMINI
-          if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
-            servicePtr = std::make_shared<MarketDataServiceGemini>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-          }
-#endif
-#ifdef ENABLE_KRAKEN
-          if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
-            servicePtr = std::make_shared<MarketDataServiceKraken>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-          }
-#endif
-#ifdef ENABLE_BITSTAMP
-          if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
-            servicePtr = std::make_shared<MarketDataServiceBitstamp>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-          }
-#endif
-#ifdef ENABLE_BITFINEX
-          if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
-            servicePtr = std::make_shared<MarketDataServiceBitfinex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-          }
-#endif
-#ifdef ENABLE_BITMEX
-          if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
-            servicePtr = std::make_shared<MarketDataServiceBitmex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-          }
-#endif
-        }
-#endif
-#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
-        if (serviceName == CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT) {
-#ifdef ENABLE_BINANCE_US
-          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
-            servicePtr = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-          }
-#endif
-        }
-#endif
-        if (servicePtr) {
-          CCAPI_LOGGER_TRACE("add service "+serviceName+" and exchange "+exchange);
-          this->serviceByServiceNameExchangeMap[serviceName][exchange] = servicePtr;
-        }
+    for (const auto& x : this->serviceByServiceNameExchangeMap) {
+      auto serviceName = x.first;
+      for (const auto& y : x.second ) {
+        auto exchange = y.first;
+        CCAPI_LOGGER_INFO("enabled service: " + serviceName + ", exchange: " + exchange);
       }
     }
+//    CCAPI_LOGGER_TRACE("exchanges = "+toString(exchanges));
+//    for (const auto& kv : exchanges) {
+//      auto serviceName = kv.first;
+//      auto exchangeList = kv.second;
+//      for (const auto& exchange : exchangeList) {
+//        std::shared_ptr<Service> servicePtr(nullptr);
+//        CCAPI_LOGGER_TRACE("serviceName = "+serviceName);
+//        CCAPI_LOGGER_TRACE("exchange = "+exchange);
+//#ifdef ENABLE_MARKET_DATA_SERVICE
+//        if (serviceName == CCAPI_EXCHANGE_NAME_MARKET_DATA) {
+//#ifdef ENABLE_COINBASE
+//          if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
+//            servicePtr = std::make_shared<MarketDataServiceCoinbase>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+//          }
+//#endif
+//#ifdef ENABLE_GEMINI
+//          if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
+//            servicePtr = std::make_shared<MarketDataServiceGemini>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+//          }
+//#endif
+//#ifdef ENABLE_KRAKEN
+//          if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
+//            servicePtr = std::make_shared<MarketDataServiceKraken>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+//          }
+//#endif
+//#ifdef ENABLE_BITSTAMP
+//          if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
+//            servicePtr = std::make_shared<MarketDataServiceBitstamp>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+//          }
+//#endif
+//#ifdef ENABLE_BITFINEX
+//          if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
+//            servicePtr = std::make_shared<MarketDataServiceBitfinex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+//          }
+//#endif
+//#ifdef ENABLE_BITMEX
+//          if (exchange == CCAPI_EXCHANGE_NAME_BITMEX) {
+//            servicePtr = std::make_shared<MarketDataServiceBitmex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+//          }
+//#endif
+//        }
+//#endif
+//#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
+//        if (serviceName == CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT) {
+//#ifdef ENABLE_BINANCE_US
+//          if (exchange == CCAPI_EXCHANGE_NAME_BINANCE_US) {
+//            servicePtr = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+//          }
+//#endif
+//        }
+//#endif
+//        if (servicePtr) {
+//          CCAPI_LOGGER_TRACE("add service "+serviceName+" and exchange "+exchange);
+//          this->serviceByServiceNameExchangeMap[serviceName][exchange] = servicePtr;
+//        }
+//      }
+//    }
   }
   void stop() {
     if (this->eventDispatcher && this->eventDispatcher == &this->defaultEventDispatcher) {

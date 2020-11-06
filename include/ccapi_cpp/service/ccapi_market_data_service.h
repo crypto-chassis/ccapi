@@ -84,9 +84,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
 //    }
 //    CCAPI_LOGGER_FUNCTION_EXIT;
 //  }
-  const std::string& getBaseUrl() const {
-    return baseUrl;
-  }
+
 //  std::map<std::string, WsConnection> buildWsConnectionMap(
 //      std::string url, const std::vector<Subscription>& subscriptionList) {
 //    if (this->sessionOptions.enableOneConnectionPerSubscription) {
@@ -1215,7 +1213,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
 //    return wsConnectionPtr;
 //  }
   std::shared_ptr<ServiceContext> serviceContextPtr;
-  std::string baseUrl;
   std::string name;
   std::map<std::string, WsConnection> wsConnectionMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string > > > fieldByConnectionIdChannelIdProductIdMap;
