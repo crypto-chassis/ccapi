@@ -46,7 +46,6 @@
 #include <utility>
 #include <vector>
 #include <map>
-#include <unordered_set>
 #include "ccapi_cpp/ccapi_queue.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_event_dispatcher.h"
@@ -96,7 +95,7 @@ class Session final {
     std::function<void(Event& event)> serviceEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
     std::map<std::string, std::vector<std::string> > exchanges;
 #ifdef ENABLE_MARKET_DATA_SERVICE
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA] = { CCAPI_EXCHANGE_NAME_COINBASE };
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA] = { CCAPI_EXCHANGE_NAME_COINBASE,CCAPI_EXCHANGE_NAME_GEMINI };
 #endif
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
     exchanges[CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT] = { CCAPI_EXCHANGE_NAME_BINANCE_US };
@@ -114,6 +113,11 @@ class Session final {
 #ifdef ENABLE_COINBASE
           if (exchange == CCAPI_EXCHANGE_NAME_COINBASE) {
             servicePtr = std::make_shared<MarketDataServiceCoinbase>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+          }
+#endif
+#ifdef ENABLE_GEMINI
+          if (exchange == CCAPI_EXCHANGE_NAME_GEMINI) {
+            servicePtr = std::make_shared<MarketDataServiceGemini>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
           }
 #endif
         }
@@ -152,90 +156,111 @@ class Session final {
 //      this->serviceName = this->sessionOptions.defaultSubscriptionService;
 //    }
 //    if (this->serviceName != this->sessionOptions.defaultSubscriptionService) {
-//      CCAPI_LOGGER_ERROR("unsupported service: " + this->serviceName);
+//      CCAPI_LOGGER_ERROR("please enable service: " + this->serviceName);
 //    }
 //    CCAPI_LOGGER_FUNCTION_EXIT;
 //    return true;
 //  }
-#ifdef ENABLE_MARKET_DATA_SERVICE
   void subscribe(const std::vector<Subscription>& subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    std::set<std::string> correlationIdSet;
-    std::set<std::string> duplicateCorrelationIdSet;
-//    std::unordered_set<std::string> unsupportedExchangeInstrumentSet;
-    std::unordered_set<std::string> unsupportedExchangeFieldSet;
-    std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
-    std::unordered_set<std::string> unsupportedExchangeMarketDepthSet;
-    auto exchangeInstrumentMap = this->sessionConfigs.getExchangeInstrumentMap();
-    CCAPI_LOGGER_DEBUG("exchangeInstrumentMap = "+toString(exchangeInstrumentMap));
-    auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
-    CCAPI_LOGGER_DEBUG("exchangeFieldMap = "+toString(exchangeFieldMap));
+    std::map<std::string, std::vector<Subscription> > subscriptionListByServiceNameMap;
     for (const auto & subscription : subscriptionList) {
-      auto correlationId = subscription.getCorrelationId();
-      if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
-        duplicateCorrelationIdSet.insert(correlationId);
-      } else {
-        correlationIdSet.insert(correlationId);
+      auto serviceName = subscription.getServiceName();
+      subscriptionListByServiceNameMap[serviceName].push_back(subscription);
+    }
+    for (const auto & x : subscriptionListByServiceNameMap) {
+      auto serviceName = x.first;
+      auto subscriptionList = x.second;
+      if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
+        CCAPI_LOGGER_ERROR("please enable service: "+serviceName+", and the exchanges that you want");
+        return;
       }
-      auto exchange = subscription.getExchange();
-      CCAPI_LOGGER_DEBUG("exchange = "+exchange);
-//      auto instrument = subscription.getInstrument();
-//      CCAPI_LOGGER_DEBUG("instrument = "+instrument);
-      auto field = subscription.getField();
-      auto optionMap = subscription.getOptionMap();
-//      if (exchangeInstrumentMap.find(exchange) == exchangeInstrumentMap.end()
-//          || std::find(exchangeInstrumentMap.find(exchange)->second.begin(), exchangeInstrumentMap.find(exchange)->second.end(),
-//                       instrument) == exchangeInstrumentMap.find(exchange)->second.end()) {
-//        unsupportedExchangeInstrumentSet.insert(exchange + "|" + instrument);
-//      }
-//      for (auto & field : fieldSet) {
-        CCAPI_LOGGER_DEBUG("field = "+field);
-        if (exchangeFieldMap.find(exchange) == exchangeFieldMap.end()
-            || std::find(exchangeFieldMap.find(exchange)->second.begin(), exchangeFieldMap.find(exchange)->second.end(),
-                         field) == exchangeFieldMap.find(exchange)->second.end()) {
-          unsupportedExchangeFieldSet.insert(exchange + "|" + field);
-        }
-        if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
-          auto depth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
-          if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI || exchange == CCAPI_EXCHANGE_NAME_OKEX)
-              && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
-//              || (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP
-//                  && depth > this->sessionConfigs.getWebsocketMaxAvailableMarketDepth().at(exchange))
-//              || (exchange == CCAPI_EXCHANGE_NAME_BITFINEX
-//                  && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
-                  ) {
-            unsupportedExchangeMarketDepthSet.insert(exchange + "|" + toString(depth));
+      if (serviceName == CCAPI_EXCHANGE_NAME_MARKET_DATA) {
+        std::set<std::string> correlationIdSet;
+        std::set<std::string> duplicateCorrelationIdSet;
+    //    std::unordered_set<std::string> unsupportedExchangeInstrumentSet;
+        std::unordered_set<std::string> unsupportedExchangeFieldSet;
+        std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
+        std::unordered_set<std::string> unsupportedExchangeMarketDepthSet;
+        auto exchangeInstrumentMap = this->sessionConfigs.getExchangeInstrumentMap();
+        CCAPI_LOGGER_DEBUG("exchangeInstrumentMap = "+toString(exchangeInstrumentMap));
+        auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
+        CCAPI_LOGGER_DEBUG("exchangeFieldMap = "+toString(exchangeFieldMap));
+        for (const auto & subscription : subscriptionList) {
+          auto correlationId = subscription.getCorrelationId();
+          if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
+            duplicateCorrelationIdSet.insert(correlationId);
+          } else {
+            correlationIdSet.insert(correlationId);
           }
+          auto exchange = subscription.getExchange();
+          CCAPI_LOGGER_DEBUG("exchange = "+exchange);
+    //      auto instrument = subscription.getInstrument();
+    //      CCAPI_LOGGER_DEBUG("instrument = "+instrument);
+          auto field = subscription.getField();
+          auto optionMap = subscription.getOptionMap();
+    //      if (exchangeInstrumentMap.find(exchange) == exchangeInstrumentMap.end()
+    //          || std::find(exchangeInstrumentMap.find(exchange)->second.begin(), exchangeInstrumentMap.find(exchange)->second.end(),
+    //                       instrument) == exchangeInstrumentMap.find(exchange)->second.end()) {
+    //        unsupportedExchangeInstrumentSet.insert(exchange + "|" + instrument);
+    //      }
+    //      for (auto & field : fieldSet) {
+            CCAPI_LOGGER_DEBUG("field = "+field);
+            if (exchangeFieldMap.find(exchange) == exchangeFieldMap.end()
+                || std::find(exchangeFieldMap.find(exchange)->second.begin(), exchangeFieldMap.find(exchange)->second.end(),
+                             field) == exchangeFieldMap.find(exchange)->second.end()) {
+              unsupportedExchangeFieldSet.insert(exchange + "|" + field);
+            }
+            if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
+              auto depth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+              if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI || exchange == CCAPI_EXCHANGE_NAME_OKEX)
+                  && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
+    //              || (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP
+    //                  && depth > this->sessionConfigs.getWebsocketMaxAvailableMarketDepth().at(exchange))
+    //              || (exchange == CCAPI_EXCHANGE_NAME_BITFINEX
+    //                  && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
+                      ) {
+                unsupportedExchangeMarketDepthSet.insert(exchange + "|" + toString(depth));
+              }
+            }
+    //      }
+          subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
-//      }
-      subscriptionListByExchangeMap[exchange].push_back(subscription);
-    }
-    if (!duplicateCorrelationIdSet.empty()) {
-      CCAPI_LOGGER_ERROR("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
-      return;
-    }
-//    if (!unsupportedExchangeInstrumentSet.empty()) {
-//      CCAPI_LOGGER_ERROR("unsupported exchange instruments: " + toString(unsupportedExchangeInstrumentSet));
-//    }
-    if (!unsupportedExchangeFieldSet.empty()) {
-      CCAPI_LOGGER_ERROR("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
-      return;
-    }
-    if (!unsupportedExchangeMarketDepthSet.empty()) {
-      CCAPI_LOGGER_ERROR(
-          "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet)
-              + ", exceeded max market depth available");
-      return;
-    }
-    CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = "+toString(subscriptionListByExchangeMap));
-    for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
-      auto exchange = subscriptionListByExchange.first;
-      auto subscriptionList = subscriptionListByExchange.second;
-      this->serviceByServiceNameExchangeMap.at(CCAPI_EXCHANGE_NAME_MARKET_DATA).at(exchange)->subscribe(subscriptionList);
+        if (!duplicateCorrelationIdSet.empty()) {
+          CCAPI_LOGGER_ERROR("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
+          return;
+        }
+    //    if (!unsupportedExchangeInstrumentSet.empty()) {
+    //      CCAPI_LOGGER_ERROR("unsupported exchange instruments: " + toString(unsupportedExchangeInstrumentSet));
+    //    }
+        if (!unsupportedExchangeFieldSet.empty()) {
+          CCAPI_LOGGER_ERROR("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
+          return;
+        }
+        if (!unsupportedExchangeMarketDepthSet.empty()) {
+          CCAPI_LOGGER_ERROR(
+              "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet)
+                  + ", exceeded max market depth available");
+          return;
+        }
+        CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = "+toString(subscriptionListByExchangeMap));
+        for (auto & subscriptionListByExchange : subscriptionListByExchangeMap) {
+          auto exchange = subscriptionListByExchange.first;
+          auto subscriptionList = subscriptionListByExchange.second;
+          std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+          if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
+            CCAPI_LOGGER_ERROR("please enable exchange: "+exchange);
+            return;
+          }
+          serviceByExchangeMap.at(exchange)->subscribe(subscriptionList);
+        }
+      }
+      if (serviceName == CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT) {
+        // TODO(cryptochassis): implement
+      }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-#endif
   void onEvent(Event& event, Queue<Event> *eventQueue) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = "+toString(event));
@@ -277,13 +302,13 @@ class Session final {
     for (const auto& request : requestList) {
       auto serviceName = request.getServiceName();
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
-        CCAPI_LOGGER_ERROR("unsupported service: "+serviceName);
+        CCAPI_LOGGER_ERROR("please enable service: "+serviceName+", and the exchanges that you want");
         return;
       }
       std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
       auto exchange = request.getExchange();
       if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-        CCAPI_LOGGER_ERROR("unsupported exchange: "+exchange);
+        CCAPI_LOGGER_ERROR("please enable exchange: "+exchange);
         return;
       }
       std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);

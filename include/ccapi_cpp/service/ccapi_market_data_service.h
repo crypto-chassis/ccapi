@@ -50,7 +50,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   }
   virtual ~MarketDataService() {
   }
-  virtual std::map<std::string, std::vector<Subscription> > groupSubscriptionListByInstrumentGroup(const std::vector<Subscription>& subscriptionList) {
+  std::map<std::string, std::vector<Subscription> > groupSubscriptionListByInstrumentGroup(const std::vector<Subscription>& subscriptionList) {
     std::map<std::string, std::vector<Subscription> > groups;
     for (const auto & subscription : subscriptionList) {
       std::string instrumentGroup = this->getInstrumentGroup(subscription);
@@ -122,7 +122,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
 //  SslContextPtr onTlsInit(wspp::connection_hdl hdl) {
 //    return MarketDataService::onTlsInitStatic(hdl);
 //  }
-  void onOpen(wspp::connection_hdl hdl) {
+  virtual void onOpen(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto now = std::chrono::system_clock::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
@@ -152,9 +152,19 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     }
     this->subscribeToExchange(wsConnection);
   }
+  std::string convertInstrumentToWebsocketProductId(std::string instrument) {
+    std::string productId = instrument;
+    if (!instrument.empty()) {
+      if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->name) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+          this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).end()) {
+        productId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(instrument);
+      }
+    }
+    return productId;
+  }
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
-    auto productId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(instrument);
+    auto productId = this->convertInstrumentToWebsocketProductId(instrument);
     auto field = subscription.getField();
     auto optionMap = subscription.getOptionMap();
     std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field);
@@ -1189,7 +1199,10 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       }
     }
   }
-  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
+  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) {
+    std::vector<std::string> dummy;
+    return dummy;
+  }
 
 //  std::shared_ptr<WsConnection> findWsConnectionByInstrumentGroup(std::string instrumentGroup) {
 //    std::shared_ptr<WsConnection> wsConnectionPtr(nullptr);

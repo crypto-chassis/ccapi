@@ -38,8 +38,13 @@
 #else
 #define CCAPI_LOGGER_TRACE(message)
 #endif
-#define CCAPI_LOGGER_FUNCTION_ENTER CCAPI_LOGGER_TRACE(std::string("enter ") + std::string(__func__))
-#define CCAPI_LOGGER_FUNCTION_EXIT CCAPI_LOGGER_TRACE(std::string("exit ") + std::string(__func__))
+#ifdef __GNUC__
+#define __ccapi_cpp_func__ __PRETTY_FUNCTION__
+#else
+#define __ccapi_cpp_func__ __func__
+#endif
+#define CCAPI_LOGGER_FUNCTION_ENTER CCAPI_LOGGER_TRACE(std::string("enter ") + std::string(__ccapi_cpp_func__))
+#define CCAPI_LOGGER_FUNCTION_EXIT CCAPI_LOGGER_TRACE(std::string("exit ") + std::string(__ccapi_cpp_func__))
 #include <thread>
 #include <string>
 #include <cstring>

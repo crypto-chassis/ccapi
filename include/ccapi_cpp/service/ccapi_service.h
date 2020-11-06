@@ -14,14 +14,14 @@ class Service {
   }
   virtual ~Service() {
   }
-  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now) {
-    return std::shared_ptr<std::future<void> >(nullptr);
-  }
   void setEventHandler(const std::function<void(Event& event)>& eventHandler) {
     this->eventHandler = eventHandler;
   }
   virtual void stop() = 0;
   virtual void subscribe(const std::vector<Subscription>& subscriptionList) = 0;
+  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now) {
+    return std::shared_ptr<std::future<void> >(nullptr);
+  }
 
  protected:
   std::string name;

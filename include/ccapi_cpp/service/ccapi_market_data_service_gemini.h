@@ -5,7 +5,7 @@
 namespace ccapi {
 class MarketDataServiceGemini final : public MarketDataService {
  public:
-  MarketDataServiceGemini(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+  MarketDataServiceGemini(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
@@ -14,7 +14,6 @@ class MarketDataServiceGemini final : public MarketDataService {
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
-//    this->onOpen_2(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdProductId.first;
@@ -31,12 +30,11 @@ class MarketDataServiceGemini final : public MarketDataService {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-//    this->onTextMessage_2(hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
+//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
@@ -104,44 +102,42 @@ class MarketDataServiceGemini final : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return wsMessageList;
   }
-  std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) override {
-    std::map<std::string, std::set<std::string> > parameterBySymbolMap;
-    for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(subscription.getInstrument());
-      auto fieldSet = subscription.getFieldSet();
-      for (auto const& field : fieldSet) {
-        auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(CCAPI_EXCHANGE_NAME_GEMINI).at(field), ",");
-        std::set<std::string> parameterSet(parameterList.begin(), parameterList.end());
-        parameterBySymbolMap[symbol].insert(parameterSet.begin(), parameterSet.end());
+//  std::string getInstrumentGroup(const Subscription& subscription) override {
+//    return this->baseUrl + "|" + subscription.getField() + "|" + toString(subscription.getOptionMap());
+//  }
+  std::string getInstrumentGroup(const Subscription& subscription) override {
+//    std::map<std::string, std::set<std::string> > parameterBySymbolMap;
+
+    auto symbol = this->convertInstrumentToWebsocketProductId(subscription.getInstrument());
+    auto field = subscription.getField();
+    auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field), ",");
+    std::set<std::string> parameterSet(parameterList.begin(), parameterList.end());
+//    parameterBySymbolMap[symbol].insert(parameterSet.begin(), parameterSet.end());
+
+
+
+    std::string url = this->baseUrl + symbol;
+    url += "?";
+
+    if ((parameterSet.find(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_BIDS) != parameterSet.end()
+            || parameterSet.find(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_OFFERS) != parameterSet.end())
+    ) {
+      auto optionMap = subscription.getOptionMap();
+      if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 1) {
+        parameterSet.insert(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_TOP_OF_BOOK);
       }
     }
-    std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
-    for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(subscription.getInstrument());
-      std::string url = this->baseUrl + symbol;
-      url += "?";
-      std::set<std::string> parameterSet = parameterBySymbolMap[symbol];
-      if ((parameterSet.find(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_BIDS) != parameterSet.end()
-              || parameterSet.find(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_OFFERS) != parameterSet.end())
-      ) {
-        auto optionMap = subscription.getOptionMap();
-        if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 1) {
-          parameterSet.insert(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_TOP_OF_BOOK);
-        }
+    parameterSet.insert("heartbeat");
+    bool isFirstParameter = true;
+    for (auto const& parameter : parameterSet) {
+      if (isFirstParameter) {
+        isFirstParameter = false;
+      } else {
+        url += "&";
       }
-      parameterSet.insert("heartbeat");
-      bool isFirstParameter = true;
-      for (auto const& parameter : parameterSet) {
-        if (isFirstParameter) {
-          isFirstParameter = false;
-        } else {
-          url += "&";
-        }
-        url += parameter+"=true";
-      }
-      subscriptionListByUrlMap[url].add(subscription);
+      url += parameter+"=true";
     }
-    return subscriptionListByUrlMap;
+    return url;
   }
 //  std::map<std::string, WsConnection> buildWsConnectionMap(std::string url, const SubscriptionList& subscriptionList) override {
 //    std::map<std::string, WsConnection> wsConnectionMap;
