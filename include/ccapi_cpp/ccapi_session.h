@@ -95,7 +95,7 @@ class Session final {
     std::function<void(Event& event)> serviceEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
     std::map<std::string, std::vector<std::string> > exchanges;
 #ifdef ENABLE_MARKET_DATA_SERVICE
-    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA] = { CCAPI_EXCHANGE_NAME_COINBASE,CCAPI_EXCHANGE_NAME_GEMINI,CCAPI_EXCHANGE_NAME_KRAKEN };
+    exchanges[CCAPI_EXCHANGE_NAME_MARKET_DATA] = { CCAPI_EXCHANGE_NAME_COINBASE,CCAPI_EXCHANGE_NAME_GEMINI,CCAPI_EXCHANGE_NAME_KRAKEN,CCAPI_EXCHANGE_NAME_BITSTAMP,CCAPI_EXCHANGE_NAME_BITFINEX };
 #endif
 #ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
     exchanges[CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT] = { CCAPI_EXCHANGE_NAME_BINANCE_US };
@@ -123,6 +123,16 @@ class Session final {
 #ifdef ENABLE_KRAKEN
           if (exchange == CCAPI_EXCHANGE_NAME_KRAKEN) {
             servicePtr = std::make_shared<MarketDataServiceKraken>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+          }
+#endif
+#ifdef ENABLE_BITSTAMP
+          if (exchange == CCAPI_EXCHANGE_NAME_BITSTAMP) {
+            servicePtr = std::make_shared<MarketDataServiceBitstamp>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+          }
+#endif
+#ifdef ENABLE_BITFINEX
+          if (exchange == CCAPI_EXCHANGE_NAME_BITFINEX) {
+            servicePtr = std::make_shared<MarketDataServiceBitfinex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
           }
 #endif
         }

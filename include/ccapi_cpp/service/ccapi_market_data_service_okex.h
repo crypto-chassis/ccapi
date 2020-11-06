@@ -5,7 +5,7 @@
 namespace ccapi {
 class MarketDataServiceOkex final : public MarketDataService {
  public:
-  MarketDataServiceOkex(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+  MarketDataServiceOkex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_OKEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
     ErrorCode ec = this->inflater.init(false);
