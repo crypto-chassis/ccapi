@@ -22,15 +22,15 @@ class MarketDataServiceOkex final : public MarketDataService {
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("op", rj::Value("subscribe").Move(), allocator);
     rj::Value args(rj::kArrayType);
-    for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
-      auto channelId = subscriptionListByChannelIdProductId.first;
-      for (const auto & subscriptionListByProductId : subscriptionListByChannelIdProductId.second) {
-        std::string productId = subscriptionListByProductId.first;
+    for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+      auto channelId = subscriptionListByChannelIdSymbolId.first;
+      for (const auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
+        std::string symbolId = subscriptionListBySymbolId.first;
         std::string exchangeSubscriptionId = UtilString::split(channelId, "?").at(0)+
-        ":"+productId;
+        ":"+symbolId;
         args.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
       }
     }
     document.AddMember("args", args, allocator);
@@ -59,9 +59,9 @@ class MarketDataServiceOkex final : public MarketDataService {
         CCAPI_LOGGER_TRACE("action = " + toString(action));
         for (const auto& datum : document["data"].GetArray()) {
           std::string exchangeSubscriptionId = table + ":" + datum["instrument_id"].GetString();
-//          std::string channelId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
-//          std::string productId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID];
-//          auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+//          std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
+//          std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID];
+//          auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
           MarketDataMessage wsMessage;
           wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
           wsMessage.recapType = action == "update" ? MarketDataMessage::RecapType::NONE : MarketDataMessage::RecapType::SOLICITED;

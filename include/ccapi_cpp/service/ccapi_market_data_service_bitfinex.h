@@ -62,10 +62,10 @@ class MarketDataServiceBitfinex final : public MarketDataService {
     if (document.IsArray() && document.Size() >= 1) {
       auto exchangeSubscriptionId = std::string(document[0].GetString());
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
-      auto channelId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
+      auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
       CCAPI_LOGGER_TRACE("channelId = "+channelId);
-      auto productId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_PRODUCT_ID);
-      CCAPI_LOGGER_TRACE("productId = "+productId);
+      auto symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_SYMBOL_ID);
+      CCAPI_LOGGER_TRACE("symbolId = "+symbolId);
       if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_BITFINEX_CHANNEL_BOOK, 0) == 0) {
         rj::Value data(rj::kArrayType);
         if (document[1].IsArray()) {
@@ -146,7 +146,7 @@ class MarketDataServiceBitfinex final : public MarketDataService {
               }
             }
             if (this->sessionOptions.enableCheckOrderBookChecksum) {
-              this->orderBookChecksumByConnectionIdProductIdMap[wsConnection.id][productId] =
+              this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
               intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoi(document[2].GetString()))));
             }
             MarketDataMessage wsMessage;
@@ -174,26 +174,26 @@ class MarketDataServiceBitfinex final : public MarketDataService {
     } else if (document.IsObject() && document.HasMember("event")) {
       if (std::string(document["event"].GetString()) == "conf") {
         std::vector<std::string> requestStringList;
-        for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
-          auto channelId = subscriptionListByChannelIdProductId.first;
+        for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+          auto channelId = subscriptionListByChannelIdSymbolId.first;
           if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_BITFINEX_CHANNEL_BOOK, 0) == 0) {
-            for (auto & subscriptionListByProductId : subscriptionListByChannelIdProductId.second) {
+            for (auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
               rj::Document document;
               document.SetObject();
               rj::Document::AllocatorType& allocator = document.GetAllocator();
               document.AddMember("event", rj::Value("subscribe").Move(), allocator);
               document.AddMember("channel", rj::Value(std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_BITFINEX_CHANNEL_BOOK).c_str(), allocator).Move(), allocator);
-              auto productId = subscriptionListByProductId.first;
-              document.AddMember("symbol", rj::Value(productId.c_str(), allocator).Move(), allocator);
+              auto symbolId = subscriptionListBySymbolId.first;
+              document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
               document.AddMember("prec", rj::Value("P0").Move(), allocator);
               document.AddMember("freq", rj::Value("F0").Move(), allocator);
-              document.AddMember("len", rj::Value(std::to_string(this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId)).c_str(), allocator).Move(), allocator);
+              document.AddMember("len", rj::Value(std::to_string(this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)).c_str(), allocator).Move(), allocator);
               rj::StringBuffer stringBuffer;
               rj::Writer<rj::StringBuffer> writer(stringBuffer);
               document.Accept(writer);
               std::string requestString = stringBuffer.GetString();
               requestStringList.push_back(std::move(requestString));
-              CCAPI_LOGGER_TRACE("this->subscriptionListByConnectionIdChannelProductIdMap = "+toString(this->subscriptionListByConnectionIdChannelIdProductIdMap));
+              CCAPI_LOGGER_TRACE("this->subscriptionListByConnectionIdChannelSymbolIdMap = "+toString(this->subscriptionListByConnectionIdChannelIdSymbolIdMap));
             }
           }
         }
@@ -209,13 +209,13 @@ class MarketDataServiceBitfinex final : public MarketDataService {
       } else if (std::string(document["event"].GetString()) == "subscribed") {
         auto channelId = std::string(document["channel"].GetString()) + "?" + CCAPI_EXCHANGE_NAME_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::string(document["len"].GetString());
         CCAPI_LOGGER_TRACE("channelId = "+channelId);
-        auto productId = std::string(document["symbol"].GetString());
-        CCAPI_LOGGER_TRACE("productId = "+productId);
+        auto symbolId = std::string(document["symbol"].GetString());
+        CCAPI_LOGGER_TRACE("symbolId = "+symbolId);
         auto exchangeSubscriptionId = std::string(document["chanId"].GetString());
         CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
-        CCAPI_LOGGER_TRACE("this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap));
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;

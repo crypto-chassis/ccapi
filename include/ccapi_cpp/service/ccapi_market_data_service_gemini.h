@@ -15,17 +15,17 @@ class MarketDataServiceGemini final : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
-      auto channelId = subscriptionListByChannelIdProductId.first;
-      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdProductId.second) {
-        auto productId = subscriptionListByInstrument.first;
-        int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+    for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+      auto channelId = subscriptionListByChannelIdSymbolId.first;
+      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
+        auto symbolId = subscriptionListByInstrument.first;
+        int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
         if (marketDepthSubscribedToExchange == 1) {
-          this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
+          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
         auto exchangeSubscriptionId = wsConnection.url;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -115,7 +115,7 @@ class MarketDataServiceGemini final : public MarketDataService {
   std::string getInstrumentGroup(const Subscription& subscription) override {
 //    std::map<std::string, std::set<std::string> > parameterBySymbolMap;
 
-    auto symbol = this->convertInstrumentToWebsocketProductId(subscription.getInstrument());
+    auto symbol = this->convertInstrumentToWebsocketSymbolId(subscription.getInstrument());
     auto field = subscription.getField();
     auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field), ",");
     std::set<std::string> parameterSet(parameterList.begin(), parameterList.end());

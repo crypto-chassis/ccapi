@@ -19,21 +19,21 @@ class MarketDataServiceBitmex final : public MarketDataService {
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("op", rj::Value("subscribe").Move(), allocator);
     rj::Value args(rj::kArrayType);
-    for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
-      auto channelId = subscriptionListByChannelIdProductId.first;
-      for (const auto & subscriptionListByProductId : subscriptionListByChannelIdProductId.second) {
-        std::string productId = subscriptionListByProductId.first;
+    for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+      auto channelId = subscriptionListByChannelIdSymbolId.first;
+      for (const auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
+        std::string symbolId = subscriptionListBySymbolId.first;
         if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE || channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10) {
-          this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
+          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
         std::string exchangeSubscriptionId = channelId+
-        ":"+productId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
+        ":"+symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
         args.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
       }
     }
-    CCAPI_LOGGER_TRACE("this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap));
+    CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
     document.AddMember("args", args, allocator);
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -45,7 +45,7 @@ class MarketDataServiceBitmex final : public MarketDataService {
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->priceByConnectionIdChannelIdProductIdPriceIdMap.erase(wsConnection.id);
+    this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -76,12 +76,12 @@ class MarketDataServiceBitmex final : public MarketDataService {
           recapType = MarketDataMessage::RecapType::NONE;
         }
         int i = 0;
-        std::string productId;
+        std::string symbolId;
         std::string exchangeSubscriptionId;
         for (const auto& x : document["data"].GetArray()) {
           if (i == 0) {
-            productId = x["symbol"].GetString();
-            exchangeSubscriptionId = channelId + ":" + productId;
+            symbolId = x["symbol"].GetString();
+            exchangeSubscriptionId = channelId + ":" + symbolId;
           }
           MarketDataMessage wsMessage;
           wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
@@ -125,12 +125,12 @@ class MarketDataServiceBitmex final : public MarketDataService {
           wsMessage.recapType = MarketDataMessage::RecapType::NONE;
         }
         int i = 0;
-        std::string productId;
+        std::string symbolId;
         std::string exchangeSubscriptionId;
         for (const auto& x : document["data"].GetArray()) {
           if (i == 0) {
-            productId = x["symbol"].GetString();
-            exchangeSubscriptionId = channelId + ":" + productId;
+            symbolId = x["symbol"].GetString();
+            exchangeSubscriptionId = channelId + ":" + symbolId;
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           }
           MarketDataMessage::TypeForDataPoint dataPoint;
@@ -140,13 +140,13 @@ class MarketDataServiceBitmex final : public MarketDataService {
           if (action == "insert" || action == "partial") {
             price = UtilString:: normalizeDecimalString(x["price"].GetString());
             size = UtilString:: normalizeDecimalString(x["size"].GetString());
-            this->priceByConnectionIdChannelIdProductIdPriceIdMap[wsConnection.id][channelId][productId][priceId] = price;
+            this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId][priceId] = price;
           } else {
-            price = this->priceByConnectionIdChannelIdProductIdPriceIdMap[wsConnection.id][channelId][productId][priceId];
+            price = this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId][priceId];
             if (price.empty()) {
               this->onIncorrectStatesFound(wsConnection,
                   hdl, textMessage, timeReceived, exchangeSubscriptionId, "bitmex update for missing item came through on wsConnection = "+
-                  toString(wsConnection)+", channelId = "+channelId+", productId = "+productId+", priceId = "+ priceId + ". Data: " + toString(this->priceByConnectionIdChannelIdProductIdPriceIdMap[wsConnection.id][channelId][productId]));
+                  toString(wsConnection)+", channelId = "+channelId+", symbolId = "+symbolId+", priceId = "+ priceId + ". Data: " + toString(this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId]));
             }
             if (action == "update") {
               size = UtilString:: normalizeDecimalString(x["size"].GetString());
@@ -170,7 +170,7 @@ class MarketDataServiceBitmex final : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return wsMessageList;
   }
-  std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > priceByConnectionIdChannelIdProductIdPriceIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > priceByConnectionIdChannelIdSymbolIdPriceIdMap;
 };
 } /* namespace ccapi */
 #endif

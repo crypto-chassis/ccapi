@@ -14,30 +14,30 @@ class MarketDataServiceKraken final : public MarketDataService {
  private:
     std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
       std::vector<std::string> requestStringList;
-      for (auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
-        auto channelId = subscriptionListByChannelIdProductId.first;
+      for (auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+        auto channelId = subscriptionListByChannelIdSymbolId.first;
         if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
-          std::map<int, std::vector<std::string> > productIdListByMarketDepthSubscribedToExchangeMap;
-          for (auto & subscriptionListByProductId : subscriptionListByChannelIdProductId.second) {
-            auto productId = subscriptionListByProductId.first;
-            int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
+          std::map<int, std::vector<std::string> > symbolIdListByMarketDepthSubscribedToExchangeMap;
+          for (auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
+            auto symbolId = subscriptionListBySymbolId.first;
+            int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
             std::string exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK) + "-" +
             std::to_string(marketDepthSubscribedToExchange)+
-            "|"+productId;
-            this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-            this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
-            productIdListByMarketDepthSubscribedToExchangeMap[marketDepthSubscribedToExchange].push_back(productId);
+            "|"+symbolId;
+            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
+            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+            symbolIdListByMarketDepthSubscribedToExchangeMap[marketDepthSubscribedToExchange].push_back(symbolId);
           }
-          for (const auto & x : productIdListByMarketDepthSubscribedToExchangeMap) {
+          for (const auto & x : symbolIdListByMarketDepthSubscribedToExchangeMap) {
             auto marketDepthSubscribedToExchange = x.first;
-            auto productIdList = x.second;
+            auto symbolIdList = x.second;
             rj::Document document;
             document.SetObject();
             rj::Document::AllocatorType& allocator = document.GetAllocator();
             document.AddMember("event", rj::Value("subscribe").Move(), allocator);
             rj::Value instrument(rj::kArrayType);
-            for (const auto &productId : productIdList) {
-              instrument.PushBack(rj::Value(productId.c_str(), allocator).Move(), allocator);
+            for (const auto &symbolId : symbolIdList) {
+              instrument.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
             }
             document.AddMember("pair", instrument, allocator);
             rj::Value subscription(rj::kObjectType);
@@ -90,13 +90,13 @@ class MarketDataServiceKraken final : public MarketDataService {
         auto documentSize = document.Size();
         auto channelNameWithSuffix = std::string(document[documentSize-2].GetString());
         if (channelNameWithSuffix.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
-          auto productId = std::string(document[documentSize-1].GetString());
-          auto exchangeSubscriptionId = channelNameWithSuffix + "|" + productId;
-          CCAPI_LOGGER_TRACE("this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap));
+          auto symbolId = std::string(document[documentSize-1].GetString());
+          auto exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
+          CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
           CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
           CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
-          auto channelId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
-          CCAPI_LOGGER_TRACE("productId = "+productId);
+          auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
+          CCAPI_LOGGER_TRACE("symbolId = "+symbolId);
           const rj::Value& anonymous = document[1];
           if (anonymous.IsObject() && (anonymous.HasMember("b") || anonymous.HasMember("a"))) {
             CCAPI_LOGGER_TRACE("this is update");
@@ -172,10 +172,10 @@ class MarketDataServiceKraken final : public MarketDataService {
           }
         } else if (channelNameWithSuffix == CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
           //      auto channel = Exchange::nameWebsocketKrakenChannelTrade;
-          //      auto productId = std::string(document[3].GetString());
-          //      CCAPI_LOGGER_TRACE("productId = "+productId);
-          //      auto fieldSet = this->fieldSetByChannelProductIdMap[channel][productId];
-          //      auto correlationIdList = this->correlationIdListByChannelProductIdMap[channel][productId];
+          //      auto symbolId = std::string(document[3].GetString());
+          //      CCAPI_LOGGER_TRACE("symbolId = "+symbolId);
+          //      auto fieldSet = this->fieldSetByChannelSymbolIdMap[channel][symbolId];
+          //      auto correlationIdList = this->correlationIdListByChannelSymbolIdMap[channel][symbolId];
           //        event.setType(Event::Type::SUBSCRIPTION_DATA);
           //      std::map<TimePoint, std::vector<SingleTrade> > input;
           //
