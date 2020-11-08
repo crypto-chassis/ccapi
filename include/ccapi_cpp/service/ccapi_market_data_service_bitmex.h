@@ -49,13 +49,13 @@ class MarketDataServiceBitmex final : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl);
-    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-//    this->onTextMessage_2(hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
+//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl);
+//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
+////    this->onTextMessage_2(hdl, textMessage, timeReceived);
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));

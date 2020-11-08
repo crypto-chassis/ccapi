@@ -16,20 +16,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
   }
 
  private:
-  std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) override {
-    std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
-    for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto fieldSet = subscription.getFieldSet();
-      if (fieldSet.find(CCAPI_EXCHANGE_NAME_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
-        subscriptionListByUrlMap[this->baseUrl + "/ws"].add(subscription);
-      }
-    }
-    return subscriptionListByUrlMap;
-  }
-  void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataService::onOpen(hdl);
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdProductId.first;
@@ -55,24 +42,32 @@ class MarketDataServiceHuobi final : public MarketDataService {
         CCAPI_LOGGER_TRACE("this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
-    CCAPI_LOGGER_TRACE("this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap = "+toString(this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap));
-    for (const auto & requestString : requestStringList) {
-      CCAPI_LOGGER_INFO("requestString = "+requestString);
-      ErrorCode ec;
-      this->send(hdl, requestString, wspp::frame::opcode::text, ec);
-      if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
-        // TODO(cryptochassis): implement
-      }
+    return requestStringList;
+  }
+//  std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) override {
+//    std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
+//    for (auto const& subscription : subscriptionList.getSubscriptionList()) {
+//      auto fieldSet = subscription.getFieldSet();
+//      if (fieldSet.find(CCAPI_EXCHANGE_NAME_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
+//        subscriptionListByUrlMap[this->baseUrl + "/ws"].add(subscription);
+//      }
+//    }
+//    return subscriptionListByUrlMap;
+//  }
+  std::string getInstrumentGroup(const Subscription& subscription) override {
+    auto url = this->baseUrl;
+    auto field = subscription.getField();
+    if (field == CCAPI_EXCHANGE_NAME_TRADE || field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
+      url += "/ws";
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
+    return url + "|" + field + "|" + subscription.getSerializedOptions();
   }
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl);
-    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
+//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl);
+//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;

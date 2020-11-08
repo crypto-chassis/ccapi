@@ -59,7 +59,8 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     return groups;
   }
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
-    return this->baseUrl + "|" + subscription.getField() + "|" + toString(subscription.getOptionMap());
+    return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
+//        + toString(subscription.getOptionMap());
   }
 //  void connect() {
 //    CCAPI_LOGGER_FUNCTION_ENTER;

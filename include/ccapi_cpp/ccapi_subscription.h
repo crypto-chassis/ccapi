@@ -58,6 +58,20 @@ class Subscription final {
   const std::string& getServiceName() const {
     return serviceName;
   }
+  const std::string getSerializedOptions() const {
+    std::string output;
+    int i = 0;
+    for (const auto & option : this->optionMap) {
+      output += option.first;
+      output += "=";
+      output += option.second;
+      if (i < this->optionMap.size() - 1) {
+        output += "&";
+      }
+      ++i;
+    }
+    return output;
+  }
   enum class Status {
     UNKNOWN,
     SUBSCRIBING,
