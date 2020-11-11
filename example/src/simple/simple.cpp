@@ -21,24 +21,13 @@ class MyEventHandler : public EventHandler {
 int main(int argc, char **argv) {
   using namespace ccapi;  // NOLINT(build/namespaces)
   SessionOptions sessionOptions;
-  std::string instrument = "my cool naming";
-  std::string symbol = "BTC-USD";
-  // Coinbase names a trading pair using upper case concatenated by dash
-  // Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
-  SessionConfigs sessionConfigs({{
-    CCAPI_EXCHANGE_NAME_COINBASE, {{
-        instrument, symbol
-    }}
-  }});
+  SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  SubscriptionList subscriptionList;
-  std::string topic = std::string("/") + CCAPI_EXCHANGE_NAME_COINBASE + "/" + instrument;
-  std::string fields = CCAPI_EXCHANGE_NAME_MARKET_DEPTH;
-  std::string options;
-  CorrelationId correlationId("this is my correlation id");
-  Subscription subscription(topic, fields, options, correlationId);
-  subscriptionList.add(subscription);
-  session.subscribe(subscriptionList);
+  Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+  session.subscribe(subscription);
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  session.stop();
+  std::cout << "Bye" << std::endl;
   return EXIT_SUCCESS;
 }

@@ -1,0 +1,6 @@
+project(advanced)
+add_definitions(-DENABLE_MARKET_DATA_SERVICE)
+add_definitions(-DENABLE_COINBASE)
+add_definitions(-DENABLE_BINANCE_US)
+file(GLOB SOURCES advanced.cpp)
+add_executable(advanced ${SOURCES})

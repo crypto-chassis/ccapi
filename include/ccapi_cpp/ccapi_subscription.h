@@ -8,7 +8,7 @@ namespace ccapi {
 class Subscription final {
  public:
   Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId =
-                   UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH))
+                   "")
       : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId) {
     std::vector<std::string> optionList;
     if (!options.empty()) {
@@ -25,10 +25,16 @@ class Subscription final {
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
     this->serviceName = CCAPI_EXCHANGE_NAME_MARKET_DATA;
+    if (this->correlationId.empty()) {
+      this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
+    }
   }
   Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
-      UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH)): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
+      ""): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
     this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
+    if (this->correlationId.empty()) {
+      this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
+    }
   }
   std::string toString() const {
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = "

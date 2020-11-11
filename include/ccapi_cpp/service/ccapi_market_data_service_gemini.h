@@ -164,7 +164,7 @@ class MarketDataServiceGemini final : public MarketDataService {
       return true;
     } else {
       CCAPI_LOGGER_DEBUG("sequence: previous = "+toString(this->sequenceByConnectionIdMap[wsConnection.id])+
-          ", current = "+toString(sequence)+"wsConnection = "+toString(wsConnection));
+          ", current = "+toString(sequence)+", wsConnection = "+toString(wsConnection));
       if (sequence-this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
         this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
         return true;

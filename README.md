@@ -54,6 +54,9 @@
   * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try cmake -DOPENSSL_ROOT_DIR=...(e.g. /usr/local/opt/openssl)
   * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
 
+## Constants
+include/ccapi_cpp/ccapi_macro.h
+
 ## Examples
 [Detail](example)
 ### Simple
@@ -86,26 +89,15 @@ class MyEventHandler : public EventHandler {
 int main(int argc, char **argv) {
   using namespace ccapi;  // NOLINT(build/namespaces)
   SessionOptions sessionOptions;
-  std::string instrument = "my cool naming";
-  std::string symbol = "BTC-USD";
-  // Coinbase names a trading pair using upper case concatenated by dash
-  // Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
-  SessionConfigs sessionConfigs({{
-    CCAPI_EXCHANGE_NAME_COINBASE, {{
-        instrument, symbol
-    }}
-  }});
+  SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  SubscriptionList subscriptionList;
-  std::string topic = std::string("/") + CCAPI_EXCHANGE_NAME_COINBASE + "/" + instrument;
-  std::string fields = CCAPI_EXCHANGE_NAME_MARKET_DEPTH;
-  std::string options;
-  CorrelationId correlationId("this is my correlation id");
-  Subscription subscription(topic, fields, options, correlationId);
-  subscriptionList.add(subscription);
-  session.subscribe(subscriptionList);
-  return 0;
+  Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+  session.subscribe(subscription);
+  std::this_thread::sleep_for(std::chrono::seconds(10));
+  session.stop();
+  std::cout << "Bye" << std::endl;
+  return EXIT_SUCCESS;
 }
 ```
 **Output:**
@@ -136,78 +128,98 @@ Top 10 bids and asks at 2020-07-27T23:56:51.935993000Z are:
 ```
 
 ### Advanced
-#### Multiple exchanges and/or instruments
+#### Specify correlation id
 
-Instantiate SessionConfigs with a map containing the exchange names, the instrument names specified by you, and the instrument names specified by the exchange.
+Instantiate Subscription with the desired correlationId.
+```
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id");
+```
+
+#### Normalize instrument name
+
+Instantiate SessionConfigs with a map mapping the exchange name and the normalized instrument name to the instrument's symbol on the exchange.
 ```
 std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
-exchangeInstrumentSymbolMap[CCAPI_EXCHANGE_NAME_COINBASE]["btc-usd name specified by you"] = "BTC-USD"; // Coinbase names a trading pair using upper case concatenated by dash
-exchangeInstrumentSymbolMap[CCAPI_EXCHANGE_NAME_COINBASE]["eth-usd name specified by you"] = "ETH-USD"; // Coinbase names a trading pair using upper case concatenated by dash
+std::string coolName = "btc_usd";
+exchangeInstrumentSymbolMap["coinbase"][coolName] = "BTC-USD";
 SessionConfigs sessionConfigs(exchangeInstrumentSymbolMap);
+Session session(sessionOptions, sessionConfigs, &eventHandler);
+Subscription subscription("coinbase", coolName, "MARKET_DEPTH");
+```
+
+#### Multiple exchanges and/or instruments
+
+Subscribe a std::vector<Subscription>.
+```
+std::vector<Subscription> subscriptionList;
+Subscription subscription_1("coinbase", "BTC-USD", "MARKET_DEPTH", "", "coinbase|btc_usd");
+subscriptionList.push_back(subscription_1);
+Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH", "", "binance-us|eth_usd");
+subscriptionList.push_back(subscription_2);
+session.subscribe(subscriptionList);
 ```
 
 #### Specify market depth
 
-Instantiate Subscription with option CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX set to be the desired market depth, e.g.
+Instantiate Subscription with option MARKET_DEPTH_MAX set to be the desired market depth.
 ```
-std::string options = std::string(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX) + "=2";
-Subscription subscription(topic, fields, options, correlationId);
-```
-
-#### Only receive events at periodic intervals
-
-Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval, e.g. if you want to only receive market depth snapshots at whole seconds
-```
-std::string options = std::string(CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) + "=1000";
-Subscription subscription(topic, fields, options, correlationId);
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_MAX=2");
 ```
 
-#### Only receive events at periodic intervals including when the market depth snapshot has not changed yet
+#### Receive events at periodic intervals
 
-Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval and CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS to be your network latency, e.g. if you want to only receive market depth snapshots at each and every second regardless of whether the market depth snapshot hasn't changed or not, and your network is faster than the speed of light
+Instantiate Subscription with option CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval.
 ```
-std::string options = std::string(CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) + "=1000&" + CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0";
-Subscription subscription(topic, fields, options, correlationId);
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000");
 ```
 
-#### Dispatching events from multiple threads
+#### Receive events at periodic intervals including when the market depth snapshot hasn't changed
 
-Instantiate EventDispatcher with numDispatcherThreads set to be the desired number, e.g.
+Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval and CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS to be your network latency.
+```
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
+```
+
+#### Dispatch events to multiple threads
+
+Instantiate EventDispatcher with numDispatcherThreads set to be the desired number.
 ```
 EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
 ```
 
-#### Synchronous Event Handling
+#### Handle Events Synchronously
 
-Instantiate Session without EventHandler, then obtain the events to be processed by calling session.eventQueue.purge(), e.g.
+Instantiate Session without EventHandler, then obtain the events to be processed by calling session.eventQueue.purge().
 ```
 Session session(sessionOptions, sessionConfigs);
-...
-while (true) {
-  std::vector<Event> eventList = session.eventQueue.purge();
-  ...
-}
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+session.subscribe(subscription);
+std::this_thread::sleep_for(std::chrono::seconds(5));
+std::vector<Event> eventList = session.eventQueue.purge();
 ```
 
 #### Enable library logging
 
 Add one of the following macros in the compiler command line: ENABLE_TRACE_LOG, ENABLE_DEBUG_LOG, ENABLE_INFO_LOG, ENABLE_WARN_LOG, ENABLE_ERROR_LOG, ENABLE_FATAL_LOG. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
 ```
-Logger* Logger::logger = 0;  // This line is needed.
-class MyLogger final: public Logger {
- public:
-  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
-                          std::chrono::system_clock::time_point time,
-                          std::string fileName, int lineNumber,
-                          std::string message) override {
-    std::cout << threadId << ": [" << UtilTime::getISOTimestamp(time) << "] {"
-        << fileName << ":" << lineNumber << "} "
-        << Logger::severityToString(severity) << std::string(8, ' ') << message
-        << std::endl;
-  }
-};
+namespace ccapi {
+  Logger* Logger::logger = 0;  // This line is needed.
+  class MyLogger final: public Logger {
+   public:
+    virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
+                            std::chrono::system_clock::time_point time,
+                            std::string fileName, int lineNumber,
+                            std::string message) override {
+      std::cout << threadId << ": [" << UtilTime::getISOTimestamp(time) << "] {"
+          << fileName << ":" << lineNumber << "} "
+          << Logger::severityToString(severity) << std::string(8, ' ') << message
+          << std::endl;
+    }
+  };
+}
 ...
+using namespace ccapi;
 MyLogger myLogger;
 Logger::logger = &myLogger;
 ```

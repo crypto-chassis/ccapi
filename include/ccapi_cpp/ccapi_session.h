@@ -70,7 +70,8 @@ class Session final {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (this->eventHandler) {
       if (!this->eventDispatcher) {
-        this->eventDispatcher = &this->defaultEventDispatcher;
+        this->eventDispatcher = new EventDispatcher();
+        this->useInternalEventDispatcher = true;
       }
     } else {
       if (this->eventDispatcher) {
@@ -85,9 +86,9 @@ class Session final {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void start() {
-    if (this->eventDispatcher && this->eventDispatcher == &this->defaultEventDispatcher) {
-      this->eventDispatcher->start();
-    }
+//    if (this->eventDispatcher && this->eventDispatcher == &this->defaultEventDispatcher) {
+//      this->eventDispatcher->start();
+//    }
     std::thread t([this](){
       this->serviceContextPtr->start();
     });
@@ -199,8 +200,9 @@ class Session final {
 //    }
   }
   void stop() {
-    if (this->eventDispatcher && this->eventDispatcher == &this->defaultEventDispatcher) {
+    if (this->useInternalEventDispatcher) {
       this->eventDispatcher->stop();
+      delete this->eventDispatcher;
     }
     for (const auto & x : this->serviceByServiceNameExchangeMap) {
       for (const auto & y : x.second) {
@@ -221,6 +223,11 @@ class Session final {
 //    CCAPI_LOGGER_FUNCTION_EXIT;
 //    return true;
 //  }
+  void subscribe(const Subscription& subscription) {
+    std::vector<Subscription> subscriptionList;
+    subscriptionList.push_back(subscription);
+    this->subscribe(subscriptionList);
+  }
   void subscribe(const std::vector<Subscription>& subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::map<std::string, std::vector<Subscription> > subscriptionListByServiceNameMap;
@@ -324,7 +331,7 @@ class Session final {
   void onEvent(Event& event, Queue<Event> *eventQueue) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = "+toString(event));
-    if (this->eventHandler && !eventQueue) {
+    if (this->eventHandler) {
       CCAPI_LOGGER_TRACE("handle event asynchronously");
       this->eventDispatcher->dispatch([&, event] {
         bool shouldContinue = true;
@@ -400,7 +407,8 @@ class Session final {
   SessionConfigs sessionConfigs;
   EventHandler* eventHandler;
   EventDispatcher* eventDispatcher;
-  EventDispatcher defaultEventDispatcher;
+  bool useInternalEventDispatcher{};
+//  EventDispatcher defaultEventDispatcher;
   wspp::lib::shared_ptr<ServiceContext> serviceContextPtr;
   std::map<std::string, std::map<std::string, wspp::lib::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
   std::thread t;

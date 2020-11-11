@@ -32,9 +32,12 @@ class Request final {
     return output;
   }
   Request(Operation operation, std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
-      UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH))
+      "")
       : operation(operation), credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
     this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
+    if (this->correlationId.empty()) {
+      this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
+    }
   }
   std::string toString() const {
     std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = "+serviceName+", correlationId = "

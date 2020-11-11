@@ -17,6 +17,7 @@ class EventDispatcher final {
       : numDispatcherThreads(numDispatcherThreads) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("numDispatcherThreads = "+size_tToString(numDispatcherThreads));
+    this->start();
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   ~EventDispatcher() {
