@@ -1,5 +1,0 @@
-project(simple)
-add_definitions(-DENABLE_MARKET_DATA_SERVICE)
-add_definitions(-DENABLE_COINBASE)
-file(GLOB SOURCES simple.cpp)
-add_executable(simple ${SOURCES})
