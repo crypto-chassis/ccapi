@@ -24,7 +24,7 @@
 #include "ccapi_cpp/ccapi_ws_connection.h"
 #include "ccapi_cpp/service/ccapi_service_context.h"
 #include "ccapi_cpp/service/ccapi_service.h"
-#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
+#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
 #include <sstream>
 #include <iomanip>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
@@ -337,7 +337,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
         CCAPI_LOGGER_ERROR("textMessage = "+textMessage);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
-#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
+#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
       if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
         std::string payload = msg->get_payload();
@@ -1244,7 +1244,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   SessionConfigs sessionConfigs;
 //  ServiceContext& serviceContext;
   std::function<void(Event& event)> eventHandler;
-#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
+#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> inflater;
 #endif

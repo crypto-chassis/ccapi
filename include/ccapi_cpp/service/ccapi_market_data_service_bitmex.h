@@ -1,6 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
-#ifdef ENABLE_BITMEX
+#ifdef ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 #include <regex>
 namespace ccapi {

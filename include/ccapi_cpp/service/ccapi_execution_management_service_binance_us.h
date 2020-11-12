@@ -3,8 +3,8 @@
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
 #endif
-#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
-#ifdef ENABLE_BINANCE_US
+#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#ifdef ENABLE_EXCHANGE_BINANCE_US
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -254,7 +254,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           }
         }
       }
-#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
+#if defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
       std::ostringstream oss;
       oss << *resPtr;
       CCAPI_LOGGER_DEBUG("res = \n"+oss.str());
@@ -404,7 +404,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = "+toString(useFuture));
     auto req = this->convertRequest(request, now);
-#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
+#if defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << req;
     CCAPI_LOGGER_DEBUG("req = \n"+oss.str());

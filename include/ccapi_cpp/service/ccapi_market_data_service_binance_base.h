@@ -1,6 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_BASE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_BASE_H_
-#if defined(ENABLE_BINANCE_US) || defined(ENABLE_BINANCE) || defined(ENABLE_BINANCE_FUTURES)
+#if defined(ENABLE_EXCHANGE_BINANCE_US) || defined(ENABLE_EXCHANGE_BINANCE) || defined(ENABLE_EXCHANGE_BINANCE_FUTURES)
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
 class MarketDataServiceBinanceBase : public MarketDataService {

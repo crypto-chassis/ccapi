@@ -41,7 +41,7 @@
 * Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
-  * Define service enablement macro ENABLE_MARKET_DATA_SERVICE and exchange enablement macros such as ENABLE_COINBASE, etc. These macros can be found at the top of include/ccapi_cpp/ccapi_session.h.
+  * Define service enablement macro ENABLE_SERVICE_MARKET_DATA and exchange enablement macros such as ENABLE_EXCHANGE_COINBASE, etc. These macros can be found at the top of include/ccapi_cpp/ccapi_session.h.
   * If your OpenSSL version is older than 1.1, define macro OPENSSL_VERSION_MAJOR and OPENSSL_VERSION_MINOR (e.g. for OpenSSL 1.0.2s, define OPENSSL_VERSION_MAJOR to be 1 and OPENSSL_VERSION_MINOR to be 0).
 * Include directories:
   * include
@@ -61,7 +61,7 @@
 include/ccapi_cpp/ccapi_macro.h
 
 ## Examples
-[Detail](example)
+[Source](example)
 ### Simple
 **Objective:**
 
@@ -204,7 +204,7 @@ std::vector<Event> eventList = session.eventQueue.purge();
 
 #### Enable library logging
 
-Add one of the following macros in the compiler command line: ENABLE_TRACE_LOG, ENABLE_DEBUG_LOG, ENABLE_INFO_LOG, ENABLE_WARN_LOG, ENABLE_ERROR_LOG, ENABLE_FATAL_LOG. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
+Add one of the following macros in the compiler command line: ENABLE_LOG_TRACE, ENABLE_LOG_DEBUG, ENABLE_LOG_INFO, ENABLE_LOG_WARN, ENABLE_LOG_ERROR, ENABLE_LOG_FATAL. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
 ```
 namespace ccapi {
   Logger* Logger::logger = 0;  // This line is needed.
