@@ -1180,8 +1180,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
               }
               wsConnectionIdListByInstrumentGroupMap[instrumentGroup].push_back(wsConnection.id);
             }
-          }
-        );
+        });
       }
       CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
     }

@@ -131,7 +131,7 @@ class Session final {
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
       auto serviceName = x.first;
-      for (const auto& y : x.second ) {
+      for (const auto& y : x.second) {
         auto exchange = y.first;
         CCAPI_LOGGER_INFO("enabled service: " + serviceName + ", exchange: " + exchange);
       }

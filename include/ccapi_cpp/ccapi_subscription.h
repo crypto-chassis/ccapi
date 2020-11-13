@@ -108,6 +108,7 @@ class Subscription final {
     }
     return output;
   }
+
  private:
   std::string exchange;
   std::string instrument;
