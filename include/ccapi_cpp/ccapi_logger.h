@@ -9,7 +9,7 @@
 #define CCAPI_LOGGER_THREAD_ID std::this_thread::get_id()
 #define CCAPI_LOGGER_NOW std::chrono::system_clock::now()
 #if defined(ENABLE_LOG_FATAL) || defined(ENABLE_LOG_ERROR) || defined(ENABLE_LOG_WARN) || defined(ENABLE_LOG_INFO) || defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
-#define CCAPI_LOGGER_FATAL(message) Logger::logger->fatal(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); throw std::runtime_error(message);
+#define CCAPI_LOGGER_FATAL(message) Logger::logger->fatal(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); throw std::runtime_error(message)
 #else
 #define CCAPI_LOGGER_FATAL(message) throw std::runtime_error(message);
 #endif
