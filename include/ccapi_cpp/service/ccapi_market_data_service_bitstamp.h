@@ -50,7 +50,7 @@ class MarketDataServiceBitstamp final : public MarketDataService {
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
-    rj::Document::AllocatorType& allocator = document.GetAllocator();
+//    rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> wsMessageList;
     const rj::Value& data = document["data"];
