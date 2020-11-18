@@ -23,13 +23,13 @@ class MarketDataServiceBitmex final : public MarketDataService {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
         std::string symbolId = subscriptionListBySymbolId.first;
-        if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE || channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10) {
+        if (channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE || channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
         std::string exchangeSubscriptionId = channelId+
         ":"+symbolId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         args.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
       }
     }
@@ -67,7 +67,7 @@ class MarketDataServiceBitmex final : public MarketDataService {
     std::vector<MarketDataMessage> wsMessageList;
     if (document.IsObject() && document.HasMember("table")) {
       std::string channelId = document["table"].GetString();
-      if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10 || channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE) {
+      if (channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10 || channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE) {
         std::string action = document["action"].GetString();
         MarketDataMessage::RecapType recapType;
         if (action == "partial") {
@@ -88,7 +88,7 @@ class MarketDataServiceBitmex final : public MarketDataService {
           wsMessage.recapType = recapType;
           wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           wsMessage.tp = UtilTime::parse(std::string(x["timestamp"].GetString()));
-          if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE) {
+          if (channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE) {
             MarketDataMessage::TypeForDataPoint dataPointBid;
             dataPointBid.insert({MarketDataMessage::DataFieldType::PRICE, UtilString:: normalizeDecimalString(x["bidPrice"].GetString())});
             dataPointBid.insert({MarketDataMessage::DataFieldType::SIZE, UtilString:: normalizeDecimalString(x["bidSize"].GetString())});
@@ -114,7 +114,7 @@ class MarketDataServiceBitmex final : public MarketDataService {
           wsMessageList.push_back(std::move(wsMessage));
           ++i;
         }
-      } else if (channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2 || channelId == CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25) {
+      } else if (channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2 || channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25) {
         std::string action = document["action"].GetString();
         MarketDataMessage wsMessage;
         wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;

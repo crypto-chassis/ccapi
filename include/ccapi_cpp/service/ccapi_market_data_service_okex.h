@@ -29,8 +29,8 @@ class MarketDataServiceOkex final : public MarketDataService {
         std::string exchangeSubscriptionId = UtilString::split(channelId, "?").at(0)+
         ":"+symbolId;
         args.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
       }
     }
     document.AddMember("args", args, allocator);
@@ -54,13 +54,13 @@ class MarketDataServiceOkex final : public MarketDataService {
     std::vector<MarketDataMessage> wsMessageList;
     if (document.IsObject() && document.HasMember("table")) {
       std::string table = document["table"].GetString();
-      if (table == CCAPI_EXCHANGE_NAME_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400) {
+      if (table == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400) {
         std::string action = document["action"].GetString();
         CCAPI_LOGGER_TRACE("action = " + toString(action));
         for (const auto& datum : document["data"].GetArray()) {
           std::string exchangeSubscriptionId = table + ":" + datum["instrument_id"].GetString();
-//          std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
-//          std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID];
+//          std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+//          std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
 //          auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
           MarketDataMessage wsMessage;
           wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
@@ -82,7 +82,7 @@ class MarketDataServiceOkex final : public MarketDataService {
           }
           wsMessageList.push_back(std::move(wsMessage));
         }
-      } else if (table == CCAPI_EXCHANGE_NAME_WEBSOCKET_OKEX_CHANNEL_TRADE) {
+      } else if (table == CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE) {
         for (const auto& datum : document["data"].GetArray()) {
           std::string exchangeSubscriptionId = table + ":" + datum["instrument_id"].GetString();
           MarketDataMessage wsMessage;

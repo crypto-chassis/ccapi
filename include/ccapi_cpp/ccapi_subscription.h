@@ -14,24 +14,24 @@ class Subscription final {
     if (!options.empty()) {
       optionList = UtilString::split(options, "&");
     }
-    this->optionMap[CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX] =
-    CCAPI_EXCHANGE_VALUE_MARKET_DEPTH_MAX_DEFAULT;
-    this->optionMap[CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS] =
-    CCAPI_EXCHANGE_VALUE_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
-    this->optionMap[CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS] =
-    CCAPI_EXCHANGE_VALUE_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
+    this->optionMap[CCAPI_MARKET_DEPTH_MAX] =
+    CCAPI_MARKET_DEPTH_MAX_DEFAULT;
+    this->optionMap[CCAPI_CONFLATE_INTERVAL_MILLISECONDS] =
+    CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+    this->optionMap[CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS] =
+    CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
     for (const auto & option : optionList) {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
-    this->serviceName = CCAPI_EXCHANGE_NAME_MARKET_DATA;
+    this->serviceName = CCAPI_MARKET_DATA;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
   }
   Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
       ""): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
-    this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
+    this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }

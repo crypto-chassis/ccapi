@@ -16,16 +16,16 @@ class MarketDataServiceKraken final : public MarketDataService {
       std::vector<std::string> requestStringList;
       for (auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
         auto channelId = subscriptionListByChannelIdSymbolId.first;
-        if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
+        if (channelId.rfind(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
           std::map<int, std::vector<std::string> > symbolIdListByMarketDepthSubscribedToExchangeMap;
           for (auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
             auto symbolId = subscriptionListBySymbolId.first;
             int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-            std::string exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK) + "-" +
+            std::string exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK) + "-" +
             std::to_string(marketDepthSubscribedToExchange)+
             "|"+symbolId;
-            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
             symbolIdListByMarketDepthSubscribedToExchangeMap[marketDepthSubscribedToExchange].push_back(symbolId);
           }
           for (const auto & x : symbolIdListByMarketDepthSubscribedToExchangeMap) {
@@ -42,7 +42,7 @@ class MarketDataServiceKraken final : public MarketDataService {
             document.AddMember("pair", instrument, allocator);
             rj::Value subscription(rj::kObjectType);
             subscription.AddMember("depth", rj::Value(marketDepthSubscribedToExchange).Move(), allocator);
-            subscription.AddMember("name", rj::Value(std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK).c_str(), allocator).Move(), allocator);
+            subscription.AddMember("name", rj::Value(std::string(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK).c_str(), allocator).Move(), allocator);
             document.AddMember("subscription", subscription, allocator);
             rj::StringBuffer stringBuffer;
             rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -89,13 +89,13 @@ class MarketDataServiceKraken final : public MarketDataService {
       if (document.IsArray() && document.Size() >= 4 && document.Size() <= 5) {
         auto documentSize = document.Size();
         auto channelNameWithSuffix = std::string(document[documentSize-2].GetString());
-        if (channelNameWithSuffix.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
+        if (channelNameWithSuffix.rfind(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
           auto symbolId = std::string(document[documentSize-1].GetString());
           auto exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
           CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
           CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
           CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
-          auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
+          auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
           CCAPI_LOGGER_TRACE("symbolId = "+symbolId);
           const rj::Value& anonymous = document[1];
           if (anonymous.IsObject() && (anonymous.HasMember("b") || anonymous.HasMember("a"))) {
@@ -170,7 +170,7 @@ class MarketDataServiceKraken final : public MarketDataService {
             }
             wsMessageList.push_back(std::move(wsMessage));
           }
-        } else if (channelNameWithSuffix == CCAPI_EXCHANGE_NAME_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
+        } else if (channelNameWithSuffix == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
           //      auto channel = Exchange::nameWebsocketKrakenChannelTrade;
           //      auto symbolId = std::string(document[3].GetString());
           //      CCAPI_LOGGER_TRACE("symbolId = "+symbolId);

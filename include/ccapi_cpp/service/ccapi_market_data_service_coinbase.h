@@ -27,8 +27,8 @@ class MarketDataServiceCoinbase final : public MarketDataService {
         symbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
         std::string exchangeSubscriptionId = channelId+
         "|"+symbolId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
       }
       channel.AddMember("name", rj::Value(channelId.c_str(), allocator).Move(), allocator);
       channel.AddMember("product_ids", symbolIds, allocator);
@@ -71,7 +71,7 @@ class MarketDataServiceCoinbase final : public MarketDataService {
     CCAPI_LOGGER_TRACE("type = "+type);
     if (type == "l2update") {
       auto symbolId = std::string(document["product_id"].GetString());
-      auto exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
+      auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
       "|"+symbolId;
       MarketDataMessage wsMessage;
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
@@ -97,7 +97,7 @@ class MarketDataServiceCoinbase final : public MarketDataService {
       CCAPI_LOGGER_DEBUG("heartbeat: "+toString(wsConnection));
     } else if (type == "snapshot") {
       auto symbolId = std::string(document["product_id"].GetString());
-      auto exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
+      auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
       "|"+symbolId;
       MarketDataMessage wsMessage;
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;

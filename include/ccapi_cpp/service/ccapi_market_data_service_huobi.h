@@ -25,10 +25,10 @@ class MarketDataServiceHuobi final : public MarketDataService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         auto symbolId = subscriptionListByInstrument.first;
-        if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH, 0) == 0) {
+        if (channelId.rfind(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH, 0) == 0) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
-        std::string exchangeSubscriptionId(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH);
+        std::string exchangeSubscriptionId(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH);
         std::string toReplace("$symbol");
         exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), symbolId);
         document.AddMember("sub", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
@@ -37,8 +37,8 @@ class MarketDataServiceHuobi final : public MarketDataService {
         document.Accept(writer);
         std::string requestString = stringBuffer.GetString();
         requestStringList.push_back(std::move(requestString));
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
@@ -48,7 +48,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
 //    std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
 //    for (auto const& subscription : subscriptionList.getSubscriptionList()) {
 //      auto fieldSet = subscription.getFieldSet();
-//      if (fieldSet.find(CCAPI_EXCHANGE_NAME_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
+//      if (fieldSet.find(CCAPI_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_MARKET_DEPTH) != fieldSet.end()) {
 //        subscriptionListByUrlMap[this->baseUrl + "/ws"].add(subscription);
 //      }
 //    }
@@ -57,7 +57,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto url = this->baseUrl;
     auto field = subscription.getField();
-    if (field == CCAPI_EXCHANGE_NAME_TRADE || field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
+    if (field == CCAPI_TRADE || field == CCAPI_MARKET_DEPTH) {
       url += "/ws";
     }
     return url + "|" + field + "|" + subscription.getSerializedOptions();
@@ -80,13 +80,13 @@ class MarketDataServiceHuobi final : public MarketDataService {
     if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
       MarketDataMessage wsMessage;
       std::string exchangeSubscriptionId = document["ch"].GetString();
-      std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
-      std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID];
+      std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+      std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
       auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
       CCAPI_LOGGER_TRACE("channel = "+channelId);
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-      if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
+      if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
 //        CCAPI_LOGGER_TRACE("it is trade");
 //        //  id always increasing?
 //        wsMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -101,7 +101,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
 //          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
 //          wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
 //        }
-      } else if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
+      } else if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
         CCAPI_LOGGER_TRACE("it is snapshot");
         if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
           wsMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -115,7 +115,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
         CCAPI_LOGGER_TRACE("wsMessage.tp = " + toString(wsMessage.tp));
         wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         int bidIndex = 0;
-        int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+        int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
         for (const auto& x : data["bids"].GetArray()) {
           if (bidIndex >= maxMarketDepth) {
             break;

@@ -24,8 +24,8 @@ class MarketDataServiceGemini final : public MarketDataService {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
         auto exchangeSubscriptionId = wsConnection.url;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_SYMBOL_ID] = symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -126,12 +126,12 @@ class MarketDataServiceGemini final : public MarketDataService {
     std::string url = this->baseUrl + symbol;
     url += "?";
 
-    if ((parameterSet.find(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_BIDS) != parameterSet.end()
-            || parameterSet.find(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_OFFERS) != parameterSet.end())
+    if ((parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_BIDS) != parameterSet.end()
+            || parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_OFFERS) != parameterSet.end())
     ) {
       auto optionMap = subscription.getOptionMap();
-      if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 1) {
-        parameterSet.insert(CCAPI_EXCHANGE_NAME_WEBSOCKET_GEMINI_PARAMETER_TOP_OF_BOOK);
+      if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) == 1) {
+        parameterSet.insert(CCAPI_WEBSOCKET_GEMINI_PARAMETER_TOP_OF_BOOK);
       }
     }
     parameterSet.insert("heartbeat");

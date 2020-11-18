@@ -136,7 +136,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_UP);
     Element element;
-    element.insert(CCAPI_EXCHANGE_NAME_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION, toString(wsConnection));
     message.setElementList({ element });
     event.setMessageList({ message });
     this->eventHandler(event);
@@ -167,34 +167,34 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     auto field = subscription.getField();
     auto optionMap = subscription.getOptionMap();
     std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field);
-    if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
+    if (field == CCAPI_MARKET_DEPTH) {
       if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX
           || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US || this->name == CCAPI_EXCHANGE_NAME_BINANCE || this->name == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES  || this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
         int marketDepthSubscribedToExchange = 1;
         marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
-            std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)),
+            std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)),
             this->sessionConfigs.getWebsocketAvailableMarketDepth().at(this->name));
-        channelId += std::string("?") + CCAPI_EXCHANGE_NAME_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
+        channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
             + std::to_string(marketDepthSubscribedToExchange);
         this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
             marketDepthSubscribedToExchange;
       } else if (this->name == CCAPI_EXCHANGE_NAME_GEMINI) {
-        if (optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX) == "1") {
+        if (optionMap.at(CCAPI_MARKET_DEPTH_MAX) == "1") {
           int marketDepthSubscribedToExchange = 1;
-          channelId += std::string("?") + CCAPI_EXCHANGE_NAME_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
+          channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
               + std::to_string(marketDepthSubscribedToExchange);
           this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
               marketDepthSubscribedToExchange;
         }
       } else if (this->name == CCAPI_EXCHANGE_NAME_BITMEX) {
-        if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 1) {
-          channelId = CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
-        } else if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 10) {
+        if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) == 1) {
+          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
+        } else if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) == 10) {
           channelId =
-          CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10;
-        } else if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 25) {
+          CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10;
+        } else if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) == 25) {
           channelId =
-          CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
+          CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
         }
       }
     }
@@ -265,8 +265,8 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
-    element.insert(CCAPI_EXCHANGE_NAME_CONNECTION, toString(wsConnection));
-    element.insert(CCAPI_EXCHANGE_NAME_REASON, reason);
+    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_REASON, reason);
     message.setElementList({ element });
     event.setMessageList({ message });
     this->eventHandler(event);
@@ -399,9 +399,9 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
           event.setType(Event::Type::SUBSCRIPTION_DATA);
           std::string exchangeSubscriptionId = wsMessage.exchangeSubscriptionId;
           std::string channelId =
-              this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
+              this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
           std::string symbolId =
-              this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_SYMBOL_ID);
+              this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_SYMBOL_ID);
           auto field = this->fieldByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
           CCAPI_LOGGER_TRACE("this->optionMapByConnectionIdChannelIdSymbolIdMap = "+toString(this->optionMapByConnectionIdChannelIdSymbolIdMap));
           CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
@@ -501,42 +501,42 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                                                const std::map<Decimal, std::string>& snapshotAsk,
                                                std::vector<Element>& elementList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
-      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+    if (field == CCAPI_MARKET_DEPTH) {
+      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
       int bidIndex = 0;
       for (auto iter = snapshotBid.rbegin(); iter != snapshotBid.rend(); iter++) {
         if (bidIndex < maxMarketDepth) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
         }
         ++bidIndex;
       }
       if (snapshotBid.empty()) {
         Element element;
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE,
-        CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE_EMPTY);
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE,
-        CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE_EMPTY);
+        element.insert(CCAPI_BEST_BID_N_PRICE,
+        CCAPI_BEST_BID_N_PRICE_EMPTY);
+        element.insert(CCAPI_BEST_BID_N_SIZE,
+        CCAPI_BEST_BID_N_SIZE_EMPTY);
         elementList.push_back(std::move(element));
       }
       int askIndex = 0;
       for (auto iter = snapshotAsk.begin(); iter != snapshotAsk.end(); iter++) {
         if (askIndex < maxMarketDepth) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
         }
         ++askIndex;
       }
       if (snapshotAsk.empty()) {
         Element element;
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE,
-        CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE_EMPTY);
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE,
-        CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE_EMPTY);
+        element.insert(CCAPI_BEST_ASK_N_PRICE,
+        CCAPI_BEST_ASK_N_PRICE_EMPTY);
+        element.insert(CCAPI_BEST_ASK_N_SIZE,
+        CCAPI_BEST_ASK_N_SIZE_EMPTY);
         elementList.push_back(std::move(element));
       }
     }
@@ -551,8 +551,8 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                                               std::vector<Element>& elementList,
                                               bool alwaysUpdate) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
-      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+    if (field == CCAPI_MARKET_DEPTH) {
+      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
       CCAPI_LOGGER_TRACE("lastNSame = "+toString(lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)));
       CCAPI_LOGGER_TRACE("firstNSame = "+toString(firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)));
       if (alwaysUpdate || !lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)
@@ -563,17 +563,17 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
             break;
           }
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
           ++bidIndex;
         }
         if (snapshotBid.empty()) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE,
-          CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE_EMPTY);
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE,
-          CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE_EMPTY);
+          element.insert(CCAPI_BEST_BID_N_PRICE,
+          CCAPI_BEST_BID_N_PRICE_EMPTY);
+          element.insert(CCAPI_BEST_BID_N_SIZE,
+          CCAPI_BEST_BID_N_SIZE_EMPTY);
           elementList.push_back(std::move(element));
         }
         int askIndex = 0;
@@ -582,17 +582,17 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
             break;
           }
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
           ++askIndex;
         }
         if (snapshotAsk.empty()) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE,
-          CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE_EMPTY);
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE,
-          CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE_EMPTY);
+          element.insert(CCAPI_BEST_ASK_N_PRICE,
+          CCAPI_BEST_ASK_N_PRICE_EMPTY);
+          element.insert(CCAPI_BEST_ASK_N_SIZE,
+          CCAPI_BEST_ASK_N_SIZE_EMPTY);
           elementList.push_back(std::move(element));
         }
       }
@@ -611,10 +611,10 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
           auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
-          element.insert(CCAPI_EXCHANGE_NAME_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
-          element.insert(CCAPI_EXCHANGE_NAME_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
-          element.insert(CCAPI_EXCHANGE_NAME_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
+          element.insert(CCAPI_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
+          element.insert(CCAPI_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
+          element.insert(CCAPI_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
+          element.insert(CCAPI_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
           elementList.push_back(std::move(element));
         }
       } else {
@@ -695,7 +695,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                                 std::map<Decimal, std::string>& snapshotAsk) {
     snapshotBid.clear();
     snapshotAsk.clear();
-    int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+    int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     for (const auto & x : input) {
       auto type = x.first;
       auto detail = x.second;
@@ -732,7 +732,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     }
     this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
     bool shouldConflate = optionMap.at(
-    CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+    CCAPI_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
     if (shouldConflate) {
       this->copySnapshot(
           true, snapshotBid,
@@ -747,16 +747,16 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       TimePoint previousConflateTp = UtilTime::makeTimePointFromMilliseconds(
           std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
               / std::stoi(optionMap.at(
-              CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
-          CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)));
+              CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
+          CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
       this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
           previousConflateTp;
       if (optionMap.at(
-          CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
+          CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
         auto interval = std::chrono::milliseconds(std::stoi(optionMap.at(
-        CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)));
+        CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
         auto gracePeriod = std::chrono::milliseconds(std::stoi(optionMap.at(
-        CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS)));
+        CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS)));
         this->setConflateTimer(previousConflateTp, interval, gracePeriod, wsConnection, channelId, symbolId, field,
                                optionMap, correlationIdList);
       }
@@ -774,7 +774,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
       std::vector<Message> messageList;
       CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
-      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
       std::map<Decimal, std::string> snapshotBidPrevious;
       this->copySnapshot(true, snapshotBid, snapshotBidPrevious, maxMarketDepth);
       std::map<Decimal, std::string> snapshotAskPrevious;
@@ -837,15 +837,15 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       CCAPI_LOGGER_TRACE("maxMarketDepth = " + toString(maxMarketDepth));
       CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
       bool shouldConflate = optionMap.at(
-      CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+      CCAPI_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
       CCAPI_LOGGER_TRACE("shouldConflate = " + toString(shouldConflate));
       TimePoint conflateTp =
           shouldConflate ?
               UtilTime::makeTimePointFromMilliseconds(
                   std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
                       / std::stoi(optionMap.at(
-                      CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
-                  CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS))) :
+                      CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
+                  CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) :
               tp;
       CCAPI_LOGGER_TRACE("conflateTp = " + toString(conflateTp));
       bool intervalChanged = shouldConflate
@@ -882,7 +882,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
           message.setType(Message::Type::MARKET_DATA_EVENTS);
           message.setRecapType(Message::RecapType::NONE);
           TimePoint time = shouldConflate ? this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) + std::chrono::milliseconds(std::stoll(optionMap.at(
-              CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS))) : conflateTp;
+              CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) : conflateTp;
           message.setTime(time);
 //          message.setTime(conflateTp);
           message.setElementList(elementList);
@@ -1047,7 +1047,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     message.setTime(timeReceived);
     message.setType(Message::Type::SESSION_INCORRECT_STATES_FOUND);
     Element element;
-    element.insert(CCAPI_EXCHANGE_NAME_ERROR_MESSAGE, errorMessage);
+    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
     message.setElementList({ element });
     event.setMessageList({ message });
     this->eventHandler(event);

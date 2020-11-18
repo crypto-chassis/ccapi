@@ -34,7 +34,7 @@ class Request final {
   Request(Operation operation, std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
       "")
       : operation(operation), credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
-    this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
+    this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
