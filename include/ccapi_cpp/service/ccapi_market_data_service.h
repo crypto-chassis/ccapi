@@ -370,7 +370,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     auto now = std::chrono::system_clock::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    lastPongTpByConnectionIdMap[wsConnection.id] = now;
+    this->lastPongTpByConnectionIdMap[wsConnection.id] = now;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   bool onPing(wspp::connection_hdl hdl, std::string payload) {

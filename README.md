@@ -9,10 +9,10 @@
   - [Examples](#examples)
     - [Simple](#simple)
     - [Advanced](#advanced)
+      - [Specify market depth](#specify-market-depth)
       - [Specify correlation id](#specify-correlation-id)
       - [Normalize instrument name](#normalize-instrument-name)
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments)
-      - [Specify market depth](#specify-market-depth)
       - [Receive events at periodic intervals](#receive-events-at-periodic-intervals)
       - [Receive events at periodic intervals including when the market depth snapshot hasn't changed](#receive-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
       - [Dispatch events to multiple threads](#dispatch-events-to-multiple-threads)
@@ -105,32 +105,21 @@ int main(int argc, char **argv) {
 ```
 **Output:**
 ```console
-Top 10 bids and asks at 2020-07-27T23:56:51.884855000Z are:
+Best bid and ask at 2020-07-27T23:56:51.884855000Z are:
   {BID_PRICE=10995, BID_SIZE=0.22187803}
-  {BID_PRICE=10994.03, BID_SIZE=0.2}
-  {BID_PRICE=10993.71, BID_SIZE=5.229}
-  {BID_PRICE=10993.61, BID_SIZE=0.27282}
-  {BID_PRICE=10993.58, BID_SIZE=0.1248}
-  {BID_PRICE=10992.13, BID_SIZE=0.4162}
-  {BID_PRICE=10992.08, BID_SIZE=0.27282}
-  {BID_PRICE=10991.71, BID_SIZE=0.622}
-  {BID_PRICE=10991.19, BID_SIZE=3.9}
-  {BID_PRICE=10990.02, BID_SIZE=5.308}
   {ASK_PRICE=10995.44, ASK_SIZE=2}
-  {ASK_PRICE=10998.95, ASK_SIZE=1.359}
-  {ASK_PRICE=10999.81, ASK_SIZE=0.19414243}
-  {ASK_PRICE=10999.9, ASK_SIZE=0.00827739}
-  {ASK_PRICE=10999.91, ASK_SIZE=0.79238425}
-  {ASK_PRICE=10999.92, ASK_SIZE=1.27862516}
-  {ASK_PRICE=11000, ASK_SIZE=7.27699068}
-  {ASK_PRICE=11001.94, ASK_SIZE=0.012}
-  {ASK_PRICE=11002.16, ASK_SIZE=1.361}
-  {ASK_PRICE=11002.86, ASK_SIZE=1.13036461}
-Top 10 bids and asks at 2020-07-27T23:56:51.935993000Z are:
+Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
   ...
 ```
 
 ### Advanced
+#### Specify market depth
+
+Instantiate Subscription with option MARKET_DEPTH_MAX set to be the desired market depth.
+```
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_MAX=10");
+```
+
 #### Specify correlation id
 
 Instantiate Subscription with the desired correlationId.
@@ -160,13 +149,6 @@ subscriptionList.push_back(subscription_1);
 Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH", "", "binance-us|eth_usd");
 subscriptionList.push_back(subscription_2);
 session.subscribe(subscriptionList);
-```
-
-#### Specify market depth
-
-Instantiate Subscription with option MARKET_DEPTH_MAX set to be the desired market depth.
-```
-Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_MAX=2");
 ```
 
 #### Receive events at periodic intervals
