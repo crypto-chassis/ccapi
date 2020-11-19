@@ -194,6 +194,7 @@ class Session final {
             if (exchangeFieldMap.find(exchange) == exchangeFieldMap.end()
                 || std::find(exchangeFieldMap.find(exchange)->second.begin(), exchangeFieldMap.find(exchange)->second.end(),
                              field) == exchangeFieldMap.find(exchange)->second.end()) {
+              CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
               unsupportedExchangeFieldSet.insert(exchange + "|" + field);
             }
             if (field == CCAPI_MARKET_DEPTH) {
@@ -201,6 +202,7 @@ class Session final {
               if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI || exchange == CCAPI_EXCHANGE_NAME_OKEX)
                   && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
                       ) {
+                CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
                 unsupportedExchangeMarketDepthSet.insert(exchange + "|" + toString(depth));
               }
             }

@@ -94,7 +94,7 @@ class MarketDataServiceCoinbase final : public MarketDataService {
     } else if (type == "match") {
       // TODO(cryptochassis): implement
     } else if (type == "heartbeat") {
-      CCAPI_LOGGER_DEBUG("heartbeat: "+toString(wsConnection));
+      // CCAPI_LOGGER_DEBUG("heartbeat: "+toString(wsConnection));
     } else if (type == "snapshot") {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
