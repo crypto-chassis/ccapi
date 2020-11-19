@@ -9,8 +9,8 @@ class SessionOptions final {
     std::string output = "SessionOptions [warnLateEventMaxMilliSeconds = " + ccapi::toString(warnLateEventMaxMilliSeconds)
         + ", enableCheckSequence = " + ccapi::toString(enableCheckSequence) + ", enableCheckOrderBookChecksum = "
         + ccapi::toString(enableCheckOrderBookChecksum) + ", enableCheckOrderBookCrossed = "
-        + ccapi::toString(enableCheckOrderBookCrossed) + ", enableCheckHeartbeat = "
-        + ccapi::toString(enableCheckHeartbeat) + ", enableOneConnectionPerSubscription = "
+        + ccapi::toString(enableCheckOrderBookCrossed) + ", enableCheckPingPong = "
+        + ccapi::toString(enableCheckPingPong) + ", enableOneConnectionPerSubscription = "
         + ccapi::toString(enableOneConnectionPerSubscription) + ", pingIntervalMilliSeconds = "
         + ccapi::toString(pingIntervalMilliSeconds) + ", pongTimeoutMilliSeconds = "
         + ccapi::toString(pongTimeoutMilliSeconds) + "]";
@@ -21,7 +21,7 @@ class SessionOptions final {
   bool enableCheckSequence{};
   bool enableCheckOrderBookChecksum{};
   bool enableCheckOrderBookCrossed{};
-  bool enableCheckHeartbeat{};
+  bool enableCheckPingPong{};
   bool enableOneConnectionPerSubscription{};
   bool enableOneIoContextPerExchange{};
   long pingIntervalMilliSeconds{10000};

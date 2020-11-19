@@ -140,7 +140,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     message.setElementList({ element });
     event.setMessageList({ message });
     this->eventHandler(event);
-    if (this->sessionOptions.enableCheckHeartbeat) {
+    if (this->sessionOptions.enableCheckPingPong) {
       this->setPingPongTimer(wsConnection, hdl);
     }
     auto instrumentGroup = wsConnection.instrumentGroup;
@@ -655,7 +655,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     con->set_close_handler(std::bind(&MarketDataService::onClose, shared_from_this(), std::placeholders::_1));
     con->set_message_handler(
         std::bind(&MarketDataService::onMessage, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
-    if (this->sessionOptions.enableCheckHeartbeat) {
+    if (this->sessionOptions.enableCheckPingPong) {
       con->set_pong_handler(std::bind(&MarketDataService::onPong, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
     }
     con->set_ping_handler(std::bind(&MarketDataService::onPing, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
