@@ -3,8 +3,8 @@
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
 #endif
-#ifdef ENABLE_EXECUTION_MANAGEMENT_SERVICE
-#ifdef ENABLE_BINANCE_US
+#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#ifdef ENABLE_EXCHANGE_BINANCE_US
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -98,14 +98,14 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   http::request<http::string_body> convertRequest(const Request& request, const TimePoint& now) {
     std::map<std::string, std::string> credential = request.getCredential().empty() ? this->sessionConfigs.getCredential() : request.getCredential();
     std::string instrument = request.getInstrument();
-    std::string symbol = instrument;
+    std::string symbolId = instrument;
     if (!instrument.empty()) {
       if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
           this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
-        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
+        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
       } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
           this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
-        symbol = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
+        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
       }
     }
     CCAPI_LOGGER_TRACE("instrument = "+instrument);
@@ -137,7 +137,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         bodyString += "&";
       }
       bodyString += "symbol=";
-      bodyString += symbol;
+      bodyString += symbolId;
       bodyString += "&";
       if (paramMap.find("type") == paramMap.end()) {
         bodyString += "type=LIMIT&";
@@ -254,7 +254,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           }
         }
       }
-#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
+#if defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
       std::ostringstream oss;
       oss << *resPtr;
       CCAPI_LOGGER_DEBUG("res = \n"+oss.str());
@@ -404,7 +404,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = "+toString(useFuture));
     auto req = this->convertRequest(request, now);
-#if defined(ENABLE_DEBUG_LOG) || defined(ENABLE_TRACE_LOG)
+#if defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << req;
     CCAPI_LOGGER_DEBUG("req = \n"+oss.str());

@@ -4,7 +4,6 @@
 #include <map>
 #include <mutex>
 #include <condition_variable>
-#include "ccapi_cpp/ccapi_correlationId.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
@@ -32,18 +31,21 @@ class Request final {
     }
     return output;
   }
-  Request(Operation operation, std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", CorrelationId correlationId =
-                   CorrelationId())
+  Request(Operation operation, std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
+      "")
       : operation(operation), credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
-    this->serviceName = CCAPI_EXCHANGE_NAME_EXECUTION_MANAGEMENT;
+    this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
+    if (this->correlationId.empty()) {
+      this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
+    }
   }
   std::string toString() const {
     std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = "+serviceName+", correlationId = "
-        + correlationId.toString() +", paramMap = "+ccapi::toString(paramMap)+ ", credential = "
+        + correlationId +", paramMap = "+ccapi::toString(paramMap)+ ", credential = "
         + ccapi::toString(credential) + ", operation = " + operationToString(operation) + "]";
     return output;
   }
-  const CorrelationId& getCorrelationId() const {
+  const std::string& getCorrelationId() const {
     return correlationId;
   }
   const std::string& getExchange() const {
@@ -75,7 +77,7 @@ class Request final {
   std::string exchange;
   std::string instrument;
   std::string serviceName;
-  CorrelationId correlationId;
+  std::string correlationId;
   std::map<std::string, std::string> paramMap;
   std::map<std::string, std::string> credential;
   Operation operation;

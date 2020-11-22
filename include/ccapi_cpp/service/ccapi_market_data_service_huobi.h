@@ -1,12 +1,12 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_H_
-#ifdef ENABLE_HUOBI
+#ifdef ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 #include <regex>
 namespace ccapi {
 class MarketDataServiceHuobi final : public MarketDataService {
  public:
-  MarketDataServiceHuobi(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+  MarketDataServiceHuobi(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_HUOBI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
     ErrorCode ec = this->inflater.init(false, 31);
@@ -16,67 +16,62 @@ class MarketDataServiceHuobi final : public MarketDataService {
   }
 
  private:
-  std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) override {
-    std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
-    for (auto const& subscription : subscriptionList.getSubscriptionList()) {
-      auto fieldSet = subscription.getFieldSet();
-      if (fieldSet.find(CCAPI_EXCHANGE_NAME_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
-        subscriptionListByUrlMap[this->baseUrl + "/ws"].add(subscription);
-      }
-    }
-    return subscriptionListByUrlMap;
-  }
-  void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataService::onOpen(hdl);
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
-    for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
-      auto channelId = subscriptionListByChannelIdProductId.first;
-      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdProductId.second) {
+    for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+      auto channelId = subscriptionListByChannelIdSymbolId.first;
+      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        auto productId = subscriptionListByInstrument.first;
-        if (channelId.rfind(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH, 0) == 0) {
-          this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
+        auto symbolId = subscriptionListByInstrument.first;
+        if (channelId.rfind(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH, 0) == 0) {
+          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
-        std::string exchangeSubscriptionId(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH);
+        std::string exchangeSubscriptionId(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH);
         std::string toReplace("$symbol");
-        exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), productId);
+        exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), symbolId);
         document.AddMember("sub", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
         std::string requestString = stringBuffer.GetString();
         requestStringList.push_back(std::move(requestString));
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
-        CCAPI_LOGGER_TRACE("this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap));
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
+        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
-    CCAPI_LOGGER_TRACE("this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap = "+toString(this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap));
-    for (const auto & requestString : requestStringList) {
-      CCAPI_LOGGER_INFO("requestString = "+requestString);
-      ErrorCode ec;
-      this->send(hdl, requestString, wspp::frame::opcode::text, ec);
-      if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
-        // TODO(cryptochassis): implement
-      }
+    return requestStringList;
+  }
+//  std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) override {
+//    std::map<std::string, SubscriptionList> subscriptionListByUrlMap;
+//    for (auto const& subscription : subscriptionList.getSubscriptionList()) {
+//      auto fieldSet = subscription.getFieldSet();
+//      if (fieldSet.find(CCAPI_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_MARKET_DEPTH) != fieldSet.end()) {
+//        subscriptionListByUrlMap[this->baseUrl + "/ws"].add(subscription);
+//      }
+//    }
+//    return subscriptionListByUrlMap;
+//  }
+  std::string getInstrumentGroup(const Subscription& subscription) override {
+    auto url = this->baseUrl;
+    auto field = subscription.getField();
+    if (field == CCAPI_TRADE || field == CCAPI_MARKET_DEPTH) {
+      url += "/ws";
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
+    return url + "|" + field + "|" + subscription.getSerializedOptions();
   }
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl);
-    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
+//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl);
+//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
-    rj::Document::AllocatorType& allocator = document.GetAllocator();
+//    rj::Document::AllocatorType& allocator = document.GetAllocator();
     std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*[Ee]?-?\\d*)"), "$1\"$2\"");
 //    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_TRACE("quotedTextMessage = "+quotedTextMessage);
@@ -85,13 +80,13 @@ class MarketDataServiceHuobi final : public MarketDataService {
     if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
       MarketDataMessage wsMessage;
       std::string exchangeSubscriptionId = document["ch"].GetString();
-      std::string channelId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID];
-      std::string productId = this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID];
-      auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+      std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+      std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
+      auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
       CCAPI_LOGGER_TRACE("channel = "+channelId);
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-      if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
+      if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
 //        CCAPI_LOGGER_TRACE("it is trade");
 //        //  id always increasing?
 //        wsMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -106,9 +101,9 @@ class MarketDataServiceHuobi final : public MarketDataService {
 //          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
 //          wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
 //        }
-      } else if (std::regex_search(channelId, std::regex(CCAPI_EXCHANGE_NAME_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
+      } else if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
         CCAPI_LOGGER_TRACE("it is snapshot");
-        if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
+        if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
           wsMessage.recapType = MarketDataMessage::RecapType::NONE;
         } else {
           wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
@@ -120,7 +115,7 @@ class MarketDataServiceHuobi final : public MarketDataService {
         CCAPI_LOGGER_TRACE("wsMessage.tp = " + toString(wsMessage.tp));
         wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         int bidIndex = 0;
-        int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+        int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
         for (const auto& x : data["bids"].GetArray()) {
           if (bidIndex >= maxMarketDepth) {
             break;

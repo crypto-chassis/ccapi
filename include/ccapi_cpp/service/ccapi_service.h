@@ -1,5 +1,6 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_SERVICE_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
+#include "ccapi_cpp/ccapi_request.h"
 namespace ccapi {
 class Service {
  public:
@@ -13,15 +14,18 @@ class Service {
   }
   virtual ~Service() {
   }
-  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now) {
-    return std::shared_ptr<std::future<void> >(nullptr);
-  }
   void setEventHandler(const std::function<void(Event& event)>& eventHandler) {
     this->eventHandler = eventHandler;
+  }
+  virtual void stop() = 0;
+  virtual void subscribe(const std::vector<Subscription>& subscriptionList) = 0;
+  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now) {
+    return std::shared_ptr<std::future<void> >(nullptr);
   }
 
  protected:
   std::string name;
+  std::string baseUrl;
   std::string baseUrlRest;
   std::function<void(Event& event)> eventHandler;
   SessionOptions sessionOptions;
@@ -29,4 +33,4 @@ class Service {
   ServiceContextPtr serviceContextPtr;
 };
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_SERVICE_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_

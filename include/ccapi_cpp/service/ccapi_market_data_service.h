@@ -9,7 +9,6 @@
 #include <functional>
 #include "websocketpp/common/connection_hdl.hpp"
 #include "ccapi_cpp/ccapi_event.h"
-#include "ccapi_cpp/ccapi_subscription_list.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_market_data_message.h"
 #include "rapidjson/document.h"
@@ -23,8 +22,9 @@
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include "ccapi_cpp/ccapi_ws_connection.h"
-#include "ccapi_cpp/ccapi_service_context.h"
-#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
+#include "ccapi_cpp/service/ccapi_service_context.h"
+#include "ccapi_cpp/service/ccapi_service.h"
+#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
 #include <sstream>
 #include <iomanip>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
@@ -32,12 +32,12 @@
 namespace wspp = websocketpp;
 namespace rj = rapidjson;
 namespace ccapi {
-class MarketDataService : public std::enable_shared_from_this<MarketDataService>  {
+class MarketDataService : public Service, public std::enable_shared_from_this<MarketDataService>  {
  public:
-  MarketDataService(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler,
+  MarketDataService(std::function<void(Event& event)> eventHandler,
                   SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr)
-      : subscriptionList(subscriptionList),
-        wsEventHandler(wsEventHandler),
+      : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr),
+        eventHandler(eventHandler),
         sessionOptions(sessionOptions),
         sessionConfigs(sessionConfigs),
         serviceContextPtr(serviceContextPtr) {
@@ -50,51 +50,60 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
   }
   virtual ~MarketDataService() {
   }
-  virtual std::map<std::string, SubscriptionList> groupSubscriptionListByUrl(const SubscriptionList& subscriptionList) {
-    return {{ this->baseUrl, subscriptionList }};
-  }
-  void connect() {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_DEBUG("this->baseUrl = "+this->baseUrl);
-    for (const auto & x : this->groupSubscriptionListByUrl(this->subscriptionList)) {
-      auto wsConnectionMapGivenUrl = this->buildWsConnectionMap(x.first, x.second);
-      this->wsConnectionMap.insert(wsConnectionMapGivenUrl.begin(), wsConnectionMapGivenUrl.end());
+  std::map<std::string, std::vector<Subscription> > groupSubscriptionListByInstrumentGroup(const std::vector<Subscription>& subscriptionList) {
+    std::map<std::string, std::vector<Subscription> > groups;
+    for (const auto & subscription : subscriptionList) {
+      std::string instrumentGroup = this->getInstrumentGroup(subscription);
+      groups[instrumentGroup].push_back(subscription);
     }
-    std::map<std::string, WsConnection> actualWebsocketwsConnectionMap;
-    for (const auto & x : this->wsConnectionMap) {
-      auto wsConnectionId = x.first;
-      CCAPI_LOGGER_DEBUG("dummy wsConnectionId = "+wsConnectionId);
-      auto wsConnection = x.second;
-      CCAPI_LOGGER_DEBUG("wsConnection = "+toString(wsConnection));
-      this->connect(wsConnection);
-      CCAPI_LOGGER_DEBUG("wsConnectionId "+wsConnectionId+" requested");
-      actualWebsocketwsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-    }
-    this->wsConnectionMap = actualWebsocketwsConnectionMap;
-    CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
-    CCAPI_LOGGER_FUNCTION_EXIT;
+    return groups;
   }
-  const std::string& getBaseUrl() const {
-    return baseUrl;
+  virtual std::string getInstrumentGroup(const Subscription& subscription) {
+    return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
+//        + toString(subscription.getOptionMap());
   }
-  std::map<std::string, WsConnection> buildWsConnectionMap(
-      std::string url, const SubscriptionList& subscriptionList) {
-    if (this->sessionOptions.enableOneConnectionPerSubscription) {
-      std::map<std::string, WsConnection> wsConnectionMap;
-      CCAPI_LOGGER_TRACE("subscriptionList = "+toString(subscriptionList));
-      for (const auto & subscription : subscriptionList.getSubscriptionList()) {
-        SubscriptionList subSubscriptionList;
-        subSubscriptionList.add(subscription);
-        WsConnection wsConnection(url, subSubscriptionList);
-        wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-      }
-      CCAPI_LOGGER_TRACE("wsConnectionMap = "+toString(wsConnectionMap));
-      return wsConnectionMap;
-    } else {
-      WsConnection wsConnection(url, subscriptionList);
-      return { {wsConnection.id, wsConnection}};
-    }
-  }
+//  void connect() {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    CCAPI_LOGGER_DEBUG("this->baseUrl = "+this->baseUrl);
+//    if (this->shouldContinue.load()) {
+//      for (const auto & x : this->groupSubscriptionListByInstrumentGroup(this->subscriptionList)) {
+//        auto wsConnectionMapGivenUrl = this->buildWsConnectionMap(x.first, x.second);
+//        this->wsConnectionMap.insert(wsConnectionMapGivenUrl.begin(), wsConnectionMapGivenUrl.end());
+//      }
+//      std::map<std::string, WsConnection> actualWebsocketwsConnectionMap;
+//      for (const auto & x : this->wsConnectionMap) {
+//        auto wsConnectionId = x.first;
+//        CCAPI_LOGGER_DEBUG("dummy wsConnectionId = "+wsConnectionId);
+//        auto wsConnection = x.second;
+//        CCAPI_LOGGER_DEBUG("wsConnection = "+toString(wsConnection));
+//        this->connect(wsConnection);
+//        CCAPI_LOGGER_DEBUG("wsConnectionId "+wsConnectionId+" requested");
+//        actualWebsocketwsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+//      }
+//      this->wsConnectionMap = actualWebsocketwsConnectionMap;
+//      CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
+//    }
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
+
+//  std::map<std::string, WsConnection> buildWsConnectionMap(
+//      std::string url, const std::vector<Subscription>& subscriptionList) {
+//    if (this->sessionOptions.enableOneConnectionPerSubscription) {
+//      std::map<std::string, WsConnection> wsConnectionMap;
+//      CCAPI_LOGGER_TRACE("subscriptionList = "+toString(subscriptionList));
+//      for (const auto & subscription : subscriptionList.getstd::vector<Subscription>()) {
+//        std::vector<Subscription> substd::vector<Subscription>;
+//        substd::vector<Subscription>.add(subscription);
+//        WsConnection wsConnection(url, substd::vector<Subscription>);
+//        wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+//      }
+//      CCAPI_LOGGER_TRACE("wsConnectionMap = "+toString(wsConnectionMap));
+//      return wsConnectionMap;
+//    } else {
+//      WsConnection wsConnection(url, subscriptionList);
+//      return { {wsConnection.id, wsConnection}};
+//    }
+//  }
 
  protected:
   typedef ServiceContext::SslContextPtr SslContextPtr;
@@ -118,6 +127,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     wsConnection.status = WsConnection::Status::OPEN;
+    wsConnection.hdl = hdl;
     CCAPI_LOGGER_INFO("connection " +toString(wsConnection) + " established");
     this->connectNumRetryOnFailByConnectionUrlMap[wsConnection.url] = 0;
     Event event;
@@ -126,66 +136,77 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_UP);
     Element element;
-    element.insert(CCAPI_EXCHANGE_NAME_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION, toString(wsConnection));
     message.setElementList({ element });
     event.setMessageList({ message });
-    this->wsEventHandler(event);
-    if (this->sessionOptions.enableCheckHeartbeat) {
+    this->eventHandler(event);
+    if (this->sessionOptions.enableCheckPingPong) {
       this->setPingPongTimer(wsConnection, hdl);
     }
-    CCAPI_LOGGER_TRACE("this->subscriptionList = "+toString(this->subscriptionList));
-//    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
-//        this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    for (const auto & subscription : this->wsConnectionMap.at(wsConnection.id).subscriptionList.getSubscriptionList()) {
+    auto instrumentGroup = wsConnection.instrumentGroup;
+    for (const auto& subscription : wsConnection.subscriptionList) {
       auto instrument = subscription.getInstrument();
-      auto productId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(instrument);
-      auto fieldSet = subscription.getFieldSet();
-      auto optionMap = subscription.getOptionMap();
-      for (auto & field : fieldSet) {
-        std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field);
-        if (field == CCAPI_EXCHANGE_NAME_MARKET_DEPTH) {
-          if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX
-              || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US || this->name == CCAPI_EXCHANGE_NAME_BINANCE || this->name == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES  || this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
-            int marketDepthSubscribedToExchange = 1;
-            marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
-                std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)),
-                this->sessionConfigs.getWebsocketAvailableMarketDepth().at(this->name));
-            channelId += std::string("?") + CCAPI_EXCHANGE_NAME_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
-                + std::to_string(marketDepthSubscribedToExchange);
-            this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] =
-                marketDepthSubscribedToExchange;
-          } else if (this->name == CCAPI_EXCHANGE_NAME_GEMINI) {
-            if (optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX) == "1") {
-              int marketDepthSubscribedToExchange = 1;
-              channelId += std::string("?") + CCAPI_EXCHANGE_NAME_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
-                  + std::to_string(marketDepthSubscribedToExchange);
-              this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] =
-                  marketDepthSubscribedToExchange;
-            }
-          } else if (this->name == CCAPI_EXCHANGE_NAME_BITMEX) {
-            if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 1) {
-              channelId = CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
-            } else if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 10) {
-              channelId =
-              CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10;
-            } else if (std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX)) == 25) {
-              channelId =
-              CCAPI_EXCHANGE_NAME_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
-            }
-          }
-        }
-        this->subscriptionListByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId].add(
-            subscription);
-        this->correlationIdListByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId].push_back(
-            subscription.getCorrelationId());
-        this->fieldSetByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId].insert(
-            fieldSet.begin(), fieldSet.end());
-        this->optionMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId].insert(
-            optionMap.begin(), optionMap.end());
+      this->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
+      this->prepareSubscription(wsConnection, subscription);
+    }
+    this->subscribeToExchange(wsConnection);
+  }
+  std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
+    std::string symbolId = instrument;
+    if (!instrument.empty()) {
+      if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->name) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+          this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).end()) {
+        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(instrument);
       }
     }
-    CCAPI_LOGGER_TRACE("this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap = "+toString(this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap));
-    CCAPI_LOGGER_TRACE("this->correlationIdListByConnectionIdChannelProductIdMap = "+toString(this->correlationIdListByConnectionIdChannelIdProductIdMap));
+    return symbolId;
+  }
+  void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
+    auto instrument = subscription.getInstrument();
+    auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+    auto field = subscription.getField();
+    auto optionMap = subscription.getOptionMap();
+    std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field);
+    if (field == CCAPI_MARKET_DEPTH) {
+      if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX
+          || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US || this->name == CCAPI_EXCHANGE_NAME_BINANCE || this->name == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES  || this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+        int marketDepthSubscribedToExchange = 1;
+        marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
+            std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)),
+            this->sessionConfigs.getWebsocketAvailableMarketDepth().at(this->name));
+        channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
+            + std::to_string(marketDepthSubscribedToExchange);
+        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
+            marketDepthSubscribedToExchange;
+      } else if (this->name == CCAPI_EXCHANGE_NAME_GEMINI) {
+        if (optionMap.at(CCAPI_MARKET_DEPTH_MAX) == "1") {
+          int marketDepthSubscribedToExchange = 1;
+          channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "="
+              + std::to_string(marketDepthSubscribedToExchange);
+          this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
+              marketDepthSubscribedToExchange;
+        }
+      } else if (this->name == CCAPI_EXCHANGE_NAME_BITMEX) {
+        if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) == 1) {
+          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
+        } else if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) == 10) {
+          channelId =
+          CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10;
+        } else if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) == 25) {
+          channelId =
+          CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
+        }
+      }
+    }
+    this->correlationIdListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(
+        subscription.getCorrelationId());
+    this->subscriptionListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(
+        subscription);
+    this->fieldByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = field;
+    this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].insert(
+        optionMap.begin(), optionMap.end());
+    CCAPI_LOGGER_TRACE("this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap = "+toString(this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap));
+    CCAPI_LOGGER_TRACE("this->correlationIdListByConnectionIdChannelSymbolIdMap = "+toString(this->correlationIdListByConnectionIdChannelIdSymbolIdMap));
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void onFail(wspp::connection_hdl hdl) {
@@ -196,6 +217,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     CCAPI_LOGGER_ERROR("connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionMap.erase(thisWsConnection.id);
+    this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
     long seconds = std::round(
         UtilAlgorithm::exponentialBackoff(
             1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[thisWsConnection.url], 6)));
@@ -217,6 +239,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
                   thatWsConnection.assignDummyId();
                   that->connect(thatWsConnection);
                   that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thatWsConnection.id, thatWsConnection));
+                  that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thatWsConnection.id, thatWsConnection.instrumentGroup));
                   that->connectNumRetryOnFailByConnectionUrlMap[thatWsConnection.url] += 1;
                 }
               }
@@ -242,29 +265,29 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
-    element.insert(CCAPI_EXCHANGE_NAME_CONNECTION, toString(wsConnection));
-    element.insert(CCAPI_EXCHANGE_NAME_REASON, reason);
+    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_REASON, reason);
     message.setElementList({ element });
     event.setMessageList({ message });
-    this->wsEventHandler(event);
+    this->eventHandler(event);
     CCAPI_LOGGER_INFO("connection " +toString(wsConnection) + " is closed");
     CCAPI_LOGGER_INFO("clear states for wsConnection "+toString(wsConnection));
-    this->fieldSetByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->optionMapByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->subscriptionListByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->correlationIdListByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
-    this->snapshotBidByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->snapshotAskByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
+    this->fieldByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->optionMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->subscriptionListByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
+    this->snapshotBidByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->snapshotAskByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap.erase(wsConnection.id);
     this->lastPongTpByConnectionIdMap.erase(wsConnection.id);
-    this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
-    this->conflateTimerMapByConnectionIdChannelIdProductIdMap.erase(wsConnection.id);
+    this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
     if (this->pingTimerByConnectionIdMap.find(wsConnection.id) != this->pingTimerByConnectionIdMap.end()) {
       this->pingTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       this->pingTimerByConnectionIdMap.erase(wsConnection.id);
@@ -280,12 +303,16 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
       this->connectRetryOnFailTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
     }
-    this->orderBookChecksumByConnectionIdProductIdMap.erase(wsConnection.id);
+    this->orderBookChecksumByConnectionIdSymbolIdMap.erase(wsConnection.id);
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionMap.erase(thisWsConnection.id);
-    thisWsConnection.assignDummyId();
-    this->connect(thisWsConnection);
-    this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
+    this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
+    if (this->shouldContinue.load()) {
+      thisWsConnection.assignDummyId();
+      this->connect(thisWsConnection);
+      this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
+      this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id, thisWsConnection.instrumentGroup));
+    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onMessage(wspp::connection_hdl hdl, TlsClient::message_ptr msg) {
@@ -310,7 +337,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
         CCAPI_LOGGER_ERROR("textMessage = "+textMessage);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
-#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
+#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
       if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
         std::string payload = msg->get_payload();
@@ -343,7 +370,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     auto now = std::chrono::system_clock::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    lastPongTpByConnectionIdMap[wsConnection.id] = now;
+    this->lastPongTpByConnectionIdMap[wsConnection.id] = now;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   bool onPing(wspp::connection_hdl hdl, std::string payload) {
@@ -372,34 +399,34 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
           event.setType(Event::Type::SUBSCRIPTION_DATA);
           std::string exchangeSubscriptionId = wsMessage.exchangeSubscriptionId;
           std::string channelId =
-              this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_CHANNEL_ID);
-          std::string productId =
-              this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_EXCHANGE_NAME_PRODUCT_ID);
-          auto fieldSet = this->fieldSetByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
-          CCAPI_LOGGER_TRACE("this->optionMapByConnectionIdChannelIdProductIdMap = "+toString(this->optionMapByConnectionIdChannelIdProductIdMap));
+              this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
+          std::string symbolId =
+              this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_SYMBOL_ID);
+          auto field = this->fieldByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+          CCAPI_LOGGER_TRACE("this->optionMapByConnectionIdChannelIdSymbolIdMap = "+toString(this->optionMapByConnectionIdChannelIdSymbolIdMap));
           CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
           CCAPI_LOGGER_TRACE("channelId = "+toString(channelId));
-          CCAPI_LOGGER_TRACE("productId = "+toString(productId));
-          auto optionMap = this->optionMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
+          CCAPI_LOGGER_TRACE("symbolId = "+toString(symbolId));
+          auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
           CCAPI_LOGGER_TRACE("optionMap = "+toString(optionMap));
           auto correlationIdList =
-              this->correlationIdListByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId);
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
           CCAPI_LOGGER_TRACE("correlationIdList = "+toString(correlationIdList));
           if (wsMessage.data.find(MarketDataMessage::DataType::BID) != wsMessage.data.end()
               || wsMessage.data.find(MarketDataMessage::DataType::ASK) != wsMessage.data.end()) {
             std::map<Decimal, std::string>& snapshotBid =
-                this->snapshotBidByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
+                this->snapshotBidByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
             std::map<Decimal, std::string>& snapshotAsk =
-                this->snapshotAskByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
-            if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]
+                this->snapshotAskByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
+            if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                 && wsMessage.recapType == MarketDataMessage::RecapType::NONE) {
-              this->processUpdateSnapshot(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
-                                            timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList,
+              this->processUpdateSnapshot(wsConnection, channelId, symbolId, event, shouldEmitEvent, wsMessage.tp,
+                                            timeReceived, wsMessage.data, field, optionMap, correlationIdList,
                                             snapshotBid, snapshotAsk);
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
                 bool shouldProcessRemainingMessage = true;
                 std::string receivedOrderBookChecksumStr =
-                    this->orderBookChecksumByConnectionIdProductIdMap[wsConnection.id][productId];
+                    this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId];
                 if (!this->checkOrderBookChecksum(snapshotBid, snapshotAsk, receivedOrderBookChecksumStr,
                                                   shouldProcessRemainingMessage)) {
                   CCAPI_LOGGER_ERROR("snapshotBid = "+toString(snapshotBid));
@@ -424,16 +451,16 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
                 }
               }
             } else if (wsMessage.recapType == MarketDataMessage::RecapType::SOLICITED) {
-              this->processInitialSnapshot(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
-                                             timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList,
+              this->processInitialSnapshot(wsConnection, channelId, symbolId, event, shouldEmitEvent, wsMessage.tp,
+                                             timeReceived, wsMessage.data, field, optionMap, correlationIdList,
                                              snapshotBid, snapshotAsk);
             }
             CCAPI_LOGGER_TRACE("snapshotBid.size() = "+toString(snapshotBid.size()));
             CCAPI_LOGGER_TRACE("snapshotAsk.size() = "+toString(snapshotAsk.size()));
           }
           if (wsMessage.data.find(MarketDataMessage::DataType::TRADE) != wsMessage.data.end()) {
-            this->processTrade(wsConnection, channelId, productId, event, shouldEmitEvent, wsMessage.tp,
-                                                        timeReceived, wsMessage.data, fieldSet, optionMap, correlationIdList);
+            this->processTrade(wsConnection, channelId, symbolId, event, shouldEmitEvent, wsMessage.tp,
+                                                        timeReceived, wsMessage.data, field, optionMap, correlationIdList);
           }
         } else {
           CCAPI_LOGGER_WARN("websocket event type is unknown!");
@@ -447,7 +474,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
             shouldEmitEvent = false;
           }
           if (shouldEmitEvent) {
-            this->wsEventHandler(event);
+            this->eventHandler(event);
           }
         }
       }
@@ -468,54 +495,54 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
       }
     }
   }
-  void updateElementListWithInitialMarketDepth(const std::set<std::string>& fieldSet,
+  void updateElementListWithInitialMarketDepth(const std::string& field,
                                                const std::map<std::string, std::string>& optionMap,
                                                const std::map<Decimal, std::string>& snapshotBid,
                                                const std::map<Decimal, std::string>& snapshotAsk,
                                                std::vector<Element>& elementList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    if (fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
-      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+    if (field == CCAPI_MARKET_DEPTH) {
+      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
       int bidIndex = 0;
       for (auto iter = snapshotBid.rbegin(); iter != snapshotBid.rend(); iter++) {
         if (bidIndex < maxMarketDepth) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
         }
         ++bidIndex;
       }
       if (snapshotBid.empty()) {
         Element element;
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE,
-        CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE_EMPTY);
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE,
-        CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE_EMPTY);
+        element.insert(CCAPI_BEST_BID_N_PRICE,
+        CCAPI_BEST_BID_N_PRICE_EMPTY);
+        element.insert(CCAPI_BEST_BID_N_SIZE,
+        CCAPI_BEST_BID_N_SIZE_EMPTY);
         elementList.push_back(std::move(element));
       }
       int askIndex = 0;
       for (auto iter = snapshotAsk.begin(); iter != snapshotAsk.end(); iter++) {
         if (askIndex < maxMarketDepth) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
         }
         ++askIndex;
       }
       if (snapshotAsk.empty()) {
         Element element;
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE,
-        CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE_EMPTY);
-        element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE,
-        CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE_EMPTY);
+        element.insert(CCAPI_BEST_ASK_N_PRICE,
+        CCAPI_BEST_ASK_N_PRICE_EMPTY);
+        element.insert(CCAPI_BEST_ASK_N_SIZE,
+        CCAPI_BEST_ASK_N_SIZE_EMPTY);
         elementList.push_back(std::move(element));
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void updateElementListWithUpdateMarketDepth(const std::set<std::string>& fieldSet,
+  void updateElementListWithUpdateMarketDepth(const std::string& field,
                                               const std::map<std::string, std::string>& optionMap,
                                               const std::map<Decimal, std::string>& snapshotBid,
                                               const std::map<Decimal, std::string>& snapshotBidPrevious,
@@ -524,8 +551,8 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
                                               std::vector<Element>& elementList,
                                               bool alwaysUpdate) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    if (fieldSet.find(CCAPI_EXCHANGE_NAME_MARKET_DEPTH) != fieldSet.end()) {
-      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+    if (field == CCAPI_MARKET_DEPTH) {
+      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
       CCAPI_LOGGER_TRACE("lastNSame = "+toString(lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)));
       CCAPI_LOGGER_TRACE("firstNSame = "+toString(firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)));
       if (alwaysUpdate || !lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)
@@ -536,17 +563,17 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
             break;
           }
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
           ++bidIndex;
         }
         if (snapshotBid.empty()) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE,
-          CCAPI_EXCHANGE_NAME_BEST_BID_N_PRICE_EMPTY);
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE,
-          CCAPI_EXCHANGE_NAME_BEST_BID_N_SIZE_EMPTY);
+          element.insert(CCAPI_BEST_BID_N_PRICE,
+          CCAPI_BEST_BID_N_PRICE_EMPTY);
+          element.insert(CCAPI_BEST_BID_N_SIZE,
+          CCAPI_BEST_BID_N_SIZE_EMPTY);
           elementList.push_back(std::move(element));
         }
         int askIndex = 0;
@@ -555,24 +582,24 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
             break;
           }
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE, iter->second);
+          element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
           elementList.push_back(std::move(element));
           ++askIndex;
         }
         if (snapshotAsk.empty()) {
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE,
-          CCAPI_EXCHANGE_NAME_BEST_ASK_N_PRICE_EMPTY);
-          element.insert(CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE,
-          CCAPI_EXCHANGE_NAME_BEST_ASK_N_SIZE_EMPTY);
+          element.insert(CCAPI_BEST_ASK_N_PRICE,
+          CCAPI_BEST_ASK_N_PRICE_EMPTY);
+          element.insert(CCAPI_BEST_ASK_N_SIZE,
+          CCAPI_BEST_ASK_N_SIZE_EMPTY);
           elementList.push_back(std::move(element));
         }
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void updateElementListWithTrade(const std::set<std::string>& fieldSet,
+  void updateElementListWithTrade(const std::string& field,
                                               const std::map<std::string, std::string>& optionMap,
                                               const MarketDataMessage::TypeForData& input,
                                               std::vector<Element>& elementList) {
@@ -584,10 +611,10 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
           auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
           Element element;
-          element.insert(CCAPI_EXCHANGE_NAME_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
-          element.insert(CCAPI_EXCHANGE_NAME_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
-          element.insert(CCAPI_EXCHANGE_NAME_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
-          element.insert(CCAPI_EXCHANGE_NAME_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
+          element.insert(CCAPI_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
+          element.insert(CCAPI_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
+          element.insert(CCAPI_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
+          element.insert(CCAPI_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
           elementList.push_back(std::move(element));
         }
       } else {
@@ -628,7 +655,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     con->set_close_handler(std::bind(&MarketDataService::onClose, shared_from_this(), std::placeholders::_1));
     con->set_message_handler(
         std::bind(&MarketDataService::onMessage, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
-    if (this->sessionOptions.enableCheckHeartbeat) {
+    if (this->sessionOptions.enableCheckPingPong) {
       con->set_pong_handler(std::bind(&MarketDataService::onPong, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
     }
     con->set_ping_handler(std::bind(&MarketDataService::onPing, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
@@ -659,16 +686,16 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     }
   }
   void processInitialSnapshot(const WsConnection& wsConnection, const std::string& channelId,
-                                const std::string& productId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
+                                const std::string& symbolId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
                                 const TimePoint& timeReceived, const MarketDataMessage::TypeForData & input,
-                                const std::set<std::string>& fieldSet,
+                                const std::string& field,
                                 const std::map<std::string, std::string>& optionMap,
-                                const std::vector<CorrelationId>& correlationIdList,
+                                const std::vector<std::string>& correlationIdList,
                                 std::map<Decimal, std::string>& snapshotBid,
                                 std::map<Decimal, std::string>& snapshotAsk) {
     snapshotBid.clear();
     snapshotAsk.clear();
-    int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+    int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     for (const auto & x : input) {
       auto type = x.first;
       auto detail = x.second;
@@ -691,7 +718,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
       }
     }
     std::vector<Element> elementList;
-    this->updateElementListWithInitialMarketDepth(fieldSet, optionMap, snapshotBid, snapshotAsk, elementList);
+    this->updateElementListWithInitialMarketDepth(field, optionMap, snapshotBid, snapshotAsk, elementList);
     if (!elementList.empty()) {
       Message message;
       message.setTimeReceived(timeReceived);
@@ -703,51 +730,51 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
       event.addMessages(newMessageList);
       CCAPI_LOGGER_TRACE("event.getMessageList() = "+toString(event.getMessageList()));
     }
-    this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] = true;
+    this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
     bool shouldConflate = optionMap.at(
-    CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+    CCAPI_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
     if (shouldConflate) {
       this->copySnapshot(
           true, snapshotBid,
-          this->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId],
+          this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId],
           maxMarketDepth);
       this->copySnapshot(
           false, snapshotAsk,
-          this->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId],
+          this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId],
           maxMarketDepth);
-      CCAPI_LOGGER_TRACE("this->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId) = "+toString(this->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId)));
-      CCAPI_LOGGER_TRACE("this->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId) = "+toString(this->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId)));
+      CCAPI_LOGGER_TRACE("this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
+      CCAPI_LOGGER_TRACE("this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
       TimePoint previousConflateTp = UtilTime::makeTimePointFromMilliseconds(
           std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
               / std::stoi(optionMap.at(
-              CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
-          CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)));
-      this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] =
+              CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
+          CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
+      this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
           previousConflateTp;
       if (optionMap.at(
-          CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
+          CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
         auto interval = std::chrono::milliseconds(std::stoi(optionMap.at(
-        CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)));
+        CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
         auto gracePeriod = std::chrono::milliseconds(std::stoi(optionMap.at(
-        CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS)));
-        this->setConflateTimer(previousConflateTp, interval, gracePeriod, wsConnection, channelId, productId, fieldSet,
+        CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS)));
+        this->setConflateTimer(previousConflateTp, interval, gracePeriod, wsConnection, channelId, symbolId, field,
                                optionMap, correlationIdList);
       }
     }
   }
   void processUpdateSnapshot(const WsConnection& wsConnection, const std::string& channelId,
-                               const std::string& productId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
+                               const std::string& symbolId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
                                const TimePoint& timeReceived, const MarketDataMessage::TypeForData& input,
-                               const std::set<std::string>& fieldSet,
+                               const std::string& field,
                                const std::map<std::string, std::string>& optionMap,
-                               const std::vector<CorrelationId>& correlationIdList,
+                               const std::vector<std::string>& correlationIdList,
                                std::map<Decimal, std::string>& snapshotBid,
                                std::map<Decimal, std::string>& snapshotAsk) {
     CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
-    if (this->processedInitialSnapshotByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
+    if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
       std::vector<Message> messageList;
       CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
-      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_EXCHANGE_NAME_MARKET_DEPTH_MAX));
+      int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
       std::map<Decimal, std::string> snapshotBidPrevious;
       this->copySnapshot(true, snapshotBid, snapshotBidPrevious, maxMarketDepth);
       std::map<Decimal, std::string> snapshotAskPrevious;
@@ -757,7 +784,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
           "lastNToString(snapshotBid, "+toString(maxMarketDepth)+") = " + lastNToString(snapshotBid, maxMarketDepth));
       CCAPI_LOGGER_TRACE(
           "firstNToString(snapshotAsk, "+toString(maxMarketDepth)+") = " + firstNToString(snapshotAsk, maxMarketDepth));
-      if (this->l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]) {
+      if (this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
         if (input.find(MarketDataMessage::DataType::BID) != input.end()) {
           snapshotBid.clear();
         }
@@ -786,13 +813,13 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
         }
       }
       CCAPI_LOGGER_TRACE(
-          "this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap = "
+          "this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap = "
           + toString(
               this
-              ->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap));
+              ->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap));
       if (this->shouldAlignSnapshot) {
-        int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap
-            .at(wsConnection.id).at(channelId).at(productId);
+        int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap
+            .at(wsConnection.id).at(channelId).at(symbolId);
         this->alignSnapshot(snapshotBid, snapshotAsk, marketDepthSubscribedToExchange);
       }
       CCAPI_LOGGER_TRACE("afer updating orderbook");
@@ -806,46 +833,46 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
       CCAPI_LOGGER_TRACE(
           "firstNToString(snapshotAskPrevious, "+toString(maxMarketDepth)+") = "
           + firstNToString(snapshotAskPrevious, maxMarketDepth));
-      CCAPI_LOGGER_TRACE("fieldSet = " + toString(fieldSet));
+      CCAPI_LOGGER_TRACE("field = " + toString(field));
       CCAPI_LOGGER_TRACE("maxMarketDepth = " + toString(maxMarketDepth));
       CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
       bool shouldConflate = optionMap.at(
-      CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_EXCHANGE_VALUE_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+      CCAPI_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
       CCAPI_LOGGER_TRACE("shouldConflate = " + toString(shouldConflate));
       TimePoint conflateTp =
           shouldConflate ?
               UtilTime::makeTimePointFromMilliseconds(
                   std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
                       / std::stoi(optionMap.at(
-                      CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
-                  CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS))) :
+                      CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
+                  CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) :
               tp;
       CCAPI_LOGGER_TRACE("conflateTp = " + toString(conflateTp));
       bool intervalChanged = shouldConflate
           && conflateTp
-              > this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
-                  productId);
+              > this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(
+                  symbolId);
       CCAPI_LOGGER_TRACE("intervalChanged = " + toString(intervalChanged));
       if (!shouldConflate || intervalChanged) {
         std::vector<Element> elementList;
         if (shouldConflate && intervalChanged) {
           const std::map<Decimal, std::string>& snapshotBidPreviousPrevious = this
-              ->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
-              productId);
+              ->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(
+              symbolId);
           const std::map<Decimal, std::string>& snapshotAskPreviousPrevious = this
-              ->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
-              productId);
-          this->updateElementListWithUpdateMarketDepth(fieldSet, optionMap, snapshotBidPrevious,
+              ->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(
+              symbolId);
+          this->updateElementListWithUpdateMarketDepth(field, optionMap, snapshotBidPrevious,
                                                        snapshotBidPreviousPrevious, snapshotAskPrevious,
                                                        snapshotAskPreviousPrevious, elementList, false);
-          this->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
-              productId) = snapshotBidPrevious;
-          this->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
-              productId) = snapshotAskPrevious;
-          CCAPI_LOGGER_TRACE("this->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId) = "+toString(this->previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId)));
-          CCAPI_LOGGER_TRACE("this->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId) = "+toString(this->previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId)));
+          this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(
+              symbolId) = snapshotBidPrevious;
+          this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(
+              symbolId) = snapshotAskPrevious;
+          CCAPI_LOGGER_TRACE("this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
+          CCAPI_LOGGER_TRACE("this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
         } else {
-          this->updateElementListWithUpdateMarketDepth(fieldSet, optionMap, snapshotBid, snapshotBidPrevious,
+          this->updateElementListWithUpdateMarketDepth(field, optionMap, snapshotBid, snapshotBidPrevious,
                                                        snapshotAsk, snapshotAskPrevious, elementList, false);
         }
         CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
@@ -854,8 +881,8 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
           message.setTimeReceived(timeReceived);
           message.setType(Message::Type::MARKET_DATA_EVENTS);
           message.setRecapType(Message::RecapType::NONE);
-          TimePoint time = shouldConflate ? this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId) + std::chrono::milliseconds(std::stoll(optionMap.at(
-              CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS))) : conflateTp;
+          TimePoint time = shouldConflate ? this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) + std::chrono::milliseconds(std::stoll(optionMap.at(
+              CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) : conflateTp;
           message.setTime(time);
 //          message.setTime(conflateTp);
           message.setElementList(elementList);
@@ -866,22 +893,22 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
           event.addMessages(messageList);
         }
         if (shouldConflate) {
-          this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(
-              productId) = conflateTp;
+          this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(
+              symbolId) = conflateTp;
         }
       }
     }
   }
   void processTrade(const WsConnection& wsConnection, const std::string& channelId,
-                               const std::string& productId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
+                               const std::string& symbolId, Event& event, bool& shouldEmitEvent, const TimePoint& tp,
                                const TimePoint& timeReceived, const MarketDataMessage::TypeForData& input,
-                               const std::set<std::string>& fieldSet,
+                               const std::string& field,
                                const std::map<std::string, std::string>& optionMap,
-                               const std::vector<CorrelationId>& correlationIdList) {
+                               const std::vector<std::string>& correlationIdList) {
     CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
     std::vector<Message> messageList;
     std::vector<Element> elementList;
-      this->updateElementListWithTrade(fieldSet, optionMap, input, elementList);
+      this->updateElementListWithTrade(field, optionMap, input, elementList);
     CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
     if (!elementList.empty()) {
       Message message;
@@ -898,10 +925,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     }
   }
   virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage,
-                                                           const TimePoint& timeReceived) {
-    std::vector<MarketDataMessage> x;
-    return x;
-  }
+                                                           const TimePoint& timeReceived) = 0;
   virtual void alignSnapshot(std::map<Decimal, std::string>& snapshotBid, std::map<Decimal, std::string>& snapshotAsk,
                              int marketDepthSubscribedToExchange) {
     CCAPI_LOGGER_TRACE("snapshotBid.size() = "+toString(snapshotBid.size()));
@@ -978,7 +1002,7 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::map<std::string, std::map<std::string, std::string> > orderBookChecksumByConnectionIdProductIdMap;
+  std::map<std::string, std::map<std::string, std::string> > orderBookChecksumByConnectionIdSymbolIdMap;
   virtual bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid,
                                       const std::map<Decimal, std::string>& snapshotAsk,
                                       const std::string& receivedOrderBookChecksumStr,
@@ -1023,10 +1047,10 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     message.setTime(timeReceived);
     message.setType(Message::Type::SESSION_INCORRECT_STATES_FOUND);
     Element element;
-    element.insert(CCAPI_EXCHANGE_NAME_ERROR_MESSAGE, errorMessage);
+    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
     message.setElementList({ element });
     event.setMessageList({ message });
-    this->wsEventHandler(event);
+    this->eventHandler(event);
   }
   int calculateMarketDepthSubscribedToExchange(int depthWanted, std::vector<int> availableMarketDepth) {
     int i = ceilSearch(availableMarketDepth, 0, availableMarketDepth.size(), depthWanted);
@@ -1037,26 +1061,26 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
   }
   void setConflateTimer(const TimePoint& previousConflateTp, const std::chrono::milliseconds& interval,
                         const std::chrono::milliseconds& gracePeriod, const WsConnection& wsConnection,
-                        const std::string& channelId, const std::string& productId,
-                        const std::set<std::string>& fieldSet, const std::map<std::string, std::string>& optionMap,
-                        const std::vector<CorrelationId>& correlationIdList) {
+                        const std::string& channelId, const std::string& symbolId,
+                        const std::string& field, const std::map<std::string, std::string>& optionMap,
+                        const std::vector<std::string>& correlationIdList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (wsConnection.status == WsConnection::Status::OPEN) {
-      if (this->conflateTimerMapByConnectionIdChannelIdProductIdMap.find(wsConnection.id)
-          != this->conflateTimerMapByConnectionIdChannelIdProductIdMap.end()
-          && this->conflateTimerMapByConnectionIdChannelIdProductIdMap[wsConnection.id].find(channelId)
-              != this->conflateTimerMapByConnectionIdChannelIdProductIdMap[wsConnection.id].end()
-          && this->conflateTimerMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId].find(productId)
-              != this->conflateTimerMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId].end()) {
-        this->conflateTimerMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId]->cancel();
+      if (this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id)
+          != this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.end()
+          && this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id].find(channelId)
+              != this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id].end()
+          && this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId].find(symbolId)
+              != this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId].end()) {
+        this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]->cancel();
       }
       long waitMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
           previousConflateTp + interval + gracePeriod - std::chrono::system_clock::now()).count();
       if (waitMilliseconds > 0) {
-        this->conflateTimerMapByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId] =
+        this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
             this->serviceContextPtr->tlsClientPtr->set_timer(
                 waitMilliseconds,
-                [wsConnection, channelId, productId, fieldSet, optionMap, correlationIdList, previousConflateTp, interval, gracePeriod, this ](ErrorCode const& ec) {
+                [wsConnection, channelId, symbolId, field, optionMap, correlationIdList, previousConflateTp, interval, gracePeriod, this ](ErrorCode const& ec) {
                   if (this->wsConnectionMap.find(wsConnection.id) != this->wsConnectionMap.end()) {
                     if (ec) {
                       CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", conflate timer error: "+ec.message());
@@ -1064,17 +1088,17 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
                     } else {
                       if (this->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                         auto conflateTp = previousConflateTp + interval;
-                        if (conflateTp > this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId)) {
+                        if (conflateTp > this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)) {
                           Event event;
                           event.setType(Event::Type::SUBSCRIPTION_DATA);
                           std::vector<Element> elementList;
-                          std::map<Decimal, std::string>& snapshotBid = this->snapshotBidByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
-                          std::map<Decimal, std::string>& snapshotAsk = this->snapshotAskByConnectionIdChannelIdProductIdMap[wsConnection.id][channelId][productId];
-                          this->updateElementListWithUpdateMarketDepth(fieldSet, optionMap, snapshotBid,
+                          std::map<Decimal, std::string>& snapshotBid = this->snapshotBidByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
+                          std::map<Decimal, std::string>& snapshotAsk = this->snapshotAskByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
+                          this->updateElementListWithUpdateMarketDepth(field, optionMap, snapshotBid,
                               std::map<Decimal, std::string>(), snapshotAsk,
                               std::map<Decimal, std::string>(), elementList, true);
                           CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
-                          this->previousConflateTimeMapByConnectionIdChannelIdProductIdMap.at(wsConnection.id).at(channelId).at(productId) = conflateTp;
+                          this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = conflateTp;
                           std::vector<Message> messageList;
                           if (!elementList.empty()) {
                             Message message;
@@ -1088,14 +1112,14 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
                           }
                           if (!messageList.empty()) {
                             event.addMessages(messageList);
-                            this->wsEventHandler(event);
+                            this->eventHandler(event);
                           }
                         }
                         auto now = std::chrono::system_clock::now();
                         while (conflateTp + interval + gracePeriod <= now) {
                           conflateTp += interval;
                         }
-                        this->setConflateTimer(conflateTp, interval, gracePeriod, wsConnection, channelId, productId, fieldSet, optionMap, correlationIdList);
+                        this->setConflateTimer(conflateTp, interval, gracePeriod, wsConnection, channelId, symbolId, field, optionMap, correlationIdList);
                       }
                     }
                   }
@@ -1104,25 +1128,108 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  void stop() override {
+    this->shouldContinue = false;
+    for (const auto & x : this->wsConnectionMap) {
+      auto wsConnection = x.second;
+      ErrorCode ec;
+      this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
+      if (ec) {
+        CCAPI_LOGGER_ERROR(ec.message());
+      }
+      this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
+    }
+  }
+  void subscribe(const std::vector<Subscription>& subscriptionList) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_DEBUG("this->baseUrl = "+this->baseUrl);
+    if (this->shouldContinue.load()) {
+      for (const auto & x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
+        auto instrumentGroup = x.first;
+        auto subscriptionListGivenInstrumentGroup = x.second;
+        wspp::lib::asio::post(
+          this->serviceContextPtr->tlsClientPtr->get_io_service(),
+          [that = shared_from_this(), instrumentGroup, subscriptionListGivenInstrumentGroup](){
+            std::map<std::string, std::vector<std::string> > wsConnectionIdListByInstrumentGroupMap = invertMapMulti(that->instrumentGroupByWsConnectionIdMap);
+            if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end()
+                && that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()
+                ) {
+              auto wsConnectionId = wsConnectionIdListByInstrumentGroupMap.at(instrumentGroup).at(0);
+              auto wsConnection = that->wsConnectionMap.at(wsConnectionId);
+              for (const auto & subscription : subscriptionListGivenInstrumentGroup) {
+                auto instrument = subscription.getInstrument();
+                if (that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].find(instrument) != that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].end()) {
+                  CCAPI_LOGGER_ERROR("already subscribed: " + toString(subscription));
+                  return;
+                }
+                wsConnection.subscriptionList.push_back(subscription);
+                that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
+                that->prepareSubscription(wsConnection, subscription);
+              }
+              that->subscribeToExchange(wsConnection);
+            } else {
+              auto url = UtilString::split(instrumentGroup, "|").at(0);
+              WsConnection wsConnection(url, subscriptionListGivenInstrumentGroup);
+              that->connect(wsConnection);
+              that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+              that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, instrumentGroup));
+              wsConnection.instrumentGroup = instrumentGroup;
+              for (const auto & subscription : subscriptionListGivenInstrumentGroup) {
+                auto instrument = subscription.getInstrument();
+                that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
+              }
+              wsConnectionIdListByInstrumentGroupMap[instrumentGroup].push_back(wsConnection.id);
+            }
+        });
+      }
+      CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
+    }
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  virtual void subscribeToExchange(const WsConnection& wsConnection) {
+    std::vector<std::string> requestStringList = this->createRequestStringList(wsConnection);
+    for (const auto & requestString : requestStringList) {
+      CCAPI_LOGGER_INFO("requestString = "+requestString);
+      ErrorCode ec;
+      this->send(wsConnection.hdl, requestString, wspp::frame::opcode::text, ec);
+      if (ec) {
+        CCAPI_LOGGER_ERROR(ec.message());
+      }
+    }
+  }
+  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) {
+    std::vector<std::string> dummy;
+    return dummy;
+  }
+
+//  std::shared_ptr<WsConnection> findWsConnectionByInstrumentGroup(std::string instrumentGroup) {
+//    std::shared_ptr<WsConnection> wsConnectionPtr(nullptr);
+//    for (const auto & x : this->wsConnectionMap) {
+//      auto wsConnection = x.second;
+//      if (url == wsConnection.url) {
+//        return std::make_shared<WsConnection>(wsConnection);
+//      }
+//    }
+//    return wsConnectionPtr;
+//  }
   std::shared_ptr<ServiceContext> serviceContextPtr;
-  std::string baseUrl;
   std::string name;
   std::map<std::string, WsConnection> wsConnectionMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::set<std::string> > > > fieldSetByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > optionMapByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, int> > > marketDepthSubscribedToExchangeByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, SubscriptionList> > > subscriptionListByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::vector<CorrelationId> > > > correlationIdListByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > channelIdProductIdByConnectionIdExchangeSubscriptionIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > snapshotBidByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > snapshotAskByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > previousConflateSnapshotBidByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > previousConflateSnapshotAskByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, bool> > > processedInitialSnapshotByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, bool> > > l2UpdateIsReplaceByConnectionIdChannelIdProductIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::string > > > fieldByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > optionMapByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, int> > > marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::vector<Subscription>> > > subscriptionListByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::vector<std::string> > > > correlationIdListByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > snapshotBidByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > snapshotAskByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, std::map<Decimal, std::string> > > > previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, bool> > > processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, bool> > > l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, bool> shouldProcessRemainingMessageOnClosingByConnectionIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, TimePoint> > > previousConflateTimeMapByConnectionIdChannelIdProductIdMap;
-  std::map<std::string, std::map<std::string, std::map<std::string, TimerPtr> > > conflateTimerMapByConnectionIdChannelIdProductIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, TimePoint> > > previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, std::map<std::string, TimerPtr> > > conflateTimerMapByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, int> connectNumRetryOnFailByConnectionUrlMap;
   std::map<std::string, TimerPtr> connectRetryOnFailTimerByConnectionIdMap;
   std::map<std::string, TimePoint> lastPongTpByConnectionIdMap;
@@ -1131,15 +1238,20 @@ class MarketDataService : public std::enable_shared_from_this<MarketDataService>
   bool shouldAlignSnapshot{};
   long pingIntervalMilliSeconds{};
   long pongTimeoutMilliSeconds{};
-  SubscriptionList subscriptionList;
+//  std::vector<Subscription> subscriptionList;
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
 //  ServiceContext& serviceContext;
-  std::function<void(Event& event)> wsEventHandler;
-#if defined(ENABLE_HUOBI) || defined(ENABLE_OKEX)
+  std::function<void(Event& event)> eventHandler;
+#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> inflater;
 #endif
+  std::atomic<bool> shouldContinue{true};
+//  mutable std::mutex mutex;
+  std::map<std::string, std::map<std::string, Subscription::Status> > subscriptionStatusByInstrumentGroupInstrumentMap;
+//  std::map<std::string, std::vector<std::string> > wsConnectionIdListByInstrumentGroupMap;
+  std::map<std::string, std::string> instrumentGroupByWsConnectionIdMap;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_

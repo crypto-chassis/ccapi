@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_SERVICE_CONTEXT_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_SERVICE_CONTEXT_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
 #include "ccapi_cpp/ccapi_logger.h"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "websocketpp/config/asio_client.hpp"
@@ -37,7 +37,6 @@ class ServiceContext final {
       CCAPI_LOGGER_FATAL("asio initialization error: " + ec.message());
     }
     CCAPI_LOGGER_DEBUG("asio initialization end");
-    this->tlsClientPtr->start_perpetual();
     this->sslContextPtr->set_options(
         SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3
             | SslContext::single_dh_use);
@@ -47,10 +46,15 @@ class ServiceContext final {
   }
   ServiceContext(const ServiceContext&) = delete;
   ServiceContext& operator=(const ServiceContext&) = delete;
-  void run() {
+  void start() {
     CCAPI_LOGGER_INFO("about to start client asio io_service run loop");
+    this->tlsClientPtr->start_perpetual();
     this->tlsClientPtr->run();
     CCAPI_LOGGER_INFO("just exited client asio io_service run loop");
+  }
+  void stop() {
+    this->tlsClientPtr->stop();
+    this->tlsClientPtr->stop_perpetual();
   }
   IoContextPtr ioContextPtr{new IoContext()};
   TlsClientPtr tlsClientPtr{new TlsClient()};
@@ -59,4 +63,4 @@ class ServiceContext final {
 
 } /* namespace ccapi */
 
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_SERVICE_CONTEXT_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_

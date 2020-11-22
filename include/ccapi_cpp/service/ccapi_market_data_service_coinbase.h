@@ -1,49 +1,45 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_COINBASE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_COINBASE_H_
-#ifdef ENABLE_COINBASE
+#ifdef ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
 class MarketDataServiceCoinbase final : public MarketDataService {
  public:
-  MarketDataServiceCoinbase(SubscriptionList subscriptionList, std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(subscriptionList, wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+  MarketDataServiceCoinbase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
   }
 
  private:
-  void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataService::onOpen(hdl);
-//    this->onOpen_2(hdl);
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("type", rj::Value("subscribe").Move(), allocator);
     rj::Value channels(rj::kArrayType);
-    for (const auto & subscriptionListByChannelIdProductId : this->subscriptionListByConnectionIdChannelIdProductIdMap.at(wsConnection.id)) {
-      auto channelId = subscriptionListByChannelIdProductId.first;
+    for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+      auto channelId = subscriptionListByChannelIdSymbolId.first;
       rj::Value channel(rj::kObjectType);
-      rj::Value productIds(rj::kArrayType);
-      for (const auto & subscriptionListByProductId : subscriptionListByChannelIdProductId.second) {
-        std::string productId = subscriptionListByProductId.first;
-        productIds.PushBack(rj::Value(productId.c_str(), allocator).Move(), allocator);
+      rj::Value symbolIds(rj::kArrayType);
+      for (const auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
+        std::string symbolId = subscriptionListBySymbolId.first;
+        symbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
         std::string exchangeSubscriptionId = channelId+
-        "|"+productId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_CHANNEL_ID] = channelId;
-        this->channelIdProductIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_EXCHANGE_NAME_PRODUCT_ID] = productId;
+        "|"+symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
       }
       channel.AddMember("name", rj::Value(channelId.c_str(), allocator).Move(), allocator);
-      channel.AddMember("product_ids", productIds, allocator);
+      channel.AddMember("product_ids", symbolIds, allocator);
       channels.PushBack(channel, allocator);
       rj::Value heartbeatChannel(rj::kObjectType);
       heartbeatChannel.AddMember("name", rj::Value("heartbeat").Move(), allocator);
-      rj::Value heartbeatProductIds(rj::kArrayType);
-      for (const auto & subscriptionListByProductId : subscriptionListByChannelIdProductId.second) {
-        heartbeatProductIds.PushBack(rj::Value(subscriptionListByProductId.first.c_str(), allocator).Move(), allocator);
+      rj::Value heartbeatSymbolIds(rj::kArrayType);
+      for (const auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
+        heartbeatSymbolIds.PushBack(rj::Value(subscriptionListBySymbolId.first.c_str(), allocator).Move(), allocator);
       }
-      heartbeatChannel.AddMember("product_ids", heartbeatProductIds, allocator);
+      heartbeatChannel.AddMember("product_ids", heartbeatSymbolIds, allocator);
       channels.PushBack(heartbeatChannel, allocator);
     }
     document.AddMember("channels", channels, allocator);
@@ -52,35 +48,31 @@ class MarketDataServiceCoinbase final : public MarketDataService {
     document.Accept(writer);
     std::string requestString = stringBuffer.GetString();
     requestStringList.push_back(requestString);
-    for (const auto & requestString : requestStringList) {
-      CCAPI_LOGGER_INFO("requestString = "+requestString);
-      ErrorCode ec;
-      this->send(hdl, requestString, wspp::frame::opcode::text, ec);
-      if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
-        // TODO(cryptochassis): implement
-      }
-    }
-    CCAPI_LOGGER_FUNCTION_EXIT;
+    return requestStringList;
   }
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-//    this->onTextMessage_2(hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
+//  void onOpen(wspp::connection_hdl hdl) override {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    MarketDataService::onOpen(hdl);
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
+//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+//    CCAPI_LOGGER_FUNCTION_ENTER;
+//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
+////    this->onTextMessage_2(hdl, textMessage, timeReceived);
+//    CCAPI_LOGGER_FUNCTION_EXIT;
+//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+//    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> wsMessageList;
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = "+type);
     if (type == "l2update") {
-      auto productId = std::string(document["product_id"].GetString());
-      auto exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
-      "|"+productId;
+      auto symbolId = std::string(document["product_id"].GetString());
+      auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
+      "|"+symbolId;
       MarketDataMessage wsMessage;
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
@@ -102,11 +94,11 @@ class MarketDataServiceCoinbase final : public MarketDataService {
     } else if (type == "match") {
       // TODO(cryptochassis): implement
     } else if (type == "heartbeat") {
-      CCAPI_LOGGER_DEBUG("heartbeat: "+toString(wsConnection));
+      // CCAPI_LOGGER_DEBUG("heartbeat: "+toString(wsConnection));
     } else if (type == "snapshot") {
-      auto productId = std::string(document["product_id"].GetString());
-      auto exchangeSubscriptionId = std::string(CCAPI_EXCHANGE_NAME_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
-      "|"+productId;
+      auto symbolId = std::string(document["product_id"].GetString());
+      auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+
+      "|"+symbolId;
       MarketDataMessage wsMessage;
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;

@@ -2,11 +2,8 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_MESSAGE_H_
 #include <vector>
 #include <chrono>
-//  include <string>
-#include "ccapi_cpp/ccapi_correlationId.h"
 #include "ccapi_cpp/ccapi_element.h"
 #include "ccapi_cpp/ccapi_logger.h"
-// #include "ccapi_cpp/ccapi_generic_base.h"
 namespace ccapi {
 class Message final {
  public:
@@ -98,10 +95,10 @@ class Message final {
   void setElementList(const std::vector<Element>& elementList) {
     this->elementList = elementList;
   }
-  const std::vector<CorrelationId>& getCorrelationIdList() const {
+  const std::vector<std::string>& getCorrelationIdList() const {
     return correlationIdList;
   }
-  void setCorrelationIdList(const std::vector<CorrelationId>& correlationIdList) {
+  void setCorrelationIdList(const std::vector<std::string>& correlationIdList) {
     this->correlationIdList = correlationIdList;
   }
   TimePoint getTime() const {
@@ -133,7 +130,7 @@ class Message final {
   TimePoint time{std::chrono::seconds{0}};
   TimePoint timeReceived{std::chrono::seconds{0}};
   std::vector<Element> elementList;
-  std::vector<CorrelationId> correlationIdList;
+  std::vector<std::string> correlationIdList;
   Type type{Type::UNKNOWN};
   RecapType recapType{RecapType::UNKNOWN};
 };
