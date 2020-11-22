@@ -22,6 +22,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
+**NEW**: Version 2.0.0 has been released. The APIs remain to be largely the same to version 1.x.x except for a few small breaking changes with the most prominent one being renaming of some of the macros needed at build time.
 # ccapi_cpp
 * A header-only C++ library for streaming public market data directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
