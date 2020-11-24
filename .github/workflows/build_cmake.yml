@@ -48,11 +48,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-
+    - name: pwd
+      run: 'echo $PWD'
     - name: Create main.cpp
-      run: |
-      echo $PWD
-      'echo ''
+      run: 'echo ''
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
   Logger* Logger::logger = 0;
