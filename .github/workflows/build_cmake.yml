@@ -50,7 +50,9 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: Create main.cpp
-      run: 'echo ''
+      run: |
+      echo $PWD
+      'echo ''
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
   Logger* Logger::logger = 0;
