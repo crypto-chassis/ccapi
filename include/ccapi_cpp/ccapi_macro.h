@@ -115,9 +115,8 @@
 #ifndef CCAPI_SYMBOL_ID
 #define CCAPI_SYMBOL_ID "symbolId"
 #endif
-#define CCAPI_CONNECTION "connection"
-#define CCAPI_REASON "reason"
-#define CCAPI_ERROR_MESSAGE "message"
+#define CCAPI_CONNECTION "CONNECTION"
+#define CCAPI_REASON "REASON"
 #ifndef CCAPI_MARKET_DATA
 #define CCAPI_MARKET_DATA "market_data"
 #endif
