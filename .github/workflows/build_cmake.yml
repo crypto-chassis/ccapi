@@ -126,6 +126,17 @@ jobs:
     - name: Configure
       shell: cmake -P {0}
       run: |
+        'echo ''
+          #include "ccapi_cpp/ccapi_session.h"
+          namespace ccapi {
+            Logger* Logger::logger = 0;
+          }
+          int main(int argc, char **argv) {
+            using namespace ccapi;
+            Session session;
+            return EXIT_SUCCESS;
+          }
+        '' > "include/main.cpp"'
         set(ENV{CC} ${{ matrix.config.cc }})
         set(ENV{CXX} ${{ matrix.config.cxx }})
         if ("${{ runner.os }}" STREQUAL "macOS")
