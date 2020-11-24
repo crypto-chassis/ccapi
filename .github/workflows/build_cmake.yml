@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
   return EXIT_SUCCESS;
 }
       '' > "main.cpp"'
-    - working-directory: include/main.cpp.d
+      working-directory: include/main.cpp.d
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja
