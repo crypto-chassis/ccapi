@@ -48,9 +48,6 @@ class SessionConfigs final {
   const std::map<std::string, std::vector<int> >& getWebsocketAvailableMarketDepth() const {
     return websocketAvailableMarketDepth;
   }
-//  const std::map<std::string, int>& getWebsocketMaxAvailableMarketDepth() const {
-//    return websocketMaxAvailableMarketDepth;
-//  }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const {
     return urlWebsocketBase;
   }
@@ -187,9 +184,6 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})},
       { CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({400})}
     };
-//    this->websocketMaxAvailableMarketDepth = {
-//      { CCAPI_EXCHANGE_NAME_BITSTAMP, 100}
-//    };
     this->urlWebsocketBase = {
       { CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},
       { CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata"},

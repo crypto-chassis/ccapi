@@ -16,7 +16,6 @@ class SessionOptions final {
         + ccapi::toString(pongTimeoutMilliSeconds) + "]";
     return output;
   }
-//  std::string defaultSubscriptionService{"// cc/mktdata"};
   long warnLateEventMaxMilliSeconds{};
   bool enableCheckSequence{};
   bool enableCheckOrderBookChecksum{};
