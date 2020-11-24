@@ -49,6 +49,20 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
+    - name: Create main.cpp
+      run: 'echo ''
+#include "ccapi_cpp/ccapi_session.h"
+namespace ccapi {
+  Logger* Logger::logger = 0;
+}
+int main(int argc, char **argv) {
+  using namespace ccapi;
+  Session session;
+  return EXIT_SUCCESS;
+}
+      '' > "main.cpp"'
+    - working-directory: include/main.cpp.d
+
     - name: Download Ninja and CMake
       id: cmake_and_ninja
       shell: cmake -P {0}
