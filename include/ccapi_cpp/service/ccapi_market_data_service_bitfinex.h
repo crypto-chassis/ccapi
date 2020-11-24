@@ -15,7 +15,6 @@ class MarketDataServiceBitfinex final : public MarketDataService {
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
-//    this->onOpen_2(hdl);
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -42,18 +41,11 @@ class MarketDataServiceBitfinex final : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-//    CCAPI_LOGGER_FUNCTION_ENTER;
-//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-////    this->onTextMessage_2(hdl, textMessage, timeReceived);
-//    CCAPI_LOGGER_FUNCTION_EXIT;
-//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     CCAPI_LOGGER_TRACE("wsConnection = "+toString(wsConnection));
     rj::Document document;
-//    rj::Document::AllocatorType& allocator = document.GetAllocator();
     std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_TRACE("quotedTextMessage = "+quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());

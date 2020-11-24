@@ -60,57 +60,10 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   }
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
     return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
-//        + toString(subscription.getOptionMap());
   }
-//  void connect() {
-//    CCAPI_LOGGER_FUNCTION_ENTER;
-//    CCAPI_LOGGER_DEBUG("this->baseUrl = "+this->baseUrl);
-//    if (this->shouldContinue.load()) {
-//      for (const auto & x : this->groupSubscriptionListByInstrumentGroup(this->subscriptionList)) {
-//        auto wsConnectionMapGivenUrl = this->buildWsConnectionMap(x.first, x.second);
-//        this->wsConnectionMap.insert(wsConnectionMapGivenUrl.begin(), wsConnectionMapGivenUrl.end());
-//      }
-//      std::map<std::string, WsConnection> actualWebsocketwsConnectionMap;
-//      for (const auto & x : this->wsConnectionMap) {
-//        auto wsConnectionId = x.first;
-//        CCAPI_LOGGER_DEBUG("dummy wsConnectionId = "+wsConnectionId);
-//        auto wsConnection = x.second;
-//        CCAPI_LOGGER_DEBUG("wsConnection = "+toString(wsConnection));
-//        this->connect(wsConnection);
-//        CCAPI_LOGGER_DEBUG("wsConnectionId "+wsConnectionId+" requested");
-//        actualWebsocketwsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-//      }
-//      this->wsConnectionMap = actualWebsocketwsConnectionMap;
-//      CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
-//    }
-//    CCAPI_LOGGER_FUNCTION_EXIT;
-//  }
-
-//  std::map<std::string, WsConnection> buildWsConnectionMap(
-//      std::string url, const std::vector<Subscription>& subscriptionList) {
-//    if (this->sessionOptions.enableOneConnectionPerSubscription) {
-//      std::map<std::string, WsConnection> wsConnectionMap;
-//      CCAPI_LOGGER_TRACE("subscriptionList = "+toString(subscriptionList));
-//      for (const auto & subscription : subscriptionList.getstd::vector<Subscription>()) {
-//        std::vector<Subscription> substd::vector<Subscription>;
-//        substd::vector<Subscription>.add(subscription);
-//        WsConnection wsConnection(url, substd::vector<Subscription>);
-//        wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-//      }
-//      CCAPI_LOGGER_TRACE("wsConnectionMap = "+toString(wsConnectionMap));
-//      return wsConnectionMap;
-//    } else {
-//      WsConnection wsConnection(url, subscriptionList);
-//      return { {wsConnection.id, wsConnection}};
-//    }
-//  }
 
  protected:
   typedef ServiceContext::SslContextPtr SslContextPtr;
-//  struct CustomClientConfig : public wspp::config::asio_tls_client {
-//    static const wspp::log::level alog_level = wspp::log::alevel::none;
-//    static const wspp::log::level elog_level = wspp::log::elevel::none;
-//  };
   typedef ServiceContext::TlsClient TlsClient;
   typedef wspp::lib::error_code ErrorCode;
   typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
@@ -118,9 +71,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   SslContextPtr onTlsInit(wspp::connection_hdl hdl) {
     return this->serviceContextPtr->sslContextPtr;
   }
-//  SslContextPtr onTlsInit(wspp::connection_hdl hdl) {
-//    return MarketDataService::onTlsInitStatic(hdl);
-//  }
   virtual void onOpen(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto now = std::chrono::system_clock::now();
@@ -623,20 +573,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       }
     }
   }
-//    std::pair<Decimal, std::string> getBestBid(const std::map<Decimal, std::string>& snapshotBid){
-//      if (!snapshotBid.empty()) {
-//        return std::make_pair(snapshotBid.rbegin()->first, snapshotBid.rbegin()->second);
-//      } else {
-//        return std::make_pair(Decimal("0"), "");
-//      }
-//    }
-//    std::pair<Decimal, std::string> getBestAsk(const std::map<Decimal, std::string>& snapshotAsk){
-//      if (!snapshotAsk.empty()) {
-//        return std::make_pair(snapshotAsk.begin()->first, snapshotAsk.begin()->second);
-//      } else {
-//        return std::make_pair(Decimal("0"), "");
-//      }
-//    }
   void connect(WsConnection& wsConnection) {
     wsConnection.status = WsConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on dummy id "+wsConnection.id);
@@ -1202,16 +1138,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     return dummy;
   }
 
-//  std::shared_ptr<WsConnection> findWsConnectionByInstrumentGroup(std::string instrumentGroup) {
-//    std::shared_ptr<WsConnection> wsConnectionPtr(nullptr);
-//    for (const auto & x : this->wsConnectionMap) {
-//      auto wsConnection = x.second;
-//      if (url == wsConnection.url) {
-//        return std::make_shared<WsConnection>(wsConnection);
-//      }
-//    }
-//    return wsConnectionPtr;
-//  }
   std::shared_ptr<ServiceContext> serviceContextPtr;
   std::string name;
   std::map<std::string, WsConnection> wsConnectionMap;
@@ -1238,19 +1164,15 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   bool shouldAlignSnapshot{};
   long pingIntervalMilliSeconds{};
   long pongTimeoutMilliSeconds{};
-//  std::vector<Subscription> subscriptionList;
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
-//  ServiceContext& serviceContext;
   std::function<void(Event& event)> eventHandler;
 #if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> inflater;
 #endif
   std::atomic<bool> shouldContinue{true};
-//  mutable std::mutex mutex;
   std::map<std::string, std::map<std::string, Subscription::Status> > subscriptionStatusByInstrumentGroupInstrumentMap;
-//  std::map<std::string, std::vector<std::string> > wsConnectionIdListByInstrumentGroupMap;
   std::map<std::string, std::string> instrumentGroupByWsConnectionIdMap;
 };
 } /* namespace ccapi */

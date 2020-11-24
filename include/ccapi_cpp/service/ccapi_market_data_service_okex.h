@@ -41,15 +41,8 @@ class MarketDataServiceOkex final : public MarketDataService {
     requestStringList.push_back(requestString);
     return requestStringList;
   }
-//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-//    CCAPI_LOGGER_FUNCTION_ENTER;
-//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-//    CCAPI_LOGGER_FUNCTION_EXIT;
-//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-//    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
-//    rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> wsMessageList;
     if (document.IsObject() && document.HasMember("table")) {
@@ -59,9 +52,6 @@ class MarketDataServiceOkex final : public MarketDataService {
         CCAPI_LOGGER_TRACE("action = " + toString(action));
         for (const auto& datum : document["data"].GetArray()) {
           std::string exchangeSubscriptionId = table + ":" + datum["instrument_id"].GetString();
-//          std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
-//          std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
-//          auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
           MarketDataMessage wsMessage;
           wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
           wsMessage.recapType = action == "update" ? MarketDataMessage::RecapType::NONE : MarketDataMessage::RecapType::SOLICITED;

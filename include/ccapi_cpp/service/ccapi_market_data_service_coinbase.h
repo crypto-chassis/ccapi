@@ -50,20 +50,8 @@ class MarketDataServiceCoinbase final : public MarketDataService {
     requestStringList.push_back(requestString);
     return requestStringList;
   }
-//  void onOpen(wspp::connection_hdl hdl) override {
-//    CCAPI_LOGGER_FUNCTION_ENTER;
-//    MarketDataService::onOpen(hdl);
-//    CCAPI_LOGGER_FUNCTION_EXIT;
-//  }
-//  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-//    CCAPI_LOGGER_FUNCTION_ENTER;
-//    MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-////    this->onTextMessage_2(hdl, textMessage, timeReceived);
-//    CCAPI_LOGGER_FUNCTION_EXIT;
-//  }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-//    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> wsMessageList;
@@ -94,7 +82,7 @@ class MarketDataServiceCoinbase final : public MarketDataService {
     } else if (type == "match") {
       // TODO(cryptochassis): implement
     } else if (type == "heartbeat") {
-      // CCAPI_LOGGER_DEBUG("heartbeat: "+toString(wsConnection));
+      // TODO(cryptochassis): implement
     } else if (type == "snapshot") {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2)+

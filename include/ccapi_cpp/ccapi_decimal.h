@@ -6,9 +6,6 @@ namespace ccapi {
 class Decimal final {
  public:
   explicit Decimal(std::string originalValue) {
-//    if (value.at(0) == '-') {
-//      throw std::runtime_error("Decimal could only be used to represent unsigned decimal.");
-//    }
     std::string value = originalValue;
     this->sign = true;
     if (originalValue.at(0) == '-') {
@@ -52,16 +49,6 @@ class Decimal final {
       this->frac = splitted.at(1);
       UtilString::rtrim(this->frac, "0");
     }
-
-
-//    this->whole = splitted.at(0);
-//    if (splitted.size() > 1) {
-//      this->frac = splitted.at(1);
-//      UtilString::rtrim(this->frac, "0");
-//    } else {
-//      this->frac = "";
-//    }
-//    this->value = this->frac.empty() ? this->whole : this->whole + "." + this->frac;
   }
   std::string toString() const {
     std::string stringValue;
@@ -75,38 +62,6 @@ class Decimal final {
     }
     return stringValue;
   }
-//  Decimal static mid(const Decimal& a, const Decimal& b) {
-//    auto aScale = a.frac.length();
-//    auto bScale = b.frac.length();
-//    unsigned long long ua;
-//    unsigned long long ub;
-//    size_t scale;
-//    if (aScale < bScale) {
-//      ua = std::stoull(a.whole + a.frac + std::string(bScale - aScale, '0'));
-//      ub = std::stoull(b.whole + b.frac);
-//      scale = bScale;
-//    } else {
-//      ua = std::stoull(a.whole + a.frac);
-//      ub = std::stoull(b.whole + b.frac + std::string(aScale - bScale, '0'));
-//      scale = aScale;
-//    }
-//    unsigned long long umid;
-//    div_t divResult;
-//    if (ua < ub) {
-//      divResult = std::div(ub - ua, 2);
-//      umid = ua + divResult.quot;
-//    } else {
-//      divResult = std::div(ua - ub, 2);
-//      umid = ub + divResult.quot;
-//    }
-//    std::string umidString = std::to_string(umid);
-//    std::string midString = umidString.substr(0, umidString.length() - scale) + "."
-//        + umidString.substr(umidString.length() - scale);
-//    if (divResult.rem > 0) {
-//      midString += "5";
-//    }
-//    return Decimal(midString);
-//  }
   friend bool operator<(const Decimal& l, const Decimal& r) {
     if (l.sign && r.sign) {
       if (l.before < r.before) {
@@ -127,39 +82,7 @@ class Decimal final {
       nr.sign = true;
       return nl > nr;
     }
-
-
-
-
-//    if (l.whole.length() < r.whole.length()) {
-//      return true;
-//    } else if (l.whole.length() == r.whole.length()) {
-//      if (l.whole < r.whole) {
-//        return true;
-//      } else if (l.whole == r.whole) {
-//        return l.frac < r.frac;
-//      } else {
-//        return false;
-//      }
-//    } else {
-//      return false;
-//    }
   }
-//  friend bool operator<(const Decimal& l, const Decimal& r) {
-//    if (l.whole.length() < r.whole.length()) {
-//      return true;
-//    } else if (l.whole.length() == r.whole.length()) {
-//      if (l.whole < r.whole) {
-//        return true;
-//      } else if (l.whole == r.whole) {
-//        return l.frac < r.frac;
-//      } else {
-//        return false;
-//      }
-//    } else {
-//      return false;
-//    }
-//  }
   friend bool operator>(const Decimal& l, const Decimal& r) {
     return r < l;
   }
@@ -177,11 +100,6 @@ class Decimal final {
   }
 
  private:
-//  std::string stringValue;
-
-//  std::string whole;
-//  std::string frac;
-
 //  {-}bbbb.aaaa
   unsigned long before{};
   std::string frac;

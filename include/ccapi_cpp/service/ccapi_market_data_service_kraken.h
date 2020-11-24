@@ -48,37 +48,12 @@ class MarketDataServiceKraken final : public MarketDataService {
             rj::Writer<rj::StringBuffer> writer(stringBuffer);
             document.Accept(writer);
             std::string requestString = stringBuffer.GetString();
-//            CCAPI_LOGGER_INFO("requestString = "+requestString);
             requestStringList.push_back(requestString);
           }
         }
       }
       return requestStringList;
     }
-//    void onOpen(wspp::connection_hdl hdl) override {
-//      CCAPI_LOGGER_FUNCTION_ENTER;
-//      MarketDataService::onOpen(hdl);
-////      this->onOpen_2(hdl);
-//      WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-//      std::vector<std::string> requestStringList;
-//
-//      for (const auto & requestString : requestStringList) {
-//        CCAPI_LOGGER_INFO("requestString = "+requestString);
-//        ErrorCode ec;
-//        this->send(hdl, requestString, wspp::frame::opcode::text, ec);
-//        if (ec) {
-//          CCAPI_LOGGER_ERROR(ec.message());
-//          // TODO(cryptochassis): implement
-//        }
-//      }
-//      CCAPI_LOGGER_FUNCTION_EXIT;
-//    }
-//    void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-//      CCAPI_LOGGER_FUNCTION_ENTER;
-//      MarketDataService::onTextMessage(hdl, textMessage, timeReceived);
-////      this->onTextMessage_2(hdl, textMessage, timeReceived);
-//      CCAPI_LOGGER_FUNCTION_EXIT;
-//    }
     std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
       CCAPI_LOGGER_FUNCTION_ENTER;
       WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
@@ -171,28 +146,7 @@ class MarketDataServiceKraken final : public MarketDataService {
             wsMessageList.push_back(std::move(wsMessage));
           }
         } else if (channelNameWithSuffix == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
-          //      auto channel = Exchange::nameWebsocketKrakenChannelTrade;
-          //      auto symbolId = std::string(document[3].GetString());
-          //      CCAPI_LOGGER_TRACE("symbolId = "+symbolId);
-          //      auto fieldSet = this->fieldSetByChannelSymbolIdMap[channel][symbolId];
-          //      auto correlationIdList = this->correlationIdListByChannelSymbolIdMap[channel][symbolId];
-          //        event.setType(Event::Type::SUBSCRIPTION_DATA);
-          //      std::map<TimePoint, std::vector<SingleTrade> > input;
-          //
-          //        for (const auto& x : document[1].GetArray()) {
-          //          auto timePair = UtilTime::divide(std::string(x[2].GetString()));
-          //          auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
-          //          tp += std::chrono::nanoseconds(timePair.second);
-          //          auto price = UtilString::normalizeDecimalString(x[0].GetString());
-          //          auto size = UtilString::normalizeDecimalString(x[1].GetString());
-          //          MarketDataService::SingleTrade singleTrade{price, size};
-          //          input[tp].push_back(std::move(singleTrade));
-          //        }
-          //      if (!input.empty()) {
-          //        this->processTrade(event, shouldEmitEvent, input, fieldSet, correlationIdList);
-          //      } else {
-          //        shouldEmitEvent = false;
-          //      }
+          // TODO(cryptochassis): implement
         }
       } else if (document.IsObject() && document.HasMember("event")) {
         std::string eventPayload = std::string(document["event"].GetString());
