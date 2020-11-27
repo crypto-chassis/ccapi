@@ -59,12 +59,6 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     } else {
       this->port = "80";
     }
-    try {
-      this->tcpResolverResults = this->resolver.resolve(this->host, this->port);
-    }
-    catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void stop() override {}
@@ -212,6 +206,13 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliSeconds = "+toString(this->sessionOptions.httpRequestTimeoutMilliSeconds));
     beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
     CCAPI_LOGGER_TRACE("before async_connect");
+    try {
+      std::call_once(tcpResolverResultsFlag, [](){
+          this->tcpResolverResults = this->resolver.resolve(this->host, this->port);
+      });
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     beast::get_lowest_layer(stream).async_connect(
         this->tcpResolverResults,
         beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onConnect, shared_from_this(), httpConnectionPtr, request, req, retry));
@@ -326,9 +327,9 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
             CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
             std::vector<Message> messageList;
             Message message;
-            if (document.HasMember("transactTime")) {
-              message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
-            }
+//            if (document.HasMember("transactTime")) {
+//              message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
+//            }
             message.setTimeReceived(now);
             message.setType(Message::Type::CREATE_ORDER);
             message.setElementList(elementList);
@@ -512,6 +513,7 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   std::string port;
   tcp::resolver resolver;
   tcp::resolver::results_type tcpResolverResults;
+  std::once_flag tcpResolverResultsFlag;
   Queue<std::shared_ptr<HttpConnection> > httpConnectionPool;
 };
 } /* namespace ccapi */
