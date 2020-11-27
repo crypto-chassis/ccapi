@@ -72,7 +72,7 @@ class Event final {
         output = "REQUEST";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }

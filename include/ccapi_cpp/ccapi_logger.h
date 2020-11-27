@@ -48,6 +48,7 @@
 #include <thread>
 #include <string>
 #include <cstring>
+#include "ccapi_cpp/ccapi_macro.h"
 namespace ccapi {
 class Logger {
  public:
@@ -81,7 +82,7 @@ class Logger {
         output = "TRACE";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }

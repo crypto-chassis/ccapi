@@ -25,7 +25,7 @@ class Message final {
         output = "SOLICITED";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }
@@ -39,6 +39,10 @@ class Message final {
     SESSION_CONNECTION_DOWN,
     SESSION_INCORRECT_STATES_FOUND,
     CREATE_ORDER,
+    CANCEL_ORDER,
+    GET_ORDER,
+    GET_OPEN_ORDERS,
+    CANCEL_OPEN_ORDERS,
     RESPONSE_ERROR,
     REQUEST_FAILURE
   };
@@ -72,6 +76,18 @@ class Message final {
       case Type::CREATE_ORDER:
         output = "CREATE_ORDER";
         break;
+      case Type::CANCEL_ORDER:
+        output = "CANCEL_ORDER";
+        break;
+      case Type::GET_ORDER:
+        output = "GET_ORDER";
+        break;
+      case Type::GET_OPEN_ORDERS:
+        output = "GET_OPEN_ORDERS";
+        break;
+      case Type::CANCEL_OPEN_ORDERS:
+        output = "CANCEL_OPEN_ORDERS";
+        break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
         break;
@@ -79,7 +95,7 @@ class Message final {
         output = "REQUEST_FAILURE";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }

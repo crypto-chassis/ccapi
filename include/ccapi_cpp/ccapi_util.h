@@ -188,20 +188,44 @@ class UtilAlgorithm final {
 };
 class UtilSystem final {
  public:
-  static bool getEnvAsBool(const char * envVar) {
-    return std::string(std::getenv(envVar)) == "true";
+  static bool getEnvAsBool(const std::string variableName,
+                           const bool defaultValue = false) {
+    const char* env_p = std::getenv(variableName.c_str());
+    if (env_p) {
+      return UtilString::toLower(std::string(env_p)) == "true";
+    } else {
+      return defaultValue;
+    }
   }
-  static std::string getEnvAsString(const char * envVar) {
-    return std::string(std::getenv(envVar));
+  static std::string getEnvAsString(const std::string variableName,
+                                    const std::string defaultValue = "") {
+    const char* env_p = std::getenv(variableName.c_str());
+    if (env_p) {
+      return std::string(env_p);
+    } else {
+      return defaultValue;
+    }
   }
-  static int getEnvAsInt(const char * envVar) {
-    return std::stoi(std::string(std::getenv(envVar)));
+  static int getEnvAsInt(const std::string variableName,
+                         const int defaultValue = 0) {
+    const char* env_p = std::getenv(variableName.c_str());
+    if (env_p) {
+      return std::stoi(std::string(env_p));
+    } else {
+      return defaultValue;
+    }
   }
-  static long getEnvAsLong(const char * envVar) {
-    return std::stol(std::string(std::getenv(envVar)));
+  static long getEnvAsLong(const std::string variableName,
+                           const long defaultValue = 0) {
+    const char* env_p = std::getenv(variableName.c_str());
+    if (env_p) {
+      return std::stol(std::string(env_p));
+    } else {
+      return defaultValue;
+    }
   }
-  static bool checkEnvExist(const char * envVar) {
-    const char* env_p = std::getenv(envVar);
+  static bool checkEnvExist(const std::string& variableName) {
+    const char* env_p = std::getenv(variableName.c_str());
     if (env_p) {
       return true;
     } else {
