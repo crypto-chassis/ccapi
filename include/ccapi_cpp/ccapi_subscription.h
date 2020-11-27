@@ -104,7 +104,7 @@ class Subscription final {
         output = "UNSUBSCRIBED";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }

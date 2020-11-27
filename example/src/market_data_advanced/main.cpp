@@ -2,6 +2,7 @@
 namespace ccapi {
 Logger* Logger::logger = 0;  // This line is needed.
 class MyEventHandler : public EventHandler {
+ public:
   bool processEvent(const Event& event, Session *session) override {
     std::cout << toString(event) + "\n" << std::endl;
     return true;

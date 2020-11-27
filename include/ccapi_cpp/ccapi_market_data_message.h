@@ -28,7 +28,7 @@ class MarketDataMessage final {
         output = "SOLICITED";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }
@@ -50,7 +50,7 @@ class MarketDataMessage final {
         output = "TRADE";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }
@@ -76,7 +76,7 @@ class MarketDataMessage final {
         output = "IS_BUYER_MAKER";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }
@@ -132,7 +132,7 @@ class MarketDataMessage final {
         output = "MARKET_DATA_EVENTS";
         break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }

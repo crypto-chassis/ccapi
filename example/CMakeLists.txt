@@ -16,3 +16,4 @@ include_directories(${CCAPI_CPP_PROJECT_DIR}/include ${WEBSOCKETPP_INCLUDE_DIR} 
 link_libraries(OpenSSL::Crypto OpenSSL::SSL)
 add_subdirectory(src/market_data_simple)
 add_subdirectory(src/market_data_advanced)
+add_subdirectory(src/sample_market_making)

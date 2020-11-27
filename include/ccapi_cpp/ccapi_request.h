@@ -26,8 +26,20 @@ class Request final {
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
         break;
+      case Operation::CANCEL_ORDER:
+        output = "CANCEL_ORDER";
+        break;
+      case Operation::GET_ORDER:
+        output = "GET_ORDER";
+        break;
+      case Operation::GET_OPEN_ORDERS:
+        output = "GET_OPEN_ORDERS";
+        break;
+      case Operation::CANCEL_OPEN_ORDERS:
+        output = "CANCEL_OPEN_ORDERS";
+        break;
       default:
-        CCAPI_LOGGER_FATAL("");
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return output;
   }

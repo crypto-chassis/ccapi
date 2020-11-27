@@ -127,7 +127,9 @@ class Session final {
 #endif
 #endif
 #ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<MarketDataServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#ifdef ENABLE_EXCHANGE_BINANCE_US
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
       auto serviceName = x.first;

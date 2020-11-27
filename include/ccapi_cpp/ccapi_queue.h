@@ -18,13 +18,13 @@ class Queue {
       CCAPI_LOGGER_TRACE("this->queue.size() = "+size_tToString(this->queue.size()));
       this->queue.push_back(t);
     } else {
-      CCAPI_LOGGER_FATAL(EXCEPTION_QUEUE_FULL);
+      throw std::runtime_error(EXCEPTION_QUEUE_FULL);
     }
   }
   T popBack() {
     std::lock_guard<std::mutex> lock(this->m);
     if (this->queue.empty()) {
-      CCAPI_LOGGER_FATAL(EXCEPTION_QUEUE_EMPTY);
+      throw std::runtime_error(EXCEPTION_QUEUE_EMPTY);
     } else {
       T t = std::move(this->queue.back());
       this->queue.pop_back();

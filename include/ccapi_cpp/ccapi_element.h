@@ -9,7 +9,10 @@ class Element final {
   void insert(std::string name, std::string value) {
     this->nameValueMap.insert(std::pair<std::string, std::string>(name, value));
   }
-  std::string getValue(std::string name) {
+  bool has(std::string name) const {
+    return this->nameValueMap.find(name) != this->nameValueMap.end();
+  }
+  std::string getValue(std::string name) const {
     return this->nameValueMap.at(name);
   }
   std::string toString() const {
