@@ -1,6 +1,6 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-  Logger* Logger::logger = 0;
+  Logger* Logger::logger = nullptr;
 }
 int main(int argc, char **argv) {
   using namespace ccapi;

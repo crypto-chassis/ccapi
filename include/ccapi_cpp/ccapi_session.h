@@ -60,7 +60,7 @@ class Session final {
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
   Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
-          EventHandler* eventHandler = 0, EventDispatcher* eventDispatcher = 0)
+          EventHandler* eventHandler = nullptr, EventDispatcher* eventDispatcher = nullptr)
       : sessionOptions(sessionOptions),
         sessionConfigs(sessionConfigs),
         eventHandler(eventHandler),
@@ -269,14 +269,14 @@ class Session final {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = 0) {
+  void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = nullptr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList;
     requestList.push_back(request);
     this->sendRequest(requestList, eventQueuePtr);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const std::vector<Request>& requestList, Queue<Event> *eventQueuePtr = 0) {
+  void sendRequest(const std::vector<Request>& requestList, Queue<Event> *eventQueuePtr = nullptr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     std::set<std::string> serviceNameExchangeSet;

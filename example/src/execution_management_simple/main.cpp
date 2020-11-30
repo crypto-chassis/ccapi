@@ -16,7 +16,7 @@
 //  private:
 //   std::mutex lock;
 // };
-// Logger* Logger::logger = 0;  // This line is needed.
+// Logger* Logger::logger = nullptr;  // This line is needed.
 // class MyEventHandler : public EventHandler {
 //   bool processEvent(const Event& event, Session *session) override {
 //     CCAPI_LOGGER_TRACE(toString(event));

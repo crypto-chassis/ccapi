@@ -16,7 +16,7 @@ class ExampleLogger final: public Logger {
  private:
   std::mutex m;
 };
-  Logger* Logger::logger = 0;  // This line is needed.
+  Logger* Logger::logger = nullptr;  // This line is needed.
   class MyEventHandler : public EventHandler {
    public:
     bool processEvent(const Event& event, Session *session) override {

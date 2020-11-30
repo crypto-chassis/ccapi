@@ -202,17 +202,17 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("httpConnection = "+toString(*httpConnectionPtr));
     CCAPI_LOGGER_DEBUG("retry = "+toString(retry));
-    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-    CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliSeconds = "+toString(this->sessionOptions.httpRequestTimeoutMilliSeconds));
-    beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
-    CCAPI_LOGGER_TRACE("before async_connect");
     try {
-      std::call_once(tcpResolverResultsFlag, [](){
-          this->tcpResolverResults = this->resolver.resolve(this->host, this->port);
+      std::call_once(tcpResolverResultsFlag, [that = shared_from_this()](){
+        that->tcpResolverResults = that->resolver.resolve(that->host, that->port);
       });
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+    beast::ssl_stream <beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+    CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliSeconds = "+toString(this->sessionOptions.httpRequestTimeoutMilliSeconds));
+    beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
+    CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
         this->tcpResolverResults,
         beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onConnect, shared_from_this(), httpConnectionPtr, request, req, retry));
@@ -268,6 +268,38 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     http::async_read(stream, *bufferPtr, *resPtr, beast::bind_front_handler(&ExecutionManagementServiceBinanceUs::onRead, shared_from_this(), httpConnectionPtr, request, reqPtr, retry, bufferPtr, resPtr));
     CCAPI_LOGGER_TRACE("after async_read");
   }
+  std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
+    rj::Document document;
+    rj::Document::AllocatorType& allocator = document.GetAllocator();
+    document.Parse(textMessage.c_str());
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList({request.getCorrelationId()});
+    Request::Operation operation = request.getOperation();
+    switch (operation) {
+      case Request::Operation::CREATE_ORDER:
+      {
+        std::string orderId = std::to_string(document["orderId"].GetInt64());
+        std::vector<Element> elementList;
+        Element element;
+        element.insert(CCAPI_EM_ORDER_ID, orderId);
+        elementList.push_back(std::move(element));
+        message.setType(Message::Type::CREATE_ORDER);
+        message.setElementList(elementList);
+        break;
+      }
+      case Request::Operation::CANCEL_OPEN_ORDERS:
+      {
+        message.setType(Message::Type::CANCEL_OPEN_ORDERS);
+        break;
+      }
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
+    std::vector<Message> messageList;
+    messageList.push_back(std::move(message));
+    return messageList;
+  }
   void onRead(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, std::shared_ptr<http::request<http::string_body> > reqPtr, HttpRetry retry, std::shared_ptr<beast::flat_buffer> bufferPtr, std::shared_ptr<http::response<http::string_body> > resPtr, beast::error_code ec, std::size_t bytes_transferred) {
     CCAPI_LOGGER_TRACE("async_read callback start");
     auto now = std::chrono::system_clock::now();
@@ -307,72 +339,58 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     std::string body = resPtr->body();
     try {
       if (statusCode / 100 == 2) {
-        Request::Operation operation = request.getOperation();
-        switch (operation) {
-          case Request::Operation::CREATE_ORDER:
-          {
-            rj::Document document;
-            rj::Document::AllocatorType& allocator = document.GetAllocator();
-            document.Parse(body.c_str());
-            std::string orderId;
-            if (document.HasMember("orderId")) {
-              orderId = std::to_string(document["orderId"].GetInt64());
-            }
-            Event event;
-            event.setType(Event::Type::RESPONSE);
-            std::vector<Element> elementList;
-            Element element;
-            element.insert(CCAPI_EM_ORDER_ID, orderId);
-            elementList.push_back(std::move(element));
-            CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
-            std::vector<Message> messageList;
-            Message message;
-//            if (document.HasMember("transactTime")) {
-//              message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
-//            }
-            message.setTimeReceived(now);
-            message.setType(Message::Type::CREATE_ORDER);
-            message.setElementList(elementList);
-            message.setCorrelationIdList({request.getCorrelationId()});
-            messageList.push_back(std::move(message));
-            event.addMessages(messageList);
-            this->eventHandler(event);
-            break;
-          }
-          case Request::Operation::CANCEL_OPEN_ORDERS:
-          {
-            rj::Document document;
-            rj::Document::AllocatorType& allocator = document.GetAllocator();
-            document.Parse(body.c_str());
+        Event event;
+        event.setType(Event::Type::RESPONSE);
+        std::vector<Message> messageList = std::move(this->processSuccessfulTextMessage(request, body, now));
+        event.addMessages(messageList);
+        this->eventHandler(event);
+//        Request::Operation operation = request.getOperation();
+//        switch (operation) {
+//          case Request::Operation::CREATE_ORDER:
+//          {
+//            rj::Document document;
+//            rj::Document::AllocatorType& allocator = document.GetAllocator();
+//            document.Parse(body.c_str());
 //            std::string orderId;
-//            if (document.HasMember("orderId")) {
-//              orderId = std::to_string(document["orderId"].GetInt64());
-//            }
-            Event event;
-            event.setType(Event::Type::RESPONSE);
+//            orderId = std::to_string(document["orderId"].GetInt64());
+//            Event event;
+//            event.setType(Event::Type::RESPONSE);
 //            std::vector<Element> elementList;
 //            Element element;
 //            element.insert(CCAPI_EM_ORDER_ID, orderId);
 //            elementList.push_back(std::move(element));
 //            CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
-            std::vector<Message> messageList;
-            Message message;
-//            if (document.HasMember("transactTime")) {
-//              message.setTime(TimePoint(std::chrono::milliseconds(document["transactTime"].GetInt64())));
-//            }
-            message.setTime(now);
-            message.setTimeReceived(now);
-            message.setType(Message::Type::CANCEL_OPEN_ORDERS);
+//            std::vector<Message> messageList;
+//            Message message;
+//            message.setTimeReceived(now);
+//            message.setType(Message::Type::CREATE_ORDER);
 //            message.setElementList(elementList);
-            message.setCorrelationIdList({request.getCorrelationId()});
-            messageList.push_back(std::move(message));
-            event.addMessages(messageList);
-            this->eventHandler(event);
-            break;
-          }
-          default:
-            CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
-        }
+//            message.setCorrelationIdList({request.getCorrelationId()});
+//            messageList.push_back(std::move(message));
+//            event.addMessages(messageList);
+//            this->eventHandler(event);
+//            break;
+//          }
+//          case Request::Operation::CANCEL_OPEN_ORDERS:
+//          {
+//            rj::Document document;
+//            rj::Document::AllocatorType& allocator = document.GetAllocator();
+//            document.Parse(body.c_str());
+//            Event event;
+//            event.setType(Event::Type::RESPONSE);
+//            std::vector<Message> messageList;
+//            Message message;
+//            message.setTimeReceived(now);
+//            message.setType(Message::Type::CANCEL_OPEN_ORDERS);
+//            message.setCorrelationIdList({request.getCorrelationId()});
+//            messageList.push_back(std::move(message));
+//            event.addMessages(messageList);
+//            this->eventHandler(event);
+//            break;
+//          }
+//          default:
+//            CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+//        }
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base()["Location"].to_string());

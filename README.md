@@ -72,7 +72,7 @@ For a specific exchange and instrument, whenever the top 10 bids' or asks' price
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-Logger* Logger::logger = 0;  // This line is needed.
+Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
   bool processEvent(const Event& event, Session *session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
@@ -190,7 +190,7 @@ std::vector<Event> eventList = session.eventQueue.purge();
 Add one of the following macros in the compiler command line: ENABLE_LOG_TRACE, ENABLE_LOG_DEBUG, ENABLE_LOG_INFO, ENABLE_LOG_WARN, ENABLE_LOG_ERROR, ENABLE_LOG_FATAL. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
 ```
 namespace ccapi {
-  Logger* Logger::logger = 0;  // This line is needed.
+  Logger* Logger::logger = nullptr;  // This line is needed.
   class MyLogger final: public Logger {
    public:
     virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
