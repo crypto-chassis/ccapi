@@ -13,7 +13,7 @@ class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequest) {
 //  const Request& request, const TimePoint& now
 //  http::request<http::string_body> req = service->convertRequest(request, now);
-  EXPECT_EQ(0, 0);
+  EXPECT_EQ(1, 0);
 }
 
 //TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCreateOrder) {
