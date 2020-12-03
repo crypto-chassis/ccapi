@@ -4,50 +4,294 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
- protected:
+ public:
+  typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-//    service = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    std::function<void(Event& event)> eventHandler = [](Event& event){};
+    SessionOptions sessionOptions;
+    SessionConfigs sessionConfigs;
+    ServiceContextPtr serviceContextPtr(new ServiceContext());
+    this->service = std::make_shared<ExecutionManagementServiceBinanceUs>(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
+    this->credential = {
+       { CCAPI_BINANCE_US_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A" },
+       { CCAPI_BINANCE_US_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j" }
+    };
+    this->timestamp = 1499827319559;
+    this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp);
   }
-  std::shared_ptr<ExecutionManagementServiceBinanceUs> service;
+  std::shared_ptr<ExecutionManagementServiceBinanceUs> service{nullptr};
+  std::map<std::string, std::string> credential;
+  long timestamp{};
+  TimePoint now{};
 };
-TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequest) {
-//  const Request& request, const TimePoint& now
-//  http::request<http::string_body> req = service->convertRequest(request, now);
-  EXPECT_EQ(1, 0);
+
+void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) {
+  EXPECT_EQ(req.base().at("X-MBX-APIKEY").to_string(), apiKey);
 }
 
-//TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCreateOrder) {
-//  int* n = q0_.Dequeue();
-//  EXPECT_EQ(n, nullptr);
-//
-//  n = q1_.Dequeue();
-//  ASSERT_NE(n, nullptr);
-//  EXPECT_EQ(*n, 1);
-//  EXPECT_EQ(q1_.size(), 0);
-//  delete n;
-//
-//  n = q2_.Dequeue();
-//  ASSERT_NE(n, nullptr);
-//  EXPECT_EQ(*n, 2);
-//  EXPECT_EQ(q2_.size(), 1);
-//  delete n;
-//}
-//TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCancelOpenOrders) {
-//  int* n = q0_.Dequeue();
-//  EXPECT_EQ(n, nullptr);
-//
-//  n = q1_.Dequeue();
-//  ASSERT_NE(n, nullptr);
-//  EXPECT_EQ(*n, 1);
-//  EXPECT_EQ(q1_.size(), 0);
-//  delete n;
-//
-//  n = q2_.Dequeue();
-//  ASSERT_NE(n, nullptr);
-//  EXPECT_EQ(*n, 2);
-//  EXPECT_EQ(q2_.size(), 1);
-//  delete n;
-//}
+void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
+  auto bodyString = req.body();
+  auto pos = bodyString.find_last_of("&");
+  auto bodyStringWithoutSignature = bodyString.substr(0, pos);
+  auto signature = bodyString.substr(pos + 11, bodyString.length() - pos - 1);
+  EXPECT_EQ(UtilAlgorithm::hmacHex(apiSecret, bodyStringWithoutSignature), signature);
+}
+
+void verifyCorrelationId(const std::vector<Message>& messageList, const std::string& correlationId) {
+  for (const auto & message : messageList) {
+    auto correlationIdList = message.getCorrelationIdList();
+    EXPECT_EQ(correlationIdList.size(), 1);
+    EXPECT_EQ(correlationIdList.at(0), correlationId);
+  }
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
+  Request request(Request::Operation::CREATE_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  request.setParam(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY);
+  request.setParam(CCAPI_EM_ORDER_QUANTITY, "1");
+  request.setParam(CCAPI_EM_ORDER_LIMIT_PRICE, "0.1");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/order");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(bodyMap.at("side"), "BUY");
+  EXPECT_EQ(bodyMap.at("type"), "LIMIT");
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCreateOrder) {
+  Request request(Request::Operation::CREATE_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSDT");
+  std::string textMessage =
+  R"(
+  {
+    "symbol": "BTCUSDT",
+    "orderId": 28,
+    "orderListId": -1,
+    "clientOrderId": "6gCrw2kRUAF9CvJDGP16IP",
+    "transactTime": 1507725176595
+  }
+  )";
+  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::CREATE_ORDER);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "28");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "6gCrw2kRUAF9CvJDGP16IP");
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrderId) {
+  Request request(Request::Operation::CANCEL_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  request.setParam(CCAPI_EM_ORDER_ID, "28");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::delete_);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/order");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("orderId"), "28");
+  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClientOrderId) {
+  Request request(Request::Operation::CANCEL_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  request.setParam(CCAPI_EM_CLIENT_ORDER_ID, "6gCrw2kRUAF9CvJDGP16IP");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::delete_);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/order");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
+  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCancelOrder) {
+  Request request(Request::Operation::CANCEL_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  auto messageList = this->service->processSuccessfulTextMessage(request, "", this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::CANCEL_ORDER);
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByOrderId) {
+  Request request(Request::Operation::GET_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  request.setParam(CCAPI_EM_ORDER_ID, "28");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/order");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("orderId"), "28");
+  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOrderId) {
+  Request request(Request::Operation::GET_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  request.setParam(CCAPI_EM_CLIENT_ORDER_ID, "6gCrw2kRUAF9CvJDGP16IP");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/order");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
+  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageGetOrder) {
+  Request request(Request::Operation::GET_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "LTCBTC");
+  std::string textMessage =
+  R"(
+  {
+    "symbol": "LTCBTC",
+    "orderId": 1,
+    "orderListId": -1,
+    "clientOrderId": "myOrder1",
+    "price": "0.1",
+    "origQty": "1.0",
+    "executedQty": "0.0",
+    "cummulativeQuoteQty": "0.01",
+    "status": "NEW",
+    "timeInForce": "GTC",
+    "type": "LIMIT",
+    "side": "BUY",
+    "stopPrice": "0.0",
+    "icebergQty": "0.0",
+    "time": 1499827319559,
+    "updateTime": 1499827319559,
+    "isWorking": true,
+    "origQuoteOrderQty": "0.000000"
+  }
+  )";
+  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ORDER);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "myOrder1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.01");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_OPEN);
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersOneInstrument) {
+  Request request(Request::Operation::GET_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/openOrders");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllInstruments) {
+  Request request(Request::Operation::GET_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/openOrders");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+void verifyProcessSuccessfulTextMessageGetOpenOrders(const ExecutionManagementServiceBinanceUsTest* fixture, bool isOneInstrument) {
+  std::string symbol = isOneInstrument ? "LTCBTC" : "";
+  Request request(Request::Operation::GET_OPEN_ORDERS, fixture->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, symbol);
+  std::string textMessage =
+  R"(
+  [
+    {
+      "symbol": "LTCBTC",
+      "orderId": 1,
+      "orderListId": -1,
+      "clientOrderId": "myOrder1",
+      "price": "0.1",
+      "origQty": "1.0",
+      "executedQty": "0.0",
+      "cummulativeQuoteQty": "0.01",
+      "status": "NEW",
+      "timeInForce": "GTC",
+      "type": "LIMIT",
+      "side": "BUY",
+      "stopPrice": "0.0",
+      "icebergQty": "0.0",
+      "time": 1499827319559,
+      "updateTime": 1499827319559,
+      "isWorking": true,
+      "origQuoteOrderQty": "0.000000"
+    }
+  ]
+  )";
+  auto messageList = fixture->service->processSuccessfulTextMessage(request, textMessage, fixture->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_OPEN_ORDERS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "myOrder1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.01");
+  if (!isOneInstrument) {
+    EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "LTCBTC");
+  }
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageGetOpenOrdersOneInstrument) {
+  verifyProcessSuccessfulTextMessageGetOpenOrders(this, true);
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageGetOpenOrdersAllInstruments) {
+  verifyProcessSuccessfulTextMessageGetOpenOrders(this, false);
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) {
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::delete_);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target(), "/api/v3/openOrders");
+  auto bodyMap = Url::convertQueryStringToMap(req.body());
+  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCancelOpenOrders) {
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  auto messageList = this->service->processSuccessfulTextMessage(request, "", this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
+}
 } /* namespace ccapi */
 #endif
 #endif

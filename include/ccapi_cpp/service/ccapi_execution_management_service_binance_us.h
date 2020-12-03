@@ -94,26 +94,43 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     event.setMessageList({ message });
     this->eventHandler(event);
   }
-  http::request<http::string_body> convertRequest(const Request& request, const TimePoint& now) {
-    std::map<std::string, std::string> credential = request.getCredential().empty() ? this->sessionConfigs.getCredential() : request.getCredential();
-    std::string instrument = request.getInstrument();
+  std::string convertInstrumentToRestSymbolId(std::string instrument) {
     std::string symbolId = instrument;
     if (!instrument.empty()) {
-      if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
-      } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(CCAPI_EXCHANGE_NAME_BINANCE_US) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(CCAPI_EXCHANGE_NAME_BINANCE_US).at(instrument);
+      if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(this->name) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
+          this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->name).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->name).end()) {
+        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->name).at(instrument);
+      } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->name) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+          this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).find(instrument) != this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).end()) {
+        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(instrument);
       }
     }
+    return symbolId;
+  }
+  std::string convertRestSymbolIdToInstrument(std::string symbolId) {
+    std::string instrument = symbolId;
+    if (!symbolId.empty()) {
+      if (this->sessionConfigs.getExchangeSymbolInstrumentMapRest().find(this->name) != this->sessionConfigs.getExchangeSymbolInstrumentMapRest().end() &&
+          this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->name).find(symbolId) != this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->name).end()) {
+        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->name).at(symbolId);
+      } else if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->name) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
+          this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->name).find(symbolId) != this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->name).end()) {
+        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->name).at(symbolId);
+      }
+    }
+    return instrument;
+  }
+  http::request<http::string_body> convertRequest(const Request& request, const TimePoint& now) {
+    auto credential = request.getCredential().empty() ? this->sessionConfigs.getCredential() : request.getCredential();
+    auto instrument = request.getInstrument();
+    auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
     CCAPI_LOGGER_TRACE("instrument = "+instrument);
-    Request::Operation operation = request.getOperation();
+    auto operation = request.getOperation();
     http::request<http::string_body> req;
-    req.version(11);
+//    req.version(11);
     req.set(http::field::host, this->host+":"+this->port);
-    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    req.set(beast::http::field::content_type, "application/json");
+//    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+//    req.set(beast::http::field::content_type, "application/json");
     req.set("X-MBX-APIKEY", credential.at("BINANCE_US_API_KEY"));
     switch (operation) {
       case Request::Operation::CREATE_ORDER:
@@ -125,21 +142,25 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         for (const auto& kv : paramMap) {
           std::string first = kv.first;
           std::string second = kv.second;
-          if (first == CCAPI_EM_SIDE) {
+          if (first == CCAPI_EM_ORDER_SIDE) {
             first = "side";
-          } else if (first == CCAPI_EM_QUANTITY) {
+          } else if (first == CCAPI_EM_ORDER_QUANTITY) {
             first = "quantity";
-          } else if (first == CCAPI_EM_LIMIT_PRICE) {
+          } else if (first == CCAPI_EM_ORDER_LIMIT_PRICE) {
             first = "price";
+          } else if (first == CCAPI_EM_CLIENT_ORDER_ID) {
+            first = "newClientOrderId";
           }
           bodyString += first;
           bodyString += "=";
           bodyString += second;
           bodyString += "&";
         }
-        bodyString += "symbol=";
-        bodyString += symbolId;
-        bodyString += "&";
+        if (!symbolId.empty()) {
+          bodyString += "symbol=";
+          bodyString += symbolId;
+          bodyString += "&";
+        }
         if (paramMap.find("type") == paramMap.end()) {
           bodyString += "type=LIMIT&";
           if (paramMap.find("timeInForce") == paramMap.end()) {
@@ -159,8 +180,120 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         bodyString += signature;
         req.body() = bodyString;
         req.prepare_payload();
-        break;
       }
+      break;
+      case Request::Operation::CANCEL_ORDER:
+      {
+        req.method(http::verb::delete_);
+        req.target("/api/v3/order");
+        std::string bodyString;
+        const std::map<std::string, std::string>& paramMap = request.getParamMap();
+        for (const auto& kv : paramMap) {
+          std::string first = kv.first;
+          std::string second = kv.second;
+          if (first == CCAPI_EM_ORDER_ID) {
+            first = "orderId";
+          } else if (first == CCAPI_EM_CLIENT_ORDER_ID) {
+            first = "origClientOrderId";
+          }
+          bodyString += first;
+          bodyString += "=";
+          bodyString += second;
+          bodyString += "&";
+        }
+        if (!symbolId.empty()) {
+          bodyString += "symbol=";
+          bodyString += symbolId;
+          bodyString += "&";
+        }
+        if (paramMap.find("timestamp") == paramMap.end()) {
+          bodyString += "timestamp=";
+          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          bodyString += "&";
+        }
+        bodyString.pop_back();
+        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        CCAPI_LOGGER_TRACE("signature = "+signature);
+        bodyString += "&signature=";
+        bodyString += signature;
+        req.body() = bodyString;
+        req.prepare_payload();
+      }
+      break;
+      case Request::Operation::GET_ORDER:
+      {
+        req.method(http::verb::get);
+        req.target("/api/v3/order");
+        std::string bodyString;
+        const std::map<std::string, std::string>& paramMap = request.getParamMap();
+        for (const auto& kv : paramMap) {
+          std::string first = kv.first;
+          std::string second = kv.second;
+          if (first == CCAPI_EM_ORDER_ID) {
+            first = "orderId";
+          } else if (first == CCAPI_EM_CLIENT_ORDER_ID) {
+            first = "origClientOrderId";
+          }
+          bodyString += first;
+          bodyString += "=";
+          bodyString += second;
+          bodyString += "&";
+        }
+        if (!symbolId.empty()) {
+          bodyString += "symbol=";
+          bodyString += symbolId;
+          bodyString += "&";
+        }
+        if (paramMap.find("timestamp") == paramMap.end()) {
+          bodyString += "timestamp=";
+          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          bodyString += "&";
+        }
+        bodyString.pop_back();
+        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        CCAPI_LOGGER_TRACE("signature = "+signature);
+        bodyString += "&signature=";
+        bodyString += signature;
+        req.body() = bodyString;
+        req.prepare_payload();
+      }
+      break;
+      case Request::Operation::GET_OPEN_ORDERS:
+      {
+        req.method(http::verb::get);
+        req.target("/api/v3/openOrders");
+        std::string bodyString;
+        const std::map<std::string, std::string>& paramMap = request.getParamMap();
+        for (const auto& kv : paramMap) {
+          std::string first = kv.first;
+          std::string second = kv.second;
+          bodyString += first;
+          bodyString += "=";
+          bodyString += second;
+          bodyString += "&";
+        }
+        if (!symbolId.empty()) {
+          bodyString += "symbol=";
+          bodyString += symbolId;
+          bodyString += "&";
+        }
+        if (paramMap.find("timestamp") == paramMap.end()) {
+          bodyString += "timestamp=";
+          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          bodyString += "&";
+        }
+        bodyString.pop_back();
+        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        CCAPI_LOGGER_TRACE("signature = "+signature);
+        bodyString += "&signature=";
+        bodyString += signature;
+        req.body() = bodyString;
+        req.prepare_payload();
+      }
+      break;
       case Request::Operation::CANCEL_OPEN_ORDERS:
       {
         req.method(http::verb::delete_);
@@ -175,9 +308,11 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           bodyString += second;
           bodyString += "&";
         }
-        bodyString += "symbol=";
-        bodyString += symbolId;
-        bodyString += "&";
+        if (!symbolId.empty()) {
+          bodyString += "symbol=";
+          bodyString += symbolId;
+          bodyString += "&";
+        }
         if (paramMap.find("timestamp") == paramMap.end()) {
           bodyString += "timestamp=";
           bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
@@ -191,8 +326,8 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         bodyString += signature;
         req.body() = bodyString;
         req.prepare_payload();
-        break;
       }
+      break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
@@ -279,20 +414,65 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     switch (operation) {
       case Request::Operation::CREATE_ORDER:
       {
-        std::string orderId = std::to_string(document["orderId"].GetInt64());
+        message.setType(Message::Type::CREATE_ORDER);
         std::vector<Element> elementList;
         Element element;
-        element.insert(CCAPI_EM_ORDER_ID, orderId);
+        element.insert(CCAPI_EM_ORDER_ID, std::to_string(document["orderId"].GetInt64()));
+        element.insert(CCAPI_EM_CLIENT_ORDER_ID, document["clientOrderId"].GetString());
         elementList.push_back(std::move(element));
-        message.setType(Message::Type::CREATE_ORDER);
         message.setElementList(elementList);
-        break;
       }
+      break;
+      case Request::Operation::CANCEL_ORDER:
+      {
+        message.setType(Message::Type::CANCEL_ORDER);
+      }
+      break;
+      case Request::Operation::GET_ORDER:
+      {
+        message.setType(Message::Type::GET_ORDER);
+        std::vector<Element> elementList;
+        Element element;
+        element.insert(CCAPI_EM_ORDER_ID, std::to_string(document["orderId"].GetInt64()));
+        element.insert(CCAPI_EM_CLIENT_ORDER_ID, document["clientOrderId"].GetString());
+        element.insert(CCAPI_EM_ORDER_SIDE, document["side"].GetString());
+        element.insert(CCAPI_EM_ORDER_QUANTITY, document["origQty"].GetString());
+        if (document.HasMember("price")) {
+          element.insert(CCAPI_EM_ORDER_LIMIT_PRICE, document["price"].GetString());
+        }
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, document["executedQty"].GetString());
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, document["cummulativeQuoteQty"].GetString());
+        element.insert(CCAPI_EM_ORDER_STATUS, this->convertOrderStatus(document["status"].GetString()));
+        elementList.push_back(std::move(element));
+        message.setElementList(elementList);
+      }
+      break;
+      case Request::Operation::GET_OPEN_ORDERS:
+      {
+        message.setType(Message::Type::GET_OPEN_ORDERS);
+        std::vector<Element> elementList;
+        for (const auto& x : document.GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ORDER_ID, std::to_string(x["orderId"].GetInt64()));
+          element.insert(CCAPI_EM_CLIENT_ORDER_ID, x["clientOrderId"].GetString());
+          element.insert(CCAPI_EM_ORDER_SIDE, x["side"].GetString());
+          element.insert(CCAPI_EM_ORDER_QUANTITY, x["origQty"].GetString());
+          if (x.HasMember("price")) {
+            element.insert(CCAPI_EM_ORDER_LIMIT_PRICE, x["price"].GetString());
+          }
+          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, x["executedQty"].GetString());
+          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, x["cummulativeQuoteQty"].GetString());
+          element.insert(CCAPI_EM_ORDER_INSTRUMENT, this->convertRestSymbolIdToInstrument(x["symbol"].GetString()));
+          elementList.push_back(std::move(element));
+        }
+        message.setElementList(elementList);
+      }
+      break;
       case Request::Operation::CANCEL_OPEN_ORDERS:
       {
         message.setType(Message::Type::CANCEL_OPEN_ORDERS);
-        break;
       }
+      break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
@@ -300,6 +480,11 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
     messageList.push_back(std::move(message));
     return messageList;
   }
+    std::string convertOrderStatus(std::string status) {
+      return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN
+      : this->orderStatusClosedSet.find(status) != this->orderStatusClosedSet.end() ? CCAPI_EM_ORDER_STATUS_CLOSED
+      : CCAPI_EM_ORDER_STATUS_UNKNOWN;
+    }
   void onRead(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, std::shared_ptr<http::request<http::string_body> > reqPtr, HttpRetry retry, std::shared_ptr<beast::flat_buffer> bufferPtr, std::shared_ptr<http::response<http::string_body> > resPtr, beast::error_code ec, std::size_t bytes_transferred) {
     CCAPI_LOGGER_TRACE("async_read callback start");
     auto now = std::chrono::system_clock::now();
@@ -344,56 +529,9 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
         std::vector<Message> messageList = std::move(this->processSuccessfulTextMessage(request, body, now));
         event.addMessages(messageList);
         this->eventHandler(event);
-//        Request::Operation operation = request.getOperation();
-//        switch (operation) {
-//          case Request::Operation::CREATE_ORDER:
-//          {
-//            rj::Document document;
-//            rj::Document::AllocatorType& allocator = document.GetAllocator();
-//            document.Parse(body.c_str());
-//            std::string orderId;
-//            orderId = std::to_string(document["orderId"].GetInt64());
-//            Event event;
-//            event.setType(Event::Type::RESPONSE);
-//            std::vector<Element> elementList;
-//            Element element;
-//            element.insert(CCAPI_EM_ORDER_ID, orderId);
-//            elementList.push_back(std::move(element));
-//            CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
-//            std::vector<Message> messageList;
-//            Message message;
-//            message.setTimeReceived(now);
-//            message.setType(Message::Type::CREATE_ORDER);
-//            message.setElementList(elementList);
-//            message.setCorrelationIdList({request.getCorrelationId()});
-//            messageList.push_back(std::move(message));
-//            event.addMessages(messageList);
-//            this->eventHandler(event);
-//            break;
-//          }
-//          case Request::Operation::CANCEL_OPEN_ORDERS:
-//          {
-//            rj::Document document;
-//            rj::Document::AllocatorType& allocator = document.GetAllocator();
-//            document.Parse(body.c_str());
-//            Event event;
-//            event.setType(Event::Type::RESPONSE);
-//            std::vector<Message> messageList;
-//            Message message;
-//            message.setTimeReceived(now);
-//            message.setType(Message::Type::CANCEL_OPEN_ORDERS);
-//            message.setCorrelationIdList({request.getCorrelationId()});
-//            messageList.push_back(std::move(message));
-//            event.addMessages(messageList);
-//            this->eventHandler(event);
-//            break;
-//          }
-//          default:
-//            CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
-//        }
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
-          Url url(resPtr->base()["Location"].to_string());
+          Url url(resPtr->base().at("Location").to_string());
           std::string host(url.host);
           if (!url.port.empty()) {
             host += ":";
@@ -533,6 +671,9 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
   tcp::resolver::results_type tcpResolverResults;
   std::once_flag tcpResolverResultsFlag;
   Queue<std::shared_ptr<HttpConnection> > httpConnectionPool;
+
+  std::set<std::string> orderStatusOpenSet = { "NEW", "PARTIALLY_FILLED" };
+  std::set<std::string> orderStatusClosedSet = { "FILLED", "CANCELED", "REJECTED", "EXPIRED" };
 };
 } /* namespace ccapi */
 #endif

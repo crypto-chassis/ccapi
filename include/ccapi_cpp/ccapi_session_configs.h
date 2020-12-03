@@ -13,6 +13,8 @@ class SessionConfigs final {
   }
   explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap, std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {}, std::map<std::string, std::string > credential = {})
       : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap), exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest), credential(credential) {
+    this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
+    this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
     this->updateExchangeInstrumentMap();
     this->updateExchangeInstrumentMapRest();
   }
@@ -25,12 +27,14 @@ class SessionConfigs final {
   void setExchangeInstrumentSymbolMap(
       const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
     this->exchangeInstrumentSymbolMap = exchangeInstrumentSymbolMap;
+    this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
     this->updateExchangeInstrumentMap();
     this->updateExchangeInstrumentMapRest();
   }
   void setExchangeInstrumentSymbolMapRest(
       const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMapRest) {
     this->exchangeInstrumentSymbolMapRest = exchangeInstrumentSymbolMapRest;
+    this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
     this->updateExchangeInstrumentMapRest();
   }
   const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const {
@@ -62,6 +66,12 @@ class SessionConfigs final {
   }
   void setCredential(const std::map<std::string, std::string>& credential) {
     this->credential = credential;
+  }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMap() const {
+    return exchangeSymbolInstrumentMap;
+  }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMapRest() const {
+    return exchangeSymbolInstrumentMapRest;
   }
 
  private:
@@ -209,8 +219,17 @@ class SessionConfigs final {
       { CCAPI_EXCHANGE_NAME_BINANCE_US, "https://api.binance.us"},
     };
   }
+  std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {
+    std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMap;
+    for (const auto & x : exchangeInstrumentSymbolMap) {
+      exchangeSymbolInstrumentMap.insert(std::make_pair(x.first, invertMap(x.second)));
+    }
+    return exchangeSymbolInstrumentMap;
+  }
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest;
+  std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMap;
+  std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMapRest;
   std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
   std::map<std::string, std::vector<std::string> > exchangeFieldMap;
   std::map<std::string, std::vector<std::string> > exchangeInstrumentMapRest;

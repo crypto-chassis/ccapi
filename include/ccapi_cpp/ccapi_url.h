@@ -55,6 +55,14 @@ class Url final {
     }
     return (ret);
   }
+  static std::map<std::string, std::string> convertQueryStringToMap(const std::string &input) {
+    std::map<std::string, std::string> output;
+    for (const auto & x : UtilString::split(input, "&")) {
+      auto y = UtilString::split(x, "=");
+      output.insert(std::make_pair(y.at(0), y.at(1)));
+    }
+    return output;
+  }
   std::string protocol;
   std::string host;
   std::string port;
