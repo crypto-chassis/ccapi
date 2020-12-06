@@ -136,8 +136,8 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
       case Request::Operation::CREATE_ORDER:
       {
         req.method(http::verb::post);
-        req.target(CCAPI_BINANCE_US_CREATE_ORDER_TARGET);
-        std::string bodyString;
+
+        std::string queryString;
         const std::map<std::string, std::string>& paramMap = request.getParamMap();
         for (const auto& kv : paramMap) {
           std::string first = kv.first;
@@ -151,42 +151,43 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           } else if (first == CCAPI_EM_CLIENT_ORDER_ID) {
             first = "newClientOrderId";
           }
-          bodyString += first;
-          bodyString += "=";
-          bodyString += second;
-          bodyString += "&";
+          queryString += first;
+          queryString += "=";
+          queryString += second;
+          queryString += "&";
         }
         if (!symbolId.empty()) {
-          bodyString += "symbol=";
-          bodyString += symbolId;
-          bodyString += "&";
+          queryString += "symbol=";
+          queryString += symbolId;
+          queryString += "&";
         }
         if (paramMap.find("type") == paramMap.end()) {
-          bodyString += "type=LIMIT&";
+          queryString += "type=LIMIT&";
           if (paramMap.find("timeInForce") == paramMap.end()) {
-            bodyString += "timeInForce=GTC&";
+            queryString += "timeInForce=GTC&";
           }
         }
         if (paramMap.find("timestamp") == paramMap.end()) {
-          bodyString += "timestamp=";
-          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
-          bodyString += "&";
+          queryString += "timestamp=";
+          queryString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          queryString += "&";
         }
-        bodyString.pop_back();
-        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
-        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        queryString.pop_back();
+        CCAPI_LOGGER_TRACE("queryString = "+queryString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), queryString);
         CCAPI_LOGGER_TRACE("signature = "+signature);
-        bodyString += "&signature=";
-        bodyString += signature;
-        req.body() = bodyString;
-        req.prepare_payload();
+        queryString += "&signature=";
+        queryString += signature;
+        req.target(std::string(CCAPI_BINANCE_US_CREATE_ORDER_TARGET) + "?" + queryString);
+//        req.body() = queryString;
+//        req.prepare_payload();
       }
       break;
       case Request::Operation::CANCEL_ORDER:
       {
         req.method(http::verb::delete_);
-        req.target("/api/v3/order");
-        std::string bodyString;
+
+        std::string queryString;
         const std::map<std::string, std::string>& paramMap = request.getParamMap();
         for (const auto& kv : paramMap) {
           std::string first = kv.first;
@@ -196,36 +197,37 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           } else if (first == CCAPI_EM_CLIENT_ORDER_ID) {
             first = "origClientOrderId";
           }
-          bodyString += first;
-          bodyString += "=";
-          bodyString += second;
-          bodyString += "&";
+          queryString += first;
+          queryString += "=";
+          queryString += second;
+          queryString += "&";
         }
         if (!symbolId.empty()) {
-          bodyString += "symbol=";
-          bodyString += symbolId;
-          bodyString += "&";
+          queryString += "symbol=";
+          queryString += symbolId;
+          queryString += "&";
         }
         if (paramMap.find("timestamp") == paramMap.end()) {
-          bodyString += "timestamp=";
-          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
-          bodyString += "&";
+          queryString += "timestamp=";
+          queryString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          queryString += "&";
         }
-        bodyString.pop_back();
-        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
-        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        queryString.pop_back();
+        CCAPI_LOGGER_TRACE("queryString = "+queryString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), queryString);
         CCAPI_LOGGER_TRACE("signature = "+signature);
-        bodyString += "&signature=";
-        bodyString += signature;
-        req.body() = bodyString;
-        req.prepare_payload();
+        queryString += "&signature=";
+        queryString += signature;
+//        req.body() = queryString;
+        req.target("/api/v3/order?" + queryString);
+//        req.prepare_payload();
       }
       break;
       case Request::Operation::GET_ORDER:
       {
         req.method(http::verb::get);
-        req.target("/api/v3/order");
-        std::string bodyString;
+
+        std::string queryString;
         const std::map<std::string, std::string>& paramMap = request.getParamMap();
         for (const auto& kv : paramMap) {
           std::string first = kv.first;
@@ -235,97 +237,100 @@ class ExecutionManagementServiceBinanceUs final : public Service, public std::en
           } else if (first == CCAPI_EM_CLIENT_ORDER_ID) {
             first = "origClientOrderId";
           }
-          bodyString += first;
-          bodyString += "=";
-          bodyString += second;
-          bodyString += "&";
+          queryString += first;
+          queryString += "=";
+          queryString += second;
+          queryString += "&";
         }
         if (!symbolId.empty()) {
-          bodyString += "symbol=";
-          bodyString += symbolId;
-          bodyString += "&";
+          queryString += "symbol=";
+          queryString += symbolId;
+          queryString += "&";
         }
         if (paramMap.find("timestamp") == paramMap.end()) {
-          bodyString += "timestamp=";
-          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
-          bodyString += "&";
+          queryString += "timestamp=";
+          queryString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          queryString += "&";
         }
-        bodyString.pop_back();
-        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
-        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        queryString.pop_back();
+        CCAPI_LOGGER_TRACE("queryString = "+queryString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), queryString);
         CCAPI_LOGGER_TRACE("signature = "+signature);
-        bodyString += "&signature=";
-        bodyString += signature;
-        req.body() = bodyString;
-        req.prepare_payload();
+        queryString += "&signature=";
+        queryString += signature;
+        req.target("/api/v3/order?" + queryString);
+//        req.body() = queryString;
+//        req.prepare_payload();
       }
       break;
       case Request::Operation::GET_OPEN_ORDERS:
       {
         req.method(http::verb::get);
-        req.target("/api/v3/openOrders");
-        std::string bodyString;
+
+        std::string queryString;
         const std::map<std::string, std::string>& paramMap = request.getParamMap();
         for (const auto& kv : paramMap) {
           std::string first = kv.first;
           std::string second = kv.second;
-          bodyString += first;
-          bodyString += "=";
-          bodyString += second;
-          bodyString += "&";
+          queryString += first;
+          queryString += "=";
+          queryString += second;
+          queryString += "&";
         }
         if (!symbolId.empty()) {
-          bodyString += "symbol=";
-          bodyString += symbolId;
-          bodyString += "&";
+          queryString += "symbol=";
+          queryString += symbolId;
+          queryString += "&";
         }
         if (paramMap.find("timestamp") == paramMap.end()) {
-          bodyString += "timestamp=";
-          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
-          bodyString += "&";
+          queryString += "timestamp=";
+          queryString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          queryString += "&";
         }
-        bodyString.pop_back();
-        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
-        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        queryString.pop_back();
+        CCAPI_LOGGER_TRACE("queryString = "+queryString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), queryString);
         CCAPI_LOGGER_TRACE("signature = "+signature);
-        bodyString += "&signature=";
-        bodyString += signature;
-        req.body() = bodyString;
-        req.prepare_payload();
+        queryString += "&signature=";
+        queryString += signature;
+//        req.body() = queryString;
+        req.target("/api/v3/openOrders?" + queryString);
+//        req.prepare_payload();
       }
       break;
       case Request::Operation::CANCEL_OPEN_ORDERS:
       {
         req.method(http::verb::delete_);
-        req.target("/api/v3/openOrders");
-        std::string bodyString;
+
+        std::string queryString;
         const std::map<std::string, std::string>& paramMap = request.getParamMap();
         for (const auto& kv : paramMap) {
           std::string first = kv.first;
           std::string second = kv.second;
-          bodyString += first;
-          bodyString += "=";
-          bodyString += second;
-          bodyString += "&";
+          queryString += first;
+          queryString += "=";
+          queryString += second;
+          queryString += "&";
         }
         if (!symbolId.empty()) {
-          bodyString += "symbol=";
-          bodyString += symbolId;
-          bodyString += "&";
+          queryString += "symbol=";
+          queryString += symbolId;
+          queryString += "&";
         }
         if (paramMap.find("timestamp") == paramMap.end()) {
-          bodyString += "timestamp=";
-          bodyString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
-          bodyString += "&";
+          queryString += "timestamp=";
+          queryString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+          queryString += "&";
         }
-        bodyString.pop_back();
-        CCAPI_LOGGER_TRACE("bodyString = "+bodyString);
-        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), bodyString);
+        queryString.pop_back();
+        CCAPI_LOGGER_TRACE("queryString = "+queryString);
+        std::string signature = UtilAlgorithm::hmacHex(credential.at(CCAPI_BINANCE_US_API_SECRET), queryString);
         CCAPI_LOGGER_TRACE("signature = "+signature);
-        bodyString += "&signature=";
-        bodyString += signature;
-        req.body() = bodyString;
-        req.prepare_payload();
+        queryString += "&signature=";
+        queryString += signature;
+        req.target("/api/v3/openOrders?" + queryString);
+//        req.body() = queryString;
+//        req.prepare_payload();
       }
       break;
       default:

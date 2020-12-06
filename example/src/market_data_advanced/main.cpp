@@ -22,8 +22,8 @@ int main(int argc, char **argv) {
       "handle_events_synchronously"
   };
   if (argc != 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
-    std::cout << "Please provide one command line argument from this list: "+toString(modeList) << std::endl;
-    return 0;
+    std::cerr << "Please provide one command line argument from this list: "+toString(modeList) << std::endl;
+    return EXIT_FAILURE;
   }
   std::string mode(argv[1]);
   if (mode == "specify_correlation_id") {
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     Session session(sessionOptions, sessionConfigs, &eventHandler);
     Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id");
     session.subscribe(subscription);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
   } else if (mode == "normalize_instrument_name") {
     SessionOptions sessionOptions;
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     Session session(sessionOptions, sessionConfigs, &eventHandler);
     Subscription subscription("coinbase", coolName, "MARKET_DEPTH");
     session.subscribe(subscription);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
   } else if (mode == "multiple_exchanges_instruments") {
     SessionOptions sessionOptions;
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH", "", "binance-us|eth_usd");
     subscriptionList.push_back(subscription_2);
     session.subscribe(subscriptionList);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
   } else if (mode == "specify_market_depth") {
     SessionOptions sessionOptions;
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
     Session session(sessionOptions, sessionConfigs, &eventHandler);
     Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_MAX=2");
     session.subscribe(subscription);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
   } else if (mode == "receive_events_at_periodic_intervals") {
     SessionOptions sessionOptions;
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     Session session(sessionOptions, sessionConfigs, &eventHandler);
     Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000");
     session.subscribe(subscription);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
   } else if (mode == "receive_events_at_periodic_intervals_including_when_the_market_depth_snapshot_has_not_changed") {
     SessionOptions sessionOptions;
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     Session session(sessionOptions, sessionConfigs, &eventHandler);
     Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
     session.subscribe(subscription);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
   } else if (mode == "dispatch_events_to_multiple_threads") {
     SessionOptions sessionOptions;
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
     Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
     Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
     session.subscribe(subscription);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
     eventDispatcher.stop();
   } else if (mode == "handle_events_synchronously") {
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     Session session(sessionOptions, sessionConfigs);
     Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
     session.subscribe(subscription);
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     std::vector<Event> eventList = session.eventQueue.purge();
     for (const auto & event : eventList) {
       std::cout << toString(event) + "\n" << std::endl;

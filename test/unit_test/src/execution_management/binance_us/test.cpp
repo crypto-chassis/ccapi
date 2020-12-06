@@ -29,12 +29,11 @@ void verifyApiKey(const http::request<http::string_body>& req, const std::string
   EXPECT_EQ(req.base().at("X-MBX-APIKEY").to_string(), apiKey);
 }
 
-void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
-  auto bodyString = req.body();
-  auto pos = bodyString.find_last_of("&");
-  auto bodyStringWithoutSignature = bodyString.substr(0, pos);
-  auto signature = bodyString.substr(pos + 11, bodyString.length() - pos - 1);
-  EXPECT_EQ(UtilAlgorithm::hmacHex(apiSecret, bodyStringWithoutSignature), signature);
+void verifySignature(const std::string& paramString, const std::string& apiSecret) {
+  auto pos = paramString.find_last_of("&");
+  auto paramStringWithoutSignature = paramString.substr(0, pos);
+  auto signature = paramString.substr(pos + 11, paramString.length() - pos - 1);
+  EXPECT_EQ(UtilAlgorithm::hmacHex(apiSecret, paramStringWithoutSignature), signature);
 }
 
 void verifyCorrelationId(const std::vector<Message>& messageList, const std::string& correlationId) {
@@ -53,13 +52,14 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/order");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
-  EXPECT_EQ(bodyMap.at("side"), "BUY");
-  EXPECT_EQ(bodyMap.at("type"), "LIMIT");
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/order");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(paramMap.at("side"), "BUY");
+  EXPECT_EQ(paramMap.at("type"), "LIMIT");
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCreateOrder) {
@@ -92,12 +92,14 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrder
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/order");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("orderId"), "28");
-  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  std::cout<<toString(splitted)<<std::endl;
+  EXPECT_EQ(splitted.at(0), "/api/v3/order");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("orderId"), "28");
+  EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClientOrderId) {
@@ -106,12 +108,13 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClien
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/order");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
-  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/order");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
+  EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCancelOrder) {
@@ -129,12 +132,13 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByOrderId)
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/order");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("orderId"), "28");
-  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/order");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("orderId"), "28");
+  EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOrderId) {
@@ -143,12 +147,13 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOr
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/order");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
-  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/order");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
+  EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageGetOrder) {
@@ -199,11 +204,12 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersOneIn
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/openOrders");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("symbol"), "BTCUSD");
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllInstruments) {
@@ -211,10 +217,11 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllIn
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/openOrders");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 void verifyProcessSuccessfulTextMessageGetOpenOrders(const ExecutionManagementServiceBinanceUsTest* fixture, bool isOneInstrument) {
@@ -278,10 +285,11 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) 
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target(), "/api/v3/openOrders");
-  auto bodyMap = Url::convertQueryStringToMap(req.body());
-  EXPECT_EQ(bodyMap.at("timestamp"), std::to_string(this->timestamp));
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(std::string(req.target()), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCancelOpenOrders) {

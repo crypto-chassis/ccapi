@@ -1,4 +1,4 @@
-set(NAME market_data_advanced)
+set(NAME market_data_simple)
 project(${NAME})
 add_definitions(-DENABLE_SERVICE_MARKET_DATA)
 add_definitions(-DENABLE_EXCHANGE_COINBASE)
