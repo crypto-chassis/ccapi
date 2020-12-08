@@ -7,7 +7,8 @@ class MyEventHandler : public EventHandler {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto & message : event.getMessageList()) {
         if (message.getRecapType() == Message::RecapType::NONE) {
-          std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
+          std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:"
+                    << std::endl;
           for (const auto & element : message.getElementList()) {
             const std::map<std::string, std::string>& elementNameValueMap = element.getNameValueMap();
             std::cout << "  " + toString(elementNameValueMap) << std::endl;

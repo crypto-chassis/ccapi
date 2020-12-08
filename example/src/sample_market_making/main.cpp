@@ -1,36 +1,36 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-  Logger* Logger::logger = nullptr;  // This line is needed.
-  class MyEventHandler : public EventHandler {
-   public:
-    bool processEvent(const Event& event, Session *session) override {
-      if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-        for (const auto & message : event.getMessageList()) {
-          if (message.getRecapType() == Message::RecapType::NONE) {
-            for (const auto & element : message.getElementList()) {
-              std::lock_guard<std::mutex> lock(m);
-              if (element.has("BID_PRICE")) {
-                bestBidPrice = element.getValue("BID_PRICE");
-              }
-              if (element.has("ASK_PRICE")) {
-                bestAskPrice = element.getValue("ASK_PRICE");
-              }
+Logger* Logger::logger = nullptr;  // This line is needed.
+class MyEventHandler : public EventHandler {
+ public:
+  bool processEvent(const Event& event, Session *session) override {
+    if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
+      for (const auto & message : event.getMessageList()) {
+        if (message.getRecapType() == Message::RecapType::NONE) {
+          for (const auto & element : message.getElementList()) {
+            std::lock_guard<std::mutex> lock(m);
+            if (element.has("BID_PRICE")) {
+              bestBidPrice = element.getValue("BID_PRICE");
+            }
+            if (element.has("ASK_PRICE")) {
+              bestAskPrice = element.getValue("ASK_PRICE");
             }
           }
         }
       }
-      return true;
     }
-    std::pair<std::string, std::string> getBBO() {
-      std::lock_guard<std::mutex> lock(m);
-      return std::make_pair(bestBidPrice, bestAskPrice);
-    }
+    return true;
+  }
+  std::pair<std::string, std::string> getBBO() {
+    std::lock_guard<std::mutex> lock(m);
+    return std::make_pair(bestBidPrice, bestAskPrice);
+  }
 
-   private:
-    mutable std::mutex m;
-    std::string bestBidPrice;
-    std::string bestAskPrice;
-  };
+ private:
+  mutable std::mutex m;
+  std::string bestBidPrice;
+  std::string bestAskPrice;
+};
 } /* namespace ccapi */
 std::string regularizePrice(double price) {
   std::stringstream stream;
@@ -40,11 +40,9 @@ std::string regularizePrice(double price) {
 int main(int argc, char **argv) {
   using namespace ccapi;  // NOLINT(build/namespaces)
   if (argc != 3) {
-      std::cerr <<
-          "Usage: <program name> <spread percentage> <order quantity>\n" <<
-          "Example:\n" <<
-          "    main 0.5 0.01" << std::endl;
-      return EXIT_FAILURE;
+    std::cerr << "Usage: <program name> <spread percentage> <order quantity>\n" << "Example:\n" << "    main 0.5 0.01"
+              << std::endl;
+    return EXIT_FAILURE;
   }
   double spreadPercentage = std::stod(argv[1]);
   std::string orderQuantity = argv[2];
@@ -58,10 +56,8 @@ int main(int argc, char **argv) {
     std::cerr << "Please provide environment variable BINANCE_US_API_SECRET" << std::endl;
     return EXIT_FAILURE;
   }
-  std::map<std::string, std::string> credential = {
-     { CCAPI_BINANCE_US_API_KEY, key },
-     { CCAPI_BINANCE_US_API_SECRET, secret }
-  };
+  std::map<std::string, std::string> credential = { { CCAPI_BINANCE_US_API_KEY, key }, { CCAPI_BINANCE_US_API_SECRET,
+      secret } };
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
