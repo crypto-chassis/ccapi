@@ -1,0 +1,7 @@
+set(NAME execution_management_binance_us)
+project(${NAME})
+add_definitions(-DENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_definitions(-DENABLE_EXCHANGE_BINANCE_US)
+add_executable(${NAME} ${SOURCE_LOGGER} test.cpp)
+target_link_libraries(${NAME} GTest::GTest GTest::Main)
+gtest_discover_tests(${NAME})

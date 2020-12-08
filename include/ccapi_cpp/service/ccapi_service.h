@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #include "ccapi_cpp/ccapi_request.h"
+#include "ccapi_cpp/ccapi_subscription.h"
 namespace ccapi {
 class Service {
  public:

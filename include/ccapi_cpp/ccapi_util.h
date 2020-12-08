@@ -525,5 +525,12 @@ template<typename K, typename V> std::map<V, std::vector<K> > invertMapMulti(con
   }
   return output;
 }
+template<typename K, typename V> std::map<V, K> invertMap(const std::map<K, V>& c) {
+  std::map<V, K> output;
+  for (const auto& elem : c) {
+    output.insert(std::make_pair(elem.second, elem.first));
+  }
+  return output;
+}
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_UTIL_H_

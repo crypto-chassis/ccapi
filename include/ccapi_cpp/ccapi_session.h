@@ -60,7 +60,7 @@ class Session final {
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
   Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
-          EventHandler* eventHandler = 0, EventDispatcher* eventDispatcher = 0)
+          EventHandler* eventHandler = nullptr, EventDispatcher* eventDispatcher = nullptr)
       : sessionOptions(sessionOptions),
         sessionConfigs(sessionConfigs),
         eventHandler(eventHandler),
@@ -90,45 +90,45 @@ class Session final {
       this->serviceContextPtr->start();
     });
     this->t = std::move(t);
-    std::function<void(Event& event)> serviceEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
+    std::function<void(Event& event)> eventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &eventQueue);
 #ifdef ENABLE_SERVICE_MARKET_DATA
 #ifdef ENABLE_EXCHANGE_COINBASE
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_COINBASE] = std::make_shared<MarketDataServiceCoinbase>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_COINBASE] = std::make_shared<MarketDataServiceCoinbase>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_GEMINI
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_GEMINI] = std::make_shared<MarketDataServiceGemini>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_GEMINI] = std::make_shared<MarketDataServiceGemini>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_KRAKEN
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KRAKEN] = std::make_shared<MarketDataServiceKraken>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KRAKEN] = std::make_shared<MarketDataServiceKraken>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BITSTAMP
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITSTAMP] = std::make_shared<MarketDataServiceBitstamp>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITSTAMP] = std::make_shared<MarketDataServiceBitstamp>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BITFINEX
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITFINEX] = std::make_shared<MarketDataServiceBitfinex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITFINEX] = std::make_shared<MarketDataServiceBitfinex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BITMEX
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMEX] = std::make_shared<MarketDataServiceBitmex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMEX] = std::make_shared<MarketDataServiceBitmex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BINANCE_US
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<MarketDataServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<MarketDataServiceBinanceUs>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BINANCE
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE] = std::make_shared<MarketDataServiceBinance>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE] = std::make_shared<MarketDataServiceBinance>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_FUTURES] = std::make_shared<MarketDataServiceBinanceFutures>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_FUTURES] = std::make_shared<MarketDataServiceBinanceFutures>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_HUOBI
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HUOBI] = std::make_shared<MarketDataServiceHuobi>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HUOBI] = std::make_shared<MarketDataServiceHuobi>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_OKEX
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKEX] = std::make_shared<MarketDataServiceOkex>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKEX] = std::make_shared<MarketDataServiceOkex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef ENABLE_EXCHANGE_BINANCE_US
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<ExecutionManagementServiceBinanceUs>(serviceEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<ExecutionManagementServiceBinanceUs>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
@@ -269,14 +269,14 @@ class Session final {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = 0) {
+  void sendRequest(const Request& request, Queue<Event> *eventQueuePtr = nullptr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList;
     requestList.push_back(request);
     this->sendRequest(requestList, eventQueuePtr);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const std::vector<Request>& requestList, Queue<Event> *eventQueuePtr = 0) {
+  void sendRequest(const std::vector<Request>& requestList, Queue<Event> *eventQueuePtr = nullptr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     std::set<std::string> serviceNameExchangeSet;

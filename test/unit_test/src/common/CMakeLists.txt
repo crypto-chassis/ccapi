@@ -1,0 +1,5 @@
+set(NAME common)
+project(${NAME})
+add_executable(${NAME} ${SOURCE_LOGGER} util_test.cpp)
+target_link_libraries(${NAME} GTest::GTest GTest::Main)
+gtest_discover_tests(${NAME})

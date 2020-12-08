@@ -43,6 +43,7 @@ class Message final {
     GET_ORDER,
     GET_OPEN_ORDERS,
     CANCEL_OPEN_ORDERS,
+    ORDER_MATCHED,
     RESPONSE_ERROR,
     REQUEST_FAILURE
   };
@@ -87,6 +88,9 @@ class Message final {
         break;
       case Type::CANCEL_OPEN_ORDERS:
         output = "CANCEL_OPEN_ORDERS";
+        break;
+      case Type::ORDER_MATCHED:
+        output = "ORDER_MATCHED";
         break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";

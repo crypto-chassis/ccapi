@@ -5,6 +5,7 @@ on:
       - master
 jobs:
   release:
+    timeout-minutes: 5
     name: release
     runs-on: ubuntu-latest
     steps:

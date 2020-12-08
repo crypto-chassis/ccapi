@@ -72,13 +72,15 @@ For a specific exchange and instrument, whenever the top 10 bids' or asks' price
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-Logger* Logger::logger = 0;  // This line is needed.
+Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
+ public:
   bool processEvent(const Event& event, Session *session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto & message : event.getMessageList()) {
         if (message.getRecapType() == Message::RecapType::NONE) {
-          std::cout << std::string("Top ") + CCAPI_EXCHANGE_VALUE_MARKET_DEPTH_MAX_DEFAULT + " bids and asks at " + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
+          std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:"
+                    << std::endl;
           for (const auto & element : message.getElementList()) {
             const std::map<std::string, std::string>& elementNameValueMap = element.getNameValueMap();
             std::cout << "  " + toString(elementNameValueMap) << std::endl;
@@ -190,7 +192,7 @@ std::vector<Event> eventList = session.eventQueue.purge();
 Add one of the following macros in the compiler command line: ENABLE_LOG_TRACE, ENABLE_LOG_DEBUG, ENABLE_LOG_INFO, ENABLE_LOG_WARN, ENABLE_LOG_ERROR, ENABLE_LOG_FATAL. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
 ```
 namespace ccapi {
-  Logger* Logger::logger = 0;  // This line is needed.
+  Logger* Logger::logger = nullptr;  // This line is needed.
   class MyLogger final: public Logger {
    public:
     virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
