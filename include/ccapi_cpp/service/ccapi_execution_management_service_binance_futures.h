@@ -19,7 +19,7 @@ class ExecutionManagementServiceBinanceFutures final : public ExecutionManagemen
     this->createOrderTarget = CCAPI_BINANCE_FUTURES_CREATE_ORDER_TARGET;
     this->cancelOrderTarget = "/fapi/v1/order";
     this->getOrderTarget = "/fapi/v1/order";
-    this->getOpenOrdersTarget = "/fapi/v1/openOrder";
+    this->getOpenOrdersTarget = "/fapi/v1/openOrders";
     this->cancelOpenOrdersTarget = "/fapi/v1/allOpenOrders";
     this->isFutures = true;
     CCAPI_LOGGER_FUNCTION_EXIT;
