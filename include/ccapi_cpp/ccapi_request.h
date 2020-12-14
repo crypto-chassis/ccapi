@@ -43,9 +43,9 @@ class Request final {
     }
     return output;
   }
-  Request(Operation operation, std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
-      "")
-      : operation(operation), credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
+  Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId =
+      "", std::map<std::string, std::string> credential = {})
+      : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
     this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
@@ -53,7 +53,7 @@ class Request final {
   }
   std::string toString() const {
     std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = "+serviceName+", correlationId = "
-        + correlationId +", paramMap = "+ccapi::toString(paramMap)+ ", credential = "
+        + correlationId +", paramList = "+ccapi::toString(paramList)+ ", credential = "
         + ccapi::toString(credential) + ", operation = " + operationToString(operation) + "]";
     return output;
   }
@@ -72,17 +72,17 @@ class Request final {
   const std::string& getServiceName() const {
     return serviceName;
   }
-  void setParam(std::string name, std::string value) {
-      this->paramMap[name] = value;
-  }
-  std::string getParam(std::string name) {
-    return this->paramMap.at(name);
-  }
-  const std::map<std::string, std::string>& getParamMap() const {
-    return paramMap;
+  void appendParam(const std::map<std::string, std::string>& param) {
+      this->paramList.push_back(param);
   }
   Operation getOperation() const {
     return operation;
+  }
+  const std::vector<std::map<std::string, std::string> >& getParamList() const {
+    return paramList;
+  }
+  void setParamList(const std::vector<std::map<std::string, std::string> >& paramList) {
+    this->paramList = paramList;
   }
 
  private:
@@ -90,7 +90,7 @@ class Request final {
   std::string instrument;
   std::string serviceName;
   std::string correlationId;
-  std::map<std::string, std::string> paramMap;
+  std::vector<std::map<std::string, std::string> > paramList;
   std::map<std::string, std::string> credential;
   Operation operation;
 };

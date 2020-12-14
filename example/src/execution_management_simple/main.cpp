@@ -2,6 +2,7 @@
 namespace ccapi {
 Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
+ public:
   bool processEvent(const Event& event, Session *session) override {
     std::cout << "Received an event: " + toString(event) << std::endl;
     return true;
@@ -33,7 +34,6 @@ int main(int argc, char** argv) {
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Queue<Event> eventQueue;
   if (mode == "create_order") {
     if (argc != 6) {
       std::cerr << "Usage: <program name> create_order <symbol> <buy or sell> <order quantity> <limit price>\n"
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     request.setParam("SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL");
     request.setParam("QUANTITY", argv[4]);
     request.setParam("LIMIT_PRICE", argv[5]);
-    session.sendRequest(request, &eventQueue);
+    session.sendRequest(request);
   } else if (mode == "cancel_order") {
     if (argc != 4) {
       std::cerr << "Usage: <program name> cancel_order <symbol> <order id>\n" << "Example:\n"
@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     }
     Request request(Request::Operation::CANCEL_ORDER, credential, "binance-us", argv[2]);
     request.setParam("ORDER_ID", argv[3]);
-    session.sendRequest(request, &eventQueue);
+    session.sendRequest(request);
   } else if (mode == "get_order") {
     if (argc != 4) {
       std::cerr << "Usage: <program name> get_order <symbol> <order id>\n" << "Example:\n"
@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     }
     Request request(Request::Operation::GET_ORDER, credential, "binance-us", argv[2]);
     request.setParam("ORDER_ID", argv[3]);
-    session.sendRequest(request, &eventQueue);
+    session.sendRequest(request);
   } else if (mode == "get_open_orders") {
     if (argc != 3) {
       std::cerr << "Usage: <program name> get_open_orders <symbol>\n" << "Example:\n"
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Request request(Request::Operation::GET_OPEN_ORDERS, credential, "binance-us", argv[2]);
-    session.sendRequest(request, &eventQueue);
+    session.sendRequest(request);
   } else if (mode == "cancel_open_orders") {
     if (argc != 3) {
       std::cerr << "Usage: <program name> cancel_open_orders <symbol>\n" << "Example:\n"
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Request request(Request::Operation::CANCEL_OPEN_ORDERS, credential, "binance-us", argv[2]);
-    session.sendRequest(request, &eventQueue);
+    session.sendRequest(request);
   }
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();

@@ -29,8 +29,8 @@ class Subscription final {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
   }
-  Subscription(std::map<std::string, std::string> credential, std::string exchange, std::string instrument = "", std::string correlationId =
-      ""): credential(credential), exchange(exchange), instrument(instrument), correlationId(correlationId) {
+  Subscription(std::string exchange, std::string instrument = "", std::string correlationId =
+      "", std::map<std::string, std::string> credential = {}): exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
     this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);

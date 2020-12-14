@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
+#ifdef ENABLE_SERVICE_MARKET_DATA
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
 #endif
@@ -50,6 +51,71 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   }
   virtual ~MarketDataService() {
   }
+  void stop() override {
+    this->shouldContinue = false;
+    for (const auto & x : this->wsConnectionMap) {
+      auto wsConnection = x.second;
+      ErrorCode ec;
+      this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
+      if (ec) {
+        CCAPI_LOGGER_ERROR(ec.message());
+      }
+      this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
+    }
+  }
+  void subscribe(const std::vector<Subscription>& subscriptionList) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_DEBUG("this->baseUrl = "+this->baseUrl);
+    if (this->shouldContinue.load()) {
+      for (const auto & x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
+        auto instrumentGroup = x.first;
+        auto subscriptionListGivenInstrumentGroup = x.second;
+        wspp::lib::asio::post(
+          this->serviceContextPtr->tlsClientPtr->get_io_service(),
+          [that = shared_from_this(), instrumentGroup, subscriptionListGivenInstrumentGroup](){
+            std::map<std::string, std::vector<std::string> > wsConnectionIdListByInstrumentGroupMap = invertMapMulti(that->instrumentGroupByWsConnectionIdMap);
+            if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end()
+                && that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()
+                ) {
+              auto wsConnectionId = wsConnectionIdListByInstrumentGroupMap.at(instrumentGroup).at(0);
+              auto wsConnection = that->wsConnectionMap.at(wsConnectionId);
+              for (const auto & subscription : subscriptionListGivenInstrumentGroup) {
+                auto instrument = subscription.getInstrument();
+                if (that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].find(instrument) != that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].end()) {
+                  CCAPI_LOGGER_ERROR("already subscribed: " + toString(subscription));
+                  return;
+                }
+                wsConnection.subscriptionList.push_back(subscription);
+                that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
+                that->prepareSubscription(wsConnection, subscription);
+              }
+              that->subscribeToExchange(wsConnection);
+            } else {
+              auto url = UtilString::split(instrumentGroup, "|").at(0);
+              WsConnection wsConnection(url, subscriptionListGivenInstrumentGroup);
+              that->connect(wsConnection);
+              that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+              that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, instrumentGroup));
+              wsConnection.instrumentGroup = instrumentGroup;
+              for (const auto & subscription : subscriptionListGivenInstrumentGroup) {
+                auto instrument = subscription.getInstrument();
+                that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
+              }
+              wsConnectionIdListByInstrumentGroupMap[instrumentGroup].push_back(wsConnection.id);
+            }
+        });
+      }
+      CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
+    }
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+
+ protected:
+  typedef ServiceContext::SslContextPtr SslContextPtr;
+  typedef ServiceContext::TlsClient TlsClient;
+  typedef wspp::lib::error_code ErrorCode;
+  typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
+  typedef wspp::lib::function<void(ErrorCode const &)> TimerHandler;
   std::map<std::string, std::vector<Subscription> > groupSubscriptionListByInstrumentGroup(const std::vector<Subscription>& subscriptionList) {
     std::map<std::string, std::vector<Subscription> > groups;
     for (const auto & subscription : subscriptionList) {
@@ -61,13 +127,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
     return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
   }
-
- protected:
-  typedef ServiceContext::SslContextPtr SslContextPtr;
-  typedef ServiceContext::TlsClient TlsClient;
-  typedef wspp::lib::error_code ErrorCode;
-  typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
-  typedef wspp::lib::function<void(ErrorCode const &)> TimerHandler;
   SslContextPtr onTlsInit(wspp::connection_hdl hdl) {
     return this->serviceContextPtr->sslContextPtr;
   }
@@ -820,7 +879,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
           TimePoint time = shouldConflate ? this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) + std::chrono::milliseconds(std::stoll(optionMap.at(
               CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) : conflateTp;
           message.setTime(time);
-//          message.setTime(conflateTp);
           message.setElementList(elementList);
           message.setCorrelationIdList(correlationIdList);
           messageList.push_back(std::move(message));
@@ -860,8 +918,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       event.addMessages(messageList);
     }
   }
-  virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage,
-                                                           const TimePoint& timeReceived) = 0;
   virtual void alignSnapshot(std::map<Decimal, std::string>& snapshotBid, std::map<Decimal, std::string>& snapshotAsk,
                              int marketDepthSubscribedToExchange) {
     CCAPI_LOGGER_TRACE("snapshotBid.size() = "+toString(snapshotBid.size()));
@@ -1020,7 +1076,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                   if (this->wsConnectionMap.find(wsConnection.id) != this->wsConnectionMap.end()) {
                     if (ec) {
                       CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", conflate timer error: "+ec.message());
-                      //      }
                     } else {
                       if (this->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                         auto conflateTp = previousConflateTp + interval;
@@ -1064,64 +1119,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void stop() override {
-    this->shouldContinue = false;
-    for (const auto & x : this->wsConnectionMap) {
-      auto wsConnection = x.second;
-      ErrorCode ec;
-      this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
-      if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
-      }
-      this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
-    }
-  }
-  void subscribe(const std::vector<Subscription>& subscriptionList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_DEBUG("this->baseUrl = "+this->baseUrl);
-    if (this->shouldContinue.load()) {
-      for (const auto & x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
-        auto instrumentGroup = x.first;
-        auto subscriptionListGivenInstrumentGroup = x.second;
-        wspp::lib::asio::post(
-          this->serviceContextPtr->tlsClientPtr->get_io_service(),
-          [that = shared_from_this(), instrumentGroup, subscriptionListGivenInstrumentGroup](){
-            std::map<std::string, std::vector<std::string> > wsConnectionIdListByInstrumentGroupMap = invertMapMulti(that->instrumentGroupByWsConnectionIdMap);
-            if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end()
-                && that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()
-                ) {
-              auto wsConnectionId = wsConnectionIdListByInstrumentGroupMap.at(instrumentGroup).at(0);
-              auto wsConnection = that->wsConnectionMap.at(wsConnectionId);
-              for (const auto & subscription : subscriptionListGivenInstrumentGroup) {
-                auto instrument = subscription.getInstrument();
-                if (that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].find(instrument) != that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].end()) {
-                  CCAPI_LOGGER_ERROR("already subscribed: " + toString(subscription));
-                  return;
-                }
-                wsConnection.subscriptionList.push_back(subscription);
-                that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
-                that->prepareSubscription(wsConnection, subscription);
-              }
-              that->subscribeToExchange(wsConnection);
-            } else {
-              auto url = UtilString::split(instrumentGroup, "|").at(0);
-              WsConnection wsConnection(url, subscriptionListGivenInstrumentGroup);
-              that->connect(wsConnection);
-              that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-              that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, instrumentGroup));
-              wsConnection.instrumentGroup = instrumentGroup;
-              for (const auto & subscription : subscriptionListGivenInstrumentGroup) {
-                auto instrument = subscription.getInstrument();
-                that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
-              }
-              wsConnectionIdListByInstrumentGroupMap[instrumentGroup].push_back(wsConnection.id);
-            }
-        });
-      }
-      CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
-    }
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
   virtual void subscribeToExchange(const WsConnection& wsConnection) {
     std::vector<std::string> requestStringList = this->createRequestStringList(wsConnection);
     for (const auto & requestString : requestStringList) {
@@ -1133,10 +1130,9 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       }
     }
   }
-  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) {
-    std::vector<std::string> dummy;
-    return dummy;
-  }
+  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
+  virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage,
+                                                           const TimePoint& timeReceived) = 0;
 
   std::shared_ptr<ServiceContext> serviceContextPtr;
   std::string name;
@@ -1176,4 +1172,5 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   std::map<std::string, std::string> instrumentGroupByWsConnectionIdMap;
 };
 } /* namespace ccapi */
+#endif
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_

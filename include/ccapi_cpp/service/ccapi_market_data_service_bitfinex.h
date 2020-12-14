@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_
+#ifdef ENABLE_SERVICE_MARKET_DATA
 #ifdef ENABLE_EXCHANGE_BITFINEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 #include <regex>
@@ -12,6 +13,9 @@ class MarketDataServiceBitfinex final : public MarketDataService {
   }
 
  private:
+  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
+    return std::vector<std::string>();
+  }
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
@@ -304,5 +308,6 @@ class MarketDataServiceBitfinex final : public MarketDataService {
   std::map<std::string, int> sequenceByConnectionIdMap;
 };
 } /* namespace ccapi */
+#endif
 #endif
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_
