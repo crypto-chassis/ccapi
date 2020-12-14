@@ -216,7 +216,9 @@ class SessionConfigs final {
       }
     }
     this->urlRestBase = {
-      { CCAPI_EXCHANGE_NAME_BINANCE_US, "https://api.binance.us"},
+      { CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
     };
   }
   std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {

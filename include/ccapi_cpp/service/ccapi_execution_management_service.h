@@ -25,6 +25,7 @@
 #include "ccapi_cpp/ccapi_queue.h"
 #include "ccapi_cpp/ccapi_http_retry.h"
 #include "ccapi_cpp/ccapi_url.h"
+#include "ccapi_cpp/ccapi_macro.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"

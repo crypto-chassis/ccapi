@@ -190,29 +190,23 @@ std::vector<Event> eventList = session.eventQueue.purge();
 
 #### Enable library logging
 
-Add one of the following macros in the compiler command line: `ENABLE_LOG_TRACE`, `ENABLE_LOG_DEBUG`, `ENABLE_LOG_INFO`, `ENABLE_LOG_WARN`, `ENABLE_LOG_ERROR`, `ENABLE_LOG_FATAL`. Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`.
+Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `ENABLE_LOG_TRACE`, `ENABLE_LOG_DEBUG`, `ENABLE_LOG_INFO`, `ENABLE_LOG_WARN`, `ENABLE_LOG_ERROR`, `ENABLE_LOG_FATAL`.
 ```
 namespace ccapi {
-  Logger* Logger::logger = nullptr;  // This line is needed.
-  class MyLogger final: public Logger {
-   public:
-    virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
-                            std::chrono::system_clock::time_point time,
-                            std::string fileName, int lineNumber,
-                            std::string message) override {
-      std::cout << threadId << ": [" << UtilTime::getISOTimestamp(time) << "] {"
-          << fileName << ":" << lineNumber << "} "
-          << Logger::severityToString(severity) << std::string(8, ' ') << message
-          << std::endl;
-    }
-  };
-}
-...
-using namespace ccapi;
+class MyLogger final: public Logger {
+ public:
+  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
+                          std::chrono::system_clock::time_point time,
+                          std::string fileName, int lineNumber,
+                          std::string message) override {
+    ...                          
+  }
+};
 MyLogger myLogger;
-Logger::logger = &myLogger;
+Logger* Logger::logger = &myLogger;
+}
 ```
-
+Add one of the following macros in the compiler command line: `ENABLE_LOG_TRACE`, `ENABLE_LOG_DEBUG`, `ENABLE_LOG_INFO`, `ENABLE_LOG_WARN`, `ENABLE_LOG_ERROR`, `ENABLE_LOG_FATAL`.
 ### Contributing
 * (Required) Submit a pull request to the master branch.
 * (Required) Pass Github checks: https://docs.github.com/en/rest/reference/checks.
