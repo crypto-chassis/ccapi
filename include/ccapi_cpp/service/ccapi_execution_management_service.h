@@ -167,8 +167,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
       this->tcpResolverResults,
-      beast::bind_front_handler(&ExecutionManagementService::onConnect, shared_from_this(), httpConnectionPtr, request, req, retry)
-    );
+      beast::bind_front_handler(&ExecutionManagementService::onConnect, shared_from_this(), httpConnectionPtr, request, req, retry));
     CCAPI_LOGGER_TRACE("after async_connect");
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -184,8 +183,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_TRACE("before async_handshake");
     stream.async_handshake(
       ssl::stream_base::client,
-      beast::bind_front_handler(&ExecutionManagementService::onHandshake, shared_from_this(), httpConnectionPtr, request, req, retry)
-    );
+      beast::bind_front_handler(&ExecutionManagementService::onHandshake, shared_from_this(), httpConnectionPtr, request, req, retry));
     CCAPI_LOGGER_TRACE("after async_handshake");
   }
   void onHandshake(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, http::request<http::string_body> req, HttpRetry retry, beast::error_code ec) {
@@ -241,9 +239,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
       stream.async_shutdown(
         beast::bind_front_handler(
           &ExecutionManagementService::onShutdown,
-          shared_from_this()
-        )
-      );
+          shared_from_this()));
       CCAPI_LOGGER_TRACE("after async_shutdown");
     } else {
       try {
@@ -392,7 +388,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     this->convertReq(request, now, req, credential, symbolId, operation);
     return req;
   }
-  void setupCredential(std::vector<std::string> nameList){
+  void setupCredential(std::vector<std::string> nameList) {
     for (const auto& x : nameList) {
       if (!UtilSystem::getEnvAsString(x).empty()) {
         this->credentialDefault.insert(std::make_pair(x, UtilSystem::getEnvAsString(x)));
@@ -408,7 +404,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
       if (it != x.MemberEnd()) {
         std::string value = y.second.second == JsonDataType::STRING ? it->value.GetString() :
           y.second.second == JsonDataType::INTEGER ? std::to_string(it->value.GetInt64()) :
-          y.second.second == JsonDataType::BOOLEAN ? std::to_string(int(it->value.GetBool())) :
+          y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) :
           "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
