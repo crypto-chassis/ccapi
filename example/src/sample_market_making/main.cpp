@@ -48,16 +48,14 @@ int main(int argc, char **argv) {
   std::string orderQuantity = argv[2];
   std::string key = UtilSystem::getEnvAsString("BINANCE_US_API_KEY");
   if (key.empty()) {
-    std::cerr << "Please provide environment variable BINANCE_US_API_KEY" << std::endl;
+    std::cerr << "Please set environment variable BINANCE_US_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
   std::string secret = UtilSystem::getEnvAsString("BINANCE_US_API_SECRET");
   if (secret.empty()) {
-    std::cerr << "Please provide environment variable BINANCE_US_API_SECRET" << std::endl;
+    std::cerr << "Please set environment variable BINANCE_US_API_SECRET" << std::endl;
     return EXIT_FAILURE;
   }
-  std::map<std::string, std::string> credential = { { CCAPI_BINANCE_US_API_KEY, key }, { CCAPI_BINANCE_US_API_SECRET,
-      secret } };
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
@@ -67,7 +65,7 @@ int main(int argc, char **argv) {
   session.subscribe(subscription);
   while (true) {
     // https://github.com/binance-us/binance-official-api-docs/blob/master/rest-api.md#signed-endpoint-examples-for-post-apiv3order: All symbols for REST are uppercase
-    Request requestCancel(Request::Operation::CANCEL_OPEN_ORDERS, credential, "binance-us", "BTCUSD");
+    Request requestCancel(Request::Operation::CANCEL_OPEN_ORDERS, "binance-us", "BTCUSD");
     session.sendRequest(requestCancel);
     std::cout << "Cancel all open orders" << std::endl;
     auto bbo = eventHandler.getBBO();
@@ -77,15 +75,19 @@ int main(int argc, char **argv) {
       std::string buyPrice = regularizePrice(midPrice * (1 - spreadPercentage / 100));
       std::string sellPrice = regularizePrice(midPrice * (1 + spreadPercentage / 100));
       std::vector<Request> requestList;
-      Request requestBuy(Request::Operation::CREATE_ORDER, credential, "binance-us", "BTCUSD");
-      requestBuy.setParam("SIDE", "BUY");
-      requestBuy.setParam("QUANTITY", orderQuantity);
-      requestBuy.setParam("LIMIT_PRICE", buyPrice);
+      Request requestBuy(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
+      requestBuy.appendParam({
+        {"SIDE", "BUY"},
+        {"QUANTITY", orderQuantity},
+        {"LIMIT_PRICE", buyPrice}
+      });
       requestList.push_back(requestBuy);
-      Request requestSell(Request::Operation::CREATE_ORDER, credential, "binance-us", "BTCUSD");
-      requestSell.setParam("SIDE", "SELL");
-      requestSell.setParam("QUANTITY", orderQuantity);
-      requestSell.setParam("LIMIT_PRICE", sellPrice);
+      Request requestSell(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
+      requestSell.appendParam({
+        {"SIDE", "SELL"},
+        {"QUANTITY", orderQuantity},
+        {"LIMIT_PRICE", sellPrice}
+      });
       requestList.push_back(requestSell);
       session.sendRequest(requestList);
       std::cout << "Buy " + orderQuantity + " BTCUSD at price " + buyPrice << std::endl;

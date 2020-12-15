@@ -42,8 +42,8 @@
 * Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
-  * Define service enablement macro ENABLE_SERVICE_MARKET_DATA and exchange enablement macros such as ENABLE_EXCHANGE_COINBASE, etc. These macros can be found at the top of include/ccapi_cpp/ccapi_session.h.
-  * If your OpenSSL version is older than 1.1, define macro OPENSSL_VERSION_MAJOR and OPENSSL_VERSION_MINOR (e.g. for OpenSSL 1.0.2s, define OPENSSL_VERSION_MAJOR to be 1 and OPENSSL_VERSION_MINOR to be 0).
+  * Define service enablement macro `ENABLE_SERVICE_MARKET_DATA` and exchange enablement macros such as `ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of `include/ccapi_cpp/ccapi_session.h`.
+  * If your OpenSSL version is older than 1.1, define macro `OPENSSL_VERSION_MAJOR` and `OPENSSL_VERSION_MINOR` (e.g. for OpenSSL 1.0.2s, define `OPENSSL_VERSION_MAJOR` to be 1 and `OPENSSL_VERSION_MINOR` to be 0).
 * Include directories:
   * include
   * dependency/websocketpp
@@ -55,11 +55,11 @@
   * OpenSSL: libcrypto
   * If you need huobi or okex, also link ZLIB.
 * Troubleshoot:
-  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try cmake -DOPENSSL_ROOT_DIR=...(e.g. /usr/local/opt/openssl)
+  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL. `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`.
   * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
 
 ## Constants
-include/ccapi_cpp/ccapi_macro.h
+`include/ccapi_cpp/ccapi_macro.h`
 
 ## Examples
 [Source](example)
@@ -118,21 +118,21 @@ Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
 ### Advanced
 #### Specify market depth
 
-Instantiate Subscription with option MARKET_DEPTH_MAX set to be the desired market depth.
+Instantiate `Subscription` with option `MARKET_DEPTH_MAX` set to be the desired market depth.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_MAX=10");
 ```
 
 #### Specify correlation id
 
-Instantiate Subscription with the desired correlationId.
+Instantiate `Subscription` with the desired correlationId.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id");
 ```
 
 #### Normalize instrument name
 
-Instantiate SessionConfigs with a map mapping the exchange name and the normalized instrument name to the instrument's symbol on the exchange.
+Instantiate `SessionConfigs` with a map mapping the exchange name and the normalized instrument name to the instrument's symbol on the exchange.
 ```
 std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
 std::string coolName = "btc_usd";
@@ -144,7 +144,7 @@ Subscription subscription("coinbase", coolName, "MARKET_DEPTH");
 
 #### Multiple exchanges and/or instruments
 
-Subscribe a std::vector<Subscription>.
+Subscribe a `std::vector<Subscription>`.
 ```
 std::vector<Subscription> subscriptionList;
 Subscription subscription_1("coinbase", "BTC-USD", "MARKET_DEPTH", "", "coinbase|btc_usd");
@@ -156,21 +156,22 @@ session.subscribe(subscriptionList);
 
 #### Receive events at periodic intervals
 
-Instantiate Subscription with option CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval.
+Instantiate `Subscription` with option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000");
 ```
 
 #### Receive events at periodic intervals including when the market depth snapshot hasn't changed
 
-Instantiate Subscription with option CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS set to be the desired interval and CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS to be your network latency.
+Instantiate `Subscription` with option `CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS` to be your network latency.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
 ```
 
 #### Dispatch events to multiple threads
 
-Instantiate EventDispatcher with numDispatcherThreads set to be the desired number.
+Instantiate `EventDispatcher` with
+`numDispatcherThreads` set to be the desired number.
 ```
 EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
@@ -178,7 +179,7 @@ Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher)
 
 #### Handle Events Synchronously
 
-Instantiate Session without EventHandler, then obtain the events to be processed by calling session.eventQueue.purge().
+Instantiate `Session` without `EventHandler`, then obtain the events to be processed by calling `session.eventQueue.purge()`.
 ```
 Session session(sessionOptions, sessionConfigs);
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
@@ -189,29 +190,23 @@ std::vector<Event> eventList = session.eventQueue.purge();
 
 #### Enable library logging
 
-Add one of the following macros in the compiler command line: ENABLE_LOG_TRACE, ENABLE_LOG_DEBUG, ENABLE_LOG_INFO, ENABLE_LOG_WARN, ENABLE_LOG_ERROR, ENABLE_LOG_FATAL. Extend a subclass, e.g. MyLogger, from class Logger and override method logMessage. Assign a MyLogger pointer to Logger::logger.
+Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `ENABLE_LOG_TRACE`, `ENABLE_LOG_DEBUG`, `ENABLE_LOG_INFO`, `ENABLE_LOG_WARN`, `ENABLE_LOG_ERROR`, `ENABLE_LOG_FATAL`.
 ```
 namespace ccapi {
-  Logger* Logger::logger = nullptr;  // This line is needed.
-  class MyLogger final: public Logger {
-   public:
-    virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
-                            std::chrono::system_clock::time_point time,
-                            std::string fileName, int lineNumber,
-                            std::string message) override {
-      std::cout << threadId << ": [" << UtilTime::getISOTimestamp(time) << "] {"
-          << fileName << ":" << lineNumber << "} "
-          << Logger::severityToString(severity) << std::string(8, ' ') << message
-          << std::endl;
-    }
-  };
-}
-...
-using namespace ccapi;
+class MyLogger final: public Logger {
+ public:
+  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
+                          std::chrono::system_clock::time_point time,
+                          std::string fileName, int lineNumber,
+                          std::string message) override {
+    ...                          
+  }
+};
 MyLogger myLogger;
-Logger::logger = &myLogger;
+Logger* Logger::logger = &myLogger;
+}
 ```
-
+Add one of the following macros in the compiler command line: `ENABLE_LOG_TRACE`, `ENABLE_LOG_DEBUG`, `ENABLE_LOG_INFO`, `ENABLE_LOG_WARN`, `ENABLE_LOG_ERROR`, `ENABLE_LOG_FATAL`.
 ### Contributing
 * (Required) Submit a pull request to the master branch.
 * (Required) Pass Github checks: https://docs.github.com/en/rest/reference/checks.

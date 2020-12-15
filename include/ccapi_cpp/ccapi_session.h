@@ -39,6 +39,12 @@
 #ifdef ENABLE_EXCHANGE_BINANCE_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 #endif
+#ifdef ENABLE_EXCHANGE_BINANCE
+#include "ccapi_cpp/service/ccapi_execution_management_service_binance.h"
+#endif
+#ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
+#endif
 #endif
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
@@ -129,6 +135,12 @@ class Session final {
 #ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef ENABLE_EXCHANGE_BINANCE_US
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<ExecutionManagementServiceBinanceUs>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef ENABLE_EXCHANGE_BINANCE
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE] = std::make_shared<ExecutionManagementServiceBinance>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_FUTURES] = std::make_shared<ExecutionManagementServiceBinanceFutures>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {

@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_FUTURES_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_FUTURES_H_
+#ifdef ENABLE_SERVICE_MARKET_DATA
 #ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_base.h"
 namespace ccapi {
@@ -12,5 +13,6 @@ class MarketDataServiceBinanceFutures final : public MarketDataServiceBinanceBas
   }
 };
 } /* namespace ccapi */
+#endif
 #endif
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BINANCE_FUTURES_H_

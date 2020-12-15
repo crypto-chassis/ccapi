@@ -7,11 +7,7 @@ class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    std::function<void(Event& event)> eventHandler = [](Event& event){};
-    SessionOptions sessionOptions;
-    SessionConfigs sessionConfigs;
-    ServiceContextPtr serviceContextPtr(new ServiceContext());
-    this->service = std::make_shared<ExecutionManagementServiceBinanceUs>(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr);
+    this->service = std::make_shared<ExecutionManagementServiceBinanceUs>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
        { CCAPI_BINANCE_US_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A" },
        { CCAPI_BINANCE_US_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j" }
@@ -45,10 +41,13 @@ void verifyCorrelationId(const std::vector<Message>& messageList, const std::str
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
-  request.setParam(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY);
-  request.setParam(CCAPI_EM_ORDER_QUANTITY, "1");
-  request.setParam(CCAPI_EM_ORDER_LIMIT_PRICE, "0.1");
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
+  std::map<std::string, std::string> param{
+    {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+    {CCAPI_EM_ORDER_QUANTITY, "1"},
+    {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}
+  };
+  request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -63,7 +62,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSDT");
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSDT", "foo", this->credential);
   std::string textMessage =
   R"(
   {
@@ -87,8 +86,11 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCrea
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
-  request.setParam(CCAPI_EM_ORDER_ID, "28");
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
+  std::map<std::string, std::string> param{
+    {CCAPI_EM_ORDER_ID, "28"}
+  };
+  request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -103,8 +105,11 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrder
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClientOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
-  request.setParam(CCAPI_EM_CLIENT_ORDER_ID, "6gCrw2kRUAF9CvJDGP16IP");
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
+  std::map<std::string, std::string> param{
+    {CCAPI_EM_CLIENT_ORDER_ID, "6gCrw2kRUAF9CvJDGP16IP"}
+  };
+  request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -118,8 +123,8 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClien
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCancelOrder) {
-  Request request(Request::Operation::CANCEL_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
-  auto messageList = this->service->processSuccessfulTextMessage(request, "", this->now);
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
+  auto messageList = this->service->processSuccessfulTextMessage(request, "{}", this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -127,8 +132,11 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCanc
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByOrderId) {
-  Request request(Request::Operation::GET_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
-  request.setParam(CCAPI_EM_ORDER_ID, "28");
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
+  std::map<std::string, std::string> param{
+    {CCAPI_EM_ORDER_ID, "28"}
+  };
+  request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -142,8 +150,11 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByOrderId)
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOrderId) {
-  Request request(Request::Operation::GET_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
-  request.setParam(CCAPI_EM_CLIENT_ORDER_ID, "6gCrw2kRUAF9CvJDGP16IP");
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
+  std::map<std::string, std::string> param{
+    {CCAPI_EM_CLIENT_ORDER_ID, "6gCrw2kRUAF9CvJDGP16IP"}
+  };
+  request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -157,7 +168,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOr
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageGetOrder) {
-  Request request(Request::Operation::GET_ORDER, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "LTCBTC");
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "LTCBTC", "foo", this->credential);
   std::string textMessage =
   R"(
   {
@@ -200,7 +211,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageGetO
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersOneInstrument) {
-  Request request(Request::Operation::GET_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -213,7 +224,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersOneIn
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllInstruments) {
-  Request request(Request::Operation::GET_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "");
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -226,7 +237,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllIn
 
 void verifyProcessSuccessfulTextMessageGetOpenOrders(const ExecutionManagementServiceBinanceUsTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "LTCBTC" : "";
-  Request request(Request::Operation::GET_OPEN_ORDERS, fixture->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, symbol);
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, symbol, "", fixture->credential);
   std::string textMessage =
   R"(
   [
@@ -281,7 +292,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageGetO
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) {
-  Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
@@ -293,8 +304,8 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) 
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, processSuccessfulTextMessageCancelOpenOrders) {
-  Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->credential, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD");
-  auto messageList = this->service->processSuccessfulTextMessage(request, "", this->now);
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
+  auto messageList = this->service->processSuccessfulTextMessage(request, "[]", this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

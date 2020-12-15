@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITSTAMP_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITSTAMP_H_
+#ifdef ENABLE_SERVICE_MARKET_DATA
 #ifdef ENABLE_EXCHANGE_BITSTAMP
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
@@ -96,5 +97,6 @@ class MarketDataServiceBitstamp final : public MarketDataService {
   }
 };
 } /* namespace ccapi */
+#endif
 #endif
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITSTAMP_H_
