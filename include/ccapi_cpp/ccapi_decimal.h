@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #include <string>
+#include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
 // minimalistic just for the purpose of being used as the key of a map
 class Decimal final {
@@ -13,8 +14,8 @@ class Decimal final {
       this->sign = false;
     }
     std::string fixedPointValue = value;
-    if (value.find("e") != std::string::npos) {
-      std::vector<std::string> splitted = UtilString::split(value, "e");
+    if (value.find("E") != std::string::npos || value.find("e") != std::string::npos) {
+      std::vector<std::string> splitted = UtilString::split(value, value.find("E") != std::string::npos ? "E" : "e");
       fixedPointValue = splitted.at(0);
       if (fixedPointValue.find(".") != std::string::npos) {
         fixedPointValue = UtilString::rtrim(UtilString::rtrim(fixedPointValue, "0"), ".");
