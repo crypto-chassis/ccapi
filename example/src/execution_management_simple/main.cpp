@@ -1,6 +1,23 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-Logger* Logger::logger = nullptr;  // This line is needed.
+class ExampleLogger final: public Logger {
+ public:
+  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
+                          std::chrono::system_clock::time_point time,
+                          std::string fileName, int lineNumber,
+                          std::string message) override {
+    std::lock_guard<std::mutex> lock(m);
+    std::cout << threadId << ": [" << UtilTime::getISOTimestamp(time) << "] {"
+        << fileName << ":" << lineNumber << "} "
+        << Logger::severityToString(severity) << std::string(8, ' ') << message
+        << std::endl;
+//    lock.unlock();
+  }
+ private:
+  std::mutex m;
+};
+ExampleLogger exampleLogger;
+Logger* Logger::logger = &exampleLogger;
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session *session) override {
@@ -18,14 +35,14 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   std::string mode(argv[1]);
-  std::string key = UtilSystem::getEnvAsString("BINANCE_US_API_KEY");
+  std::string key = UtilSystem::getEnvAsString("COINBASE_API_KEY");
   if (key.empty()) {
-    std::cerr << "Please set environment variable BINANCE_US_API_KEY" << std::endl;
+    std::cerr << "Please set environment variable COINBASE_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
-  std::string secret = UtilSystem::getEnvAsString("BINANCE_US_API_SECRET");
+  std::string secret = UtilSystem::getEnvAsString("COINBASE_API_SECRET");
   if (secret.empty()) {
-    std::cerr << "Please set environment variable BINANCE_US_API_SECRET" << std::endl;
+    std::cerr << "Please set environment variable COINBASE_API_SECRET" << std::endl;
     return EXIT_FAILURE;
   }
   SessionOptions sessionOptions;
@@ -39,7 +56,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CREATE_ORDER, "binance-us", argv[2]);
+    Request request(Request::Operation::CREATE_ORDER, "coinbase", argv[2]);
     request.appendParam({
       {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
       {"QUANTITY", argv[4]},
@@ -53,7 +70,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CANCEL_ORDER, "binance-us", argv[2]);
+    Request request(Request::Operation::CANCEL_ORDER, "coinbase", argv[2]);
     request.appendParam({
       {"ORDER_ID", argv[3]}
     });
@@ -65,7 +82,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::GET_ORDER, "binance-us", argv[2]);
+    Request request(Request::Operation::GET_ORDER, "coinbase", argv[2]);
     request.appendParam({
       {"ORDER_ID", argv[3]}
     });
@@ -77,7 +94,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::GET_OPEN_ORDERS, "binance-us", argv[2]);
+    Request request(Request::Operation::GET_OPEN_ORDERS, "coinbase", argv[2]);
     session.sendRequest(request);
   } else if (mode == "cancel_open_orders") {
     if (argc != 3) {
@@ -86,7 +103,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CANCEL_OPEN_ORDERS, "binance-us", argv[2]);
+    Request request(Request::Operation::CANCEL_OPEN_ORDERS, "coinbase", argv[2]);
     session.sendRequest(request);
   }
   std::this_thread::sleep_for(std::chrono::seconds(10));

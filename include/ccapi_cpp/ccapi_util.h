@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <stdexcept>
 #include "date/date.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
@@ -156,11 +157,87 @@ class UtilTime final {
 };
 class UtilAlgorithm final {
  public:
+  static std::string stringToHex(const std::string& input) {
+      static const char hex_digits[] = "0123456789ABCDEF";
+      std::string output;
+      output.reserve(input.length() * 2);
+      for (unsigned char c : input) {
+          output.push_back(hex_digits[c >> 4]);
+          output.push_back(hex_digits[c & 15]);
+      }
+      return output;
+  }
+  static int hexValue(unsigned char hex_digit) {
+      static const signed char hex_values[256] = {
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+           0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1,
+          -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+          -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      };
+      int value = hex_values[hex_digit];
+      if (value == -1) throw std::invalid_argument("invalid hex digit");
+      return value;
+  }
+  std::string hexToString(const std::string& input) {
+      const auto len = input.length();
+      if (len & 1) throw std::invalid_argument("odd length");
+      std::string output;
+      output.reserve(len / 2);
+      for (auto it = input.begin(); it != input.end(); ) {
+          int hi = hexValue(*it++);
+          int lo = hexValue(*it++);
+          output.push_back(hi << 4 | lo);
+      }
+      return output;
+  }
+  static std::string base64Encode(const std::string &in) {
+      std::string out;
+      int val=0, valb=-6;
+      for (unsigned char c : in) {
+          val = (val<<8) + c;
+          valb += 8;
+          while (valb>=0) {
+              out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(val>>valb)&0x3F]);
+              valb-=6;
+          }
+      }
+      if (valb>-6) out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val<<8)>>(valb+8))&0x3F]);
+      while (out.size()%4) out.push_back('=');
+      return out;
+  }
+  static std::string base64Decode(const std::string &in) {
+      std::string out;
+      std::vector<int> T(256,-1);
+      for (int i=0; i<64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
+      int val=0, valb=-8;
+      for (unsigned char c : in) {
+          if (T[c] == -1) break;
+          val = (val<<6) + T[c];
+          valb += 6;
+          if (valb>=0) {
+              out.push_back(char((val>>valb)&0xFF));
+              valb-=8;
+          }
+      }
+      return out;
+  }
   static double exponentialBackoff(double initial, double multiplier, double base, double exponent) {
     return initial + multiplier * (pow(base, exponent) - 1);
   }
   template<typename InputIterator> static uint_fast32_t crc(InputIterator first, InputIterator last);
-  static std::string hmacHex(std::string key, std::string msg) {
+  static std::string hmac(std::string key, std::string msg, bool returnHex = false) {
       unsigned char hash[32];
 #if defined(OPENSSL_VERSION_MAJOR) && defined(OPENSSL_VERSION_MINOR) && OPENSSL_VERSION_MAJOR <= 1 && (OPENSSL_VERSION_MAJOR != 1 || OPENSSL_VERSION_MINOR < 1)
       HMAC_CTX hmac;
@@ -179,13 +256,45 @@ class UtilAlgorithm final {
       HMAC_CTX_free(hmac);
 #endif
       std::stringstream ss;
-      ss << std::hex << std::setfill('0');
-      for (int i = 0; i < len; i++) {
-          ss << std::hex << std::setw(2)  << (unsigned int)hash[i];
+      if (returnHex) {
+        ss << std::hex << std::setfill('0');
+        for (int i = 0; i < len; i++) {
+            ss << std::hex << std::setw(2)  << (unsigned int)hash[i];
+        }
+      } else {
+        ss << std::setfill('0');
+        for (int i = 0; i < len; i++) {
+            ss  << hash[i];
+        }
       }
       return (ss.str());
   }
 };
+template<typename InputIterator> uint_fast32_t UtilAlgorithm::crc(InputIterator first, InputIterator last) {
+  static auto const table = []() {
+      auto const reversed_polynomial = uint_fast32_t {0xEDB88320uL};
+      // This is a function object that calculates the checksum for a value,
+      // then increments the value, starting from zero.
+      struct byte_checksum {
+        uint_fast32_t operator()() noexcept {
+          auto checksum = static_cast<uint_fast32_t>(n++);
+          for (auto i = 0; i < 8; ++i)
+          checksum = (checksum >> 1) ^ ((checksum & 0x1u) ? reversed_polynomial : 0);
+          return checksum;
+        }
+        unsigned n = 0;
+      };
+      auto table = std::array<uint_fast32_t, 256> {};
+      std::generate(table.begin(), table.end(), byte_checksum {});
+      return table;
+    }();
+  // Calculate the checksum - make sure to clip to 32 bits, for systems that don't
+  // have a true (fast) 32-bit type.
+  return uint_fast32_t { 0xFFFFFFFFuL }
+      & ~std::accumulate(first, last, ~uint_fast32_t { 0 } & uint_fast32_t { 0xFFFFFFFFuL },
+                         [](uint_fast32_t checksum, std::uint_fast8_t value)
+                         { return table[(checksum ^ value) & 0xFFu] ^ (checksum >> 8);});
+}
 class UtilSystem final {
  public:
   static bool getEnvAsBool(const std::string variableName,
@@ -237,31 +346,6 @@ inline std::string size_tToString(const size_t &t) {
   std::stringstream ss;
   ss << t;
   return ss.str();
-}
-template<typename InputIterator> uint_fast32_t UtilAlgorithm::crc(InputIterator first, InputIterator last) {
-  static auto const table = []() {
-      auto const reversed_polynomial = uint_fast32_t {0xEDB88320uL};
-      // This is a function object that calculates the checksum for a value,
-      // then increments the value, starting from zero.
-      struct byte_checksum {
-        uint_fast32_t operator()() noexcept {
-          auto checksum = static_cast<uint_fast32_t>(n++);
-          for (auto i = 0; i < 8; ++i)
-          checksum = (checksum >> 1) ^ ((checksum & 0x1u) ? reversed_polynomial : 0);
-          return checksum;
-        }
-        unsigned n = 0;
-      };
-      auto table = std::array<uint_fast32_t, 256> {};
-      std::generate(table.begin(), table.end(), byte_checksum {});
-      return table;
-    }();
-  // Calculate the checksum - make sure to clip to 32 bits, for systems that don't
-  // have a true (fast) 32-bit type.
-  return uint_fast32_t { 0xFFFFFFFFuL }
-      & ~std::accumulate(first, last, ~uint_fast32_t { 0 } & uint_fast32_t { 0xFFFFFFFFuL },
-                         [](uint_fast32_t checksum, std::uint_fast8_t value)
-                         { return table[(checksum ^ value) & 0xFFu] ^ (checksum >> 8);});
 }
 template<typename T>
 std::string intToHex(T i) {

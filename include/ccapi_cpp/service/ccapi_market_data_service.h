@@ -740,7 +740,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       CCAPI_LOGGER_TRACE("this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
       CCAPI_LOGGER_TRACE("this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
       TimePoint previousConflateTp = UtilTime::makeTimePointFromMilliseconds(
-          std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
+          std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count()
               / std::stoi(optionMap.at(
               CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
           CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
@@ -837,7 +837,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       TimePoint conflateTp =
           shouldConflate ?
               UtilTime::makeTimePointFromMilliseconds(
-                  std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
+                  std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count()
                       / std::stoi(optionMap.at(
                       CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
                   CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) :

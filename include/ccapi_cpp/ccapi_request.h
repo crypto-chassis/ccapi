@@ -52,9 +52,13 @@ class Request final {
     }
   }
   std::string toString() const {
+    std::map<std::string, std::string> shortCredential;
+    for (const auto& x : credential) {
+      shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
+    }
     std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = "+serviceName+", correlationId = "
         + correlationId +", paramList = "+ccapi::toString(paramList)+ ", credential = "
-        + ccapi::toString(credential) + ", operation = " + operationToString(operation) + "]";
+        + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
     return output;
   }
   const std::string& getCorrelationId() const {

@@ -30,10 +30,14 @@ class Subscription final {
     }
   }
   std::string toString() const {
+    std::map<std::string, std::string> shortCredential;
+    for (const auto& x : credential) {
+      shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
+    }
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = "
         + field + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
         + correlationId + ", credential = "
-        + ccapi::toString(credential) + ", serviceName = " + serviceName + "]";
+        + ccapi::toString(shortCredential) + ", serviceName = " + serviceName + "]";
     return output;
   }
   const std::string& getCorrelationId() const {

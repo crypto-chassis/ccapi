@@ -266,7 +266,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
         this->eventHandler(event);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
-          Url url(resPtr->base().at("Location").to_string());
+          Url url(std::string(resPtr->base().at("Location")));
           std::string host(url.host);
           if (!url.port.empty()) {
             host += ":";
@@ -326,7 +326,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
       if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
         std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
         try {
-          streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host, this->port);
+          streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host);
         } catch (const beast::error_code& ec) {
           CCAPI_LOGGER_TRACE("fail");
           this->onFailure(ec, "create stream");
@@ -345,7 +345,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
           }
           std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
           try {
-            streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host, this->port);
+            streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host);
           } catch (const beast::error_code& ec) {
             CCAPI_LOGGER_TRACE("fail");
             this->onFailure(ec, "create stream");
@@ -364,10 +364,10 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host, const std::string& port) {
+  std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host) {
     std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(new beast::ssl_stream <beast::tcp_stream>(*iocPtr, *ctxPtr));
     // Set SNI Hostname (many hosts need this to handshake successfully)
-    if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), (host+":"+port).c_str())) {
+    if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
       beast::error_code ec {static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
       CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
       throw ec;
@@ -385,6 +385,8 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     auto operation = request.getOperation();
     http::request<http::string_body> req;
     req.set(http::field::host, this->host+":"+this->port);
+    req.set(beast::http::field::content_type, "application/json");
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertReq(request, now, req, credential, symbolId, operation);
     return req;
   }
@@ -396,6 +398,52 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
         this->credentialDefault.insert(std::make_pair(x, this->sessionConfigs.getCredential().at(x)));
       }
     }
+  }
+  std::string convertOrderStatus(const std::string& status) {
+    return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN
+    : CCAPI_EM_ORDER_STATUS_CLOSED;
+  }
+  virtual std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
+    rj::Document document;
+    document.Parse(textMessage.c_str());
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList({request.getCorrelationId()});
+    std::vector<Element> elementList;
+    Request::Operation operation = request.getOperation();
+    switch (operation) {
+      case Request::Operation::CREATE_ORDER:
+      {
+        message.setType(Message::Type::CREATE_ORDER);
+      }
+      break;
+      case Request::Operation::CANCEL_ORDER:
+      {
+        message.setType(Message::Type::CANCEL_ORDER);
+      }
+      break;
+      case Request::Operation::GET_ORDER:
+      {
+        message.setType(Message::Type::GET_ORDER);
+      }
+      break;
+      case Request::Operation::GET_OPEN_ORDERS:
+      {
+        message.setType(Message::Type::GET_OPEN_ORDERS);
+      }
+      break;
+      case Request::Operation::CANCEL_OPEN_ORDERS:
+      {
+        message.setType(Message::Type::CANCEL_OPEN_ORDERS);
+      }
+      break;
+      default:
+      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
+    message.setElementList(this->extractOrderInfo(operation, document));
+    std::vector<Message> messageList;
+    messageList.push_back(std::move(message));
+    return messageList;
   }
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
     Element element;
@@ -410,6 +458,8 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
           value = this->convertRestSymbolIdToInstrument(value);
         } else if (y.first == CCAPI_EM_ORDER_STATUS) {
           value = this->convertOrderStatus(value);
+        } else if (y.first == CCAPI_EM_ORDER_SIDE) {
+          value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
         }
         element.insert(y.first, value);
       }
@@ -417,8 +467,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     return element;
   }
   virtual void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) = 0;
-  virtual std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
-  virtual std::string convertOrderStatus(const std::string& status) = 0;
+  virtual std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) = 0;
   std::string host;
   std::string port;
   tcp::resolver resolver;
@@ -428,6 +477,12 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
   std::string apiKeyName;
   std::string apiSecretName;
   std::map<std::string, std::string> credentialDefault;
+  std::string createOrderTarget;
+  std::string cancelOrderTarget;
+  std::string getOrderTarget;
+  std::string getOpenOrdersTarget;
+  std::string cancelOpenOrdersTarget;
+  std::set<std::string> orderStatusOpenSet;
 };
 } /* namespace ccapi */
 #endif
