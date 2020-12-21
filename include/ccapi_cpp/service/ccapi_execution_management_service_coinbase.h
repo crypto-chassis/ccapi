@@ -33,8 +33,7 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
     preSignedText += UtilString::toUpper(std::string(req.method_string()));
     preSignedText += std::string(req.target());
     preSignedText += body;
-    CCAPI_LOGGER_TRACE("preSignedText = "+preSignedText);
-    std::string signature = UtilAlgorithm::base64Encode(UtilAlgorithm::hmac(UtilAlgorithm::base64Decode(apiSecret), preSignedText));
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
     req.set("CB-ACCESS-SIGN", signature);
     req.body() = body;
     req.prepare_payload();
@@ -53,6 +52,7 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
     document.AddMember("product_id", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
   void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
+    req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
     req.set("CB-ACCESS-KEY", apiKey);
     req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
@@ -93,7 +93,6 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
           target += "?product_id=";
           target += symbolId;
         }
-        CCAPI_LOGGER_TRACE("target = "+target);
         req.target(target);
         this->signRequest(req, "", param, now, credential);
       }
@@ -106,7 +105,6 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
             : "";
         auto target = std::regex_replace(this->getOrderTarget, std::regex("\\{id\\}"), id);
-        CCAPI_LOGGER_TRACE("target = "+target);
         req.target(target);
         this->signRequest(req, "", param, now, credential);
       }
@@ -114,29 +112,25 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
       case Request::Operation::GET_OPEN_ORDERS:
       {
         req.method(http::verb::get);
-        const std::map<std::string, std::string>& param = {};
         auto target = this->getOpenOrdersTarget;
         if (!symbolId.empty()) {
           target += "?product_id=";
           target += symbolId;
         }
-        CCAPI_LOGGER_TRACE("target = "+target);
         req.target(target);
-        this->signRequest(req, "", param, now, credential);
+        this->signRequest(req, "", {}, now, credential);
       }
       break;
       case Request::Operation::CANCEL_OPEN_ORDERS:
       {
         req.method(http::verb::delete_);
-        const std::map<std::string, std::string>& param = {};
         auto target = this->cancelOpenOrdersTarget;
         if (!symbolId.empty()) {
           target += "?product_id=";
           target += symbolId;
         }
-        CCAPI_LOGGER_TRACE("target = "+target);
         req.target(target);
-        this->signRequest(req, "", param, now, credential);
+        this->signRequest(req, "", {}, now, credential);
       }
       break;
       default:

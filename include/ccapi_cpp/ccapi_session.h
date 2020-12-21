@@ -39,6 +39,9 @@
 #ifdef ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
 #endif
+#ifdef ENABLE_EXCHANGE_GEMINI
+#include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
+#endif
 #ifdef ENABLE_EXCHANGE_BINANCE_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 #endif
@@ -138,6 +141,9 @@ class Session final {
 #ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef ENABLE_EXCHANGE_COINBASE
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_COINBASE] = std::make_shared<ExecutionManagementServiceCoinbase>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef ENABLE_EXCHANGE_GEMINI
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_GEMINI] = std::make_shared<ExecutionManagementServiceGemini>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BINANCE_US
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<ExecutionManagementServiceBinanceUs>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);

@@ -1,5 +1,5 @@
 set(NAME market_data_simple)
 project(${NAME})
-add_definitions(-DENABLE_SERVICE_MARKET_DATA)
-add_definitions(-DENABLE_EXCHANGE_COINBASE)
+add_compile_definitions(ENABLE_SERVICE_MARKET_DATA)
+add_compile_definitions(ENABLE_EXCHANGE_COINBASE)
 add_executable(${NAME} main.cpp)

@@ -26,6 +26,7 @@
 #include "ccapi_cpp/ccapi_http_retry.h"
 #include "ccapi_cpp/ccapi_url.h"
 #include "ccapi_cpp/ccapi_macro.h"
+#include "ccapi_cpp/ccapi_hmac.h"
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
@@ -385,7 +386,6 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     auto operation = request.getOperation();
     http::request<http::string_body> req;
     req.set(http::field::host, this->host+":"+this->port);
-    req.set(beast::http::field::content_type, "application/json");
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertReq(request, now, req, credential, symbolId, operation);
     return req;
@@ -445,7 +445,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     messageList.push_back(std::move(message));
     return messageList;
   }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
+  virtual Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
     Element element;
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());

@@ -23,7 +23,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     }
     queryString.pop_back();
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
-    std::string signature = UtilAlgorithm::hmac(apiSecret, queryString, true);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
     queryString += "&signature=";
     queryString += signature;
   }
@@ -98,12 +98,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {
         req.method(http::verb::get);
         std::string queryString;
-        const std::map<std::string, std::string>& param = {};
-        this->appendParam(queryString, param);
+        this->appendParam(queryString, {});
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
-        this->signRequest(queryString, param, now, credential);
+        this->signRequest(queryString, {}, now, credential);
         req.target(this->getOpenOrdersTarget + "?" + queryString);
       }
       break;
@@ -111,10 +110,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {
         req.method(http::verb::delete_);
         std::string queryString;
-        const std::map<std::string, std::string>& param = {};
-        this->appendParam(queryString, param);
+        this->appendParam(queryString, {});
         this->appendSymbolId(queryString, symbolId);
-        this->signRequest(queryString, param, now, credential);
+        this->signRequest(queryString, {}, now, credential);
         req.target(this->cancelOpenOrdersTarget + "?" + queryString);
       }
       break;

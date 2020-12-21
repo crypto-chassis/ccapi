@@ -43,7 +43,6 @@
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
   * Define service enablement macro `ENABLE_SERVICE_MARKET_DATA` and exchange enablement macros such as `ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of `include/ccapi_cpp/ccapi_session.h`.
-  * If your OpenSSL version is older than 1.1, define macro `OPENSSL_VERSION_MAJOR` and `OPENSSL_VERSION_MINOR` (e.g. for OpenSSL 1.0.2s, define `OPENSSL_VERSION_MAJOR` to be 1 and `OPENSSL_VERSION_MINOR` to be 0).
 * Include directories:
   * include
   * dependency/websocketpp
@@ -206,7 +205,6 @@ MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
 }
 ```
-Add one of the following macros in the compiler command line: `ENABLE_LOG_TRACE`, `ENABLE_LOG_DEBUG`, `ENABLE_LOG_INFO`, `ENABLE_LOG_WARN`, `ENABLE_LOG_ERROR`, `ENABLE_LOG_FATAL`.
 ### Contributing
 * (Required) Submit a pull request to the master branch.
 * (Required) Pass Github checks: https://docs.github.com/en/rest/reference/checks.
