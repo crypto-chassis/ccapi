@@ -404,6 +404,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     : CCAPI_EM_ORDER_STATUS_CLOSED;
   }
   virtual std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
+    CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
     Message message;

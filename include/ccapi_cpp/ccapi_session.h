@@ -42,6 +42,9 @@
 #ifdef ENABLE_EXCHANGE_GEMINI
 #include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
 #endif
+#ifdef ENABLE_EXCHANGE_BITMEX
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
+#endif
 #ifdef ENABLE_EXCHANGE_BINANCE_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 #endif
@@ -144,6 +147,9 @@ class Session final {
 #endif
 #ifdef ENABLE_EXCHANGE_GEMINI
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_GEMINI] = std::make_shared<ExecutionManagementServiceGemini>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef ENABLE_EXCHANGE_BITMEX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITMEX] = std::make_shared<ExecutionManagementServiceBitmex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef ENABLE_EXCHANGE_BINANCE_US
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_US] = std::make_shared<ExecutionManagementServiceBinanceUs>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);

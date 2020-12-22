@@ -27,7 +27,7 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
   }
 
  protected:
-  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
     auto preSignedText = std::string(req.base().at("CB-ACCESS-TIMESTAMP"));
     preSignedText += UtilString::toUpper(std::string(req.method_string()));
@@ -78,7 +78,7 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
         auto body = stringBuffer.GetString();
-        this->signRequest(req, body, param, now, credential);
+        this->signRequest(req, body, credential);
       }
       break;
       case Request::Operation::CANCEL_ORDER:
@@ -94,7 +94,7 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
           target += symbolId;
         }
         req.target(target);
-        this->signRequest(req, "", param, now, credential);
+        this->signRequest(req, "", credential);
       }
       break;
       case Request::Operation::GET_ORDER:
@@ -106,7 +106,7 @@ class ExecutionManagementServiceCoinbase final : public ExecutionManagementServi
             : "";
         auto target = std::regex_replace(this->getOrderTarget, std::regex("\\{id\\}"), id);
         req.target(target);
-        this->signRequest(req, "", param, now, credential);
+        this->signRequest(req, "", credential);
       }
       break;
       case Request::Operation::GET_OPEN_ORDERS:

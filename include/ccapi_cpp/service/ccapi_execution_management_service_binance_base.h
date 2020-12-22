@@ -31,7 +31,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     for (const auto& kv : param) {
       queryString += regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       queryString += "=";
-      queryString += kv.second;
+      queryString += Url::urlEncode(kv.second);
       queryString += "&";
     }
   }

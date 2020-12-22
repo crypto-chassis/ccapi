@@ -1,23 +1,6 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-class ExampleLogger final: public Logger {
- public:
-  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
-                          std::chrono::system_clock::time_point time,
-                          std::string fileName, int lineNumber,
-                          std::string message) override {
-    std::lock_guard<std::mutex> lock(m);
-    std::cout << threadId << ": [" << UtilTime::getISOTimestamp(time) << "] {"
-        << fileName << ":" << lineNumber << "} "
-        << Logger::severityToString(severity) << std::string(8, ' ') << message
-        << std::endl;
-//    lock.unlock();
-  }
- private:
-  std::mutex m;
-};
-ExampleLogger exampleLogger;
-Logger* Logger::logger = &exampleLogger;
+Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session *session) override {

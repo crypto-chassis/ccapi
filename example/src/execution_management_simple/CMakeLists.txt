@@ -1,6 +1,5 @@
 set(NAME execution_management_simple)
 project(${NAME})
-add_definitions(-DENABLE_SERVICE_EXECUTION_MANAGEMENT)
-add_definitions(-DENABLE_EXCHANGE_COINBASE)
-add_definitions(-DENABLE_LOG_TRACE)
+add_compile_definitions(-DENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_compile_definitions(-DENABLE_EXCHANGE_COINBASE)
 add_executable(${NAME} main.cpp)
