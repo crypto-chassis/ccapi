@@ -16,7 +16,7 @@ env:
 
 jobs:
   build:
-    timeout-minutes: 5
+    timeout-minutes: 10
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
     strategy:
