@@ -2,9 +2,9 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_ELEMENT_H_
 #include <string>
 #include <map>
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class Element final {
+class Element CCAPI_FINAL {
  public:
   void insert(std::string name, std::string value) {
     this->nameValueMap.insert(std::pair<std::string, std::string>(name, value));

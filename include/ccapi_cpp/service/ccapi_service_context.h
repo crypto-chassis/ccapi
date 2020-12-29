@@ -7,7 +7,7 @@
 namespace wspp = websocketpp;
 namespace ccapi {
 
-class ServiceContext final {
+class ServiceContext CCAPI_FINAL {
  public:
   typedef wspp::lib::asio::io_service IoContext;
   typedef wspp::lib::shared_ptr<wspp::lib::asio::io_service> IoContextPtr;

@@ -4,7 +4,7 @@
 #ifdef ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceBitmex final : public ExecutionManagementService {
+class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitmex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
                                       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)

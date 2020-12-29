@@ -49,73 +49,59 @@
 #include <string>
 #include <cstring>
 #include "ccapi_cpp/ccapi_macro.h"
+#include "date/date.h"
+#include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
 class Logger {
  public:
-  enum class Severity {
-    FATAL = 1,
-    ERROR = 2,
-    WARN = 3,
-    INFO = 4,
-    DEBUG = 5,
-    TRACE = 6
-  };
-  static std::string severityToString(Severity severity) {
-    std::string output;
-    switch (severity) {
-      case Severity::FATAL:
-        output = "FATAL";
-        break;
-      case Severity::ERROR:
-        output = "ERROR";
-        break;
-      case Severity::WARN:
-        output = "WARN";
-        break;
-      case Severity::INFO:
-        output = "INFO";
-        break;
-      case Severity::DEBUG:
-        output = "DEBUG";
-        break;
-      case Severity::TRACE:
-        output = "TRACE";
-        break;
-      default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
-    }
-    return output;
-  }
+  std::string SEVERITY_FATAL = "FATAL";
+  std::string SEVERITY_ERROR = "ERROR";
+  std::string SEVERITY_WARN = "WARN";
+  std::string SEVERITY_INFO = "INFO";
+  std::string SEVERITY_DEBUG = "DEBUG";
+  std::string SEVERITY_TRACE = "TRACE";
   virtual ~Logger() {
-  }
-  virtual void logMessage(Severity severity, std::thread::id threadId, std::chrono::system_clock::time_point time,
-                          std::string fileName, int lineNumber, std::string message) {
   }
   void fatal(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
              std::string message) {
-    this->logMessage(Severity::FATAL, threadId, time, fileName, lineNumber, message);
+    this->logMessagePrivate(SEVERITY_FATAL, threadId, time, fileName, lineNumber, message);
   }
   void error(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
              std::string message) {
-    this->logMessage(Severity::ERROR, threadId, time, fileName, lineNumber, message);
+    this->logMessagePrivate(SEVERITY_ERROR, threadId, time, fileName, lineNumber, message);
   }
   void warn(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
             std::string message) {
-    this->logMessage(Severity::WARN, threadId, time, fileName, lineNumber, message);
+    this->logMessagePrivate(SEVERITY_WARN, threadId, time, fileName, lineNumber, message);
   }
   void info(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
             std::string message) {
-    this->logMessage(Severity::INFO, threadId, time, fileName, lineNumber, message);
+    this->logMessagePrivate(SEVERITY_INFO, threadId, time, fileName, lineNumber, message);
   }
   void debug(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
              std::string message) {
-    this->logMessage(Severity::DEBUG, threadId, time, fileName, lineNumber, message);
+    this->logMessagePrivate(SEVERITY_DEBUG, threadId, time, fileName, lineNumber, message);
   }
   void trace(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
              std::string message) {
-    this->logMessage(Severity::TRACE, threadId, time, fileName, lineNumber, message);
+    this->logMessagePrivate(SEVERITY_TRACE, threadId, time, fileName, lineNumber, message);
   }
   static Logger* logger;
+
+ protected:
+  virtual void logMessage(std::string severity, std::string threadId, std::string timeISO,
+                          std::string fileName, std::string lineNumber, std::string message) {
+  }
+  void logMessagePrivate(std::string severity, std::thread::id threadId, std::chrono::system_clock::time_point time,
+                          std::string fileName, int lineNumber, std::string message) {
+    std::stringstream ss;
+    ss << threadId;
+    this->logMessage(severity, ss.str(), getISOTimestamp(time), fileName, std::to_string(lineNumber), message);
+  }
+  template<typename T = std::chrono::nanoseconds>
+  static std::string getISOTimestamp(TimePoint tp, std::string fmt = "%FT%TZ") {
+    return date::format(fmt.c_str(), date::floor<T>(tp));
+  }
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_LOGGER_H_

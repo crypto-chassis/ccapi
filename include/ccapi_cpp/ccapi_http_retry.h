@@ -2,7 +2,7 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_HTTP_RETRY_H_
 #include <string>
 namespace ccapi {
-class HttpRetry final {
+class HttpRetry CCAPI_FINAL {
  public:
   explicit HttpRetry(int numRetry = 0, int numRedirect = 0, std::string redirectUrlStr = "", std::shared_ptr<std::promise<void> > promisePtr = std::make_shared<std::promise<void> >(nullptr)):
   numRetry(numRetry), numRedirect(numRedirect), promisePtr(promisePtr) {}

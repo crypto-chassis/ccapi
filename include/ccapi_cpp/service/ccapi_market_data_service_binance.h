@@ -4,7 +4,7 @@
 #ifdef ENABLE_EXCHANGE_BINANCE
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_base.h"
 namespace ccapi {
-class MarketDataServiceBinance final : public MarketDataServiceBinanceBase {
+class MarketDataServiceBinance CCAPI_FINAL : public MarketDataServiceBinanceBase {
  public:
   MarketDataServiceBinance(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataServiceBinanceBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_BINANCE;

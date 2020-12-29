@@ -4,7 +4,7 @@
 #ifdef ENABLE_EXCHANGE_OKEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceOkex final : public MarketDataService {
+class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
  public:
   MarketDataServiceOkex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_OKEX;

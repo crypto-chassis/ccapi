@@ -5,7 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 #include <regex>
 namespace ccapi {
-class MarketDataServiceHuobi final : public MarketDataService {
+class MarketDataServiceHuobi CCAPI_FINAL : public MarketDataService {
  public:
   MarketDataServiceHuobi(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_HUOBI;

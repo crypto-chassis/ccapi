@@ -193,9 +193,8 @@ Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `log
 ```
 namespace ccapi {
 class MyLogger final: public Logger {
- public:
-  virtual void logMessage(Logger::Severity severity, std::thread::id threadId,
-                          std::chrono::system_clock::time_point time,
+  virtual void logMessage(std::string severity, std::string threadId,
+                          std::string timeISO,
                           std::string fileName, int lineNumber,
                           std::string message) override {
     ...                          

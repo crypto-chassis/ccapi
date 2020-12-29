@@ -5,9 +5,9 @@
 #include <mutex>
 #include <condition_variable>
 #include "ccapi_cpp/ccapi_macro.h"
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class Request final {
+class Request CCAPI_FINAL {
  public:
   enum class Operation {
       UNKNOWN,

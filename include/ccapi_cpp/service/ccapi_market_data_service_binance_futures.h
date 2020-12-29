@@ -4,7 +4,7 @@
 #ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_base.h"
 namespace ccapi {
-class MarketDataServiceBinanceFutures final : public MarketDataServiceBinanceBase {
+class MarketDataServiceBinanceFutures CCAPI_FINAL : public MarketDataServiceBinanceBase {
  public:
   MarketDataServiceBinanceFutures(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataServiceBinanceBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;

@@ -4,7 +4,7 @@
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_message.h"
 namespace ccapi {
-class Event final {
+class Event CCAPI_FINAL {
  public:
   enum class Type {
     UNKNOWN,

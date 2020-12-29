@@ -6,8 +6,9 @@
 #include <vector>
 #include <set>
 #include "ccapi_cpp/ccapi_logger.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class SessionConfigs final {
+class SessionConfigs CCAPI_FINAL {
  public:
   SessionConfigs() : SessionConfigs({}, {}, {}) {
   }

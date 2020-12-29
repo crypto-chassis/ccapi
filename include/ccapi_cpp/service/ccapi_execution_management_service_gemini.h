@@ -4,7 +4,7 @@
 #ifdef ENABLE_EXCHANGE_GEMINI
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceGemini final : public ExecutionManagementService {
+class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementService {
  public:
   ExecutionManagementServiceGemini(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
                                       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)

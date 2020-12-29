@@ -4,7 +4,7 @@
 #ifdef ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceCoinbase final : public ExecutionManagementService {
+class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagementService {
  public:
   ExecutionManagementServiceCoinbase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
                                       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)

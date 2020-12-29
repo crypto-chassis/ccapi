@@ -1,9 +1,10 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
+#include "ccapi_cpp/ccapi_macro.h"
 #include <string>
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class SessionOptions final {
+class SessionOptions CCAPI_FINAL {
  public:
   std::string toString() const {
     std::string output = "SessionOptions [warnLateEventMaxMilliSeconds = " + ccapi::toString(warnLateEventMaxMilliSeconds)
@@ -25,7 +26,7 @@ class SessionOptions final {
   bool enableOneIoContextPerExchange{};
   long pingIntervalMilliSeconds{10000};
   long pongTimeoutMilliSeconds{5000};
-  long maxEventQueueSize{0};
+  int maxEventQueueSize{0};
   bool enableOneHttpConnectionPerRequest{};
   int httpMaxNumRetry{3};
   int httpMaxNumRedirect{3};

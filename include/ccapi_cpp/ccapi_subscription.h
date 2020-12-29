@@ -3,9 +3,9 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include <string>
 #include <set>
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class Subscription final {
+class Subscription CCAPI_FINAL {
  public:
   Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId =
                    "", std::map<std::string, std::string> credential = {})

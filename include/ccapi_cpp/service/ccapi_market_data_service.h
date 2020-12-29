@@ -18,7 +18,7 @@
 #include "websocketpp/config/asio_client.hpp"
 #include "websocketpp/client.hpp"
 #include "ccapi_cpp/ccapi_logger.h"
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 #include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"

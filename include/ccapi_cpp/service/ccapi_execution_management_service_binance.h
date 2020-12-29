@@ -7,7 +7,7 @@
 #endif
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBinance final : public ExecutionManagementServiceBinanceBase {
+class ExecutionManagementServiceBinance CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinance(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
                                       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)

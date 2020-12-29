@@ -1,10 +1,10 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #include <string>
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 // minimalistic just for the purpose of being used as the key of a map
-class Decimal final {
+class Decimal CCAPI_FINAL {
  public:
   explicit Decimal(std::string originalValue) {
     std::string value = originalValue;

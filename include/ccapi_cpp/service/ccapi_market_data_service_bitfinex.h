@@ -5,7 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 #include <regex>
 namespace ccapi {
-class MarketDataServiceBitfinex final : public MarketDataService {
+class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
  public:
   MarketDataServiceBitfinex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_BITFINEX;

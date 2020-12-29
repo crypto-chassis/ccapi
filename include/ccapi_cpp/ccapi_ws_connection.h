@@ -5,7 +5,7 @@
 #include "ccapi_cpp/ccapi_subscription.h"
 namespace wspp = websocketpp;
 namespace ccapi {
-class WsConnection final {
+class WsConnection CCAPI_FINAL {
  public:
   WsConnection(std::string url, std::vector<Subscription> subscriptionList)
       : url(url),

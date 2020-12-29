@@ -5,7 +5,7 @@
 #include "ccapi_cpp/ccapi_element.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
-class Message final {
+class Message CCAPI_FINAL {
  public:
   enum class RecapType {
     UNKNOWN,
@@ -124,6 +124,9 @@ class Message final {
   TimePoint getTime() const {
     return time;
   }
+  std::string getTimeISO() const {
+    return UtilTime::getISOTimestamp(time);
+  }
   void setTime(TimePoint time) {
     this->time = time;
   }
@@ -141,6 +144,9 @@ class Message final {
   }
   TimePoint getTimeReceived() const {
     return timeReceived;
+  }
+  std::string getTimeReceivedISO() const {
+    return UtilTime::getISOTimestamp(timeReceived);
   }
   void setTimeReceived(TimePoint timeReceived) {
     this->timeReceived = timeReceived;

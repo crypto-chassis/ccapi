@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
+#include "ccapi_cpp/ccapi_macro.h"
 #ifdef ENABLE_SERVICE_MARKET_DATA
 #ifdef ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_market_data_service_coinbase.h"
@@ -54,6 +55,9 @@
 #ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
 #endif
+#ifdef ENABLE_EXCHANGE_HUOBI
+#include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+#endif
 #endif
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
@@ -62,7 +66,6 @@
 #include <vector>
 #include <map>
 #include "ccapi_cpp/ccapi_queue.h"
-#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_event_dispatcher.h"
 #include "ccapi_cpp/ccapi_event_handler.h"
 #include "ccapi_cpp/ccapi_event.h"
@@ -70,7 +73,7 @@
 #include "ccapi_cpp/ccapi_request.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 namespace ccapi {
-class Session final {
+class Session CCAPI_FINAL {
  public:
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
@@ -98,6 +101,9 @@ class Session final {
   }
   ~Session() {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    if (this->useInternalEventDispatcher) {
+      delete this->eventDispatcher;
+    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void start() {
@@ -159,6 +165,9 @@ class Session final {
 #endif
 #ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_FUTURES] = std::make_shared<ExecutionManagementServiceBinanceFutures>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef ENABLE_EXCHANGE_HUOBI
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HUOBI] = std::make_shared<ExecutionManagementServiceHuobi>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
@@ -343,7 +352,9 @@ class Session final {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  Queue<Event> eventQueue;
+  const Queue<Event>& getEventQueue() const {
+    return eventQueue;
+  }
 
  private:
   SessionOptions sessionOptions;
@@ -354,6 +365,7 @@ class Session final {
   wspp::lib::shared_ptr<ServiceContext> serviceContextPtr;
   std::map<std::string, std::map<std::string, wspp::lib::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
   std::thread t;
+  Queue<Event> eventQueue;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_

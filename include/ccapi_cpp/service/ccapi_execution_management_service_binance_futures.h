@@ -4,7 +4,7 @@
 #ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBinanceFutures final : public ExecutionManagementServiceBinanceBase {
+class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinanceFutures(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
                                       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
