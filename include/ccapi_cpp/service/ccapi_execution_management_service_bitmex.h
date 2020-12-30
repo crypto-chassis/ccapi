@@ -61,7 +61,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
   }
   void appendSymbolId(std::string& queryString, const std::string symbolId) {
     queryString += "symbol=";
-    queryString += symbolId;
+    queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
   void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
