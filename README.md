@@ -42,7 +42,7 @@
 * Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
 * Definitions in the compiler command line:
-  * Define service enablement macro `ENABLE_SERVICE_MARKET_DATA` and exchange enablement macros such as `ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of `include/ccapi_cpp/ccapi_session.h`.
+  * Define service enablement macro `CCAPI_ENABLE_SERVICE_MARKET_DATA` and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of `include/ccapi_cpp/ccapi_session.h`.
 * Include directories:
   * include
   * dependency/websocketpp
@@ -189,7 +189,7 @@ std::vector<Event> eventList = session.eventQueue.purge();
 
 #### Enable library logging
 
-Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `ENABLE_LOG_TRACE`, `ENABLE_LOG_DEBUG`, `ENABLE_LOG_INFO`, `ENABLE_LOG_WARN`, `ENABLE_LOG_ERROR`, `ENABLE_LOG_FATAL`.
+Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`.
 ```
 namespace ccapi {
 class MyLogger final: public Logger {

@@ -8,32 +8,32 @@
 #define CCAPI_LOGGER_FILENAME (strrchr(__FILE__, CCAPI_LOGGER_FILE_SEPARATOR) ? strrchr(__FILE__, CCAPI_LOGGER_FILE_SEPARATOR) + 1 : __FILE__)
 #define CCAPI_LOGGER_THREAD_ID std::this_thread::get_id()
 #define CCAPI_LOGGER_NOW std::chrono::system_clock::now()
-#if defined(ENABLE_LOG_FATAL) || defined(ENABLE_LOG_ERROR) || defined(ENABLE_LOG_WARN) || defined(ENABLE_LOG_INFO) || defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_FATAL) || defined(CCAPI_ENABLE_LOG_ERROR) || defined(CCAPI_ENABLE_LOG_WARN) || defined(CCAPI_ENABLE_LOG_INFO) || defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
 #define CCAPI_LOGGER_FATAL(message) Logger::logger->fatal(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); throw std::runtime_error(message)
 #else
 #define CCAPI_LOGGER_FATAL(message) throw std::runtime_error(message);
 #endif
-#if defined(ENABLE_LOG_ERROR) || defined(ENABLE_LOG_WARN) || defined(ENABLE_LOG_INFO) || defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_ERROR) || defined(CCAPI_ENABLE_LOG_WARN) || defined(CCAPI_ENABLE_LOG_INFO) || defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
 #define CCAPI_LOGGER_ERROR(message) Logger::logger->error(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message)
 #else
 #define CCAPI_LOGGER_ERROR(message)
 #endif
-#if defined(ENABLE_LOG_WARN) || defined(ENABLE_LOG_INFO) || defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_WARN) || defined(CCAPI_ENABLE_LOG_INFO) || defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
 #define CCAPI_LOGGER_WARN(message) Logger::logger->warn(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message)
 #else
 #define CCAPI_LOGGER_WARN(message)
 #endif
-#if defined(ENABLE_LOG_INFO) || defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_INFO) || defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
 #define CCAPI_LOGGER_INFO(message) Logger::logger->info(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message)
 #else
 #define CCAPI_LOGGER_INFO(message)
 #endif
-#if defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
 #define CCAPI_LOGGER_DEBUG(message) Logger::logger->debug(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message)
 #else
 #define CCAPI_LOGGER_DEBUG(message)
 #endif
-#if defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_TRACE)
 #define CCAPI_LOGGER_TRACE(message) Logger::logger->trace(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message)
 #else
 #define CCAPI_LOGGER_TRACE(message)

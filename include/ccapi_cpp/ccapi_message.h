@@ -127,6 +127,9 @@ class Message CCAPI_FINAL {
   std::string getTimeISO() const {
     return UtilTime::getISOTimestamp(time);
   }
+  std::pair<long long, long long> getTimePair() const {
+    return UtilTime::divide(time);
+  }
   void setTime(TimePoint time) {
     this->time = time;
   }
@@ -147,6 +150,9 @@ class Message CCAPI_FINAL {
   }
   std::string getTimeReceivedISO() const {
     return UtilTime::getISOTimestamp(timeReceived);
+  }
+  std::pair<long long, long long> getTimeReceivedPair() const {
+    return UtilTime::divide(timeReceived);
   }
   void setTimeReceived(TimePoint timeReceived) {
     this->timeReceived = timeReceived;

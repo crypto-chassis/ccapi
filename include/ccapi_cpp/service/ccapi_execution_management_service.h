@@ -1,6 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_
-#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
 #endif
@@ -57,7 +57,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = "+toString(useFuture));
     auto req = this->convertRequest(request, now);
-#if defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << req;
     CCAPI_LOGGER_DEBUG("req = \n"+oss.str());
@@ -251,7 +251,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
         }
       }
     }
-#if defined(ENABLE_LOG_DEBUG) || defined(ENABLE_LOG_TRACE)
+#if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << *resPtr;
     CCAPI_LOGGER_DEBUG("res = \n"+oss.str());

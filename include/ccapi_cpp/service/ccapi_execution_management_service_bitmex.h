@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BITMEX_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BITMEX_H_
-#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef ENABLE_EXCHANGE_BITMEX
+#ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
 class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementService {

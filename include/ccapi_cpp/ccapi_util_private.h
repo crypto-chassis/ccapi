@@ -125,19 +125,19 @@ class UtilTime CCAPI_FINAL {
     }
     return tp;
   }
-  static TimePoint makeTimePoint(std::pair<int, int> timePair) {
+  static TimePoint makeTimePoint(std::pair<long long, long long> timePair) {
     auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
     tp += std::chrono::nanoseconds(timePair.second);
     return tp;
   }
-  static std::pair<int, int> divide(TimePoint tp) {
+  static std::pair<long long, long long> divide(TimePoint tp) {
     auto then = tp.time_since_epoch();
     auto s = std::chrono::duration_cast<std::chrono::seconds>(then);
     then -= s;
     auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(then);
     return std::make_pair(s.count(), ns.count());
   }
-  static std::pair<int, int> divide(std::string seconds) {
+  static std::pair<long long, long long> divide(std::string seconds) {
     if (seconds.find(".") != std::string::npos) {
       auto splittedSeconds = UtilString::split(UtilString::rtrim(UtilString::rtrim(seconds, "0"), "."), ".");
       return std::make_pair(
@@ -461,7 +461,7 @@ template<typename T> typename std::enable_if<std::is_same<T, std::string>::value
 }
 template<typename T> typename std::enable_if<std::is_same<T, TimePoint>::value, std::string>::type toString(
     const T &t) {
-  std::pair<int, int> timePair = UtilTime::divide(t);
+  auto timePair = UtilTime::divide(t);
   return "(" + std::to_string(timePair.first) + "," + std::to_string(timePair.second) + ")";
 }
 template<typename T, typename ... Args> std::string toString(const std::unordered_set<T, Args...>& c);
