@@ -101,9 +101,6 @@ class Session CCAPI_FINAL {
   }
   ~Session() {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    if (this->useInternalEventDispatcher) {
-      delete this->eventDispatcher;
-    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void start() {
