@@ -115,6 +115,38 @@ jobs:
         restore-keys: |
           ${{ matrix.config.name }}-ccache-
 
+    - name: Install GoogleTest
+      shell: cmake -P {0}
+      run: |
+        execute_process(COMMAND git clone https://github.com/google/googletest.git -b release-1.10.0)
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+            -DBUILD_GMOCK=OFF
+            -S googletest
+            -B googletest/build
+            -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build googletest/build -j
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --install googletest/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
     - name: Install OpenSSL
       shell: cmake -P {0}
       run: |
@@ -156,7 +188,7 @@ jobs:
             -DBUILD_TEST_BUILD=ON
             -DBUILD_TEST_UNIT=ON
             -S test
-            -B build
+            -B test/build
             -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
             -G Ninja
             -D CMAKE_MAKE_PROGRAM=ninja
@@ -202,7 +234,7 @@ jobs:
         execute_process(COMMAND ccache -z)
 
         execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build build -j
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build -j
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -216,7 +248,7 @@ jobs:
       run: |
         execute_process(
           COMMAND ctest -j
-          WORKING_DIRECTORY build
+          WORKING_DIRECTORY test/build
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
