@@ -1,5 +1,5 @@
-#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef ENABLE_EXCHANGE_BINANCE_FUTURES
+#ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "gtest/gtest.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
 namespace ccapi {
