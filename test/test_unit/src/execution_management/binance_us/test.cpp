@@ -29,7 +29,7 @@ void verifySignature(const std::string& paramString, const std::string& apiSecre
   auto pos = paramString.find_last_of("&");
   auto paramStringWithoutSignature = paramString.substr(0, pos);
   auto signature = paramString.substr(pos + 11, paramString.length() - pos - 1);
-  EXPECT_EQ("", signature);
+  EXPECT_EQ(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, paramStringWithoutSignature, true), signature);
 }
 
 void verifyCorrelationId(const std::vector<Message>& messageList, const std::string& correlationId) {

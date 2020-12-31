@@ -184,7 +184,7 @@ Session session(sessionOptions, sessionConfigs);
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
 session.subscribe(subscription);
 std::this_thread::sleep_for(std::chrono::seconds(5));
-std::vector<Event> eventList = session.eventQueue.purge();
+std::vector<Event> eventList = session.getEventQueue().purge();
 ```
 
 #### Enable library logging
@@ -195,7 +195,7 @@ namespace ccapi {
 class MyLogger final: public Logger {
   virtual void logMessage(std::string severity, std::string threadId,
                           std::string timeISO,
-                          std::string fileName, int lineNumber,
+                          std::string fileName, std::string lineNumber,
                           std::string message) override {
     ...                          
   }

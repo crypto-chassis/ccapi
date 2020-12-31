@@ -349,7 +349,7 @@ class Session CCAPI_FINAL {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  const Queue<Event>& getEventQueue() const {
+  Queue<Event>& getEventQueue() {
     return eventQueue;
   }
 

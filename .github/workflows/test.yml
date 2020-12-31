@@ -168,7 +168,6 @@ jobs:
           message(FATAL_ERROR "Bad exit status")
         endif()
 
-
     - name: Build
       shell: cmake -P {0}
       run: |
@@ -212,12 +211,12 @@ jobs:
 
         execute_process(COMMAND ccache -s)
 
-
     - name: Test
       shell: cmake -P {0}
       run: |
         execute_process(
           COMMAND ctest -j
+          WORKING_DIRECTORY build
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
