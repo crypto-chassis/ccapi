@@ -52,7 +52,7 @@ class Request CCAPI_FINAL {
     }
   }
 #ifdef SWIG
-  Request(){}
+  Request() {}
 #endif
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;

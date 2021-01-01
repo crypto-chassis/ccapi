@@ -161,8 +161,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
         element.insert(CCAPI_EM_ORDER_ID, std::to_string(x.GetInt()));
         elementList.emplace_back(element);
       }
-    }
-    else if (document.IsObject()) {
+    } else if (document.IsObject()) {
       elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
     } else {
       for (const auto& x : document.GetArray()) {

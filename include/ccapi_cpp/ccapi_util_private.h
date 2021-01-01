@@ -1,7 +1,5 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
-//#include <openssl/evp.h>
-//#include <openssl/hmac.h>
 #include <string>
 #include <vector>
 #include <cmath>
@@ -204,31 +202,31 @@ class UtilAlgorithm CCAPI_FINAL {
   }
   static std::string base64Encode(const std::string &in) {
       std::string out;
-      int val=0, valb=-6;
+      int val = 0, valb = -6;
       for (unsigned char c : in) {
-          val = (val<<8) + c;
+          val = (val << 8) + c;
           valb += 8;
-          while (valb>=0) {
-              out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(val>>valb)&0x3F]);
-              valb-=6;
+          while (valb >= 0) {
+              out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[(val >> valb)&0x3F]);
+              valb -= 6;
           }
       }
-      if (valb>-6) out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val<<8)>>(valb+8))&0x3F]);
+      if (valb > -6) out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val << 8) >> (valb + 8))&0x3F]);
       while (out.size()%4) out.push_back('=');
       return out;
   }
   static std::string base64Decode(const std::string &in) {
       std::string out;
-      std::vector<int> T(256,-1);
-      for (int i=0; i<64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
-      int val=0, valb=-8;
+      std::vector<int> T(256, -1);
+      for (int i = 0; i < 64; i++) T["ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[i]] = i;
+      int val = 0, valb = -8;
       for (unsigned char c : in) {
           if (T[c] == -1) break;
-          val = (val<<6) + T[c];
+          val = (val << 6) + T[c];
           valb += 6;
-          if (valb>=0) {
-              out.push_back(char((val>>valb)&0xFF));
-              valb-=8;
+          if (valb >= 0) {
+              out.push_back(static_cast<char>((val >> valb)&0xFF));
+              valb -= 8;
           }
       }
       return out;
@@ -237,46 +235,6 @@ class UtilAlgorithm CCAPI_FINAL {
     return initial + multiplier * (pow(base, exponent) - 1);
   }
   template<typename InputIterator> static uint_fast32_t crc(InputIterator first, InputIterator last);
-//  static std::string hmac(std::string key, std::string msg, bool returnHex = false, const std::string& algorithm = "") {
-//      unsigned char hash[32];
-//#if defined(OPENSSL_VERSION_MAJOR) && defined(OPENSSL_VERSION_MINOR) && OPENSSL_VERSION_MAJOR <= 1 && (OPENSSL_VERSION_MAJOR != 1 || OPENSSL_VERSION_MINOR < 1)
-//      HMAC_CTX hmac;
-//      HMAC_CTX_init(&hmac);
-//      if (algorithm == "sha384") {
-//        HMAC_Init_ex(&hmac, &key[0], key.length(), EVP_sha384(), NULL);
-//      } else {
-//        HMAC_Init_ex(&hmac, &key[0], key.length(), EVP_sha256(), NULL);
-//      }
-//      HMAC_Update(&hmac, (unsigned char*)&msg[0], msg.length());
-//      unsigned int len = 32;
-//      HMAC_Final(&hmac, hash, &len);
-//      HMAC_CTX_cleanup(&hmac);
-//#else
-//      HMAC_CTX *hmac = HMAC_CTX_new();
-//      if (algorithm == "sha384") {
-//        HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha384(), NULL);
-//      } else {
-//        HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
-//      }
-//      HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
-//      unsigned int len = 32;
-//      HMAC_Final(hmac, hash, &len);
-//      HMAC_CTX_free(hmac);
-//#endif
-//      std::stringstream ss;
-//      if (returnHex) {
-//        ss << std::hex << std::setfill('0');
-//        for (int i = 0; i < len; i++) {
-//            ss << std::hex << std::setw(2)  << (unsigned int)hash[i];
-//        }
-//      } else {
-//        ss << std::setfill('0');
-//        for (int i = 0; i < len; i++) {
-//            ss  << hash[i];
-//        }
-//      }
-//      return (ss.str());
-//  }
 };
 template<typename InputIterator> uint_fast32_t UtilAlgorithm::crc(InputIterator first, InputIterator last) {
   static auto const table = []() {

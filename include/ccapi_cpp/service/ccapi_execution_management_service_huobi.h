@@ -63,12 +63,8 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
   }
   void appendParam(std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
-      queryParamMap.insert(
-          std::make_pair(
-              regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first,
-              Url::urlEncode(kv.second)
-          )
-      );
+      queryParamMap.insert(std::make_pair(regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first,
+                         Url::urlEncode(kv.second)));
     }
   }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {

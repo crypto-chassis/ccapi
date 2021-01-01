@@ -95,7 +95,6 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrder
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
   auto splitted = UtilString::split(std::string(req.target()), "?");
-  std::cout<<toString(splitted)<<std::endl;
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("orderId"), "28");
