@@ -1,6 +1,8 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #include "ccapi_cpp/ccapi_macro.h"
+
+// start: enable exchanges for market data
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_market_data_service_coinbase.h"
@@ -36,16 +38,19 @@
 #include "ccapi_cpp/service/ccapi_market_data_service_okex.h"
 #endif
 #endif
+// end: enable exchanges for market data
+
+// start: enable exchanges for execution management
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
-#include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
-#include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
-#include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
-#endif
+//#ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
+//#include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
+//#endif
+//#ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
+//#include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
+//#endif
+//#ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
+//#include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
+//#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 #endif
@@ -55,10 +60,12 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
-#include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+//#ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
+//#include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+//#endif
 #endif
-#endif
+// end: enable exchanges for execution management
+
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include <string>
@@ -282,7 +289,7 @@ class Session CCAPI_FINAL {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = "+toString(event));
     if (this->eventHandler) {
-      CCAPI_LOGGER_TRACE("handle event asynchronously");
+      CCAPI_LOGGER_TRACE("handle event in immediate mode");
       this->eventDispatcher->dispatch([&, event] {
         bool shouldContinue = true;
         try {
@@ -296,7 +303,7 @@ class Session CCAPI_FINAL {
         }
       });
     } else {
-      CCAPI_LOGGER_TRACE("handle event synchronously");
+      CCAPI_LOGGER_TRACE("handle event in batching mode");
       if (eventQueue) {
         eventQueue->pushBack(std::move(event));
       } else {
@@ -330,7 +337,7 @@ class Session CCAPI_FINAL {
       }
       std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
       std::string key = serviceName + exchange;
-      if (eventQueuePtr && serviceNameExchangeSet.find(key) != serviceNameExchangeSet.end()) {
+      if (eventQueuePtr && serviceNameExchangeSet.find(key) == serviceNameExchangeSet.end()) {
         servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
         serviceNameExchangeSet.insert(key);
       }

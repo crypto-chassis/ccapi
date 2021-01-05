@@ -109,6 +109,14 @@ class Message CCAPI_FINAL {
         + ", correlationIdList = " + ccapi::toString(correlationIdList) + "]";
     return output;
   }
+  std::string toStringPretty(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
+    std::string sl(leftToIndent, ' ');
+    std::string ss(leftToIndent + space, ' ');
+    std::string output = (indentFirstLine ? sl : "") + "Message [\n" + ss + "type = " + typeToString(type) + ",\n" + ss + "recapType = " + recapTypeToString(recapType)
+        + ",\n" + ss + "time = " + UtilTime::getISOTimestamp(time) + ",\n" + ss + "timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ",\n" + ss + "elementList = " + ccapi::firstNToStringPretty(elementList, 10, space, space + leftToIndent, false)
+        + ",\n" + ss + "correlationIdList = " + ccapi::toString(correlationIdList) + "\n" + sl + "]";
+    return output;
+  }
   const std::vector<Element>& getElementList() const {
     return elementList;
   }

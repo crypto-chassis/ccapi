@@ -19,6 +19,12 @@ class Element CCAPI_FINAL {
     std::string output = "Element [nameValueMap = " + ccapi::toString(nameValueMap) + "]";
     return output;
   }
+  std::string toStringPretty(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
+    std::string sl(leftToIndent, ' ');
+    std::string ss(leftToIndent + space, ' ');
+    std::string output = (indentFirstLine ? sl : "") + "Element [\n" + ss + "nameValueMap = " + ccapi::toStringPretty(nameValueMap, space, space + leftToIndent, false) + "\n" + sl + "]";
+    return output;
+  }
   const std::map<std::string, std::string>& getNameValueMap() const {
     return nameValueMap;
   }

@@ -392,10 +392,11 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
   }
   void setupCredential(std::vector<std::string> nameList) {
     for (const auto& x : nameList) {
-      if (!UtilSystem::getEnvAsString(x).empty()) {
-        this->credentialDefault.insert(std::make_pair(x, UtilSystem::getEnvAsString(x)));
-      } else if (this->sessionConfigs.getCredential().find(x) != this->sessionConfigs.getCredential().end()) {
+      if (this->sessionConfigs.getCredential().find(x) != this->sessionConfigs.getCredential().end()) {
         this->credentialDefault.insert(std::make_pair(x, this->sessionConfigs.getCredential().at(x)));
+      }
+      else if (!UtilSystem::getEnvAsString(x).empty()) {
+        this->credentialDefault.insert(std::make_pair(x, UtilSystem::getEnvAsString(x)));
       }
     }
   }

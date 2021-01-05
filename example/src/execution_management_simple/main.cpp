@@ -4,7 +4,7 @@ Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session *session) override {
-    std::cout << "Received an event: " + toString(event) << std::endl;
+    std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
     return true;
   }
 };
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-      Request request(Request::Operation::CREATE_ORDER, "binance-us", argv[2]);
+    Request request(Request::Operation::CREATE_ORDER, "binance-us", argv[2]);
     request.appendParam({
       {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
       {"QUANTITY", argv[4]},
