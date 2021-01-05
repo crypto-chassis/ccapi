@@ -101,7 +101,7 @@ class Decimal CCAPI_FINAL {
   }
 
  private:
-//  {-}bbbb.aaaa
+  // {-}bbbb.aaaa
   unsigned long before{};
   std::string frac;
   // -1 means negative sign needed

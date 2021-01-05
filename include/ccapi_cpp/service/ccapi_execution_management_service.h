@@ -394,8 +394,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     for (const auto& x : nameList) {
       if (this->sessionConfigs.getCredential().find(x) != this->sessionConfigs.getCredential().end()) {
         this->credentialDefault.insert(std::make_pair(x, this->sessionConfigs.getCredential().at(x)));
-      }
-      else if (!UtilSystem::getEnvAsString(x).empty()) {
+      } else if (!UtilSystem::getEnvAsString(x).empty()) {
         this->credentialDefault.insert(std::make_pair(x, UtilSystem::getEnvAsString(x)));
       }
     }

@@ -184,7 +184,7 @@
 #define CCAPI_CREDENTIAL_DISPLAY_LENGTH 4
 #endif
 
-//  start: exchange REST urls
+// start: exchange REST urls
 #ifndef CCAPI_COINBASE_URL_REST_BASE
 #define CCAPI_COINBASE_URL_REST_BASE "https://api.pro.coinbase.com"
 #endif
@@ -215,9 +215,9 @@
 #ifndef CCAPI_HUOBI_URL_REST_BASE
 #define CCAPI_HUOBI_URL_REST_BASE "https://api.huobi.pro"
 #endif
-//  end: exchange REST urls
+// end: exchange REST urls
 
-//  start: exchange API credentials
+// start: exchange API credentials
 #ifndef CCAPI_COINBASE_API_KEY
 #define CCAPI_COINBASE_API_KEY "COINBASE_API_KEY"
 #endif
@@ -263,7 +263,7 @@
 #ifndef CCAPI_HUOBI_API_SECRET
 #define CCAPI_HUOBI_API_SECRET "HUOBI_API_SECRET"
 #endif
-//  end: exchange API credentials
+// end: exchange API credentials
 
 #ifndef CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS
 #define CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS 5

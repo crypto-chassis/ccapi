@@ -42,15 +42,15 @@
 
 // start: enable exchanges for execution management
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-//#ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
-//#include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
-//#endif
-//#ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
-//#include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
-//#endif
-//#ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
-//#include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
-//#endif
+// #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
+// #include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
+// #endif
+// #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
+// #include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
+// #endif
+// #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
+// #include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
+// #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 #endif
@@ -60,9 +60,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
 #endif
-//#ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
-//#include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
-//#endif
+// #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
+// #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+// #endif
 #endif
 // end: enable exchanges for execution management
 

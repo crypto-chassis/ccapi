@@ -2935,7 +2935,7 @@ hmacResult (HMACContext * ctx, uint8_t * digest)
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
 class Hmac CCAPI_FINAL {
-//  https://github.com/Yubico/yubico-c-client/blob/ykclient-2.15/sha384-512.c
+// https://github.com/Yubico/yubico-c-client/blob/ykclient-2.15/sha384-512.c
  public:
   enum class ShaVersion {
     UNKNOWN,
