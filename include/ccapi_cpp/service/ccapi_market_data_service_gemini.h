@@ -1,10 +1,10 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_GEMINI_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_GEMINI_H_
-#ifdef ENABLE_SERVICE_MARKET_DATA
-#ifdef ENABLE_EXCHANGE_GEMINI
+#ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
+#ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceGemini final : public MarketDataService {
+class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
  public:
   MarketDataServiceGemini(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_GEMINI;

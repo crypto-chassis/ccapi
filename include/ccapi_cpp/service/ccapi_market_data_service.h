@@ -1,6 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
-#ifdef ENABLE_SERVICE_MARKET_DATA
+#ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
 #endif
@@ -18,14 +18,14 @@
 #include "websocketpp/config/asio_client.hpp"
 #include "websocketpp/client.hpp"
 #include "ccapi_cpp/ccapi_logger.h"
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 #include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
 #include "ccapi_cpp/ccapi_ws_connection.h"
 #include "ccapi_cpp/service/ccapi_service_context.h"
 #include "ccapi_cpp/service/ccapi_service.h"
-#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
 #include <sstream>
 #include <iomanip>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
@@ -346,7 +346,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
         CCAPI_LOGGER_ERROR("textMessage = "+textMessage);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
-#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
       if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
         std::string payload = msg->get_payload();
@@ -740,7 +740,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       CCAPI_LOGGER_TRACE("this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
       CCAPI_LOGGER_TRACE("this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = "+toString(this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
       TimePoint previousConflateTp = UtilTime::makeTimePointFromMilliseconds(
-          std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
+          std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count()
               / std::stoi(optionMap.at(
               CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
           CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
@@ -837,7 +837,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       TimePoint conflateTp =
           shouldConflate ?
               UtilTime::makeTimePointFromMilliseconds(
-                  std::chrono::duration_cast<std::chrono::milliseconds>(tp - TimePoint(std::chrono::seconds(0))).count()
+                  std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count()
                       / std::stoi(optionMap.at(
                       CCAPI_CONFLATE_INTERVAL_MILLISECONDS)) * std::stoi(optionMap.at(
                   CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) :
@@ -1163,7 +1163,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   std::function<void(Event& event)> eventHandler;
-#if defined(ENABLE_EXCHANGE_HUOBI) || defined(ENABLE_EXCHANGE_OKEX)
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> inflater;
 #endif

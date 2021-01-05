@@ -1,5 +1,5 @@
 set(NAME execution_management_simple)
 project(${NAME})
-add_definitions(-DENABLE_SERVICE_EXECUTION_MANAGEMENT)
-add_definitions(-DENABLE_EXCHANGE_BINANCE_US)
+add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
 add_executable(${NAME} main.cpp)

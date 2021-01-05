@@ -6,7 +6,7 @@
 #include "ccapi_cpp/ccapi_request.h"
 namespace beast = boost::beast;
 namespace ccapi {
-class HttpConnection final {
+class HttpConnection CCAPI_FINAL {
  public:
   HttpConnection(std::string host, std::string port, std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr) : host(host), port(port), streamPtr(streamPtr) {
   }

@@ -6,8 +6,9 @@
 #include <vector>
 #include <set>
 #include "ccapi_cpp/ccapi_logger.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class SessionConfigs final {
+class SessionConfigs CCAPI_FINAL {
  public:
   SessionConfigs() : SessionConfigs({}, {}, {}) {
   }
@@ -216,9 +217,13 @@ class SessionConfigs final {
       }
     }
     this->urlRestBase = {
+      { CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
     };
   }
   std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {

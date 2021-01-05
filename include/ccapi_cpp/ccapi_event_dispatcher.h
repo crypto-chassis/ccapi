@@ -9,11 +9,11 @@
 #include <atomic>
 #include <condition_variable>
 #include "ccapi_cpp/ccapi_logger.h"
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class EventDispatcher final {
+class EventDispatcher CCAPI_FINAL {
  public:
-  explicit EventDispatcher(const size_t numDispatcherThreads = 1)
+  explicit EventDispatcher(const int numDispatcherThreads = 1)
       : numDispatcherThreads(numDispatcherThreads) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("numDispatcherThreads = "+size_tToString(numDispatcherThreads));

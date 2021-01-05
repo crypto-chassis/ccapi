@@ -4,7 +4,7 @@
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_message.h"
 namespace ccapi {
-class Event final {
+class Event CCAPI_FINAL {
  public:
   enum class Type {
     UNKNOWN,
@@ -79,6 +79,13 @@ class Event final {
   std::string toString() const {
     std::string output = "Event [type = " + typeToString(type) + ", messageList = " + ccapi::toString(messageList)
         + "]";
+    return output;
+  }
+  std::string toStringPretty(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
+    std::string sl(leftToIndent, ' ');
+    std::string ss(leftToIndent + space, ' ');
+    std::string output = (indentFirstLine ? sl : "") + "Event [\n" + ss + "type = " + typeToString(type) + ",\n" + ss + "messageList = " + ccapi::toStringPretty(messageList, space, leftToIndent + space, false)
+        + "\n" + sl + "]";
     return output;
   }
   const std::vector<Message>& getMessageList() const {

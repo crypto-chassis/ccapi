@@ -1,5 +1,5 @@
-#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef ENABLE_EXCHANGE_BINANCE_US
+#ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_US
 #include "gtest/gtest.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
 namespace ccapi {
@@ -29,7 +29,7 @@ void verifySignature(const std::string& paramString, const std::string& apiSecre
   auto pos = paramString.find_last_of("&");
   auto paramStringWithoutSignature = paramString.substr(0, pos);
   auto signature = paramString.substr(pos + 11, paramString.length() - pos - 1);
-  EXPECT_EQ(UtilAlgorithm::hmacHex(apiSecret, paramStringWithoutSignature), signature);
+  EXPECT_EQ(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, paramStringWithoutSignature, true), signature);
 }
 
 void verifyCorrelationId(const std::vector<Message>& messageList, const std::string& correlationId) {
@@ -95,7 +95,6 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrder
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
   auto splitted = UtilString::split(std::string(req.target()), "?");
-  std::cout<<toString(splitted)<<std::endl;
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("orderId"), "28");

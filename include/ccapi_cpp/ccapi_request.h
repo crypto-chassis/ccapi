@@ -5,9 +5,9 @@
 #include <mutex>
 #include <condition_variable>
 #include "ccapi_cpp/ccapi_macro.h"
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class Request final {
+class Request CCAPI_FINAL {
  public:
   enum class Operation {
       UNKNOWN,
@@ -51,10 +51,17 @@ class Request final {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
   }
+#ifdef SWIG
+  Request() {}
+#endif
   std::string toString() const {
+    std::map<std::string, std::string> shortCredential;
+    for (const auto& x : credential) {
+      shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
+    }
     std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = "+serviceName+", correlationId = "
         + correlationId +", paramList = "+ccapi::toString(paramList)+ ", credential = "
-        + ccapi::toString(credential) + ", operation = " + operationToString(operation) + "]";
+        + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
     return output;
   }
   const std::string& getCorrelationId() const {

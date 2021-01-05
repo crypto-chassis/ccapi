@@ -4,7 +4,7 @@ Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session *session) override {
-    std::cout << "Received an event: " + toString(event) << std::endl;
+    std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
     return true;
   }
 };

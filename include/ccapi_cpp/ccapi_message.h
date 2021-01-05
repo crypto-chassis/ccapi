@@ -5,7 +5,7 @@
 #include "ccapi_cpp/ccapi_element.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
-class Message final {
+class Message CCAPI_FINAL {
  public:
   enum class RecapType {
     UNKNOWN,
@@ -109,6 +109,14 @@ class Message final {
         + ", correlationIdList = " + ccapi::toString(correlationIdList) + "]";
     return output;
   }
+  std::string toStringPretty(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
+    std::string sl(leftToIndent, ' ');
+    std::string ss(leftToIndent + space, ' ');
+    std::string output = (indentFirstLine ? sl : "") + "Message [\n" + ss + "type = " + typeToString(type) + ",\n" + ss + "recapType = " + recapTypeToString(recapType)
+        + ",\n" + ss + "time = " + UtilTime::getISOTimestamp(time) + ",\n" + ss + "timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ",\n" + ss + "elementList = " + ccapi::firstNToStringPretty(elementList, 10, space, space + leftToIndent, false)
+        + ",\n" + ss + "correlationIdList = " + ccapi::toString(correlationIdList) + "\n" + sl + "]";
+    return output;
+  }
   const std::vector<Element>& getElementList() const {
     return elementList;
   }
@@ -123,6 +131,12 @@ class Message final {
   }
   TimePoint getTime() const {
     return time;
+  }
+  std::string getTimeISO() const {
+    return UtilTime::getISOTimestamp(time);
+  }
+  std::pair<long long, long long> getTimePair() const {
+    return UtilTime::divide(time);
   }
   void setTime(TimePoint time) {
     this->time = time;
@@ -141,6 +155,12 @@ class Message final {
   }
   TimePoint getTimeReceived() const {
     return timeReceived;
+  }
+  std::string getTimeReceivedISO() const {
+    return UtilTime::getISOTimestamp(timeReceived);
+  }
+  std::pair<long long, long long> getTimeReceivedPair() const {
+    return UtilTime::divide(timeReceived);
   }
   void setTimeReceived(TimePoint timeReceived) {
     this->timeReceived = timeReceived;

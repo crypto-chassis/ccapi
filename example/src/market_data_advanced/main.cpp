@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
   std::vector<std::string> modeList = { "specify_correlation_id", "normalize_instrument_name",
       "multiple_exchanges_instruments", "specify_market_depth", "receive_events_at_periodic_intervals",
       "receive_events_at_periodic_intervals_including_when_the_market_depth_snapshot_has_not_changed",
-      "dispatch_events_to_multiple_threads", "handle_events_synchronously" };
+      "dispatch_events_to_multiple_threads", "handle_events_in_batching_mode" };
   if (argc != 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
     std::cerr << "Please provide one command line argument from this list: " + toString(modeList) << std::endl;
     return EXIT_FAILURE;
@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
     eventDispatcher.stop();
-  } else if (mode == "handle_events_synchronously") {
+  } else if (mode == "handle_events_in_batching_mode") {
     SessionOptions sessionOptions;
     SessionConfigs sessionConfigs;
     Session session(sessionOptions, sessionConfigs);

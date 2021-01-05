@@ -3,10 +3,13 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include <string>
 #include <set>
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-class Subscription final {
+class Subscription CCAPI_FINAL {
  public:
+#ifdef SWIG
+  Subscription() {}
+#endif
   Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId =
                    "", std::map<std::string, std::string> credential = {})
       : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential) {
@@ -30,10 +33,14 @@ class Subscription final {
     }
   }
   std::string toString() const {
+    std::map<std::string, std::string> shortCredential;
+    for (const auto& x : credential) {
+      shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
+    }
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = "
         + field + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
         + correlationId + ", credential = "
-        + ccapi::toString(credential) + ", serviceName = " + serviceName + "]";
+        + ccapi::toString(shortCredential) + ", serviceName = " + serviceName + "]";
     return output;
   }
   const std::string& getCorrelationId() const {

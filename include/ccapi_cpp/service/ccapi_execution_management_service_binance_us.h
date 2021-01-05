@@ -1,10 +1,10 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_US_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_US_H_
-#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef ENABLE_EXCHANGE_BINANCE_US
+#ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBinanceUs final : public ExecutionManagementServiceBinanceBase {
+class ExecutionManagementServiceBinanceUs CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinanceUs(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
                                       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)

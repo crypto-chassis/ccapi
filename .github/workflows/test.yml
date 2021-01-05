@@ -153,9 +153,10 @@ jobs:
 
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-            -DBUILD_BUILD_TEST=ON
+            -DBUILD_TEST_BUILD=ON
+            -DBUILD_TEST_UNIT=ON
             -S test
-            -B build
+            -B test/build
             -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
             -G Ninja
             -D CMAKE_MAKE_PROGRAM=ninja
@@ -166,7 +167,6 @@ jobs:
         if (NOT result EQUAL 0)
           message(FATAL_ERROR "Bad exit status")
         endif()
-
 
     - name: Build
       shell: cmake -P {0}
@@ -202,7 +202,7 @@ jobs:
         execute_process(COMMAND ccache -z)
 
         execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build build -j
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build -j
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -210,3 +210,15 @@ jobs:
         endif()
 
         execute_process(COMMAND ccache -s)
+
+    - name: Test
+      shell: cmake -P {0}
+      run: |
+        execute_process(
+          COMMAND ctest -j
+          WORKING_DIRECTORY test/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()

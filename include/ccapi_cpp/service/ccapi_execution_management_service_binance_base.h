@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
-#ifdef ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#if defined(ENABLE_EXCHANGE_BINANCE_US) || defined(ENABLE_EXCHANGE_BINANCE) || defined(ENABLE_EXCHANGE_BINANCE_FUTURES)
+#ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
 class ExecutionManagementServiceBinanceBase : public ExecutionManagementService {
@@ -9,6 +9,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   ExecutionManagementServiceBinanceBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
                                       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+    this->orderStatusOpenSet = {"NEW", "PARTIALLY_FILLED"};
   }
   virtual ~ExecutionManagementServiceBinanceBase() {
   }
@@ -17,12 +18,12 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   void signRequest(std::string& queryString, const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     if (param.find("timestamp") == param.end()) {
       queryString += "timestamp=";
-      queryString += std::to_string(std::chrono::duration_cast< std::chrono::milliseconds >(now.time_since_epoch()).count());
+      queryString += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
       queryString += "&";
     }
     queryString.pop_back();
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
-    std::string signature = UtilAlgorithm::hmacHex(apiSecret, queryString);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
     queryString += "&signature=";
     queryString += signature;
   }
@@ -30,13 +31,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     for (const auto& kv : param) {
       queryString += regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       queryString += "=";
-      queryString += kv.second;
+      queryString += Url::urlEncode(kv.second);
       queryString += "&";
     }
   }
   void appendSymbolId(std::string& queryString, const std::string symbolId) {
     queryString += "symbol=";
-    queryString += symbolId;
+    queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
   void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
@@ -97,12 +98,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {
         req.method(http::verb::get);
         std::string queryString;
-        const std::map<std::string, std::string>& param = {};
-        this->appendParam(queryString, param);
+        this->appendParam(queryString, {});
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
-        this->signRequest(queryString, param, now, credential);
+        this->signRequest(queryString, {}, now, credential);
         req.target(this->getOpenOrdersTarget + "?" + queryString);
       }
       break;
@@ -110,10 +110,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {
         req.method(http::verb::delete_);
         std::string queryString;
-        const std::map<std::string, std::string>& param = {};
-        this->appendParam(queryString, param);
+        this->appendParam(queryString, {});
         this->appendSymbolId(queryString, symbolId);
-        this->signRequest(queryString, param, now, credential);
+        this->signRequest(queryString, {}, now, credential);
         req.target(this->cancelOpenOrdersTarget + "?" + queryString);
       }
       break;
@@ -121,8 +120,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  Element extractOrderInfo(const rj::Value& x) {
-    return ExecutionManagementService::extractOrderInfo(x, {
+  std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) override {
+    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
       {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
       {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
       {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -132,71 +131,17 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair(this->isFutures ? "cumQuote" : "cummulativeQuoteQty", JsonDataType::STRING)},
       {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
       {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}
-    });
-  }
-  std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    rj::Document document;
-    document.Parse(textMessage.c_str());
-    Message message;
-    message.setTimeReceived(timeReceived);
-    message.setCorrelationIdList({request.getCorrelationId()});
+    };
     std::vector<Element> elementList;
-    Request::Operation operation = request.getOperation();
-    switch (operation) {
-      case Request::Operation::CREATE_ORDER:
-      {
-        message.setType(Message::Type::CREATE_ORDER);
-        elementList.emplace_back(this->extractOrderInfo(document));
+    if (document.IsObject()) {
+      elementList.emplace_back(ExecutionManagementService::extractOrderInfo(document, extractionFieldNameMap));
+    } else {
+      for (const auto& x : document.GetArray()) {
+        elementList.emplace_back(ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap));
       }
-      break;
-      case Request::Operation::CANCEL_ORDER:
-      {
-        message.setType(Message::Type::CANCEL_ORDER);
-        elementList.emplace_back(this->extractOrderInfo(document));
-      }
-      break;
-      case Request::Operation::GET_ORDER:
-      {
-        message.setType(Message::Type::GET_ORDER);
-        elementList.emplace_back(this->extractOrderInfo(document));
-      }
-      break;
-      case Request::Operation::GET_OPEN_ORDERS:
-      {
-        message.setType(Message::Type::GET_OPEN_ORDERS);
-        for (const auto& x : document.GetArray()) {
-          elementList.emplace_back(this->extractOrderInfo(x));
-        }
-      }
-      break;
-      case Request::Operation::CANCEL_OPEN_ORDERS:
-      {
-        message.setType(Message::Type::CANCEL_OPEN_ORDERS);
-        for (const auto& x : document.GetArray()) {
-          elementList.emplace_back(this->extractOrderInfo(x));
-        }
-      }
-      break;
-      default:
-      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    message.setElementList(elementList);
-    std::vector<Message> messageList;
-    messageList.push_back(std::move(message));
-    return messageList;
+    return elementList;
   }
-  std::string convertOrderStatus(const std::string& status) override {
-    return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN
-    : this->orderStatusClosedSet.find(status) != this->orderStatusClosedSet.end() ? CCAPI_EM_ORDER_STATUS_CLOSED
-    : CCAPI_EM_ORDER_STATUS_UNKNOWN;
-  }
-  std::set<std::string> orderStatusOpenSet = {"NEW", "PARTIALLY_FILLED"};
-  std::set<std::string> orderStatusClosedSet = {"FILLED", "CANCELED", "REJECTED", "EXPIRED"};
-  std::string createOrderTarget;
-  std::string cancelOrderTarget;
-  std::string getOrderTarget;
-  std::string getOpenOrdersTarget;
-  std::string cancelOpenOrdersTarget;
   bool isFutures{};
 };
 } /* namespace ccapi */

@@ -4,7 +4,7 @@
 #include <regex>
 namespace beast = boost::beast;
 namespace ccapi {
-class Url final {
+class Url CCAPI_FINAL {
  public:
   explicit Url(std::string urlStr) {
     std::regex ex("^(.*:)//([A-Za-z0-9\\-\\.]+)(:[0-9]+)?(.*)$");

@@ -14,4 +14,4 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v1
     - run: pip install cpplint
-    - run: cpplint --recursive --exclude=include/ccapi_cpp/websocketpp_decompress_workaround.h --filter -legal/copyright,-whitespace/line_length,-build/c++11,-runtime/references,-build/include_what_you_use,-runtime/int include/**/* example/src/*
+    - run: cpplint --recursive --exclude=include/ccapi_cpp/ccapi_hmac.h --exclude=include/ccapi_cpp/websocketpp_decompress_workaround.h --exclude=*/build --filter -legal/copyright,-whitespace/line_length,-build/c++11,-runtime/references,-build/include_what_you_use,-runtime/int include/**/* example/**/* test/**/*
