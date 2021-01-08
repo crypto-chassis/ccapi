@@ -24,6 +24,7 @@ class ExecutionManagementServiceBinanceUs CCAPI_FINAL : public ExecutionManageme
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
  public:
   using ExecutionManagementService::convertRequest;
   using ExecutionManagementService::processSuccessfulTextMessage;

@@ -173,6 +173,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
   }
   std::string apiPassphraseName;
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
  public:
   using ExecutionManagementService::convertRequest;
   using ExecutionManagementService::processSuccessfulTextMessage;
