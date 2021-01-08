@@ -12,8 +12,9 @@ class Element CCAPI_FINAL {
   bool has(std::string name) const {
     return this->nameValueMap.find(name) != this->nameValueMap.end();
   }
-  std::string getValue(std::string name) const {
-    return this->nameValueMap.at(name);
+  std::string getValue(std::string name, std::string valueDefault = "") const {
+    auto it = this->nameValueMap.find(name);
+    return it == this->nameValueMap.end() ? valueDefault : it->second;
   }
   std::string toString() const {
     std::string output = "Element [nameValueMap = " + ccapi::toString(nameValueMap) + "]";

@@ -21,7 +21,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       queryString += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
       queryString += "&";
     }
-    queryString.pop_back();
+    if (queryString.back() == '&') {
+      queryString.pop_back();
+    }
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
     queryString += "&signature=";

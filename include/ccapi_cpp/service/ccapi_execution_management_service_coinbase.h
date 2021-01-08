@@ -29,9 +29,9 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
-    auto preSignedText = std::string(req.base().at("CB-ACCESS-TIMESTAMP"));
+    auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
     preSignedText += UtilString::toUpper(std::string(req.method_string()));
-    preSignedText += std::string(req.target());
+    preSignedText += req.target().to_string();
     preSignedText += body;
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
     req.set("CB-ACCESS-SIGN", signature);
@@ -118,7 +118,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
           target += symbolId;
         }
         req.target(target);
-        this->signRequest(req, "", {}, now, credential);
+        this->signRequest(req, "", credential);
       }
       break;
       case Request::Operation::CANCEL_OPEN_ORDERS:
@@ -130,7 +130,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
           target += symbolId;
         }
         req.target(target);
-        this->signRequest(req, "", {}, now, credential);
+        this->signRequest(req, "", credential);
       }
       break;
       default:
@@ -172,6 +172,13 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
     return elementList;
   }
   std::string apiPassphraseName;
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
+ public:
+  using ExecutionManagementService::convertRequest;
+  using ExecutionManagementService::processSuccessfulTextMessage;
+  FRIEND_TEST(ExecutionManagementServiceCoinbaseTest, signRequest);
+#endif
 };
 } /* namespace ccapi */
 #endif

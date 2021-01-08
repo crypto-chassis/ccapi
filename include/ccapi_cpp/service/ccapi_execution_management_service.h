@@ -267,7 +267,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
         this->eventHandler(event);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
-          Url url(std::string(resPtr->base().at("Location")));
+          Url url(resPtr->base().at("Location").to_string());
           std::string host(url.host);
           if (!url.port.empty()) {
             host += ":";
@@ -407,6 +407,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
+    CCAPI_LOGGER_TRACE("rapidjson parse succeeded");
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({request.getCorrelationId()});

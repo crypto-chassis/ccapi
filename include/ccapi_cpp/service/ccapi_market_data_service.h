@@ -612,23 +612,25 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                                               const std::map<std::string, std::string>& optionMap,
                                               const MarketDataMessage::TypeForData& input,
                                               std::vector<Element>& elementList) {
-    for (const auto & x : input) {
-      auto type = x.first;
-      auto detail = x.second;
-      if (type == MarketDataMessage::DataType::TRADE) {
-        for (const auto & y : detail) {
-          auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
-          auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Element element;
-          element.insert(CCAPI_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
-          element.insert(CCAPI_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
-          element.insert(CCAPI_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
-          element.insert(CCAPI_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
-          elementList.push_back(std::move(element));
+    if (field == CCAPI_TRADE) {
+      for (const auto & x : input) {
+        auto type = x.first;
+        auto detail = x.second;
+        if (type == MarketDataMessage::DataType::TRADE) {
+          for (const auto & y : detail) {
+            auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
+            auto size = y.at(MarketDataMessage::DataFieldType::SIZE);
+            Element element;
+            element.insert(CCAPI_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
+            element.insert(CCAPI_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
+            element.insert(CCAPI_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
+            element.insert(CCAPI_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
+            elementList.push_back(std::move(element));
+          }
+        } else {
+          CCAPI_LOGGER_WARN(
+              "extra type " + MarketDataMessage::dataTypeToString(type));
         }
-      } else {
-        CCAPI_LOGGER_WARN(
-            "extra type " + MarketDataMessage::dataTypeToString(type));
       }
     }
   }
