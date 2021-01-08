@@ -31,7 +31,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-**NEW**: Version 2.2.x released execution management for the binance family: binance, binance-futures, and binance-us.
+**NEW**: Version 2.2.x released execution management for coinbase and the binance family (binance, binance-futures, and binance-us).
 
 **BREAKING CHANGE**: Version 2.2.x introduced a few breaking changes:
 * Added `CCAPI_CPP_` prefix to enablement macros.
