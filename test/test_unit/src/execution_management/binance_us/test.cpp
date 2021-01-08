@@ -2,6 +2,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_US
 #include "gtest/gtest.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
+#include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
  public:
@@ -32,12 +33,10 @@ void verifySignature(const std::string& paramString, const std::string& apiSecre
   EXPECT_EQ(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, paramStringWithoutSignature, true), signature);
 }
 
-void verifyCorrelationId(const std::vector<Message>& messageList, const std::string& correlationId) {
-  for (const auto & message : messageList) {
-    auto correlationIdList = message.getCorrelationIdList();
-    EXPECT_EQ(correlationIdList.size(), 1);
-    EXPECT_EQ(correlationIdList.at(0), correlationId);
-  }
+TEST_F(ExecutionManagementServiceBinanceUsTest, signRequest) {
+  std::string queryString = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
+  this->service->signRequest(queryString, {}, this->now, this->credential);
+  EXPECT_EQ(queryString, "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559&signature=c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71");
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
@@ -51,7 +50,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
@@ -94,7 +93,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrder
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("orderId"), "28");
@@ -112,7 +111,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClien
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
@@ -139,7 +138,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByOrderId)
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("orderId"), "28");
@@ -157,7 +156,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOr
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
@@ -214,7 +213,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersOneIn
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
@@ -227,7 +226,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllIn
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
@@ -295,7 +294,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) 
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(std::string(req.target()), "?");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));

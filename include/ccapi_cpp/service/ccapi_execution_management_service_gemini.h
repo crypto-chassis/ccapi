@@ -26,7 +26,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
 
  protected:
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
-    document.AddMember("request", rj::Value(std::string(req.target()).c_str(), allocator).Move(), allocator);
+    document.AddMember("request", rj::Value(req.target().to_string().c_str(), allocator).Move(), allocator);
     int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     document.AddMember("nonce", rj::Value(nonce).Move(), allocator);
     rj::StringBuffer stringBuffer;

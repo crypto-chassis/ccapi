@@ -30,8 +30,8 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
     auto preSignedText = UtilString::toUpper(std::string(req.method_string()));
-    preSignedText += std::string(req.target());
-    preSignedText += std::string(req.base().at("api-expires"));
+    preSignedText += req.target().to_string();
+    preSignedText += req.base().at("api-expires").to_string();
     preSignedText += body;
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
     req.set("api-signature", signature);

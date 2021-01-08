@@ -34,6 +34,8 @@ if (CMAKE_VERSION VERSION_LESS 2.8.11)
 endif()
 
 include(GoogleTest)
+include_directories(${CCAPI_CPP_PROJECT_DIR}/test/test_unit/include)
 add_subdirectory(src/common)
+add_subdirectory(src/execution_management/coinbase)
 add_subdirectory(src/execution_management/binance_us)
 add_subdirectory(src/execution_management/binance_futures)

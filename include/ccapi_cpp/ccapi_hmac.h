@@ -2988,13 +2988,13 @@ class Hmac CCAPI_FINAL {
       for (int i = 0; i < shaHashSize; i++) {
         ss << std::hex << std::setw(2) << (unsigned int)digest[i];
       }
+      return ss.str();
     } else {
-      ss << std::setfill('0');
       for (int i = 0; i < shaHashSize; i++) {
-        ss  << (int)digest[i];
+        ss << (char)digest[i];
       }
+      return ss.str();
     }
-    return (ss.str());
   }
 };
 } /* namespace ccapi */
