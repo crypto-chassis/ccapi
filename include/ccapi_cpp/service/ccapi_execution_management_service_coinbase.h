@@ -176,6 +176,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
  public:
   using ExecutionManagementService::convertRequest;
   using ExecutionManagementService::processSuccessfulTextMessage;
+  FRIEND_TEST(ExecutionManagementServiceCoinbaseTest, signRequest);
 #endif
 };
 } /* namespace ccapi */

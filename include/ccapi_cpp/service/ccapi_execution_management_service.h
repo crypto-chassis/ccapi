@@ -407,6 +407,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
+    CCAPI_LOGGER_TRACE("rapidjson parse succeeded");
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({request.getCorrelationId()});

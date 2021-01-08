@@ -215,7 +215,7 @@ jobs:
       shell: cmake -P {0}
       run: |
         execute_process(
-          COMMAND ctest -j
+          COMMAND ctest -j -VV
           WORKING_DIRECTORY test/build
           RESULT_VARIABLE result
         )

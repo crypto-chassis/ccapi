@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_hmac.h"
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 TEST(HmacTest, hmac256ReturnHex) {
   auto result = Hmac::hmac(Hmac::ShaVersion::SHA256,

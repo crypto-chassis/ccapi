@@ -10,9 +10,9 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceCoinbase>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
-       { CCAPI_COINBASE_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A" },
-       { CCAPI_COINBASE_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j" },
-       { CCAPI_COINBASE_API_PASSPHRASE, "foo" }
+       { CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0" },
+       { CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ==" },
+       { CCAPI_COINBASE_API_PASSPHRASE, "0x1a5y8koaa9" }
     };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000);
@@ -135,7 +135,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByClient
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, processSuccessfulTextMessageCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  auto messageList = this->service->processSuccessfulTextMessage(request, "{}", this->now);
+  auto messageList = this->service->processSuccessfulTextMessage(request, "\"415bbb90-b5a5-48cc-85b9-49589cc12626\"", this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

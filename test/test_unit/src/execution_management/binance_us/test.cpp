@@ -35,7 +35,9 @@ void verifySignature(const std::string& paramString, const std::string& apiSecre
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, signRequest) {
   std::string queryString = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
-  this->service->signRequest(queryString, {}, this->now, this->credential);
+  this->service->signRequest(queryString, {
+      {"timestamp", "1499827319559"}
+  }, this->now, this->credential);
   EXPECT_EQ(queryString, "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559&signature=c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71");
 }
 
