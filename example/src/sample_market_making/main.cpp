@@ -46,14 +46,16 @@ int main(int argc, char **argv) {
   }
   double spreadPercentage = std::stod(argv[1]);
   std::string orderQuantity = argv[2];
-  std::string key = UtilSystem::getEnvAsString("COINBASE_API_KEY");
-  if (key.empty()) {
+  if (UtilSystem::getEnvAsString("COINBASE_API_KEY").empty()) {
     std::cerr << "Please set environment variable COINBASE_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
-  std::string secret = UtilSystem::getEnvAsString("COINBASE_API_SECRET");
-  if (secret.empty()) {
+  if (UtilSystem::getEnvAsString("COINBASE_API_SECRET").empty()) {
     std::cerr << "Please set environment variable COINBASE_API_SECRET" << std::endl;
+    return EXIT_FAILURE;
+  }
+  if (UtilSystem::getEnvAsString("CCAPI_COINBASE_API_PASSPHRASE").empty()) {
+    std::cerr << "Please set environment variable CCAPI_COINBASE_API_PASSPHRASE" << std::endl;
     return EXIT_FAILURE;
   }
   SessionOptions sessionOptions;

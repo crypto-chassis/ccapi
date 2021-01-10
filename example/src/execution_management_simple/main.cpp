@@ -18,13 +18,11 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   std::string mode(argv[1]);
-  std::string key = UtilSystem::getEnvAsString("BINANCE_US_API_KEY");
-  if (key.empty()) {
+  if (UtilSystem::getEnvAsString("BINANCE_US_API_KEY").empty()) {
     std::cerr << "Please set environment variable BINANCE_US_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
-  std::string secret = UtilSystem::getEnvAsString("BINANCE_US_API_SECRET");
-  if (secret.empty()) {
+  if (UtilSystem::getEnvAsString("BINANCE_US_API_SECRET").empty()) {
     std::cerr << "Please set environment variable BINANCE_US_API_SECRET" << std::endl;
     return EXIT_FAILURE;
   }
