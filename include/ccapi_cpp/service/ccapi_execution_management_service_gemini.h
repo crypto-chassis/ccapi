@@ -33,10 +33,13 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
     auto body = stringBuffer.GetString();
+    this->signRequest(req, body, credential);
+  }
+  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto base64Payload = UtilAlgorithm::base64Encode(body);
     req.set("X-GEMINI-PAYLOAD", base64Payload);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
-    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true);
+    auto signature = UtilString::toLower(Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true));
     req.set("X-GEMINI-SIGNATURE", signature);
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
@@ -47,7 +50,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
       }
       if (key == "order_id") {
-        document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(std::stoi(value)).Move(), allocator);
+        document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(static_cast<int64_t>(std::stoll(value))).Move(), allocator);
       } else {
         document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
       }
@@ -158,7 +161,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
     if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document["details"]["cancelledOrders"].GetArray()) {
         Element element;
-        element.insert(CCAPI_EM_ORDER_ID, std::to_string(x.GetInt()));
+        element.insert(CCAPI_EM_ORDER_ID, std::to_string(x.GetInt64()));
         elementList.emplace_back(element);
       }
     } else if (document.IsObject()) {
@@ -187,6 +190,13 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
     }
     return element;
   }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
+ public:
+  using ExecutionManagementService::convertRequest;
+  using ExecutionManagementService::processSuccessfulTextMessage;
+  FRIEND_TEST(ExecutionManagementServiceGeminiTest, signRequest);
+#endif
 };
 } /* namespace ccapi */
 #endif
