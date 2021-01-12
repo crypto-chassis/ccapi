@@ -188,7 +188,7 @@ class UtilAlgorithm CCAPI_FINAL {
       if (value == -1) throw std::invalid_argument("invalid hex digit");
       return value;
   }
-  std::string hexToString(const std::string& input) {
+  static std::string hexToString(const std::string& input) {
       const auto len = input.length();
       if (len & 1) throw std::invalid_argument("odd length");
       std::string output;

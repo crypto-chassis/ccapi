@@ -58,7 +58,7 @@
 * This library is header-only.
 * Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
-* Definitions in the compiler command line:
+* Macros in the compiler command line:
   * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of `include/ccapi_cpp/ccapi_session.h`.
 * Include directories:
   * include
@@ -262,6 +262,9 @@ Received an event:
   ]
 Bye
 ```
+* Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`.
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`.
+
 ### Advanced Execution Management
 
 #### Specify correlation id
