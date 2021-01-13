@@ -63,7 +63,6 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
   EXPECT_EQ(std::string(document["amount"].GetString()), "1");
   EXPECT_EQ(std::string(document["price"].GetString()), "0.1");
   EXPECT_EQ(std::string(document["side"].GetString()), "buy");
-  EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusd");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
 

@@ -2,7 +2,8 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_URL_H_
 #include <string>
 #include <regex>
-namespace beast = boost::beast;
+#include "ccapi_cpp/ccapi_macro.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class Url CCAPI_FINAL {
  public:
