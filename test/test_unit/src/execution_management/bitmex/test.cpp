@@ -285,7 +285,6 @@ TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageGetOrde
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0");
-  std::cout<<element.toString()<<std::endl;
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_OPEN);
 }

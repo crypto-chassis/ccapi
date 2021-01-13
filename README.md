@@ -370,5 +370,4 @@ Logger* Logger::logger = &myLogger;
 
 ### Contributing
 * (Required) Submit a pull request to the master branch.
-* (Required) Pass Github checks: https://docs.github.com/en/rest/reference/checks.
 * (Optional) Commit message format: https://conventionalcommits.org.
