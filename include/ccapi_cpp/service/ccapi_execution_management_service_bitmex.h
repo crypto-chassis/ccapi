@@ -183,18 +183,24 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     };
     std::vector<Element> elementList;
     if (document.IsObject()) {
-      elementList.emplace_back(ExecutionManagementService::extractOrderInfo(document, extractionFieldNameMap));
+      elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
     } else {
       for (const auto& x : document.GetArray()) {
-        elementList.emplace_back(ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap));
+        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
       }
     }
     return elementList;
   }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+ public:
+#endif
   std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     return ExecutionManagementService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
   }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+ protected:
+#endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
@@ -206,6 +212,12 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     }
     return element;
   }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
+ public:
+  using ExecutionManagementService::convertRequest;
+  FRIEND_TEST(ExecutionManagementServiceBitmexTest, signRequest);
+#endif
 };
 } /* namespace ccapi */
 #endif

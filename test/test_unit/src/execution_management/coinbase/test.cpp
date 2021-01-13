@@ -64,7 +64,8 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
   document.Parse(req.body().c_str());
   EXPECT_EQ(std::string(document["product_id"].GetString()), "BTC-USD");
   EXPECT_EQ(std::string(document["side"].GetString()), "buy");
-  EXPECT_EQ(req.base().at("CB-ACCESS-TIMESTAMP").to_string(), std::to_string(this->timestamp));
+  EXPECT_EQ(std::string(document["price"].GetString()), "0.1");
+  EXPECT_EQ(std::string(document["size"].GetString()), "1");
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
