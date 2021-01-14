@@ -29,7 +29,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
-    auto preSignedText = UtilString::toUpper(std::string(req.method_string()));
+    auto preSignedText = std::string(req.method_string());
     preSignedText += req.target().to_string();
     preSignedText += req.base().at("api-expires").to_string();
     preSignedText += body;

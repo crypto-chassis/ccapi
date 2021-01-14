@@ -31,7 +31,7 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-**NEW**: Version 2.2.x released execution management for coinbase, gemini, bitmex, and the binance family (binance, binance-futures, and binance-us).
+**NEW**: Version 2.2.x released execution management for coinbase, gemini, bitmex, the binance family (binance, binance-futures, and binance-us), and huobi.
 
 **BREAKING CHANGE**: Version 2.2.x introduced a few breaking changes:
 * Added `CCAPI_CPP_` prefix to enablement macros.
@@ -44,7 +44,7 @@
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
   * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, okex.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost. Follow us on https://medium.com/@cryptochassis and our publication on https://medium.com/open-crypto-market-data-initiative.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
