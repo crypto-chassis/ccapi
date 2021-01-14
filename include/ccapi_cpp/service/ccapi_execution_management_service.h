@@ -260,11 +260,15 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     std::string body = resPtr->body();
     try {
       if (statusCode / 100 == 2) {
-        Event event;
-        event.setType(Event::Type::RESPONSE);
-        std::vector<Message> messageList = std::move(this->processSuccessfulTextMessage(request, body, now));
-        event.addMessages(messageList);
-        this->eventHandler(event);
+        if (this->name == CCAPI_EXCHANGE_NAME_HUOBI && body.find("err-code") != std::string::npos) {
+          this->onResponseError(400, body);
+        } else {
+          Event event;
+          event.setType(Event::Type::RESPONSE);
+          std::vector<Message> messageList = std::move(this->processSuccessfulTextMessage(request, body, now));
+          event.addMessages(messageList);
+          this->eventHandler(event);
+        }
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base().at("Location").to_string());

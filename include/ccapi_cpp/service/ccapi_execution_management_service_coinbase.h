@@ -30,7 +30,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
     auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
-    preSignedText += UtilString::toUpper(std::string(req.method_string()));
+    preSignedText += std::string(req.method_string());
     preSignedText += req.target().to_string();
     preSignedText += body;
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));

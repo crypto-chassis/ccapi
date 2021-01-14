@@ -60,9 +60,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
 #endif
-// #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
-// #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
-// #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
+#include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
