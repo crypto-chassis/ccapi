@@ -292,28 +292,6 @@ TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageGetOpenO
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0");
 }
-
-//
-//TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOpenOrders) {
-//  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-//  auto req = this->service->convertRequest(request, this->now);
-//  EXPECT_EQ(req.method(), http::verb::delete_);
-//  verifyApiKey(req, this->credential.at(CCAPI_HUOBI_API_KEY));
-//  auto splitted = UtilString::split(req.target().to_string(), "?");
-//  EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
-//  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-//  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
-//  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
-//}
-//
-//TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageCancelOpenOrders) {
-//  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-//  auto messageList = this->service->processSuccessfulTextMessage(request, "[]", this->now);
-//  EXPECT_EQ(messageList.size(), 1);
-//  verifyCorrelationId(messageList, request.getCorrelationId());
-//  auto message = messageList.at(0);
-//  EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
-//}
 } /* namespace ccapi */
 #endif
 #endif
