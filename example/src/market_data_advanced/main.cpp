@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
     session.subscribe(subscription);
     std::this_thread::sleep_for(std::chrono::seconds(10));
-    std::vector<Event> eventList = session.eventQueue.purge();
+    std::vector<Event> eventList = session.getEventQueue().purge();
     for (const auto & event : eventList) {
       std::cout << toString(event) + "\n" << std::endl;
     }

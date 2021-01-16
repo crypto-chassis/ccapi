@@ -209,7 +209,8 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
       auto it1 = x.FindMember("cumQty");
       auto it2 = x.FindMember("avgPx");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
-        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                       std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
     return element;

@@ -6,15 +6,13 @@ class MyEventHandler : public EventHandler {
   bool processEvent(const Event& event, Session *session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto & message : event.getMessageList()) {
-        if (message.getRecapType() == Message::RecapType::NONE) {
-          for (const auto & element : message.getElementList()) {
-            std::lock_guard<std::mutex> lock(m);
-            if (element.has("BID_PRICE")) {
-              bestBidPrice = element.getValue("BID_PRICE");
-            }
-            if (element.has("ASK_PRICE")) {
-              bestAskPrice = element.getValue("ASK_PRICE");
-            }
+        for (const auto & element : message.getElementList()) {
+          std::lock_guard<std::mutex> lock(m);
+          if (element.has("BID_PRICE")) {
+            bestBidPrice = element.getValue("BID_PRICE");
+          }
+          if (element.has("ASK_PRICE")) {
+            bestAskPrice = element.getValue("ASK_PRICE");
           }
         }
       }

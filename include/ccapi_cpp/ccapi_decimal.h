@@ -7,6 +7,9 @@ namespace ccapi {
 class Decimal CCAPI_FINAL {
  public:
   explicit Decimal(std::string originalValue) {
+    if (originalValue.empty()) {
+      CCAPI_LOGGER_FATAL("Decimal constructor input value cannot be empty");
+    }
     std::string value = originalValue;
     this->sign = true;
     if (originalValue.at(0) == '-') {
