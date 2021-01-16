@@ -81,7 +81,21 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
       }
       wsMessageList.push_back(std::move(wsMessage));
     } else if (type == "match") {
-      // TODO(cryptochassis): implement
+      auto symbolId = std::string(document["product_id"].GetString());
+      auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_MATCH) + "|" + symbolId;
+      MarketDataMessage wsMessage;
+      wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+      wsMessage.tp = UtilTime::parse(std::string(document["time"].GetString()));
+      wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+
+      MarketDataMessage::TypeForDataPoint dataPoint;
+      dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(document["price"].GetString())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(document["size"].GetString())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["trade_id"].GetInt())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "buy" ? "1" : "0"});
+      wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+      wsMessageList.push_back(std::move(wsMessage));
     } else if (type == "heartbeat") {
       // TODO(cryptochassis): implement
     } else if (type == "snapshot") {
