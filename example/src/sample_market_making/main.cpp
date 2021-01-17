@@ -58,6 +58,11 @@ int main(int argc, char **argv) {
     std::cerr << "Please set environment variable CCAPI_COINBASE_API_PASSPHRASE" << std::endl;
     return EXIT_FAILURE;
   }
+  std::map<std::string, std::string> myCredentials = {
+        {CCAPI_COINBASE_API_KEY, UtilSystem::getEnvAsString("COINBASE_API_KEY")},
+        {CCAPI_COINBASE_API_SECRET, UtilSystem::getEnvAsString("COINBASE_API_SECRET")},
+        {CCAPI_COINBASE_API_PASSPHRASE, UtilSystem::getEnvAsString("CCAPI_COINBASE_API_PASSPHRASE")}
+    };
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
@@ -65,24 +70,24 @@ int main(int argc, char **argv) {
   Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
   session.subscribe(subscription);
   while (true) {
-    Request requestCancel(Request::Operation::CANCEL_OPEN_ORDERS, "coinbase", "BTC-USD");
+    Request requestCancel(Request::Operation::CANCEL_OPEN_ORDERS, "coinbase", "BTC-USD", "", myCredentials);
     session.sendRequest(requestCancel);
     std::cout << "Cancel all open orders" << std::endl;
     auto bbo = eventHandler.getBBO();
     if (!bbo.first.empty() && !bbo.second.empty()) {
-      double midPrice = (std::stod(bbo.first) + std::stod(bbo.first)) / 2;
+      double midPrice = (std::stod(bbo.first) + std::stod(bbo.second)) / 2;
       std::cout << "Current mid price is " + std::to_string(midPrice) << std::endl;
       std::string buyPrice = regularizePrice(midPrice * (1 - spreadPercentage / 100));
       std::string sellPrice = regularizePrice(midPrice * (1 + spreadPercentage / 100));
       std::vector<Request> requestList;
-      Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
+      Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
       requestBuy.appendParam({
         {"SIDE", "BUY"},
         {"QUANTITY", orderQuantity},
         {"LIMIT_PRICE", buyPrice}
       });
       requestList.push_back(requestBuy);
-      Request requestSell(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
+      Request requestSell(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
       requestSell.appendParam({
         {"SIDE", "SELL"},
         {"QUANTITY", orderQuantity},
