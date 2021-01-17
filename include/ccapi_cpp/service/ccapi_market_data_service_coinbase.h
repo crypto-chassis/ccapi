@@ -88,7 +88,6 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       wsMessage.tp = UtilTime::parse(std::string(document["time"].GetString()));
       wsMessage.recapType = MarketDataMessage::RecapType::NONE;
-
       MarketDataMessage::TypeForDataPoint dataPoint;
       dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(document["price"].GetString())});
       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(document["size"].GetString())});
