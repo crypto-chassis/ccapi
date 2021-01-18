@@ -721,6 +721,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       message.setTimeReceived(timeReceived);
       message.setType(Message::Type::MARKET_DATA_EVENTS);
       message.setRecapType(Message::RecapType::SOLICITED);
+      message.setTime(tp);
       message.setElementList(elementList);
       message.setCorrelationIdList(correlationIdList);
       std::vector<Message> newMessageList = { message };
