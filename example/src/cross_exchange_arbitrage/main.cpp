@@ -40,9 +40,9 @@ class MyEventHandler : public EventHandler {
           }
         }
         if (!bestBidPriceCoinbase.empty() && !bestAskPriceGemini.empty() && Decimal(bestBidPriceCoinbase) >= Decimal(bestAskPriceGemini)) {
+          std::string orderQuantity = std::min(Decimal(bestBidSizeCoinbase), Decimal(bestAskSizeGemini)).toString();
           std::vector<Request> requestList;
           Request requestBuy(Request::Operation::CREATE_ORDER, "gemini", "btcusd");
-          std::string orderQuantity = std::min(Decimal(bestBidSizeCoinbase), Decimal(bestAskSizeGemini)).toString();
           requestBuy.appendParam({
             {"SIDE", "BUY"},
             {"QUANTITY", orderQuantity},
@@ -59,9 +59,9 @@ class MyEventHandler : public EventHandler {
           session->sendRequest(requestList);
         }
         if (!bestBidPriceGemini.empty() && !bestAskPriceCoinbase.empty() && Decimal(bestBidPriceGemini) >= Decimal(bestAskPriceCoinbase)) {
+          std::string orderQuantity = std::min(Decimal(bestBidSizeGemini), Decimal(bestAskSizeCoinbase)).toString();
           std::vector<Request> requestList;
           Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
-          std::string orderQuantity = std::min(Decimal(bestBidSizeGemini), Decimal(bestAskSizeCoinbase)).toString();
           requestBuy.appendParam({
             {"SIDE", "BUY"},
             {"QUANTITY", orderQuantity},

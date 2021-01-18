@@ -83,6 +83,7 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
             wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
+            wsMessage.tp = timeReceived;
             for (const auto& x : content.GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});

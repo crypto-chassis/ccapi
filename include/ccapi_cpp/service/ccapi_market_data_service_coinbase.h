@@ -92,6 +92,7 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
+      wsMessage.tp = timeReceived;
       const rj::Value& bids = document["bids"];
       for (auto& x : bids.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;

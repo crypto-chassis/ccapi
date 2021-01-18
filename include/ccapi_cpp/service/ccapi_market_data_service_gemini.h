@@ -78,6 +78,7 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
             }
           } else if (reason == "initial") {
             wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
+            wsMessage.tp = timeReceived;
             if (isBid) {
               wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             } else {
