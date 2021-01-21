@@ -272,7 +272,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
       std::ostringstream oss;
       oss << *resPtr;
       CCAPI_LOGGER_ERROR("res = " + oss.str());
-      this->onError(e);
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::ERROR, e);
     }
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
     if (retry.promisePtr) {
@@ -288,7 +288,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     }
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::NETWORK_ERROR, ec, "shutdown");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::ERROR, ec, "shutdown");
       return;
     }
     CCAPI_LOGGER_TRACE("shutdown");
@@ -333,13 +333,13 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
         }
       } catch (const std::exception& e) {
         CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-        this->onError(e);
+        this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, e);
       }
     } else {
       std::string errorMessage = this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded";
       CCAPI_LOGGER_ERROR(errorMessage);
       CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
-      this->onError(std::runtime_error(errorMessage));
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, std::runtime_error(errorMessage));
       if (retry.promisePtr) {
         retry.promisePtr->set_value();
       }
