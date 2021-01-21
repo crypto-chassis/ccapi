@@ -58,7 +58,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       ErrorCode ec;
       this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
       if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "shutdown");
       }
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
     }
@@ -82,7 +82,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
               for (const auto & subscription : subscriptionListGivenInstrumentGroup) {
                 auto instrument = subscription.getInstrument();
                 if (that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].find(instrument) != that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].end()) {
-                  CCAPI_LOGGER_ERROR("already subscribed: " + toString(subscription));
+                  this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "already subscribed: " + toString(subscription));
                   return;
                 }
                 wsConnection.subscriptionList.push_back(subscription);
@@ -223,7 +223,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     wsConnection.status = WsConnection::Status::FAILED;
-    CCAPI_LOGGER_ERROR("connection " + toString(wsConnection) + " has failed before opening");
+    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionMap.erase(thisWsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
@@ -241,7 +241,8 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
             [thisWsConnection, that = shared_from_this()](ErrorCode const& ec) {
               if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
                 if (ec) {
-                  CCAPI_LOGGER_ERROR("wsConnection = "+toString(thisWsConnection)+", connect retry on fail timer error: "+ec.message());
+                  CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
+                  this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
                 } else {
                   CCAPI_LOGGER_INFO("about to retry");
                   auto thatWsConnection = thisWsConnection;
@@ -342,8 +343,8 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       try {
         this->onTextMessage(hdl, textMessage, now);
       } catch (const std::exception& e) {
-        CCAPI_LOGGER_ERROR(e.what());
-        CCAPI_LOGGER_ERROR("textMessage = "+textMessage);
+        CCAPI_LOGGER_ERROR("textMessage = " + textMessage);
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, e);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
@@ -355,20 +356,20 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
           if (ec) {
             CCAPI_LOGGER_FATAL(ec.message());
           }
-          CCAPI_LOGGER_DEBUG("decompressed = "+decompressed);
+          CCAPI_LOGGER_DEBUG("decompressed = " + decompressed);
           this->onTextMessage(hdl, decompressed, now);
         } catch (const std::exception& e) {
-          CCAPI_LOGGER_ERROR(e.what());
           std::stringstream ss;
           ss << std::hex << std::setfill('0');
           for (int i = 0; i < payload.size(); ++i) {
               ss << std::setw(2) << static_cast<unsigned>(reinterpret_cast<const uint8_t*>(&payload[0])[i]);
           }
-          CCAPI_LOGGER_ERROR("binaryMessage = "+ss.str());
+          CCAPI_LOGGER_ERROR("binaryMessage = " + ss.str());
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, e);
         }
         ErrorCode ec = this->inflater.inflate_reset();
         if (ec) {
-          CCAPI_LOGGER_ERROR(ec.message());
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "decompress");
         }
       }
 #endif
@@ -955,13 +956,14 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
               [wsConnection, that = shared_from_this(), hdl](ErrorCode const& ec) {
                 if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
                   if (ec) {
-                    CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", ping timer error: "+ec.message());
+                    CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
+                    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
                   } else {
                     if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                       ErrorCode ec;
                       that->ping(hdl, "", ec);
                       if (ec) {
-                        CCAPI_LOGGER_ERROR(ec.message());
+                        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "ping");
                       }
                       if (that->pongTimeOutTimerByConnectionIdMap.find(wsConnection.id) != that->pongTimeOutTimerByConnectionIdMap.end()) {
                         that->pongTimeOutTimerByConnectionIdMap.at(wsConnection.id)->cancel();
@@ -969,7 +971,8 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                       that->pongTimeOutTimerByConnectionIdMap[wsConnection.id] = that->serviceContextPtr->tlsClientPtr->set_timer(that->pongTimeoutMilliSeconds, [wsConnection, that, hdl](ErrorCode const& ec) {
                             if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
                               if (ec) {
-                                CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", pong time out timer error: "+ec.message());
+                                CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", pong time out timer error: " + ec.message());
+                                this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
                               } else {
                                 if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                                   auto now = std::chrono::system_clock::now();
@@ -979,7 +982,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                                     ErrorCode ec;
                                     that->close(thisWsConnection, hdl, websocketpp::close::status::normal, "pong timeout", ec);
                                     if (ec) {
-                                      CCAPI_LOGGER_ERROR(ec.message());
+                                      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "shutdown");
                                     }
                                     that->shouldProcessRemainingMessageOnClosingByConnectionIdMap[thisWsConnection.id] = true;
                                   } else {
@@ -1033,19 +1036,10 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     ErrorCode ec;
     this->close(wsConnection, hdl, websocketpp::close::status::normal, "incorrect states found: " + reason, ec);
     if (ec) {
-      CCAPI_LOGGER_ERROR(ec.message());
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, "shutdown");
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
-    Event event;
-    event.setType(Event::Type::SESSION_STATUS);
-    Message message;
-    message.setTime(timeReceived);
-    message.setType(Message::Type::SESSION_INCORRECT_STATES_FOUND);
-    Element element;
-    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
-    message.setElementList({ element });
-    event.setMessageList({ message });
-    this->eventHandler(event);
+    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATES_FOUND, errorMessage);
   }
   int calculateMarketDepthSubscribedToExchange(int depthWanted, std::vector<int> availableMarketDepth) {
     int i = ceilSearch(availableMarketDepth, 0, availableMarketDepth.size(), depthWanted);
@@ -1078,7 +1072,8 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                 [wsConnection, channelId, symbolId, field, optionMap, correlationIdList, previousConflateTp, interval, gracePeriod, this ](ErrorCode const& ec) {
                   if (this->wsConnectionMap.find(wsConnection.id) != this->wsConnectionMap.end()) {
                     if (ec) {
-                      CCAPI_LOGGER_ERROR("wsConnection = "+toString(wsConnection)+", conflate timer error: "+ec.message());
+                      CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", conflate timer error: " + ec.message());
+                      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
                     } else {
                       if (this->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                         auto conflateTp = previousConflateTp + interval;
@@ -1129,7 +1124,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       ErrorCode ec;
       this->send(wsConnection.hdl, requestString, wspp::frame::opcode::text, ec);
       if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
       }
     }
   }

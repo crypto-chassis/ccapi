@@ -45,7 +45,8 @@ class Message CCAPI_FINAL {
     CANCEL_OPEN_ORDERS,
     ORDER_MATCHED,
     RESPONSE_ERROR,
-    REQUEST_FAILURE
+    REQUEST_FAILURE,
+    ERROR
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -98,6 +99,8 @@ class Message CCAPI_FINAL {
       case Type::REQUEST_FAILURE:
         output = "REQUEST_FAILURE";
         break;
+      case Type::ERROR:
+        output = "ERROR";
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }

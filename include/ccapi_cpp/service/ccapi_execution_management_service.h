@@ -94,37 +94,6 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
       }
     }
   }
-  void onFailure(beast::error_code ec, const std::string & what) {
-    std::string errorMessage = what + ": " + ec.message() + ", category: " + ec.category().name();
-    CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
-    Event event;
-    event.setType(Event::Type::REQUEST_STATUS);
-    Message message;
-    auto now = std::chrono::system_clock::now();
-    message.setTimeReceived(now);
-    message.setType(Message::Type::REQUEST_FAILURE);
-    Element element;
-    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
-    message.setElementList({element});
-    event.setMessageList({message});
-    this->eventHandler(event);
-  }
-  void onResponseError(int statusCode, const std::string & errorMessage) {
-    std::string statusCodeStr = std::to_string(statusCode);
-    CCAPI_LOGGER_ERROR("statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
-    Event event;
-    event.setType(Event::Type::REQUEST_STATUS);
-    Message message;
-    auto now = std::chrono::system_clock::now();
-    message.setTimeReceived(now);
-    message.setType(Message::Type::RESPONSE_ERROR);
-    Element element;
-    element.insert(CCAPI_HTTP_STATUS_CODE, statusCodeStr);
-    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
-    message.setElementList({element});
-    event.setMessageList({message});
-    this->eventHandler(event);
-  }
   std::string convertInstrumentToRestSymbolId(std::string instrument) {
     std::string symbolId = instrument;
     if (!instrument.empty()) {
@@ -176,7 +145,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_TRACE("async_connect callback start");
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFailure(ec, "connect");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "connect");
       return;
     }
     CCAPI_LOGGER_TRACE("connected");
@@ -191,7 +160,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_TRACE("async_handshake callback start");
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFailure(ec, "handshake");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "handshake");
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
@@ -206,7 +175,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     boost::ignore_unused(bytes_transferred);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFailure(ec, "write");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "write");
       auto now = std::chrono::system_clock::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
@@ -227,7 +196,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     boost::ignore_unused(bytes_transferred);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFailure(ec, "read");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "read");
       auto now = std::chrono::system_clock::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
@@ -303,6 +272,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
       std::ostringstream oss;
       oss << *resPtr;
       CCAPI_LOGGER_ERROR("res = " + oss.str());
+      this->onError(e);
     }
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
     if (retry.promisePtr) {
@@ -318,7 +288,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     }
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFailure(ec, "shutdown");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::NETWORK_ERROR, ec, "shutdown");
       return;
     }
     CCAPI_LOGGER_TRACE("shutdown");
@@ -328,41 +298,48 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("retry = " + toString(retry));
     if (retry.numRetry <= this->sessionOptions.httpMaxNumRetry && retry.numRedirect <= this->sessionOptions.httpMaxNumRedirect) {
-      if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
-        std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
-        try {
-          streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host);
-        } catch (const beast::error_code& ec) {
-          CCAPI_LOGGER_TRACE("fail");
-          this->onFailure(ec, "create stream");
-          return;
-        }
-        std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->host, this->port, streamPtr));
-        this->performRequest(httpConnectionPtr, request, req, retry);
-      } else {
-        std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
-        try {
-          httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
-          this->onHandshake(httpConnectionPtr, request, req, retry, {});
-        } catch (const std::runtime_error& e) {
-          if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
-            CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-          }
+      try {
+        if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
           std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
           try {
             streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host);
           } catch (const beast::error_code& ec) {
             CCAPI_LOGGER_TRACE("fail");
-            this->onFailure(ec, "create stream");
+            this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream");
             return;
           }
-          httpConnectionPtr = std::make_shared<HttpConnection>(this->host, this->port, streamPtr);
+          std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->host, this->port, streamPtr));
           this->performRequest(httpConnectionPtr, request, req, retry);
+        } else {
+          std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
+          try {
+            httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
+            this->onHandshake(httpConnectionPtr, request, req, retry, {});
+          } catch (const std::runtime_error& e) {
+            if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
+              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+            }
+            std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
+            try {
+              streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host);
+            } catch (const beast::error_code& ec) {
+              CCAPI_LOGGER_TRACE("fail");
+              this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream");
+              return;
+            }
+            httpConnectionPtr = std::make_shared<HttpConnection>(this->host, this->port, streamPtr);
+            this->performRequest(httpConnectionPtr, request, req, retry);
+          }
         }
+      } catch (const std::exception& e) {
+        CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+        this->onError(e);
       }
     } else {
-      CCAPI_LOGGER_ERROR(this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded");
+      std::string errorMessage = this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded";
+      CCAPI_LOGGER_ERROR(errorMessage);
       CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
+      this->onError(std::runtime_error(errorMessage));
       if (retry.promisePtr) {
         retry.promisePtr->set_value();
       }
@@ -411,7 +388,6 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
-
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({request.getCorrelationId()});

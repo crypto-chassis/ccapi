@@ -211,7 +211,7 @@ class Session CCAPI_FINAL {
       auto serviceName = x.first;
       auto subscriptionList = x.second;
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
-        CCAPI_LOGGER_ERROR("please enable service: "+serviceName+", and the exchanges that you want");
+        this->onSubscriptionError("please enable service: "+serviceName+", and the exchanges that you want");
         return;
       }
       if (serviceName == CCAPI_MARKET_DATA) {
@@ -254,17 +254,16 @@ class Session CCAPI_FINAL {
           subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
         if (!duplicateCorrelationIdSet.empty()) {
-          CCAPI_LOGGER_ERROR("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
+          this->onSubscriptionError("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
           return;
         }
         if (!unsupportedExchangeFieldSet.empty()) {
-          CCAPI_LOGGER_ERROR("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
+          this->onSubscriptionError("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet);
           return;
         }
         if (!unsupportedExchangeMarketDepthSet.empty()) {
-          CCAPI_LOGGER_ERROR(
-              "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet)
-                  + ", exceeded max market depth available");
+          this->onSubscriptionError("unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet)
+                                    + ", exceeded max market depth available");
           return;
         }
         CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = "+toString(subscriptionListByExchangeMap));
@@ -273,7 +272,7 @@ class Session CCAPI_FINAL {
           auto subscriptionList = subscriptionListByExchange.second;
           std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
           if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-            CCAPI_LOGGER_ERROR("please enable exchange: "+exchange);
+            this->onSubscriptionError("please enable exchange: " + exchange);
             return;
           }
           serviceByExchangeMap.at(exchange)->subscribe(subscriptionList);
@@ -326,13 +325,13 @@ class Session CCAPI_FINAL {
     for (const auto& request : requestList) {
       auto serviceName = request.getServiceName();
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
-        CCAPI_LOGGER_ERROR("please enable service: "+serviceName+", and the exchanges that you want");
+        this->onRequestError("please enable service: "+serviceName+", and the exchanges that you want");
         return;
       }
       std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
       auto exchange = request.getExchange();
       if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-        CCAPI_LOGGER_ERROR("please enable exchange: "+exchange);
+        this->onRequestError("please enable exchange: " + exchange);
         return;
       }
       std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
@@ -358,6 +357,21 @@ class Session CCAPI_FINAL {
   }
   Queue<Event>& getEventQueue() {
     return eventQueue;
+  }
+  void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage) {
+    CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
+    Event event;
+    event.setType(eventType);
+    Message message;
+    auto now = std::chrono::system_clock::now();
+    message.setTimeReceived(now);
+    message.setTime(now);
+    message.setType(messageType);
+    Element element;
+    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
+    message.setElementList({element});
+    event.setMessageList({message});
+    this->eventHandler->processEvent(event, this);
   }
 
  private:

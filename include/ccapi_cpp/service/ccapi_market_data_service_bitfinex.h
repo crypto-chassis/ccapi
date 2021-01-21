@@ -32,8 +32,7 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     ErrorCode ec;
     this->send(hdl, requestString, wspp::frame::opcode::text, ec);
     if (ec) {
-      CCAPI_LOGGER_ERROR(ec.message());
-      // TODO(cryptochassis): implement
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -199,8 +198,7 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
           ErrorCode ec;
           this->send(hdl, requestString, wspp::frame::opcode::text, ec);
           if (ec) {
-            CCAPI_LOGGER_ERROR(ec.message());
-            // TODO(cryptochassis): implement
+            this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
           }
         }
       } else if (std::string(document["event"].GetString()) == "subscribed") {
@@ -243,16 +241,16 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
       previous = this->sequenceByConnectionIdMap[wsConnection.id];
     }
-    CCAPI_LOGGER_ERROR("out of sequence: previous = "+toString(previous)+
-        ", current = "+toString(sequence)+
-        ", connection = "+toString(wsConnection)+
-        ", textMessage = "+textMessage+
-        ", timeReceived = "+UtilTime::getISOTimestamp(timeReceived));
+    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND, "out of sequence: previous = "+toString(previous)+
+                  ", current = "+toString(sequence)+
+                  ", connection = "+toString(wsConnection)+
+                  ", textMessage = "+textMessage+
+                  ", timeReceived = "+UtilTime::getISOTimestamp(timeReceived));
     this->wsMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId].clear();
     ErrorCode ec;
     this->close(wsConnection, hdl, websocketpp::close::status::normal, "out of sequence", ec);
     if (ec) {
-      CCAPI_LOGGER_ERROR(ec.message());
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "shutdown");
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
   }
