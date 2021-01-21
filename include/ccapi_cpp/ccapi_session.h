@@ -211,7 +211,7 @@ class Session CCAPI_FINAL {
       auto serviceName = x.first;
       auto subscriptionList = x.second;
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
-        this->onSubscriptionError("please enable service: "+serviceName+", and the exchanges that you want");
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "please enable service: "+serviceName+", and the exchanges that you want");
         return;
       }
       if (serviceName == CCAPI_MARKET_DATA) {
@@ -254,15 +254,15 @@ class Session CCAPI_FINAL {
           subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
         if (!duplicateCorrelationIdSet.empty()) {
-          this->onSubscriptionError("duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
           return;
         }
         if (!unsupportedExchangeFieldSet.empty()) {
-          this->onSubscriptionError("unsupported exchange fields: " + toString(unsupportedExchangeFieldSet);
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
           return;
         }
         if (!unsupportedExchangeMarketDepthSet.empty()) {
-          this->onSubscriptionError("unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet)
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet)
                                     + ", exceeded max market depth available");
           return;
         }
@@ -272,7 +272,7 @@ class Session CCAPI_FINAL {
           auto subscriptionList = subscriptionListByExchange.second;
           std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
           if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-            this->onSubscriptionError("please enable exchange: " + exchange);
+            this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "please enable exchange: " + exchange);
             return;
           }
           serviceByExchangeMap.at(exchange)->subscribe(subscriptionList);
@@ -325,13 +325,13 @@ class Session CCAPI_FINAL {
     for (const auto& request : requestList) {
       auto serviceName = request.getServiceName();
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
-        this->onRequestError("please enable service: "+serviceName+", and the exchanges that you want");
+        this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "please enable service: "+serviceName+", and the exchanges that you want");
         return;
       }
       std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
       auto exchange = request.getExchange();
       if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-        this->onRequestError("please enable exchange: " + exchange);
+        this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "please enable exchange: " + exchange);
         return;
       }
       std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);

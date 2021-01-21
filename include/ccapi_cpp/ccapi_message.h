@@ -37,7 +37,7 @@ class Message CCAPI_FINAL {
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
     SESSION_CONNECTION_DOWN,
-    SESSION_INCORRECT_STATES_FOUND,
+    INCORRECT_STATE_FOUND,
     CREATE_ORDER,
     CANCEL_ORDER,
     GET_ORDER,
@@ -72,8 +72,8 @@ class Message CCAPI_FINAL {
       case Type::SESSION_CONNECTION_DOWN:
         output = "SESSION_CONNECTION_DOWN";
         break;
-      case Type::SESSION_INCORRECT_STATES_FOUND:
-        output = "SESSION_INCORRECT_STATES_FOUND";
+      case Type::INCORRECT_STATE_FOUND:
+        output = "INCORRECT_STATE_FOUND";
         break;
       case Type::CREATE_ORDER:
         output = "CREATE_ORDER";
