@@ -37,7 +37,7 @@ class Message CCAPI_FINAL {
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
     SESSION_CONNECTION_DOWN,
-    SESSION_INCORRECT_STATES_FOUND,
+    INCORRECT_STATE_FOUND,
     CREATE_ORDER,
     CANCEL_ORDER,
     GET_ORDER,
@@ -45,7 +45,8 @@ class Message CCAPI_FINAL {
     CANCEL_OPEN_ORDERS,
     ORDER_MATCHED,
     RESPONSE_ERROR,
-    REQUEST_FAILURE
+    REQUEST_FAILURE,
+    ERROR
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -71,8 +72,8 @@ class Message CCAPI_FINAL {
       case Type::SESSION_CONNECTION_DOWN:
         output = "SESSION_CONNECTION_DOWN";
         break;
-      case Type::SESSION_INCORRECT_STATES_FOUND:
-        output = "SESSION_INCORRECT_STATES_FOUND";
+      case Type::INCORRECT_STATE_FOUND:
+        output = "INCORRECT_STATE_FOUND";
         break;
       case Type::CREATE_ORDER:
         output = "CREATE_ORDER";
@@ -98,6 +99,8 @@ class Message CCAPI_FINAL {
       case Type::REQUEST_FAILURE:
         output = "REQUEST_FAILURE";
         break;
+      case Type::ERROR:
+        output = "ERROR";
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }

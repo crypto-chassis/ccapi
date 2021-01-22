@@ -116,8 +116,7 @@ class MarketDataServiceHuobi CCAPI_FINAL : public MarketDataService {
       ErrorCode ec;
       this->send(hdl, payload, wspp::frame::opcode::text, ec);
       if (ec) {
-        CCAPI_LOGGER_ERROR(ec.message());
-        // TODO(cryptochassis): implement
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }
     } else if (document.IsObject() && document.HasMember("status") && document.HasMember("subbed")) {
     }
