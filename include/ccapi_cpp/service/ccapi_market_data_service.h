@@ -552,6 +552,93 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  std::map<Decimal, std::string> calculateMarketDepthUpdate(bool isBid,
+                                                          const std::map<Decimal, std::string>& c1,
+                                                          const std::map<Decimal, std::string>& c2,
+                                                          int maxMarketDepth) {
+    if (c1.empty()) {
+      std::map<Decimal, std::string> output;
+      for (const auto& x : c2) {
+        output.insert(std::make_pair(x.first, "0"));
+      }
+      return output;
+    } else if (c2.empty()) {
+      return c1;
+    }
+    if (isBid) {
+      auto it1 = c1.rbegin();
+      int i1 = 0;
+      auto it2 = c2.rbegin();
+      int i2 = 0;
+      std::map<Decimal, std::string> output;
+      while (i1 < maxMarketDepth && i2 < maxMarketDepth && it1 != c1.rend() && it2 != c2.rend()) {
+          if (it1->first < it2->first) {
+              output.insert(std::make_pair(it1->first, it1->second));
+              ++it1;
+              ++i1;
+          } else if (it1->first > it2->first) {
+              output.insert(std::make_pair(it2->first, "0"));
+              ++it2;
+              ++i2;
+          } else {
+            if (it1->second != it2->second) {
+              output.insert(std::make_pair(it1->first, it1->second));
+            }
+            ++it1;
+            ++i1;
+            ++it2;
+            ++i2;
+          }
+      }
+      while (i1 < maxMarketDepth && it1 != c1.rend()) {
+        output.insert(std::make_pair(it1->first, it1->second));
+        ++it1;
+        ++i1;
+      }
+      while (i2 < maxMarketDepth && it2 != c2.rend()) {
+        output.insert(std::make_pair(it2->first, "0"));
+        ++it2;
+        ++i2;
+      }
+      return output;
+    } else {
+      auto it1 = c1.begin();
+      int i1 = 0;
+      auto it2 = c2.begin();
+      int i2 = 0;
+      std::map<Decimal, std::string> output;
+      while (i1 < maxMarketDepth && i2 < maxMarketDepth && it1 != c1.end() && it2 != c2.end()) {
+          if (it1->first < it2->first) {
+              output.insert(std::make_pair(it1->first, it1->second));
+              ++it1;
+              ++i1;
+          } else if (it1->first > it2->first) {
+              output.insert(std::make_pair(it2->first, "0"));
+              ++it2;
+              ++i2;
+          } else {
+            if (it1->second != it2->second) {
+              output.insert(std::make_pair(it1->first, it1->second));
+            }
+            ++it1;
+            ++i1;
+            ++it2;
+            ++i2;
+          }
+      }
+      while (i1 < maxMarketDepth && it1 != c1.end()) {
+        output.insert(std::make_pair(it1->first, it1->second));
+        ++it1;
+        ++i1;
+      }
+      while (i2 < maxMarketDepth && it2 != c2.end()) {
+        output.insert(std::make_pair(it2->first, "0"));
+        ++it2;
+        ++i2;
+      }
+      return output;
+    }
+  }
   void updateElementListWithUpdateMarketDepth(const std::string& field,
                                               const std::map<std::string, std::string>& optionMap,
                                               const std::map<Decimal, std::string>& snapshotBid,
@@ -563,47 +650,66 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (field == CCAPI_MARKET_DEPTH) {
       int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-      CCAPI_LOGGER_TRACE("lastNSame = "+toString(lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)));
-      CCAPI_LOGGER_TRACE("firstNSame = "+toString(firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)));
-      if (alwaysUpdate || !lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)
-          || !firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)) {
-        int bidIndex = 0;
-        for (auto iter = snapshotBid.rbegin(); iter != snapshotBid.rend(); ++iter) {
-          if (bidIndex >= maxMarketDepth) {
-            break;
+      if (optionMap.at(CCAPI_MARKET_DEPTH_RETURN_UPDATE) == CCAPI_MARKET_DEPTH_RETURN_UPDATE_ENABLE) {
+        CCAPI_LOGGER_TRACE("lastNSame = "+toString(lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)));
+        CCAPI_LOGGER_TRACE("firstNSame = "+toString(firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)));
+        const std::map<Decimal, std::string>& snapshotBidUpdate = this->calculateMarketDepthUpdate(true, snapshotBid, snapshotBidPrevious, maxMarketDepth);
+        for (const auto& x : snapshotBidUpdate) {
+          Element element;
+          element.insert(CCAPI_BEST_BID_N_PRICE, x.first.toString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, x.second);
+          elementList.push_back(std::move(element));
+        }
+        const std::map<Decimal, std::string>& snapshotAskUpdate = this->calculateMarketDepthUpdate(false, snapshotAsk, snapshotAskPrevious, maxMarketDepth);
+        for (const auto& x : snapshotAskUpdate) {
+          Element element;
+          element.insert(CCAPI_BEST_ASK_N_PRICE, x.first.toString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, x.second);
+          elementList.push_back(std::move(element));
+        }
+      } else {
+        CCAPI_LOGGER_TRACE("lastNSame = "+toString(lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)));
+        CCAPI_LOGGER_TRACE("firstNSame = "+toString(firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)));
+        if (alwaysUpdate || !lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)
+            || !firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)) {
+          int bidIndex = 0;
+          for (auto iter = snapshotBid.rbegin(); iter != snapshotBid.rend(); ++iter) {
+            if (bidIndex >= maxMarketDepth) {
+              break;
+            }
+            Element element;
+            element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
+            element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
+            elementList.push_back(std::move(element));
+            ++bidIndex;
           }
-          Element element;
-          element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
-          elementList.push_back(std::move(element));
-          ++bidIndex;
-        }
-        if (snapshotBid.empty()) {
-          Element element;
-          element.insert(CCAPI_BEST_BID_N_PRICE,
-          CCAPI_BEST_BID_N_PRICE_EMPTY);
-          element.insert(CCAPI_BEST_BID_N_SIZE,
-          CCAPI_BEST_BID_N_SIZE_EMPTY);
-          elementList.push_back(std::move(element));
-        }
-        int askIndex = 0;
-        for (auto iter = snapshotAsk.begin(); iter != snapshotAsk.end(); ++iter) {
-          if (askIndex >= maxMarketDepth) {
-            break;
+          if (snapshotBid.empty()) {
+            Element element;
+            element.insert(CCAPI_BEST_BID_N_PRICE,
+            CCAPI_BEST_BID_N_PRICE_EMPTY);
+            element.insert(CCAPI_BEST_BID_N_SIZE,
+            CCAPI_BEST_BID_N_SIZE_EMPTY);
+            elementList.push_back(std::move(element));
           }
-          Element element;
-          element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
-          element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
-          elementList.push_back(std::move(element));
-          ++askIndex;
-        }
-        if (snapshotAsk.empty()) {
-          Element element;
-          element.insert(CCAPI_BEST_ASK_N_PRICE,
-          CCAPI_BEST_ASK_N_PRICE_EMPTY);
-          element.insert(CCAPI_BEST_ASK_N_SIZE,
-          CCAPI_BEST_ASK_N_SIZE_EMPTY);
-          elementList.push_back(std::move(element));
+          int askIndex = 0;
+          for (auto iter = snapshotAsk.begin(); iter != snapshotAsk.end(); ++iter) {
+            if (askIndex >= maxMarketDepth) {
+              break;
+            }
+            Element element;
+            element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
+            element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
+            elementList.push_back(std::move(element));
+            ++askIndex;
+          }
+          if (snapshotAsk.empty()) {
+            Element element;
+            element.insert(CCAPI_BEST_ASK_N_PRICE,
+            CCAPI_BEST_ASK_N_PRICE_EMPTY);
+            element.insert(CCAPI_BEST_ASK_N_SIZE,
+            CCAPI_BEST_ASK_N_SIZE_EMPTY);
+            elementList.push_back(std::move(element));
+          }
         }
       }
     }

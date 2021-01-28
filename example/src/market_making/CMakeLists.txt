@@ -1,4 +1,4 @@
-set(NAME sample_market_making)
+set(NAME market_making)
 project(${NAME})
 add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
 add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
