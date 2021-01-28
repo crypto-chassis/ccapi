@@ -571,7 +571,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       int i2 = 0;
       std::map<Decimal, std::string> output;
       while (i1 < maxMarketDepth && i2 < maxMarketDepth && it1 != c1.rend() && it2 != c2.rend()) {
-          if (it1->first < it2->first){
+          if (it1->first < it2->first) {
               output.insert(std::make_pair(it1->first, it1->second));
               ++it1;
               ++i1;
@@ -607,7 +607,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       int i2 = 0;
       std::map<Decimal, std::string> output;
       while (i1 < maxMarketDepth && i2 < maxMarketDepth && it1 != c1.end() && it2 != c2.end()) {
-          if (it1->first < it2->first){
+          if (it1->first < it2->first) {
               output.insert(std::make_pair(it1->first, it1->second));
               ++it1;
               ++i1;
