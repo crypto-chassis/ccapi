@@ -23,6 +23,8 @@ class Subscription CCAPI_FINAL {
     CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
     this->optionMap[CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS] =
     CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
+    this->optionMap[CCAPI_MARKET_DEPTH_RETURN_DIFF] =
+    CCAPI_MARKET_DEPTH_RETURN_DIFF_DEFAULT;
     for (const auto & option : optionList) {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
