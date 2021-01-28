@@ -551,7 +551,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::map<Decimal, std::string> calculateMarketDepthDiff(bool isBid,
+  std::map<Decimal, std::string> calculateMarketDepthUpdate(bool isBid,
                                                           const std::map<Decimal, std::string>& c1,
                                                           const std::map<Decimal, std::string>& c2,
                                                           int maxMarketDepth) {
@@ -649,18 +649,18 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (field == CCAPI_MARKET_DEPTH) {
       int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-      if (optionMap.at(CCAPI_MARKET_DEPTH_RETURN_DIFF) == CCAPI_MARKET_DEPTH_RETURN_DIFF_ENABLE) {
+      if (optionMap.at(CCAPI_MARKET_DEPTH_RETURN_UPDATE) == CCAPI_MARKET_DEPTH_RETURN_UPDATE_ENABLE) {
         CCAPI_LOGGER_TRACE("lastNSame = "+toString(lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)));
         CCAPI_LOGGER_TRACE("firstNSame = "+toString(firstNSame(snapshotAsk, snapshotAskPrevious, maxMarketDepth)));
-        const std::map<Decimal, std::string>& snapshotBidDiff = this->calculateMarketDepthDiff(true, snapshotBid, snapshotBidPrevious, maxMarketDepth);
-        for (const auto& x : snapshotBidDiff) {
+        const std::map<Decimal, std::string>& snapshotBidUpdate = this->calculateMarketDepthUpdate(true, snapshotBid, snapshotBidPrevious, maxMarketDepth);
+        for (const auto& x : snapshotBidUpdate) {
           Element element;
           element.insert(CCAPI_BEST_BID_N_PRICE, x.first.toString());
           element.insert(CCAPI_BEST_BID_N_SIZE, x.second);
           elementList.push_back(std::move(element));
         }
-        const std::map<Decimal, std::string>& snapshotAskDiff = this->calculateMarketDepthDiff(false, snapshotAsk, snapshotAskPrevious, maxMarketDepth);
-        for (const auto& x : snapshotAskDiff) {
+        const std::map<Decimal, std::string>& snapshotAskUpdate = this->calculateMarketDepthUpdate(false, snapshotAsk, snapshotAskPrevious, maxMarketDepth);
+        for (const auto& x : snapshotAskUpdate) {
           Element element;
           element.insert(CCAPI_BEST_ASK_N_PRICE, x.first.toString());
           element.insert(CCAPI_BEST_ASK_N_SIZE, x.second);

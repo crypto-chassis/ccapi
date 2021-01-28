@@ -15,6 +15,7 @@
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments)
       - [Receive events at periodic intervals](#receive-events-at-periodic-intervals)
       - [Receive events at periodic intervals including when the market depth snapshot hasn't changed](#receive-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
+      - [Receive market depth updates](#receive-market-depth-updates)
     - [Simple Execution Management](#simple-execution-management)
     - [Advanced Execution Management](#advanced-execution-management)
       - [Specify correlation id](#specify-correlation-id-1)
@@ -179,6 +180,13 @@ Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTER
 Instantiate `Subscription` with option `CCAPI_EXCHANGE_NAME_CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CCAPI_EXCHANGE_NAME_CONFLATE_GRACE_PERIOD_MILLISECONDS` to be your network latency.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
+```
+
+#### Receive market depth updates
+
+Instantiate `Subscription` with option `MARKET_DEPTH_RETURN_UPDATE` set to 1.
+```
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_RETURN_UPDATE=1&MARKET_DEPTH_MAX=2");
 ```
 
 ### Simple Execution Management
