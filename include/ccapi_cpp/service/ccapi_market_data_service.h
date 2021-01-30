@@ -92,7 +92,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
               that->subscribeToExchange(wsConnection);
             } else {
               auto url = UtilString::split(instrumentGroup, "|").at(0);
-              WsConnection wsConnection(url, subscriptionListGivenInstrumentGroup);
+              WsConnection wsConnection(url, instrumentGroup, subscriptionListGivenInstrumentGroup);
               that->connect(wsConnection);
               that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
               that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, instrumentGroup));
@@ -103,9 +103,9 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
               }
               wsConnectionIdListByInstrumentGroupMap[instrumentGroup].push_back(wsConnection.id);
             }
+            CCAPI_LOGGER_INFO("actual connection map is "+toString(that->wsConnectionMap));
         });
       }
-      CCAPI_LOGGER_INFO("actual connection map is "+toString(this->wsConnectionMap));
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

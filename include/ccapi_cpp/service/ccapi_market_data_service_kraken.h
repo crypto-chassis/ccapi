@@ -15,11 +15,11 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
  private:
     std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
       std::vector<std::string> requestStringList;
-      for (auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+      for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
         auto channelId = subscriptionListByChannelIdSymbolId.first;
         if (channelId.rfind(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
           std::map<int, std::vector<std::string> > symbolIdListByMarketDepthSubscribedToExchangeMap;
-          for (auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
+          for (const auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
             auto symbolId = subscriptionListBySymbolId.first;
             int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
             std::string exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK) + "-" +
@@ -51,6 +51,29 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
             std::string requestString = stringBuffer.GetString();
             requestStringList.push_back(requestString);
           }
+        } else if (channelId == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
+          rj::Document document;
+          document.SetObject();
+          rj::Document::AllocatorType& allocator = document.GetAllocator();
+          document.AddMember("event", rj::Value("subscribe").Move(), allocator);
+          rj::Value instrument(rj::kArrayType);
+          for (const auto & subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
+            auto symbolId = subscriptionListBySymbolId.first;
+            std::string exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE)+
+                        "|"+symbolId;
+            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+            this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
+            instrument.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+          }
+          document.AddMember("pair", instrument, allocator);
+          rj::Value subscription(rj::kObjectType);
+          subscription.AddMember("name", rj::Value(std::string(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE).c_str(), allocator).Move(), allocator);
+          document.AddMember("subscription", subscription, allocator);
+          rj::StringBuffer stringBuffer;
+          rj::Writer<rj::StringBuffer> writer(stringBuffer);
+          document.Accept(writer);
+          std::string requestString = stringBuffer.GetString();
+          requestStringList.push_back(requestString);
         }
       }
       return requestStringList;
@@ -148,7 +171,26 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
             wsMessageList.push_back(std::move(wsMessage));
           }
         } else if (channelNameWithSuffix == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
-          // TODO(cryptochassis): implement
+          for (const auto& x : document[1].GetArray()) {
+            MarketDataMessage wsMessage;
+            wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+            auto symbolId = std::string(document[documentSize-1].GetString());
+            wsMessage.exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
+            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+            auto timePair = UtilTime::divide(std::string(x[2].GetString()));
+            auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
+            tp += std::chrono::nanoseconds(timePair.second);
+            wsMessage.tp = tp;
+            MarketDataMessage::TypeForDataPoint dataPoint;
+            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(x[0].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(x[1].GetString())});
+            std::stringstream ss;
+            ss << std::setw(9) << std::setfill('0') << timePair.second;
+            dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x[3].GetString()) == "s" ? "1" : "0"});
+            wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+            wsMessageList.push_back(std::move(wsMessage));
+          }
         }
       } else if (document.IsObject() && document.HasMember("event")) {
         std::string eventPayload = std::string(document["event"].GetString());

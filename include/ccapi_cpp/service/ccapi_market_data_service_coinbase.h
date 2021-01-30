@@ -91,8 +91,8 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
       MarketDataMessage::TypeForDataPoint dataPoint;
       dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(document["price"].GetString())});
       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(document["size"].GetString())});
-      dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["trade_id"].GetInt())});
-      dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "buy" ? "1" : "0"});
+      dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["trade_id"].GetInt64())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["makerSide"].GetString()) == "bid" ? "1" : "0"});
       wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
       wsMessageList.push_back(std::move(wsMessage));
     } else if (type == "heartbeat") {

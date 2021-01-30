@@ -48,7 +48,7 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     std::vector<MarketDataMessage> wsMessageList;
     const rj::Value& data = document["data"];
     if (document.IsObject() && document.HasMember("event") && std::string(document["event"].GetString()) == "bts:subscription_succeeded") {
-    } else if (document.IsObject() && document.HasMember("event") && std::string(document["event"].GetString()) == "data") {
+    } else if (document.IsObject() && document.HasMember("event") && (std::string(document["event"].GetString()) == "data" || std::string(document["event"].GetString()) == "trade")) {
       MarketDataMessage wsMessage;
       std::string exchangeSubscriptionId = document["channel"].GetString();
       std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
@@ -56,6 +56,7 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
       auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
       CCAPI_LOGGER_TRACE("channel = "+channelId);
+      wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       if (channelId == CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_ORDER_BOOK) {
         wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
         if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
@@ -66,7 +67,6 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
         std::string microtimestamp = data["microtimestamp"].GetString();
         microtimestamp.insert(microtimestamp.size() - 6, ".");
         wsMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(microtimestamp));
-        wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         int bidIndex = 0;
         int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
         for (const auto& x : data["bids"].GetArray()) {
@@ -90,6 +90,19 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
           wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
           ++askIndex;
         }
+        wsMessageList.push_back(std::move(wsMessage));
+      } else if (channelId == CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_LIVE_TRADES) {
+        wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+        std::string microtimestamp = data["microtimestamp"].GetString();
+        microtimestamp.insert(microtimestamp.size() - 6, ".");
+        wsMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(microtimestamp));
+        MarketDataMessage::TypeForDataPoint dataPoint;
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(data["price_str"].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(data["amount_str"].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(data["id"].GetInt64())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, data["type"].GetInt() == 0 ? "1" : "0"});
+        wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
         wsMessageList.push_back(std::move(wsMessage));
       }
     }

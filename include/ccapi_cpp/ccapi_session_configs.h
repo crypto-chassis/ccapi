@@ -125,6 +125,8 @@ class SessionConfigs CCAPI_FINAL {
     CCAPI_MARKET_DEPTH,
     CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapBinanceFutures = { {
+    CCAPI_TRADE,
+    CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_AGG_TRADE },{
     CCAPI_MARKET_DEPTH,
     CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapHuobi = { {

@@ -47,6 +47,8 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnection.id);
+    this->previousTradeTimeByConnectionIdSymbolIdMap.erase(wsConnection.id);
+    this->previousTradeIdByConnectionIdSymbolIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -112,11 +114,7 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
         MarketDataMessage wsMessage;
         wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
         wsMessage.tp = timeReceived;
-        if (action == "partial") {
-          wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
-        } else {
-          wsMessage.recapType = MarketDataMessage::RecapType::NONE;
-        }
+        wsMessage.recapType = action == "partial" ? MarketDataMessage::RecapType::SOLICITED : MarketDataMessage::RecapType::NONE;
         int i = 0;
         std::string symbolId;
         std::string exchangeSubscriptionId;
@@ -156,6 +154,35 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
         if (i > 0) {
           wsMessageList.push_back(std::move(wsMessage));
         }
+      } else if (channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_TRADE) {
+        std::string action = document["action"].GetString();
+        for (const auto& x : document["data"].GetArray()) {
+          MarketDataMessage wsMessage;
+          wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          wsMessage.tp = UtilTime::parse(std::string(x["timestamp"].GetString()));
+          wsMessage.recapType = action == "partial" ? MarketDataMessage::RecapType::SOLICITED : MarketDataMessage::RecapType::NONE;
+          std::string symbolId = x["symbol"].GetString();
+          wsMessage.exchangeSubscriptionId = channelId + ":" + symbolId;
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(x["price"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(x["size"].GetString())});
+          auto timePair = UtilTime::divide(wsMessage.tp);
+          std::stringstream ss;
+          ss << std::setw(9) << std::setfill('0') << timePair.second;
+          int64_t tradeId = std::stoll(std::to_string(timePair.first) + ss.str());
+          if (this->previousTradeTimeByConnectionIdSymbolIdMap.find(wsConnection.id) != this->previousTradeTimeByConnectionIdSymbolIdMap.end()
+              && this->previousTradeTimeByConnectionIdSymbolIdMap.at(wsConnection.id).find(symbolId) != this->previousTradeTimeByConnectionIdSymbolIdMap.at(wsConnection.id).end()
+              && wsMessage.tp == this->previousTradeTimeByConnectionIdSymbolIdMap.at(wsConnection.id).at(symbolId)) {
+            tradeId = this->previousTradeIdByConnectionIdSymbolIdMap[wsConnection.id][symbolId] + 1;
+          } else {
+            this->previousTradeTimeByConnectionIdSymbolIdMap[wsConnection.id][symbolId] = wsMessage.tp;
+          }
+          this->previousTradeIdByConnectionIdSymbolIdMap[wsConnection.id][symbolId] = tradeId;
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(tradeId)});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "Sell" ? "1" : "0"});
+          wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+          wsMessageList.push_back(std::move(wsMessage));
+        }
       }
     } else if (document.IsObject() && document.HasMember("subscribe") && document["success"].GetBool()) {
       // TODO(cryptochassis): implement
@@ -164,6 +191,8 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
     return wsMessageList;
   }
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > priceByConnectionIdChannelIdSymbolIdPriceIdMap;
+  std::map<std::string, std::map<std::string, TimePoint> > previousTradeTimeByConnectionIdSymbolIdMap;
+  std::map<std::string, std::map<std::string, int64_t> > previousTradeIdByConnectionIdSymbolIdMap;
 };
 } /* namespace ccapi */
 #endif
