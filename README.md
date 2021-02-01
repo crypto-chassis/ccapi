@@ -129,6 +129,7 @@ Best bid and ask at 2020-07-27T23:56:51.884855000Z are:
 Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
   ...
 ```
+* Subscription fields: `MARKET_DEPTH`, `TRADE`.
 
 ### Advanced Market Data
 #### Specify market depth

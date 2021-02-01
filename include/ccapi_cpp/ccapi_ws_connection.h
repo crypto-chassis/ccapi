@@ -7,13 +7,14 @@ namespace wspp = websocketpp;
 namespace ccapi {
 class WsConnection CCAPI_FINAL {
  public:
-  WsConnection(std::string url, std::vector<Subscription> subscriptionList)
+  WsConnection(std::string url, std::string instrumentGroup, std::vector<Subscription> subscriptionList)
       : url(url),
+        instrumentGroup(instrumentGroup),
         subscriptionList(subscriptionList) {
     this->assignDummyId();
   }
   void assignDummyId() {
-    this->id = this->url + "|" + ccapi::toString(this->subscriptionList);
+    this->id = this->url + "|" + this->instrumentGroup + "|" + ccapi::toString(this->subscriptionList);
     this->hdl.reset();
   }
   std::string toString() const {
