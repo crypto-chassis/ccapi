@@ -51,7 +51,7 @@ class Request CCAPI_FINAL {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
   }
-#ifdef SWIG
+#ifdef CCAPI_SWIG
   Request() {}
 #endif
   std::string toString() const {
