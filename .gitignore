@@ -8,6 +8,7 @@ build/
 .AppleDouble
 .LSOverride
 
+
 # Icon must end with two \r
 Icon
 
@@ -89,3 +90,4 @@ local.properties
 
 # Other
 .project
+binding/cmake/CMAKE_PROJECT_INCLUDE.cmake

@@ -1,7 +1,13 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_MACRO_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_MACRO_H_
+#ifdef SWIG
+#ifndef CCAPI_FINAL
+#define CCAPI_FINAL
+#endif
+#else
 #ifndef CCAPI_FINAL
 #define CCAPI_FINAL final
+#endif
 #endif
 #define CCAPI_MARKET_DEPTH "MARKET_DEPTH"
 #define CCAPI_TRADE "TRADE"
