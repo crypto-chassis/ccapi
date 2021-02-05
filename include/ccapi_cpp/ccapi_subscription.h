@@ -7,7 +7,7 @@
 namespace ccapi {
 class Subscription CCAPI_FINAL {
  public:
-#ifdef CCAPI_SWIG
+#ifdef SWIG
   Subscription() {}
 #endif
   Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId =
