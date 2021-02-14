@@ -98,6 +98,21 @@
 #ifndef CCAPI_BEST_ASK_N_SIZE_EMPTY
 #define CCAPI_BEST_ASK_N_SIZE_EMPTY ""
 #endif
+#ifndef CCAPI_OHLC_EMPTY
+#define CCAPI_OHLC_EMPTY ""
+#endif
+#ifndef CCAPI_OPEN
+#define CCAPI_OPEN "OPEN"
+#endif
+#ifndef CCAPI_HIGH
+#define CCAPI_HIGH "HIGH"
+#endif
+#ifndef CCAPI_LOW
+#define CCAPI_LOW "LOW"
+#endif
+#ifndef CCAPI_CLOSE
+#define CCAPI_CLOSE "CLOSE"
+#endif
 #define CCAPI_WEBSOCKET_COINBASE_CHANNEL_MATCH "matches"
 #define CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2 "level2"
 #define CCAPI_WEBSOCKET_GEMINI_PARAMETER_TRADES "trades"

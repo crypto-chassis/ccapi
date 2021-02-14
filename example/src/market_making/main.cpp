@@ -75,8 +75,8 @@ int main(int argc, char **argv) {
     if (!bbo.first.empty() && !bbo.second.empty()) {
       double midPrice = (std::stod(bbo.first) + std::stod(bbo.second)) / 2;
       std::cout << "Current mid price is " + std::to_string(midPrice) << std::endl;
-      std::string buyPrice = regularizePrice(midPrice * (1 - spreadPercentage / 100));
-      std::string sellPrice = regularizePrice(midPrice * (1 + spreadPercentage / 100));
+      std::string buyPrice = regularizePrice(midPrice * (1 - spreadPercentage / 100 / 2));
+      std::string sellPrice = regularizePrice(midPrice * (1 + spreadPercentage / 100 / 2));
       std::vector<Request> requestList;
       Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
       requestBuy.appendParam({
