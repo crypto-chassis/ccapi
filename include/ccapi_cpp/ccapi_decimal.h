@@ -6,6 +6,7 @@ namespace ccapi {
 // minimalistic just for the purpose of being used as the key of a map
 class Decimal CCAPI_FINAL {
  public:
+  Decimal() {}
   explicit Decimal(std::string originalValue) {
     if (originalValue.empty()) {
       CCAPI_LOGGER_FATAL("Decimal constructor input value cannot be empty");
