@@ -1050,6 +1050,23 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                 CCAPI_CONFLATE_INTERVAL_MILLISECONDS))) :
             tp;
     CCAPI_LOGGER_TRACE("conflateTp = " + toString(conflateTp));
+    if (!this->processedInitialTradeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
+      if (shouldConflate) {
+        TimePoint previousConflateTp = conflateTp;
+        this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
+            previousConflateTp;
+        if (optionMap.at(
+            CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
+          auto interval = std::chrono::milliseconds(std::stoi(optionMap.at(
+          CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
+          auto gracePeriod = std::chrono::milliseconds(std::stoi(optionMap.at(
+          CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS)));
+          this->setConflateTimer(previousConflateTp, interval, gracePeriod, wsConnection, channelId, symbolId, field,
+                                 optionMap, correlationIdList);
+        }
+      }
+      this->processedInitialTradeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
+    }
     bool intervalChanged = shouldConflate
         && conflateTp
             > this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(
@@ -1085,23 +1102,6 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       }
     } else {
       this->updateOhlc(wsConnection, channelId, symbolId, field, input);
-    }
-    if (!this->processedInitialTradeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
-      if (shouldConflate) {
-        TimePoint previousConflateTp = conflateTp;
-        this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
-            previousConflateTp;
-        if (optionMap.at(
-            CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS) != CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT) {
-          auto interval = std::chrono::milliseconds(std::stoi(optionMap.at(
-          CCAPI_CONFLATE_INTERVAL_MILLISECONDS)));
-          auto gracePeriod = std::chrono::milliseconds(std::stoi(optionMap.at(
-          CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS)));
-          this->setConflateTimer(previousConflateTp, interval, gracePeriod, wsConnection, channelId, symbolId, field,
-                                 optionMap, correlationIdList);
-        }
-      }
-      this->processedInitialTradeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
     }
   }
   void updateOhlc(const WsConnection& wsConnection, const std::string& channelId,
@@ -1311,7 +1311,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                             message.setTimeReceived(conflateTp);
                             message.setType(Message::Type::MARKET_DATA_EVENTS);
                             message.setRecapType(Message::RecapType::NONE);
-                            message.setTime(conflateTp);
+                            message.setTime(field == CCAPI_MARKET_DEPTH ? conflateTp : previousConflateTp);
                             message.setElementList(elementList);
                             message.setCorrelationIdList(correlationIdList);
                             messageList.push_back(std::move(message));
