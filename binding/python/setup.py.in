@@ -1,13 +1,11 @@
-from setuptools import find_packages, setup
+from setuptools import setup
+from setuptools.command.install import install
 from setuptools.dist import Distribution
 
 class BinaryDistribution(Distribution):
-  # def is_pure(self):
-  #   return False
   def has_ext_modules(self):
     return True
 
-from setuptools.command.install import install
 class InstallPlatlib(install):
     def finalize_options(self):
         super().finalize_options()
@@ -16,12 +14,9 @@ class InstallPlatlib(install):
 setup(
   name='ccapi',
   version='@BUILD_VERSION@',
-
   distclass=BinaryDistribution,
   cmdclass={'install': InstallPlatlib},
   packages=[''],
   py_modules = ['ccapi'],
   package_data={'': ['$<TARGET_FILE_NAME:@SWIG_TARGET_NAME@>']},
-
-
 )

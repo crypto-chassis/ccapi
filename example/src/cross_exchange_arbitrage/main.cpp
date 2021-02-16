@@ -93,9 +93,12 @@ class MyEventHandler : public EventHandler {
   std::string bestAskSizeGemini;
 };
 } /* namespace ccapi */
-
+using ::ccapi::SessionOptions;
+using ::ccapi::SessionConfigs;
+using ::ccapi::MyEventHandler;
+using ::ccapi::Session;
+using ::ccapi::Subscription;
 int main(int argc, char **argv) {
-  using namespace ccapi;  // NOLINT(build/namespaces)
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;

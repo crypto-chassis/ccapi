@@ -141,4 +141,3 @@ docs/_build/
 
 # Other
 .project
-binding/user_specified_cmake_include.cmake

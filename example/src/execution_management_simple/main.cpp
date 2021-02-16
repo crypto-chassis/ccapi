@@ -9,8 +9,14 @@ class MyEventHandler : public EventHandler {
   }
 };
 } /* namespace ccapi */
+using ::ccapi::SessionOptions;
+using ::ccapi::SessionConfigs;
+using ::ccapi::MyEventHandler;
+using ::ccapi::Session;
+using ::ccapi::Request;
+using ::ccapi::UtilSystem;
+using ::ccapi::toString;
 int main(int argc, char** argv) {
-  using namespace ccapi;  // NOLINT(build/namespaces)
   if (UtilSystem::getEnvAsString("BINANCE_US_API_KEY").empty()) {
     std::cerr << "Please set environment variable BINANCE_US_API_KEY" << std::endl;
     return EXIT_FAILURE;

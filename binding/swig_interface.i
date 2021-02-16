@@ -18,7 +18,6 @@
 #include "ccapi_cpp/ccapi_session.h"
 #include "ccapi_cpp/ccapi_logger.h"
 %}
-/* %feature("nothreadallow"); */
 %feature("director") ccapi::EventHandler;
 %feature("director") ccapi::Logger;
 %include "exception.i"
