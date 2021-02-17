@@ -25,7 +25,7 @@
 %include "std_string.i"
 %include "std_map.i"
 %include "std_vector.i"
-/* %exception {
+%exception {
     try {
         $action
     } catch (std::exception &e) {
@@ -33,7 +33,7 @@
         s = s + s2;
         SWIG_exception(SWIG_RuntimeError, s.c_str());
     }
-} */
+}
 %template(map_string_string) std::map<std::string, std::string>;
 %template(vector_Element) std::vector<ccapi::Element>;
 %template(vector_string) std::vector<std::string>;
