@@ -9,7 +9,7 @@ on:
       - master
 
 env:
-  CMAKE_VERSION: 3.16.2
+  CMAKE_VERSION: 3.19.5
   NINJA_VERSION: 1.9.0
   BUILD_TYPE: Release
   CCACHE_VERSION: 3.7.7
