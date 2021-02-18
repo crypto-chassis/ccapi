@@ -223,8 +223,6 @@ jobs:
           message(FATAL_ERROR "Bad exit status")
         endif()
 
-        file(TOUCH binding/user_specified_cmake_include.cmake)
-
     - name: Build
       shell: cmake -P {0}
       run: |
