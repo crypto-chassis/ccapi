@@ -2,8 +2,13 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
 #include <string>
 #include <map>
+#ifdef CCAPI_CPP_MINGW_THREAD
+#include <mingw-threads/mingw.mutex.h>
+#include <mingw-threads/mingw.condition_variable.h>
+#else
 #include <mutex>
 #include <condition_variable>
+#endif
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {

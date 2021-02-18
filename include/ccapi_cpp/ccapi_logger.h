@@ -45,7 +45,11 @@
 #endif
 #define CCAPI_LOGGER_FUNCTION_ENTER CCAPI_LOGGER_TRACE(std::string("enter ") + std::string(__ccapi_cpp_func__))
 #define CCAPI_LOGGER_FUNCTION_EXIT CCAPI_LOGGER_TRACE(std::string("exit ") + std::string(__ccapi_cpp_func__))
+#ifdef CCAPI_CPP_MINGW_THREAD
+#include <mingw-threads/mingw.thread.h>
+#else
 #include <thread>
+#endif
 #include <string>
 #include <cstring>
 #include "ccapi_cpp/ccapi_macro.h"

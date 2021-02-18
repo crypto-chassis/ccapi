@@ -1,7 +1,11 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_QUEUE_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_QUEUE_H_
 #include <queue>
+#ifdef CCAPI_CPP_MINGW_THREAD
+#include <mingw-threads/mingw.mutex.h>
+#else
 #include <mutex>
+#endif
 #include <vector>
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {

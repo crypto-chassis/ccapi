@@ -3,11 +3,17 @@
 #include <stddef.h>
 #include <functional>
 #include <vector>
-#include <thread>
 #include <queue>
-#include <mutex>
 #include <atomic>
+#ifdef CCAPI_CPP_MINGW_THREAD
+#include <mingw-threads/mingw.thread.h>
+#include <mingw-threads/mingw.mutex.h>
+#include <mingw-threads/mingw.condition_variable.h>
+#else
+#include <thread>
+#include <mutex>
 #include <condition_variable>
+#endif
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
