@@ -138,7 +138,7 @@ jobs:
           )
         elseif ("${{ runner.os }}" STREQUAL "Linux")
           execute_process(
-            COMMAND sudo apt install -y swig
+            COMMAND sudo apt-get install -y swig
           )
         elseif ("${{ runner.os }}" STREQUAL "macOS")
           execute_process(

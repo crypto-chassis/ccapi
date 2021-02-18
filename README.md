@@ -34,15 +34,11 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-**NEW**: Version 2.2.x released execution management for coinbase, gemini, bitmex, the binance family (binance, binance-futures, and binance-us), and huobi.
+**NEW**: Version 3 released language bindings for Python.
 
-**BREAKING CHANGE**: Version 2.2.x introduced a few breaking changes:
-* Added `CCAPI_CPP_` prefix to enablement macros.
-* Changed `eventQueue` visibility in `Session` from public to private.
-* Changed `logMessage` parameters in `Logger` from mixed types to all std::string.
-
-# ccapi_cpp
+# ccapi
 * A header-only C++ library for streaming market data and executing trades directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
+* Bindings for other languages such as Python are provided.
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
@@ -52,12 +48,15 @@
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
+* Join us on Medium https://cryptochassis.medium.com and Telegram https://t.me/cryptochassis.
 
 ## Usage
 * Real-time market data fetching, high frequency market making, cross exchange arbitrage, etc.
 * For stability, please usa stable releases. Master branch might contain experimental features.
 
 ## Build
+
+### C++
 * This library is header-only.
 * Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
@@ -77,12 +76,28 @@
   * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL. `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`.
   * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
 
+### Python
+* Require Python 3 and SWIG. On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
+* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need huobi or okex, also uncomment the lines corresponding to find ZLIB.
+* Run the following commands.
+```
+mkdir binding/build
+cd binding/build
+cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> -DBUILD_VERSION=... -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON ..
+cmake --build . -j
+cmake --install .
+```
+* If a virtual environment (managed by `venv` or `conda`) is active (i.e. the `activate` script has been evaluated), the package will be installed into the virtual environment rather than globally.
+
 ## Constants
 `include/ccapi_cpp/ccapi_macro.h`
 
 ## Examples
-[Source](example)
+[C++](example) / [Python](binding/python/example)
+
 ### Simple Market Data
+[C++](example/src/market_data_simple/main.cpp) / [Python](binding/python/example/src/market_data_simple/main.py)
+
 **Objective:**
 
 For a specific exchange and instrument, whenever the top 10 bids' or asks' price or size change, print the market depth snapshot at that moment.
@@ -134,6 +149,7 @@ Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
 * Subscription fields: `MARKET_DEPTH`, `TRADE`.
 
 ### Advanced Market Data
+
 #### Specify market depth
 
 Instantiate `Subscription` with option `MARKET_DEPTH_MAX` set to be the desired market depth.
@@ -207,6 +223,9 @@ Subscription subscription("coinbase", "BTC-USD", "TRADE", "CONFLATE_INTERVAL_MIL
 ```
 
 ### Simple Execution Management
+
+[C++](example/src/execution_management_simple/main.cpp) / [Python](binding/python/example/src/execution_management_simple/main.py)
+
 **Objective:**
 
 For a specific exchange and instrument, submit a simple limit order.
@@ -352,6 +371,7 @@ Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD", "cool 
 
 #### Override exchange urls
 See section "exchange REST urls" in `include/ccapi_cpp/ccapi_macro.h`.
+
 ### More Advanced Topics
 
 #### Handle events in "immediate" vs. "batching" mode
@@ -371,6 +391,7 @@ std::vector<Event> eventList = session.getEventQueue().purge();
 The following methods are implemented to be thread-safe: `Session::subscribe`, `Session::sendRequest`, all public methods in `Queue`.
 
 #### Enable library logging
+[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/src/enable_library_logging/main.py)
 
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`.
 ```
@@ -389,7 +410,6 @@ MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
 }
 ```
-
 
 ### Contributing
 * (Required) Submit a pull request to the master branch.

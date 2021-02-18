@@ -10,7 +10,7 @@ class MyEventHandler(EventHandler):
             for element in message.getElementList():
                 elementNameValueMap = element.getNameValueMap()
                 for name, value in elementNameValueMap.items():
-                    print(f'{name} = {value}')
+                    print(f'  {name} = {value}')
         return True  # This line is needed.
 if __name__ == '__main__':
     eventHandler = MyEventHandler()
