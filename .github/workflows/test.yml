@@ -9,9 +9,9 @@ on:
       - master
 
 env:
-  CMAKE_VERSION: 3.16.2
+  CMAKE_VERSION: 3.17.5
   NINJA_VERSION: 1.9.0
-  BUILD_TYPE: Debug
+  BUILD_TYPE: Release
   CCACHE_VERSION: 3.7.7
 
 jobs:
@@ -123,6 +123,29 @@ jobs:
           )
         endif()
 
+    - name: Install SWIG
+      shell: cmake -P {0}
+      run: |
+        if ("${{ runner.os }}" STREQUAL "Windows")
+          execute_process(
+            COMMAND (New-Object System.Net.WebClient).DownloadFile("http://prdownloads.sourceforge.net/swig/swigwin-4.0.2.zip","swigwin-4.0.2.zip")
+          )
+          execute_process(
+            COMMAND Expand-Archive .\swigwin-4.0.2.zip .
+          )
+          execute_process(
+            COMMAND echo "$((Get-Item .).FullName)/swigwin-4.0.2" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          )
+        elseif ("${{ runner.os }}" STREQUAL "Linux")
+          execute_process(
+            COMMAND sudo apt-get install -y swig
+          )
+        elseif ("${{ runner.os }}" STREQUAL "macOS")
+          execute_process(
+            COMMAND brew install swig
+          )
+        endif()
+
     - name: Configure
       shell: cmake -P {0}
       run: |
@@ -171,6 +194,24 @@ jobs:
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
             -S example
             -B example/build
+            -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
+            -G Ninja
+            -D CMAKE_MAKE_PROGRAM=ninja
+            -D CMAKE_C_COMPILER_LAUNCHER=ccache
+            -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+            -DBUILD_PYTHON=ON
+            -DBUILD_TEST=ON
+            -DINSTALL_PYTHON=ON
+            -S binding
+            -B binding/build
             -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
             -G Ninja
             -D CMAKE_MAKE_PROGRAM=ninja
@@ -231,6 +272,14 @@ jobs:
           message(FATAL_ERROR "Bad exit status")
         endif()
 
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build binding/build -j
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
         execute_process(COMMAND ccache -s)
 
     - name: Test
@@ -239,6 +288,27 @@ jobs:
         execute_process(
           COMMAND ctest -j -VV
           WORKING_DIRECTORY test/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND ctest -j -VV
+          WORKING_DIRECTORY binding/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+    - name: Install
+      shell: cmake -P {0}
+      run:  |
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+            --install binding/build
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)

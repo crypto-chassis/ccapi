@@ -35,8 +35,14 @@ std::string regularizePrice(double price) {
   stream << std::fixed << std::setprecision(2) << price;
   return stream.str();
 }
+using ::ccapi::SessionOptions;
+using ::ccapi::SessionConfigs;
+using ::ccapi::MyEventHandler;
+using ::ccapi::Session;
+using ::ccapi::Subscription;
+using ::ccapi::Request;
+using ::ccapi::UtilSystem;
 int main(int argc, char **argv) {
-  using namespace ccapi;  // NOLINT(build/namespaces)
   if (argc != 3) {
     std::cerr << "Usage: <program name> <spread percentage> <order quantity>\n" << "Example:\n" << "    main 0.5 0.01"
               << std::endl;

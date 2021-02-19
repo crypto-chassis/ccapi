@@ -9,8 +9,15 @@ class MyEventHandler : public EventHandler {
   }
 };
 } /* namespace ccapi */
+using ::ccapi::SessionOptions;
+using ::ccapi::SessionConfigs;
+using ::ccapi::MyEventHandler;
+using ::ccapi::Session;
+using ::ccapi::Subscription;
+using ::ccapi::toString;
+using ::ccapi::EventDispatcher;
+using ::ccapi::Event;
 int main(int argc, char **argv) {
-  using namespace ccapi;  // NOLINT(build/namespaces)
   std::vector<std::string> modeList = { "specify_correlation_id", "normalize_instrument_name",
       "multiple_exchanges_instruments", "specify_market_depth", "receive_events_at_periodic_intervals",
       "receive_events_at_periodic_intervals_including_when_the_market_depth_snapshot_has_not_changed",
