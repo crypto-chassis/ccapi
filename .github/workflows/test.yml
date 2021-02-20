@@ -121,6 +121,10 @@ jobs:
           execute_process(
             COMMAND brew reinstall openssl@1.1
           )
+        elseif ("${{ runner.os }}" STREQUAL "Windows")
+          execute_process(
+            COMMAND vcpkg install openssl:x64-windows
+          )
         endif()
 
     - name: Install SWIG
