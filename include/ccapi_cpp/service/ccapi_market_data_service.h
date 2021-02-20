@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_macro.h"
