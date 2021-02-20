@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
 #include "ccapi_cpp/ccapi_macro.h"
+#include "websocketpp/config/boost_config.hpp"
 
 // start: enable exchanges for market data
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
