@@ -4,6 +4,9 @@
 #include <chrono>
 #include "ccapi_cpp/ccapi_element.h"
 #include "ccapi_cpp/ccapi_logger.h"
+#ifdef ERROR
+#undef ERROR
+#endif
 namespace ccapi {
 class Message CCAPI_FINAL {
  public:
