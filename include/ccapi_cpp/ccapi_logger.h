@@ -51,6 +51,9 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include "date/date.h"
 #include "ccapi_cpp/ccapi_util.h"
+#ifdef SEVERITY_ERROR
+#undef SEVERITY_ERROR
+#endif
 namespace ccapi {
 class Logger {
  public:
