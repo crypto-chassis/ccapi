@@ -294,28 +294,27 @@ jobs:
         # execute_process(COMMAND ccache -s)
 
     - name: Test
-      working-directory: test/build
+      shell: cmake -P {0}
       run: |
-        ctest -j -VV
-        # execute_process(
-        #   COMMAND ctest -j -VV
-        #   WORKING_DIRECTORY test/build
-        #   RESULT_VARIABLE result
-        # )
-        # if (NOT result EQUAL 0)
-        #   message(FATAL_ERROR "Bad exit status")
-        # endif()
-        #
-        # if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
-        #   execute_process(
-        #     COMMAND ctest -j -VV
-        #     WORKING_DIRECTORY binding/build
-        #     RESULT_VARIABLE result
-        #   )
-        #   if (NOT result EQUAL 0)
-        #     message(FATAL_ERROR "Bad exit status")
-        #   endif()
-        # endif()
+        execute_process(
+          COMMAND ctest -j -VV
+          WORKING_DIRECTORY test/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
+          execute_process(
+            COMMAND ctest -j -VV
+            WORKING_DIRECTORY binding/build
+            RESULT_VARIABLE result
+          )
+          if (NOT result EQUAL 0)
+            message(FATAL_ERROR "Bad exit status")
+          endif()
+        endif()
 
     - name: Install
       shell: cmake -P {0}
