@@ -72,9 +72,17 @@
   * OpenSSL: libssl
   * OpenSSL: libcrypto
   * If you need huobi or okex, also link ZLIB.
+  * On Windows, also link ws2_32.
+* Compiler flags:
+  * `-pthread` for GCC and MinGW.
+* Tested platforms:
+  * macOS: Clang.
+  * Linux: GCC.
+  * Windows: MinGW.
 * Troubleshoot:
-  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)": try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL. `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`.
-  * "No such file or directory" for thread-related headers if Windows MinGW without posix threads is used: please enable it (https://stackoverflow.com/questions/17242516/mingw-w64-threads-posix-vs-win32) or use Boost (so that e.g. boost/thread.hpp can be found).
+  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
+  * "Fatal error: can't write <a> bytes to section .text of <b>: 'File too big'". Try to add compiler flag -Wa,-mbig-obj. See https://github.com/assimp/assimp/issues/2067.
+  * "string table overflow at offset <a>". Try to add optimization flag -O1 or -O2. See https://stackoverflow.com/questions/14125007/gcc-string-table-overflow-error-during-compilation.
 
 ### Python
 * Require Python 3, SWIG, and CMake.
@@ -90,6 +98,7 @@ cmake --build . -j
 cmake --install .
 ```
 * If a virtual environment (managed by `venv` or `conda`) is active (i.e. the `activate` script has been evaluated), the package will be installed into the virtual environment rather than globally.
+* Currently not working on Windows.
 
 ## Constants
 `include/ccapi_cpp/ccapi_macro.h`
