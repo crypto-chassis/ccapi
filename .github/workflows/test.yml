@@ -252,7 +252,7 @@ jobs:
         endif()
         set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
 
-        file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}" ccache_basedir)
+        # file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}" ccache_basedir)
         # set(ENV{CCACHE_BASEDIR} "${ccache_basedir}")
         # set(ENV{CCACHE_DIR} "${ccache_basedir}/.ccache")
         # set(ENV{CCACHE_COMPRESS} "true")
