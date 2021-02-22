@@ -90,7 +90,7 @@
 * Require Python 3, SWIG, and CMake.
   * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
   * CMake: https://cmake.org/download/.
-* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need huobi or okex, also uncomment the lines corresponding to find ZLIB.
+* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need huobi or okex, also uncomment the lines corresponding to finding ZLIB.
 * Run the following commands.
 ```
 mkdir binding/build
@@ -113,7 +113,7 @@ cmake --install .
 
 **Objective:**
 
-For a specific exchange and instrument, whenever the top 10 bids' or asks' price or size change, print the market depth snapshot at that moment.
+For a specific exchange and instrument, whenever the best bid's or ask's price or size changes, print the market depth snapshot at that moment.
 
 **Code:**
 ```
@@ -165,7 +165,7 @@ Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
 
 #### Specify market depth
 
-Instantiate `Subscription` with option `MARKET_DEPTH_MAX` set to be the desired market depth.
+Instantiate `Subscription` with option `MARKET_DEPTH_MAX` set to be the desired market depth (e.g. you want to receive market depth snapshot whenever the top 10 bid's or ask's price or size changes).
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_MAX=10");
 ```
