@@ -176,7 +176,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "write");
-      auto now = std::chrono::system_clock::now();
+      auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
       this->tryRequest(request, req, retry);
@@ -192,12 +192,12 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
   }
   void onRead(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, std::shared_ptr<http::request<http::string_body> > reqPtr, HttpRetry retry, std::shared_ptr<beast::flat_buffer> bufferPtr, std::shared_ptr<http::response<http::string_body> > resPtr, beast::error_code ec, std::size_t bytes_transferred) {
     CCAPI_LOGGER_TRACE("async_read callback start");
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     boost::ignore_unused(bytes_transferred);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "read");
-      auto now = std::chrono::system_clock::now();
+      auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
       this->tryRequest(request, req, retry);
@@ -246,7 +246,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
             host += ":";
             host += url.port;
           }
-          auto now = std::chrono::system_clock::now();
+          auto now = UtilTime::now();
           auto req = this->convertRequest(request, now);
           req.set(http::field::host, host);
           req.target(url.target);

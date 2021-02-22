@@ -29,7 +29,7 @@ class Service {
     Event event;
     event.setType(eventType);
     Message message;
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     message.setTimeReceived(now);
     message.setTime(now);
     message.setType(messageType);
@@ -51,7 +51,7 @@ class Service {
     Event event;
     event.setType(Event::Type::REQUEST_STATUS);
     Message message;
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     message.setTimeReceived(now);
     message.setTime(now);
     message.setType(Message::Type::RESPONSE_ERROR);

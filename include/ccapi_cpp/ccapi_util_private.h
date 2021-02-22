@@ -114,6 +114,10 @@ class UtilString CCAPI_FINAL {
 };
 class UtilTime CCAPI_FINAL {
  public:
+  static std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> now() {
+    auto now = UtilTime::now();
+    return std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()));
+  }
   static TimePoint parse(std::string s) {
     TimePoint tp;
     std::istringstream ss { s };

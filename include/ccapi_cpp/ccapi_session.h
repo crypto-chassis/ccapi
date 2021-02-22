@@ -340,7 +340,7 @@ class Session CCAPI_FINAL {
         servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
         serviceNameExchangeSet.insert(key);
       }
-      auto now = std::chrono::system_clock::now();
+      auto now = UtilTime::now();
       auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now);
       if (eventQueuePtr) {
         futurePtrList.push_back(futurePtr);
@@ -363,7 +363,7 @@ class Session CCAPI_FINAL {
     Event event;
     event.setType(eventType);
     Message message;
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     message.setTimeReceived(now);
     message.setTime(now);
     message.setType(messageType);

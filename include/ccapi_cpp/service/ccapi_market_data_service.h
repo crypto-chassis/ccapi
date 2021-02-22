@@ -133,7 +133,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   }
   virtual void onOpen(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     wsConnection.status = WsConnection::Status::OPEN;
@@ -259,7 +259,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   }
   virtual void onClose(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(con);
     wsConnection.status = WsConnection::Status::CLOSED;
@@ -332,7 +332,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onMessage(wspp::connection_hdl hdl, TlsClient::message_ptr msg) {
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     CCAPI_LOGGER_DEBUG("received a message from connection "+toString(wsConnection));
@@ -383,7 +383,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
   }
   void onPong(wspp::connection_hdl hdl, std::string payload) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    auto now = std::chrono::system_clock::now();
+    auto now = UtilTime::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->lastPongTpByConnectionIdMap[wsConnection.id] = now;
@@ -1189,7 +1189,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                               } else {
                                 if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
-                                  auto now = std::chrono::system_clock::now();
+                                  auto now = UtilTime::now();
                                   if (that->lastPongTpByConnectionIdMap.find(wsConnection.id) != that->lastPongTpByConnectionIdMap.end() &&
                                       std::chrono::duration_cast<std::chrono::milliseconds>(now - that->lastPongTpByConnectionIdMap.at(wsConnection.id)).count() >= that->pongTimeoutMilliSeconds) {
                                     auto thisWsConnection = wsConnection;
@@ -1322,7 +1322,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                             this->eventHandler(event);
                           }
                         }
-                        auto now = std::chrono::system_clock::now();
+                        auto now = UtilTime::now();
                         while (conflateTp + interval + gracePeriod <= now) {
                           conflateTp += interval;
                         }
