@@ -177,7 +177,7 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
     ErrorCode ec;
     this->close(wsConnection, hdl, websocketpp::close::status::normal, "out of sequence", ec);
     if (ec) {
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "shutdown");
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
   }

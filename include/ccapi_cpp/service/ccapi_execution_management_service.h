@@ -272,7 +272,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
       std::ostringstream oss;
       oss << *resPtr;
       CCAPI_LOGGER_ERROR("res = " + oss.str());
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::ERROR, e);
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, e);
     }
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
     if (retry.promisePtr) {
@@ -288,7 +288,7 @@ class ExecutionManagementService : public Service, public std::enable_shared_fro
     }
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::ERROR, ec, "shutdown");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
       return;
     }
     CCAPI_LOGGER_TRACE("shutdown");

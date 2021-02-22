@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <functional>
+#include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_macro.h"
@@ -58,7 +59,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
       ErrorCode ec;
       this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
       if (ec) {
-        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "shutdown");
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
       }
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
     }
@@ -242,7 +243,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
               if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
                 if (ec) {
                   CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
-                  that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
+                  that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                 } else {
                   CCAPI_LOGGER_INFO("about to retry");
                   auto thatWsConnection = thisWsConnection;
@@ -349,7 +350,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
         this->onTextMessage(hdl, textMessage, now);
       } catch (const std::exception& e) {
         CCAPI_LOGGER_ERROR("textMessage = " + textMessage);
-        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, e);
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, e);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
@@ -370,11 +371,11 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
               ss << std::setw(2) << static_cast<unsigned>(reinterpret_cast<const uint8_t*>(&payload[0])[i]);
           }
           CCAPI_LOGGER_ERROR("binaryMessage = " + ss.str());
-          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, e);
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, e);
         }
         ErrorCode ec = this->inflater.inflate_reset();
         if (ec) {
-          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "decompress");
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "decompress");
         }
       }
 #endif
@@ -1170,13 +1171,13 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                 if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
                   if (ec) {
                     CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", connect retry on fail timer error: " + ec.message());
-                    that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
+                    that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                   } else {
                     if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                       ErrorCode ec;
                       that->ping(hdl, "", ec);
                       if (ec) {
-                        that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "ping");
+                        that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "ping");
                       }
                       if (that->pongTimeOutTimerByConnectionIdMap.find(wsConnection.id) != that->pongTimeOutTimerByConnectionIdMap.end()) {
                         that->pongTimeOutTimerByConnectionIdMap.at(wsConnection.id)->cancel();
@@ -1185,7 +1186,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                             if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
                               if (ec) {
                                 CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", pong time out timer error: " + ec.message());
-                                that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
+                                that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                               } else {
                                 if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                                   auto now = std::chrono::system_clock::now();
@@ -1195,7 +1196,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                                     ErrorCode ec;
                                     that->close(thisWsConnection, hdl, websocketpp::close::status::normal, "pong timeout", ec);
                                     if (ec) {
-                                      that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "shutdown");
+                                      that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
                                     }
                                     that->shouldProcessRemainingMessageOnClosingByConnectionIdMap[thisWsConnection.id] = true;
                                   } else {
@@ -1249,7 +1250,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
     ErrorCode ec;
     this->close(wsConnection, hdl, websocketpp::close::status::normal, "incorrect states found: " + reason, ec);
     if (ec) {
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, "shutdown");
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, "shutdown");
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND, errorMessage);
@@ -1286,7 +1287,7 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
                   if (this->wsConnectionMap.find(wsConnection.id) != this->wsConnectionMap.end()) {
                     if (ec) {
                       CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", conflate timer error: " + ec.message());
-                      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::ERROR, ec, "timer");
+                      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                     } else {
                       if (this->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                         auto conflateTp = previousConflateTp + interval;

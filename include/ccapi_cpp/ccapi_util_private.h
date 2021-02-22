@@ -149,7 +149,7 @@ class UtilTime CCAPI_FINAL {
   static std::string getISOTimestamp(TimePoint tp, std::string fmt = "%FT%TZ") {
     return date::format(fmt.c_str(), date::floor<T>(tp));
   }
-  static TimePoint makeTimePointFromMilliseconds(long milliseconds) {
+  static TimePoint makeTimePointFromMilliseconds(long long milliseconds) {
     return TimePoint(std::chrono::milliseconds(milliseconds));
   }
 };

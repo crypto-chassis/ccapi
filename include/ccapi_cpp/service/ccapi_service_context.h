@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
 #include "ccapi_cpp/ccapi_logger.h"
+#include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "websocketpp/config/asio_client.hpp"
 #include "websocketpp/client.hpp"
