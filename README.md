@@ -113,7 +113,7 @@ cmake --install .
 
 **Objective:**
 
-For a specific exchange and instrument, whenever the top 10 bids' or asks' price or size change, print the market depth snapshot at that moment.
+For a specific exchange and instrument, whenever the best bid's or ask's price or size changes, print the market depth snapshot at that moment.
 
 **Code:**
 ```
@@ -165,7 +165,7 @@ Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
 
 #### Specify market depth
 
-Instantiate `Subscription` with option `MARKET_DEPTH_MAX` set to be the desired market depth.
+Instantiate `Subscription` with option `MARKET_DEPTH_MAX` set to be the desired market depth (e.g. you want to receive market depth snapshot whenever the top 10 bid's or ask's price or size changes).
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_MAX=10");
 ```
