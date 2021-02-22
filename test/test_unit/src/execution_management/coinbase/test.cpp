@@ -15,15 +15,15 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
        { CCAPI_COINBASE_API_PASSPHRASE, "0x1a5y8koaa9" }
     };
     this->timestamp = 1499827319;
-    this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000);
+    this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
   std::shared_ptr<ExecutionManagementServiceCoinbase> service{nullptr};
   std::map<std::string, std::string> credential;
-  long timestamp{};
+  long long timestamp{};
   TimePoint now{};
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, long timestamp) {
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, long long timestamp) {
   EXPECT_EQ(req.base().at("CB-ACCESS-KEY").to_string(), apiKey);
   EXPECT_EQ(req.base().at("CB-ACCESS-PASSPHRASE").to_string(), apiPassphrase);
   EXPECT_EQ(req.base().at("CB-ACCESS-TIMESTAMP").to_string(), std::to_string(timestamp));

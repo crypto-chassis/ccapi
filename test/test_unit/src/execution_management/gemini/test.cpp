@@ -14,11 +14,11 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
        { CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw" }
     };
     this->timestamp = 1499827319;
-    this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000);
+    this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
   std::shared_ptr<ExecutionManagementServiceGemini> service{nullptr};
   std::map<std::string, std::string> credential;
-  long timestamp{};
+  long long timestamp{};
   TimePoint now{};
 };
 
@@ -58,7 +58,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
   rj::Document document;
   document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/new");
-  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000);
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
   EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusd");
   EXPECT_EQ(std::string(document["amount"].GetString()), "1");
   EXPECT_EQ(std::string(document["price"].GetString()), "0.1");
@@ -115,7 +115,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOrderByOrderId)
   EXPECT_EQ(req.target(), "/v1/order/cancel");
   rj::Document document;
   document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
-  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000);
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
   EXPECT_EQ(document["order_id"].GetInt64(), 19492382044);
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/cancel");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
@@ -166,7 +166,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByOrderId) {
   EXPECT_EQ(req.target().to_string(), "/v1/order/status");
   rj::Document document;
   document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
-  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000);
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
   EXPECT_EQ(document["order_id"].GetInt64(), 19492382044);
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/status");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
@@ -184,7 +184,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByClientOrder
   EXPECT_EQ(req.target().to_string(), "/v1/order/status");
   rj::Document document;
   document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
-  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000);
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
   EXPECT_EQ(std::string(document["client_order_id"].GetString()), "20190110-4738721");
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/status");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
@@ -239,7 +239,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOpenOrdersAllInstr
   EXPECT_EQ(req.target().to_string(), "/v1/orders");
   rj::Document document;
   document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
-  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000);
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
 
@@ -313,7 +313,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOpenOrders) {
   EXPECT_EQ(req.target().to_string(), "/v1/order/cancel/session");
   rj::Document document;
   document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
-  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000);
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/cancel/session");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
