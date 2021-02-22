@@ -7,10 +7,10 @@ class MyEventHandler(EventHandler):
         if event.getType() == Event.Type_SUBSCRIPTION_DATA:
             for message in event.getMessageList():
                 print(f'Best bid and ask at {message.getTimeISO()} are:')
-            for element in message.getElementList():
-                elementNameValueMap = element.getNameValueMap()
-                for name, value in elementNameValueMap.items():
-                    print(f'  {name} = {value}')
+                for element in message.getElementList():
+                    elementNameValueMap = element.getNameValueMap()
+                    for name, value in elementNameValueMap.items():
+                        print(f'  {name} = {value}')
         return True  # This line is needed.
 if __name__ == '__main__':
     eventHandler = MyEventHandler()
