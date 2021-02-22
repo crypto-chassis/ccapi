@@ -2,9 +2,11 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
-- [ccapi_cpp](#ccapi_cpp)
+- [ccapi](#ccapi)
   - [Usage](#usage)
   - [Build](#build)
+    - [C++](#c)
+    - [Python](#python)
   - [Constants](#constants)
   - [Examples](#examples)
     - [Simple Market Data](#simple-market-data)
