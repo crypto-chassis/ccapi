@@ -3,6 +3,9 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+#include <chrono>
+#include <iostream>
+// #include "type_name.h"
 namespace ccapi {
 class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagementService {
  public:
@@ -55,6 +58,11 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
     req.set("CB-ACCESS-KEY", apiKey);
+    // std::cout << type_name<std::chrono::seconds::rep>() << '\n';
+    std::cout << std::chrono::duration_cast<std::chrono::seconds>
+        (std::chrono::nanoseconds::min()).count() << " std::chrono::seconds\n";
+    std::cout << std::chrono::duration_cast<std::chrono::seconds>
+        (std::chrono::nanoseconds::max()).count() << " std::chrono::seconds\n";
     req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
     req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
