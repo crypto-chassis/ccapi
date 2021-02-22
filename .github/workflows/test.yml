@@ -297,7 +297,7 @@ jobs:
       shell: cmake -P {0}
       run: |
         execute_process(
-          COMMAND ctest -j -VV
+          COMMAND ctest -VV -j
           WORKING_DIRECTORY test/build
           RESULT_VARIABLE result
         )
@@ -307,7 +307,7 @@ jobs:
 
         if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
           execute_process(
-            COMMAND ctest -j -VV
+            COMMAND ctest -VV -j
             WORKING_DIRECTORY binding/build
             RESULT_VARIABLE result
           )
