@@ -114,13 +114,9 @@ class UtilString CCAPI_FINAL {
 };
 class UtilTime CCAPI_FINAL {
  public:
-  static std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds> now() {
+  static TimePoint now() {
     auto now = std::chrono::system_clock::now();
-    std::cout  <<  "UtilTime now"  <<  std::endl;
-    std::cout  <<  now.time_since_epoch().count()  <<  std::endl;
-    std::cout  <<  std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count()  <<  std::endl;
-    std::cout  <<  std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch())).time_since_epoch().count()  <<  std::endl;
-    return std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()));
+    return TimePoint(now);
   }
   static TimePoint parse(std::string s) {
     TimePoint tp;
