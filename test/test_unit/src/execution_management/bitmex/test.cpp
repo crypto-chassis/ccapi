@@ -14,15 +14,15 @@ class ExecutionManagementServiceBitmexTest : public ::testing::Test {
        { CCAPI_BITMEX_API_SECRET, "chNOOS4KvNXR_Xq4k4c9qsfoKWvnDecLATCRlcBwyKDYnWgO" }
     };
     this->timestamp = 1499827319;
-    this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000);
+    this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
   std::shared_ptr<ExecutionManagementServiceBitmex> service{nullptr};
   std::map<std::string, std::string> credential;
-  long timestamp{};
+  long long timestamp{};
   TimePoint now{};
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, long timestamp) {
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, long long timestamp) {
   EXPECT_EQ(req.base().at("api-key").to_string(), apiKey);
   EXPECT_EQ(req.base().at("api-expires").to_string(), std::to_string(timestamp + CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS));
 }

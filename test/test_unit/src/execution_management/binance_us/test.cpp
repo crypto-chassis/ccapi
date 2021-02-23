@@ -18,7 +18,7 @@ class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
   }
   std::shared_ptr<ExecutionManagementServiceBinanceUs> service{nullptr};
   std::map<std::string, std::string> credential;
-  long timestamp{};
+  long long timestamp{};
   TimePoint now{};
 };
 

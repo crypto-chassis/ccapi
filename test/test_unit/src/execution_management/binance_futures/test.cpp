@@ -17,7 +17,7 @@ class ExecutionManagementServiceBinanceFuturesTest : public ::testing::Test {
   }
   std::shared_ptr<ExecutionManagementServiceBinanceFutures> service{nullptr};
   std::map<std::string, std::string> credential;
-  long timestamp{};
+  long long timestamp{};
   TimePoint now{};
 };
 
@@ -38,17 +38,17 @@ TEST_F(ExecutionManagementServiceBinanceFuturesTest, processSuccessfulTextMessag
     "side": "BUY",
     "positionSide": "SHORT",
     "status": "NEW",
-    "stopPrice": "9300",               
-    "closePosition": false,   
+    "stopPrice": "9300",
+    "closePosition": false,
     "symbol": "BTCUSDT",
-    "time": 1579276756075,              
+    "time": 1579276756075,
     "timeInForce": "GTC",
     "type": "TRAILING_STOP_MARKET",
-    "activatePrice": "9020",            
-    "priceRate": "0.3",                 
-    "updateTime": 1579276756075,        
+    "activatePrice": "9020",
+    "priceRate": "0.3",
+    "updateTime": 1579276756075,
     "workingType": "CONTRACT_PRICE",
-    "priceProtect": false           
+    "priceProtect": false
   }
   )";
   auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
