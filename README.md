@@ -383,7 +383,7 @@ Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD", "cool 
 ```
 
 #### Override exchange urls
-See section "exchange REST urls" in `include/ccapi_cpp/ccapi_macro.h`.
+See section "exchange REST urls" in `include/ccapi_cpp/ccapi_macro.h`. This can be useful if you need to connect to test accounts (e.g. https://docs.pro.coinbase.com/#sandbox).
 
 ### More Advanced Topics
 
