@@ -32,6 +32,7 @@
       - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
       - [Thread safety](#thread-safety)
       - [Enable library logging](#enable-library-logging)
+    - [Performance Tuning](#performance-tuning)
     - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -423,6 +424,12 @@ MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
 }
 ```
+
+### Performance Tuning
+* Only enable the services and exchanges that you need.
+* Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
+* Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
+* Enable link time optimization (e.g. in CMakeLists.txt `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)` before a target is created).
 
 ### Contributing
 * (Required) Submit a pull request to the master branch.
