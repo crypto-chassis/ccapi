@@ -15,7 +15,7 @@
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
-#include "date/date.h"
+#include "ccapi_cpp/ccapi_date.h"
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
