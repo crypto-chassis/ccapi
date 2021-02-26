@@ -49,7 +49,7 @@
 #include <string>
 #include <cstring>
 #include "ccapi_cpp/ccapi_macro.h"
-#include "date/date.h"
+#include "ccapi_cpp/ccapi_date.h"
 #include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
 class Logger {

@@ -1,5 +1,6 @@
-#ifndef DATE_H
-#define DATE_H
+#ifndef INCLUDE_CCAPI_CPP_CCAPI_DATE_H_
+#define INCLUDE_CCAPI_CPP_CCAPI_DATE_H_
+//https://github.com/HowardHinnant/date/releases/tag/v3.0.0
 
 // The MIT License (MIT)
 //
@@ -7943,4 +7944,5 @@ operator<<(std::basic_ostream<CharT, Traits>& os,
 # pragma GCC diagnostic pop
 #endif
 
-#endif  // DATE_H
+
+#endif

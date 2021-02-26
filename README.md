@@ -70,7 +70,6 @@
   * dependency/websocketpp
   * dependency/boost
   * dependency/rapidjson/include
-  * dependency/date/include
 * Link libraries:
   * OpenSSL: libssl
   * OpenSSL: libcrypto
