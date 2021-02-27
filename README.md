@@ -28,6 +28,7 @@
       - [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
       - [Multiple sets of API credentials for the same exchange](#multiple-sets-of-api-credentials-for-the-same-exchange)
       - [Override exchange urls](#override-exchange-urls)
+      - [Complex request parameters](#complex-request-parameters)
     - [More Advanced Topics](#more-advanced-topics)
       - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
       - [Thread safety](#thread-safety)
@@ -107,6 +108,8 @@ cmake --install .
 
 ## Examples
 [C++](example) / [Python](binding/python/example)
+
+Python API is nearly identical to C++ API, please refer to C++ for more examples.
 
 ### Simple Market Data
 [C++](example/src/market_data_simple/main.cpp) / [Python](binding/python/example/src/market_data_simple/main.py)
@@ -385,6 +388,20 @@ Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD", "cool 
 #### Override exchange urls
 See section "exchange REST urls" in `include/ccapi_cpp/ccapi_macro.h`. This can be useful if you need to connect to test accounts (e.g. https://docs.pro.coinbase.com/#sandbox).
 
+#### Complex request parameters
+Please follow the exchange's API documentations: e.g. https://github.com/binance-us/binance-official-api-docs/blob/master/rest-api.md#new-order--trade.
+```
+Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
+request.appendParam({
+  {"side", "SELL"},
+  {"type", "STOP_LOSS_LIMIT"},
+  {"quantity", "0.0005"},
+  {"stopPrice", "20001"},
+  {"price", "20000"},
+  {"timeInForce", "GTC"}
+});
+```
+
 ### More Advanced Topics
 
 #### Handle events in "immediate" vs. "batching" mode
@@ -425,10 +442,10 @@ Logger* Logger::logger = &myLogger;
 ```
 
 ### Performance Tuning
-* Only enable the services and exchanges that you need.
-* Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
 * Enable link time optimization (e.g. in CMakeLists.txt `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)` before a target is created).
+* Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
+* Only enable the services and exchanges that you need.
 
 ### Contributing
 * (Required) Submit a pull request to the master branch.
