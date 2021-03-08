@@ -114,6 +114,19 @@ class UtilString CCAPI_FINAL {
 };
 class UtilTime CCAPI_FINAL {
  public:
+  static std::string convertFIXTimeToISO(const std::string& fixTime) {
+//  convert 20200925-15:55:28.093490622 to 2020-09-25T15:55:28.093490622Z
+    std::string output;
+    output += fixTime.substr(0, 4);
+    output += "-";
+    output += fixTime.substr(4, 2);
+    output += "-";
+    output += fixTime.substr(6, 2);
+    output += "T";
+    output += fixTime.substr(9);
+    output += "Z";
+    return output;
+  }
   static TimePoint now() {
     auto now = std::chrono::system_clock::now();
     return TimePoint(now);

@@ -55,7 +55,7 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
       std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
       auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
-      CCAPI_LOGGER_TRACE("channel = "+channelId);
+      CCAPI_LOGGER_TRACE("channelId = "+channelId);
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       if (channelId == CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_ORDER_BOOK) {
         wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;

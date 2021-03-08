@@ -206,6 +206,18 @@ class MarketDataService : public Service, public std::enable_shared_from_this<Ma
           channelId =
           CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
         }
+      } else if (this->name == CCAPI_EXCHANGE_NAME_ERISX) {
+        if (std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX)) <= 20) {
+          channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + optionMap.at(CCAPI_MARKET_DEPTH_MAX);
+          this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] =
+              std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+        } else {
+          channelId += "|" + field;
+        }
+      }
+    } else if (field == CCAPI_TRADE) {
+      if (this->name == CCAPI_EXCHANGE_NAME_ERISX) {
+        channelId += "|" + field;
       }
     }
     this->correlationIdListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(
