@@ -291,12 +291,10 @@ class UtilAlgorithm CCAPI_FINAL {
             std::regex_replace(base64,
                 std::regex("="),
                 ""),
-                std::regex("\\+"),
-            "-"
-        ),
+            std::regex("\\+"),
+            "-"),
         std::regex("\\/"),
-        "_"
-    );
+        "_");
   }
   static std::string base64UrlEncode(const std::string &in) {
       return base64UrlFromBase64(base64Encode(in));

@@ -8,7 +8,7 @@ class Jwt CCAPI_FINAL {
  public:
   static std::string generate(const Hmac::ShaVersion shaVersion, const std::string& secret, const std::string& payload) {
     std::string output;
-    switch(shaVersion) {
+    switch (shaVersion) {
       case Hmac::ShaVersion::SHA256:
         output += UtilAlgorithm::base64UrlEncode("{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
         break;
@@ -23,5 +23,5 @@ class Jwt CCAPI_FINAL {
     return output;
   }
 };
-}
-#endif
+}  // namespace ccapi
+#endif  // INCLUDE_CCAPI_CPP_CCAPI_JWT_H_
