@@ -66,6 +66,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
+#include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -178,6 +181,9 @@ class Session CCAPI_FINAL {
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HUOBI] = std::make_shared<ExecutionManagementServiceHuobi>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ERISX] = std::make_shared<ExecutionManagementServiceErisx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {

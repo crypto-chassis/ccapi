@@ -15,9 +15,11 @@
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
+#include <regex>
 #include "ccapi_cpp/ccapi_date.h"
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_hffix.h"
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
@@ -127,11 +129,40 @@ class UtilTime CCAPI_FINAL {
     output += "Z";
     return output;
   }
+  static std::string convertTimePointToFIXTime(const TimePoint& tp) {
+    int year, month, day, hour, minute, second, millisecond;
+    hffix::details::timepointtoparts(tp, year, month, day, hour, minute, second, millisecond);
+    std::string output;
+    output += std::to_string(year);
+    auto monthStr = std::to_string(month);
+    output += std::string(2 - monthStr.length(), '0');
+    output += monthStr;
+    auto dayStr = std::to_string(day);
+    output += std::string(2 - dayStr.length(), '0');
+    output += dayStr;
+    output += "-";
+    auto hourStr = std::to_string(hour);
+    output += std::string(2 - hourStr.length(), '0');
+    output += hourStr;
+    output += ":";
+    auto minuteStr = std::to_string(minute);
+    output += std::string(2 - minuteStr.length(), '0');
+    output += minuteStr;
+    output += ":";
+    auto secondStr = std::to_string(second);
+    output += std::string(2 - secondStr.length(), '0');
+    output += secondStr;
+    output += ".";
+    auto millisecondStr = std::to_string(millisecond);
+    output += std::string(3 - millisecondStr.length(), '0');
+    output += millisecondStr;
+    return output;
+  }
   static TimePoint now() {
     auto now = std::chrono::system_clock::now();
     return TimePoint(now);
   }
-  static TimePoint parse(std::string s) {
+  static TimePoint parse(const std::string& s) {
     TimePoint tp;
     std::istringstream ss { s };
     ss >> date::parse("%FT%TZ", tp);
@@ -140,19 +171,19 @@ class UtilTime CCAPI_FINAL {
     }
     return tp;
   }
-  static TimePoint makeTimePoint(std::pair<long long, long long> timePair) {
+  static TimePoint makeTimePoint(const std::pair<long long, long long>& timePair) {
     auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
     tp += std::chrono::nanoseconds(timePair.second);
     return tp;
   }
-  static std::pair<long long, long long> divide(TimePoint tp) {
+  static std::pair<long long, long long> divide(const TimePoint& tp) {
     auto then = tp.time_since_epoch();
     auto s = std::chrono::duration_cast<std::chrono::seconds>(then);
     then -= s;
     auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(then);
     return std::make_pair(s.count(), ns.count());
   }
-  static std::pair<long long, long long> divide(std::string seconds) {
+  static std::pair<long long, long long> divide(const std::string& seconds) {
     if (seconds.find(".") != std::string::npos) {
       auto splittedSeconds = UtilString::split(UtilString::rtrim(UtilString::rtrim(seconds, "0"), "."), ".");
       return std::make_pair(
@@ -163,8 +194,13 @@ class UtilTime CCAPI_FINAL {
     }
   }
   template<typename T = std::chrono::nanoseconds>
-  static std::string getISOTimestamp(TimePoint tp, std::string fmt = "%FT%TZ") {
+  static std::string getISOTimestamp(const TimePoint& tp, const std::string& fmt = "%FT%TZ") {
     return date::format(fmt.c_str(), date::floor<T>(tp));
+  }
+  static int getUnixTimestamp(const TimePoint& tp) {
+    auto then = tp.time_since_epoch();
+    auto s = std::chrono::duration_cast<std::chrono::seconds>(then);
+    return s.count();
   }
   static TimePoint makeTimePointFromMilliseconds(long long milliseconds) {
     return TimePoint(std::chrono::milliseconds(milliseconds));
@@ -247,6 +283,23 @@ class UtilAlgorithm CCAPI_FINAL {
           }
       }
       return out;
+  }
+//  https://github.com/brianloveswords/base64url
+  static std::string base64UrlFromBase64(const std::string& base64) {
+    return std::regex_replace(
+        std::regex_replace(
+            std::regex_replace(base64,
+                std::regex("="),
+                ""),
+                std::regex("\\+"),
+            "-"
+        ),
+        std::regex("\\/"),
+        "_"
+    );
+  }
+  static std::string base64UrlEncode(const std::string &in) {
+      return base64UrlFromBase64(base64Encode(in));
   }
   static double exponentialBackoff(double initial, double multiplier, double base, double exponent) {
     return initial + multiplier * (pow(base, exponent) - 1);

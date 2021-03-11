@@ -177,11 +177,17 @@
 #ifndef CCAPI_EM_ACCOUNT_ID
 #define CCAPI_EM_ACCOUNT_ID "ACCOUNT_ID"
 #endif
+#ifndef CCAPI_EM_PARTY_ID
+#define CCAPI_EM_PARTY_ID "PARTY_ID"
+#endif
 #ifndef CCAPI_EM_ORDER_ID
 #define CCAPI_EM_ORDER_ID "ORDER_ID"
 #endif
 #ifndef CCAPI_EM_CLIENT_ORDER_ID
 #define CCAPI_EM_CLIENT_ORDER_ID "CLIENT_ORDER_ID"
+#endif
+#ifndef CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID
+#define CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID "ORIGINAL_CLIENT_ORDER_ID"
 #endif
 #ifndef CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY
 #define CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY "CUMULATIVE_FILLED_QUANTITY"
@@ -247,6 +253,9 @@
 #ifndef CCAPI_HUOBI_URL_REST_BASE
 #define CCAPI_HUOBI_URL_REST_BASE "https://api.huobi.pro"
 #endif
+#ifndef CCAPI_ERISX_URL_REST_BASE
+#define CCAPI_ERISX_URL_REST_BASE "https://trade-api.erisx.com"
+#endif
 // end: exchange REST urls
 
 // start: exchange API credentials
@@ -294,6 +303,12 @@
 #endif
 #ifndef CCAPI_HUOBI_API_SECRET
 #define CCAPI_HUOBI_API_SECRET "HUOBI_API_SECRET"
+#endif
+#ifndef CCAPI_ERISX_API_KEY
+#define CCAPI_ERISX_API_KEY "ERISX_API_KEY"
+#endif
+#ifndef CCAPI_ERISX_API_SECRET
+#define CCAPI_ERISX_API_SECRET "ERISX_API_SECRET"
 #endif
 // end: exchange API credentials
 
