@@ -23,6 +23,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
     this->getOrderTarget = prefix + "/order/{partyID}/{orderID}";
     this->getOpenOrdersTarget = prefix + "/order-mass-status";
     this->cancelOpenOrdersTarget = prefix + "/cancel-all";
+    this->orderStatusOpenSet = {"NEW", "PARTIAL FILLED"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 
@@ -180,7 +181,8 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       {CCAPI_EM_ORDER_QUANTITY, std::make_pair("orderQty", JsonDataType::STRING)},
       {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
       {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumQty", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}
+      {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
+      {CCAPI_EM_ORDER_STATUS, std::make_pair("ordStatus", JsonDataType::STRING)}
     };
     std::vector<Element> elementList;
     if (operation == Request::Operation::GET_OPEN_ORDERS) {
@@ -211,16 +213,10 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
-      auto it1 = x.FindMember("executed_amount");
-      auto it2 = x.FindMember("avg_execution_price");
+      auto it1 = x.FindMember("cumQty");
+      auto it2 = x.FindMember("avgPrice");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
         element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
-      }
-    }
-    {
-      auto it = x.FindMember("is_live");
-      if (it != x.MemberEnd()) {
-        element.insert(CCAPI_EM_ORDER_STATUS, it->value.GetBool() ? CCAPI_EM_ORDER_STATUS_OPEN : CCAPI_EM_ORDER_STATUS_CLOSED);
       }
     }
     return element;
@@ -229,7 +225,6 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::processSuccessfulTextMessage;
   FRIEND_TEST(ExecutionManagementServiceErisxTest, signRequest);
 #endif
 };

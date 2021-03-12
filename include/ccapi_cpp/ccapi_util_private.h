@@ -296,8 +296,29 @@ class UtilAlgorithm CCAPI_FINAL {
         std::regex("\\/"),
         "_");
   }
+  static std::string base64FromBase64Url(const std::string& base64Url) {
+    auto segmentLength = 4;
+    auto stringLength = base64Url.size();
+    auto diff = stringLength % segmentLength;
+    if (!diff) {
+      return base64Url;
+    }
+    auto padLength = segmentLength - diff;
+    std::string paddedBase64Url(base64Url);
+    paddedBase64Url += std::string(padLength, '=');
+    return std::regex_replace(std::regex_replace(paddedBase64Url,
+            std::regex("\\-"),
+            "+"
+        ),
+        std::regex("_"),
+        "/"
+    );
+  }
   static std::string base64UrlEncode(const std::string &in) {
       return base64UrlFromBase64(base64Encode(in));
+  }
+  static std::string base64UrlDecode(const std::string &in) {
+      return base64Decode(base64FromBase64Url(in));
   }
   static double exponentialBackoff(double initial, double multiplier, double base, double exponent) {
     return initial + multiplier * (pow(base, exponent) - 1);

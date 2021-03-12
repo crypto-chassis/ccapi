@@ -16,4 +16,9 @@ TEST(UtilAlgorithmTest, base64UrlFromBase64) {
   auto result = UtilAlgorithm::base64UrlFromBase64(original);
   EXPECT_EQ(result, "TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ");
 }
+TEST(UtilAlgorithmTest, base64FromBase64Url) {
+  std::string original("TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ");
+  auto result = UtilAlgorithm::base64FromBase64Url(original);
+  EXPECT_EQ(result, "TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ=");
+}
 } /* namespace ccapi */
