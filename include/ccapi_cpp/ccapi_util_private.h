@@ -308,11 +308,9 @@ class UtilAlgorithm CCAPI_FINAL {
     paddedBase64Url += std::string(padLength, '=');
     return std::regex_replace(std::regex_replace(paddedBase64Url,
             std::regex("\\-"),
-            "+"
-        ),
+            "+"),
         std::regex("_"),
-        "/"
-    );
+        "/");
   }
   static std::string base64UrlEncode(const std::string &in) {
       return base64UrlFromBase64(base64Encode(in));
