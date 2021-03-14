@@ -139,6 +139,11 @@ class SessionConfigs CCAPI_FINAL {
     CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE }, {
     CCAPI_MARKET_DEPTH,
     CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400 }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapErisx = { {
+    CCAPI_TRADE,
+    CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE }, {
+    CCAPI_MARKET_DEPTH,
+    CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE }, };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -172,6 +177,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapOkex) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_OKEX].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapErisx) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_ERISX].push_back(fieldWebsocketChannel.first);
+    }
     CCAPI_LOGGER_TRACE("this->exchangeFieldMap = "+toString(this->exchangeFieldMap));
     this->exchangeFieldWebsocketChannelMap = {
       { CCAPI_EXCHANGE_NAME_COINBASE, fieldWebsocketChannelMapCoinbase},
@@ -184,7 +192,8 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE, fieldWebsocketChannelMapBinance},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures},
       { CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi},
-      { CCAPI_EXCHANGE_NAME_OKEX, fieldWebsocketChannelMapOkex}
+      { CCAPI_EXCHANGE_NAME_OKEX, fieldWebsocketChannelMapOkex},
+      { CCAPI_EXCHANGE_NAME_ERISX, fieldWebsocketChannelMapErisx}
     };
     this->websocketAvailableMarketDepth = {
       { CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})},
@@ -209,6 +218,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
       { CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
       { CCAPI_EXCHANGE_NAME_OKEX, "wss://real.okex.com:8443/ws/v3"},
+      { CCAPI_EXCHANGE_NAME_ERISX, "wss://publicmd-api.erisx.com"},
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
@@ -226,6 +236,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
     };
   }
   std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {

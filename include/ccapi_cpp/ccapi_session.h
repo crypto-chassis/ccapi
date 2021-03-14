@@ -37,6 +37,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
 #include "ccapi_cpp/service/ccapi_market_data_service_okex.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
+#include "ccapi_cpp/service/ccapi_market_data_service_erisx.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -62,6 +65,9 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
+#include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
 #endif
 #endif
 // end: enable exchanges for execution management
@@ -150,6 +156,9 @@ class Session CCAPI_FINAL {
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKEX] = std::make_shared<MarketDataServiceOkex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ERISX] = std::make_shared<MarketDataServiceErisx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -172,6 +181,9 @@ class Session CCAPI_FINAL {
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HUOBI] = std::make_shared<ExecutionManagementServiceHuobi>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ERISX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ERISX] = std::make_shared<ExecutionManagementServiceErisx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {

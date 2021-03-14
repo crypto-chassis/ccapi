@@ -384,7 +384,7 @@ static void SHA1ProcessMessageBlock (SHA1Context *);
  *      sha Error Code.
  *
  */
-int
+inline int
 SHA1Reset (SHA1Context * context)
 {
   if (!context)
@@ -427,7 +427,7 @@ SHA1Reset (SHA1Context * context)
  *      sha Error Code.
  *
  */
-int
+inline int
 SHA1Input (SHA1Context * context,
      const uint8_t * message_array, unsigned length)
 {
@@ -480,7 +480,7 @@ SHA1Input (SHA1Context * context,
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA1FinalBits (SHA1Context * context, const uint8_t message_bits,
          unsigned int length)
 {
@@ -538,7 +538,7 @@ SHA1FinalBits (SHA1Context * context, const uint8_t message_bits,
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA1Result (SHA1Context * context, uint8_t Message_Digest[SHA1HashSize])
 {
   int i;
@@ -850,7 +850,7 @@ static uint32_t SHA256_H0[SHA256HashSize / 4] = {
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA224Reset (SHA224Context * context)
 {
   return SHA224_256Reset (context, SHA224_H0);
@@ -876,7 +876,7 @@ SHA224Reset (SHA224Context * context)
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA224Input (SHA224Context * context, const uint8_t * message_array,
        unsigned int length)
 {
@@ -902,7 +902,7 @@ SHA224Input (SHA224Context * context, const uint8_t * message_array,
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA224FinalBits (SHA224Context * context,
      const uint8_t message_bits, unsigned int length)
 {
@@ -927,7 +927,7 @@ SHA224FinalBits (SHA224Context * context,
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA224Result (SHA224Context * context, uint8_t Message_Digest[SHA224HashSize])
 {
   return SHA224_256ResultN (context, Message_Digest, SHA224HashSize);
@@ -947,7 +947,7 @@ SHA224Result (SHA224Context * context, uint8_t Message_Digest[SHA224HashSize])
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA256Reset (SHA256Context * context)
 {
   return SHA224_256Reset (context, SHA256_H0);
@@ -972,7 +972,7 @@ SHA256Reset (SHA256Context * context)
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA256Input (SHA256Context * context, const uint8_t * message_array,
        unsigned int length)
 {
@@ -1026,7 +1026,7 @@ SHA256Input (SHA256Context * context, const uint8_t * message_array,
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA256FinalBits (SHA256Context * context,
      const uint8_t message_bits, unsigned int length)
 {
@@ -1083,7 +1083,7 @@ SHA256FinalBits (SHA256Context * context,
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 SHA256Result (SHA256Context * context, uint8_t Message_Digest[])
 {
   return SHA224_256ResultN (context, Message_Digest, SHA256HashSize);
@@ -1686,7 +1686,7 @@ static uint64_t SHA512_H0[] = {
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA384Reset (SHA384Context * context)
 {
   return SHA384_512Reset (context, SHA384_H0);
@@ -1712,7 +1712,7 @@ SHA384Reset (SHA384Context * context)
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA384Input (SHA384Context * context,
        const uint8_t * message_array, unsigned int length)
 {
@@ -1739,7 +1739,7 @@ SHA384Input (SHA384Context * context,
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA384FinalBits (SHA384Context * context,
      const uint8_t message_bits, unsigned int length)
 {
@@ -1765,7 +1765,7 @@ SHA384FinalBits (SHA384Context * context,
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA384Result (SHA384Context * context, uint8_t Message_Digest[SHA384HashSize])
 {
   return SHA384_512ResultN (context, Message_Digest, SHA384HashSize);
@@ -1786,7 +1786,7 @@ SHA384Result (SHA384Context * context, uint8_t Message_Digest[SHA384HashSize])
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA512Reset (SHA512Context * context)
 {
   return SHA384_512Reset (context, SHA512_H0);
@@ -1812,7 +1812,7 @@ SHA512Reset (SHA512Context * context)
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA512Input (SHA512Context * context,
        const uint8_t * message_array, unsigned int length)
 {
@@ -1866,7 +1866,7 @@ SHA512Input (SHA512Context * context,
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA512FinalBits (SHA512Context * context,
      const uint8_t message_bits, unsigned int length)
 {
@@ -1961,7 +1961,7 @@ SHA384_512Finalize (SHA512Context * context, uint8_t Pad_Byte)
  *   sha Error Code.
  *
  */
-int
+inline int
 SHA512Result (SHA512Context * context, uint8_t Message_Digest[SHA512HashSize])
 {
   return SHA384_512ResultN (context, Message_Digest, SHA512HashSize);
@@ -2438,7 +2438,7 @@ SHA384_512ResultN (SHA512Context * context,
  *      sha Error Code.
  *
  */
-int
+inline int
 USHAReset (USHAContext * ctx, enum SHAversion whichSha)
 {
   if (ctx)
@@ -2486,7 +2486,7 @@ USHAReset (USHAContext * ctx, enum SHAversion whichSha)
  *      sha Error Code.
  *
  */
-int
+inline int
 USHAInput (USHAContext * ctx, const uint8_t * bytes, unsigned int bytecount)
 {
   if (ctx)
@@ -2532,7 +2532,7 @@ USHAInput (USHAContext * ctx, const uint8_t * bytes, unsigned int bytecount)
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 USHAFinalBits (USHAContext * ctx, const uint8_t bits, unsigned int bitcount)
 {
   if (ctx)
@@ -2582,7 +2582,7 @@ USHAFinalBits (USHAContext * ctx, const uint8_t bits, unsigned int bitcount)
  *   sha Error Code.
  *
  */
-int
+inline int
 USHAResult (USHAContext * ctx, uint8_t Message_Digest[USHAMaxHashSize])
 {
   if (ctx)
@@ -2624,7 +2624,7 @@ USHAResult (USHAContext * ctx, uint8_t Message_Digest[USHAMaxHashSize])
  *   block size
  *
  */
-int
+inline int
 USHABlockSize (enum SHAversion whichSha)
 {
   switch (whichSha)
@@ -2658,7 +2658,7 @@ USHABlockSize (enum SHAversion whichSha)
  *   hash size
  *
  */
-int
+inline int
 USHAHashSize (enum SHAversion whichSha)
 {
   switch (whichSha)
@@ -2692,7 +2692,7 @@ USHAHashSize (enum SHAversion whichSha)
  *   hash size in bits
  *
  */
-int
+inline int
 USHAHashSizeBits (enum SHAversion whichSha)
 {
   switch (whichSha)
@@ -2736,7 +2736,7 @@ USHAHashSizeBits (enum SHAversion whichSha)
  *      sha Error Code.
  *
  */
-int
+inline int
 hmac (SHAversion whichSha, const unsigned char *text, int text_len,
       const unsigned char *key, int key_len, uint8_t digest[USHAMaxHashSize])
 {
@@ -2766,7 +2766,7 @@ hmac (SHAversion whichSha, const unsigned char *text, int text_len,
  *      sha Error Code.
  *
  */
-int
+inline int
 hmacReset (HMACContext * ctx, enum SHAversion whichSha,
      const unsigned char *key, int key_len)
 {
@@ -2853,7 +2853,7 @@ hmacReset (HMACContext * ctx, enum SHAversion whichSha,
  *      sha Error Code.
  *
  */
-int
+inline int
 hmacInput (HMACContext * ctx, const unsigned char *text, int text_len)
 {
   if (!ctx)
@@ -2881,7 +2881,7 @@ hmacInput (HMACContext * ctx, const unsigned char *text, int text_len)
  * Returns:
  *   sha Error Code.
  */
-int
+inline int
 hmacFinalBits (HMACContext * ctx, const uint8_t bits, unsigned int bitcount)
 {
   if (!ctx)
@@ -2911,7 +2911,7 @@ hmacFinalBits (HMACContext * ctx, const uint8_t bits, unsigned int bitcount)
  *   sha Error Code.
  *
  */
-int
+inline int
 hmacResult (HMACContext * ctx, uint8_t * digest)
 {
   if (!ctx)
