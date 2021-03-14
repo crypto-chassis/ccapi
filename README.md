@@ -48,7 +48,7 @@
 * Supported exchanges:
   * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, okex, erisx.
   * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, erisx.
-* To spur innovation and industry collaboration, this library is open for use by the public without cost. Follow us on https://cryptochassis.medium.com.
+* To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
