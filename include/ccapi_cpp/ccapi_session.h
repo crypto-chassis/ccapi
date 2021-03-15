@@ -40,6 +40,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
 #include "ccapi_cpp/service/ccapi_market_data_service_erisx.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
+#include "ccapi_cpp/service/ccapi_market_data_service_kucoin.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -69,6 +72,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
 #include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
+#include "ccapi_cpp/service/ccapi_execution_management_service_kucoin.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -83,7 +89,6 @@
 #include "ccapi_cpp/ccapi_event_handler.h"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/service/ccapi_service_context.h"
-#include "ccapi_cpp/ccapi_request.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 namespace ccapi {
 class Session CCAPI_FINAL {
@@ -159,6 +164,9 @@ class Session CCAPI_FINAL {
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ERISX] = std::make_shared<MarketDataServiceErisx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KUCOIN] = std::make_shared<MarketDataServiceKucoin>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -184,6 +192,9 @@ class Session CCAPI_FINAL {
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ERISX] = std::make_shared<ExecutionManagementServiceErisx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KUCOIN] = std::make_shared<ExecutionManagementServiceKucoin>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {

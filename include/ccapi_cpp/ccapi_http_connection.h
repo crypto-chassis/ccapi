@@ -3,7 +3,6 @@
 #include <string>
 #include <regex>
 #include "ccapi_cpp/ccapi_logger.h"
-#include "ccapi_cpp/ccapi_request.h"
 namespace beast = boost::beast;
 namespace ccapi {
 class HttpConnection CCAPI_FINAL {

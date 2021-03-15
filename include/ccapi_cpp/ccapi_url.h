@@ -17,6 +17,8 @@ class Url CCAPI_FINAL {
       this->target = std::string(what[4].first, what[4].second);
     }
   }
+  Url(std:string protocol, std::string host, std::string port, std::string target) : protocol(protocol), host(host), port(port), target(target) {
+  }
   std::string toString() const {
     std::string output = "Url [protocol = " + protocol + ", host = " + host + ", port = " + port + ", target = "
         + target + "]";

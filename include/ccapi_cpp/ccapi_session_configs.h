@@ -219,6 +219,8 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
       { CCAPI_EXCHANGE_NAME_OKEX, "wss://real.okex.com:8443/ws/v3"},
       { CCAPI_EXCHANGE_NAME_ERISX, "wss://publicmd-api.erisx.com"},
+      //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
+      { CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"}
     };
     this->initialSequenceByExchangeMap = { {CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }

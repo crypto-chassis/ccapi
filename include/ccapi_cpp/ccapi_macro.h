@@ -65,6 +65,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_ERISX
 #define CCAPI_EXCHANGE_NAME_ERISX "erisx"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_KUCOIN
+#define CCAPI_EXCHANGE_NAME_KUCOIN "kucoin"
+#endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -213,6 +216,27 @@
 #ifndef CCAPI_HTTP_STATUS_CODE
 #define CCAPI_HTTP_STATUS_CODE "HTTP_STATUS_CODE"
 #endif
+#ifndef CCAPI_HTTP_PROTOCOL
+#define CCAPI_HTTP_PROTOCOL "HTTP_PROTOCOL"
+#endif
+#ifndef CCAPI_HTTP_HOST
+#define CCAPI_HTTP_HOST "HTTP_HOST"
+#endif
+#ifndef CCAPI_HTTP_PORT
+#define CCAPI_HTTP_PORT "HTTP_PORT"
+#endif
+#ifndef CCAPI_HTTP_PATH
+#define CCAPI_HTTP_PATH "HTTP_PATH"
+#endif
+#ifndef CCAPI_HTTP_METHOD
+#define CCAPI_HTTP_METHOD "HTTP_METHOD"
+#endif
+#ifndef CCAPI_HTTP_HEADERS
+#define CCAPI_HTTP_HEADERS "HTTP_HEADERS"
+#endif
+#ifndef CCAPI_HTTP_BODY
+#define CCAPI_HTTP_BODY "BODY"
+#endif
 #define CCAPI_ERROR_MESSAGE "ERROR_MESSAGE"
 #define CCAPI_UNSUPPORTED_VALUE "UNSUPPORTED VALUE"
 #ifndef CCAPI_CORRELATION_ID_GENERATED_LENGTH
@@ -255,6 +279,9 @@
 #endif
 #ifndef CCAPI_ERISX_URL_REST_BASE
 #define CCAPI_ERISX_URL_REST_BASE "https://trade-api.erisx.com"
+#endif
+#ifndef CCAPI_KUCOIN_URL_REST_BASE
+#define CCAPI_KUCOIN_URL_REST_BASE "https://api.kucoin.com"
 #endif
 // end: exchange REST urls
 
@@ -312,6 +339,8 @@
 #endif
 // end: exchange API credentials
 
+#define CCAPI_HTTP_PORT "80"
+#define CCAPI_HTTPS_PORT "443"
 #ifndef CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS
 #define CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS 5
 #endif
