@@ -102,6 +102,23 @@ class Service : public std::enable_shared_from_this<Service> {
   }
 
  protected:
+  std::pair<std::string, std::string> extractHostFromUrl(std::string baseUrlRest) {
+    std::string host;
+    std::string port;
+    auto splitted1 = UtilString::split(baseUrlRest, "://");
+    auto splitted2 = UtilString::split(UtilString::split(splitted1[1], "/")[0], ":");
+    host = splitted2[0];
+    if (splitted2.size() == 2) {
+      port = splitted2[1];
+    } else {
+      if (splitted1[0] == "https") {
+        port = CCAPI_HTTPS_PORT;
+      } else {
+        port = CCAPI_HTTP_PORT;
+      }
+    }
+    return std::make_pair(host, port);
+  }
   template <typename Derived>
   std::shared_ptr<Derived> shared_from_base()
   {
@@ -208,28 +225,16 @@ class Service : public std::enable_shared_from_this<Service> {
     stream.async_shutdown(
       beast::bind_front_handler(
         &Service::onShutdown,
-        shared_from_this()));
+        shared_from_this(), httpConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_shutdown");
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << *resPtr;
     CCAPI_LOGGER_DEBUG("res = \n"+oss.str());
 #endif
-//    int statusCode = resPtr->result_int();
-//    std::string headers;
-//    for (const auto& x : resPtr->base()) {
-//      headers += x.first;
-//      headers += ":";
-//      headers += x.second;
-//      headers += ",";
-//    }
-//    if (!headers.empty()) {
-//      headers.pop_back();
-//    }
-//    std::string body = resPtr->body();
     responseHandler(*resPtr);
   }
-  void onShutdown(beast::error_code ec) {
+  void onShutdown(std::shared_ptr<HttpConnection> httpConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_shutdown callback start");
     if (ec == net::error::eof) {
       // Rationale:
@@ -237,7 +242,7 @@ class Service : public std::enable_shared_from_this<Service> {
       ec = {};
     }
     if (ec) {
-      CCAPI_LOGGER_TRACE("fail");
+      CCAPI_LOGGER_TRACE("fail: " + ec.message() + ", category: " + ec.category().name());
       return;
     }
     CCAPI_LOGGER_TRACE("shutdown");

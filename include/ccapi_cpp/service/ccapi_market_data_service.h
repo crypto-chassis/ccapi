@@ -318,8 +318,6 @@ class MarketDataService : public Service {
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
     }
     this->orderBookChecksumByConnectionIdSymbolIdMap.erase(wsConnection.id);
-    this->wsConnectionMap.erase(wsConnection.id);
-    this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
   }
   virtual void onClose(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -348,6 +346,8 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_INFO("connection " +toString(wsConnection) + " is closed");
     this->clearStates(wsConnection);
     WsConnection thisWsConnection = wsConnection;
+    this->wsConnectionMap.erase(wsConnection.id);
+    this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
       this->connect(thisWsConnection);
@@ -796,8 +796,9 @@ class MarketDataService : public Service {
   }
   void prepareConnect(WsConnection& wsConnection) {
     if (wsConnection.url == this->sessionConfigs.getUrlWebsocketBase().at(CCAPI_EXCHANGE_NAME_KUCOIN)) {
-      std::string host = CCAPI_KUCOIN_URL_REST_BASE;
-      std::string port = CCAPI_HTTPS_PORT;
+      auto hostPort = this->extractHostFromUrl(CCAPI_KUCOIN_URL_REST_BASE);
+      std::string host = hostPort.first;
+      std::string port = hostPort.second;
       http::request<http::string_body> req;
       req.set(http::field::host, host+":"+port);
       req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
@@ -833,6 +834,8 @@ class MarketDataService : public Service {
                 {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
                 {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())}
               });
+              CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
+              return;
             } catch (const std::runtime_error& e) {
                 CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
             }
@@ -845,6 +848,7 @@ class MarketDataService : public Service {
     }
   }
   void connect(WsConnection& wsConnection) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
     wsConnection.status = WsConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on dummy id "+wsConnection.id);
     std::string url = wsConnection.url;
@@ -867,6 +871,7 @@ class MarketDataService : public Service {
     }
     con->set_ping_handler(std::bind(&MarketDataService::onPing, shared_from_base<MarketDataService>(), std::placeholders::_1, std::placeholders::_2));
     this->serviceContextPtr->tlsClientPtr->connect(con);
+    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void close(WsConnection& wsConnection, wspp::connection_hdl hdl, wspp::close::status::value const code,
              std::string const & reason, ErrorCode & ec) {

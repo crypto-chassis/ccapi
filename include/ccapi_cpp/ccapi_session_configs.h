@@ -144,6 +144,11 @@ class SessionConfigs CCAPI_FINAL {
     CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE }, {
     CCAPI_MARKET_DEPTH,
     CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapKucoin = { {
+    CCAPI_TRADE,
+    CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_MATCH }, {
+    CCAPI_MARKET_DEPTH,
+    CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2 }, };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -180,6 +185,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapErisx) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_ERISX].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapKucoin) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_KUCOIN].push_back(fieldWebsocketChannel.first);
+    }
     CCAPI_LOGGER_TRACE("this->exchangeFieldMap = "+toString(this->exchangeFieldMap));
     this->exchangeFieldWebsocketChannelMap = {
       { CCAPI_EXCHANGE_NAME_COINBASE, fieldWebsocketChannelMapCoinbase},
@@ -193,7 +201,8 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures},
       { CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi},
       { CCAPI_EXCHANGE_NAME_OKEX, fieldWebsocketChannelMapOkex},
-      { CCAPI_EXCHANGE_NAME_ERISX, fieldWebsocketChannelMapErisx}
+      { CCAPI_EXCHANGE_NAME_ERISX, fieldWebsocketChannelMapErisx},
+      { CCAPI_EXCHANGE_NAME_KUCOIN, fieldWebsocketChannelMapKucoin}
     };
     this->websocketAvailableMarketDepth = {
       { CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})},
@@ -240,6 +249,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
     };
   }
   std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {

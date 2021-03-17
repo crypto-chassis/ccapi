@@ -61,18 +61,9 @@ class ExecutionManagementService : public Service {
 
  protected:
   void setHostFromUrl(std::string baseUrlRest) {
-    auto splitted1 = UtilString::split(baseUrlRest, "://");
-    auto splitted2 = UtilString::split(UtilString::split(splitted1[1], "/")[0], ":");
-    this->host = splitted2[0];
-    if (splitted2.size() == 2) {
-      this->port = splitted2[1];
-    } else {
-      if (splitted1[0] == "https") {
-        this->port = CCAPI_HTTPS_PORT;
-      } else {
-        this->port = CCAPI_HTTP_PORT;
-      }
-    }
+    auto hostPort = this->extractHostFromUrl(baseUrlRest);
+    this->host = hostPort.first;
+    this->port = hostPort.second;
   }
   std::string convertInstrumentToRestSymbolId(std::string instrument) {
     std::string symbolId = instrument;
@@ -189,7 +180,7 @@ class ExecutionManagementService : public Service {
       stream.async_shutdown(
         beast::bind_front_handler(
           &ExecutionManagementService::onShutdown,
-          shared_from_base<ExecutionManagementService>()));
+          shared_from_base<ExecutionManagementService>(), httpConnectionPtr));
       CCAPI_LOGGER_TRACE("after async_shutdown");
     } else {
       try {
@@ -260,7 +251,7 @@ class ExecutionManagementService : public Service {
       retry.promisePtr->set_value();
     }
   }
-  void onShutdown(beast::error_code ec) {
+  void onShutdown(std::shared_ptr<HttpConnection> httpConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_shutdown callback start");
     if (ec == net::error::eof) {
       // Rationale:
