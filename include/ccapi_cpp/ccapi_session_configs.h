@@ -204,7 +204,8 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})},
-      { CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({400})}
+      { CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({400})},
+      { CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
     };
     this->urlWebsocketBase = {
       { CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},

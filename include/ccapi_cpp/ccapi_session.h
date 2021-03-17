@@ -265,15 +265,15 @@ class Session CCAPI_FINAL {
               CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
               unsupportedExchangeFieldSet.insert(exchange + "|" + field);
             }
-            if (field == CCAPI_MARKET_DEPTH) {
-              auto depth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-              if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI || exchange == CCAPI_EXCHANGE_NAME_OKEX)
-                  && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
-                      ) {
-                CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
-                unsupportedExchangeMarketDepthSet.insert(exchange + "|" + toString(depth));
-              }
-            }
+//            if (field == CCAPI_MARKET_DEPTH) {
+//              auto depth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+//              if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI || exchange == CCAPI_EXCHANGE_NAME_OKEX)
+//                  && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
+//                      ) {
+//                CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
+//                unsupportedExchangeMarketDepthSet.insert(exchange + "|" + toString(depth));
+//              }
+//            }
           subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
         if (!duplicateCorrelationIdSet.empty()) {
