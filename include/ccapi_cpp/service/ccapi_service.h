@@ -112,9 +112,9 @@ class Service : public std::enable_shared_from_this<Service> {
       port = splitted2[1];
     } else {
       if (splitted1[0] == "https") {
-        port = CCAPI_HTTPS_PORT;
+        port = CCAPI_HTTPS_PORT_DEFAULT;
       } else {
-        port = CCAPI_HTTP_PORT;
+        port = CCAPI_HTTP_PORT_DEFAULT;
       }
     }
     return std::make_pair(host, port);

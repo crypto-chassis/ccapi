@@ -93,7 +93,7 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
       const rj::Value& data = document["data"];
       wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       wsMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] ? MarketDataMessage::RecapType::NONE : MarketDataMessage::RecapType::SOLICITED;
-      wsMessage.tp = TimePoint(std::chrono::milliseconds(data["timestamp"].GetInt64()));
+      wsMessage.tp = TimePoint(std::chrono::milliseconds(data["time"].GetInt64()));
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       {
         MarketDataMessage::TypeForDataPoint dataPoint;
@@ -150,7 +150,7 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
       MarketDataMessage::TypeForDataPoint dataPoint;
       dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(data["price"].GetString())});
       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(data["size"].GetString())});
-      dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(data["sequence"].GetInt64())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(data["sequence"].GetString())});
       dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(data["side"].GetString()) == "sell" ? "1" : "0"});
       wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
       wsMessageList.push_back(std::move(wsMessage));
