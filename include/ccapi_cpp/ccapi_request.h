@@ -43,6 +43,7 @@ class Request CCAPI_FINAL {
     }
     return output;
   }
+  Request() {}
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId =
       "", std::map<std::string, std::string> credential = {})
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {

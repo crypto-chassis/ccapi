@@ -1,9 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
-#ifndef RAPIDJSON_ASSERT
-#define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
-#endif
 #include <string>
 #include <map>
 #include <vector>
