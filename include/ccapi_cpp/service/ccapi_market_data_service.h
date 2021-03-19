@@ -108,7 +108,6 @@ class MarketDataService : public Service {
               WsConnection wsConnection(url, instrumentGroup, subscriptionListGivenInstrumentGroup);
               that->prepareConnect(wsConnection);
             }
-            CCAPI_LOGGER_INFO("actual connection map is "+toString(that->wsConnectionMap));
         });
       }
     }
@@ -272,8 +271,8 @@ class MarketDataService : public Service {
                   auto thatWsConnection = thisWsConnection;
                   thatWsConnection.assignDummyId();
                   that->prepareConnect(thatWsConnection);
-                  that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thatWsConnection.id, thatWsConnection));
-                  that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thatWsConnection.id, thatWsConnection.instrumentGroup));
+                  // that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thatWsConnection.id, thatWsConnection));
+                  // that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thatWsConnection.id, thatWsConnection.instrumentGroup));
                   that->connectNumRetryOnFailByConnectionUrlMap[urlBase] += 1;
                 }
               }
@@ -370,8 +369,8 @@ class MarketDataService : public Service {
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
       this->prepareConnect(thisWsConnection);
-      this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
-      this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id, thisWsConnection.instrumentGroup));
+      // this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
+      // this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id, thisWsConnection.instrumentGroup));
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -846,8 +845,8 @@ class MarketDataService : public Service {
               urlWebsocketBase += std::string(document["data"]["token"].GetString());
               thisWsConnection.url = urlWebsocketBase;
               that->connect(thisWsConnection);
-              that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
-              that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id, thisWsConnection.instrumentGroup));
+              // that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
+              // that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id, thisWsConnection.instrumentGroup));
               for (const auto & subscription : thisWsConnection.subscriptionList) {
                 auto instrument = subscription.getInstrument();
                 that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
@@ -867,6 +866,8 @@ class MarketDataService : public Service {
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
     } else {
       this->connect(wsConnection);
+      // this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+      // this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.instrumentGroup));
     }
   }
   void connect(WsConnection& wsConnection) {
@@ -883,6 +884,10 @@ class MarketDataService : public Service {
     if (ec) {
       CCAPI_LOGGER_FATAL("connection initialization error: " + ec.message());
     }
+    this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+    CCAPI_LOGGER_DEBUG("this->wsConnectionMap = "+toString(this->wsConnectionMap));
+    this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.instrumentGroup));
+    CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = "+toString(this->instrumentGroupByWsConnectionIdMap));
     con->set_open_handler(std::bind(&MarketDataService::onOpen, shared_from_base<MarketDataService>(), std::placeholders::_1));
     con->set_fail_handler(std::bind(&MarketDataService::onFail, shared_from_base<MarketDataService>(), std::placeholders::_1));
     con->set_close_handler(std::bind(&MarketDataService::onClose, shared_from_base<MarketDataService>(), std::placeholders::_1));
