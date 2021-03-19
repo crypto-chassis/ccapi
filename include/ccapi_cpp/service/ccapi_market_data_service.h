@@ -253,6 +253,7 @@ class MarketDataService : public Service {
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionMap.erase(thisWsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
+    auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
     long seconds = std::round(
         UtilAlgorithm::exponentialBackoff(
             1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[thisWsConnection.url], 6)));
@@ -264,7 +265,7 @@ class MarketDataService : public Service {
     this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] =
         this->serviceContextPtr->tlsClientPtr->set_timer(
             seconds * 1000,
-            [thisWsConnection, that = shared_from_base<MarketDataService>()](ErrorCode const& ec) {
+            [thisWsConnection, that = shared_from_base<MarketDataService>(), urlBase](ErrorCode const& ec) {
               if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
                 if (ec) {
                   CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
@@ -276,7 +277,7 @@ class MarketDataService : public Service {
                   that->prepareConnect(thatWsConnection);
                   that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thatWsConnection.id, thatWsConnection));
                   that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thatWsConnection.id, thatWsConnection.instrumentGroup));
-                  that->connectNumRetryOnFailByConnectionUrlMap[thatWsConnection.url] += 1;
+                  that->connectNumRetryOnFailByConnectionUrlMap[urlBase] += 1;
                 }
               }
             });
@@ -371,7 +372,7 @@ class MarketDataService : public Service {
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
-      this->connect(thisWsConnection);
+      this->prepareConnect(thisWsConnection);
       this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
       this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id, thisWsConnection.instrumentGroup));
     }
@@ -819,7 +820,7 @@ class MarketDataService : public Service {
     }
   }
   void prepareConnect(WsConnection& wsConnection) {
-    if (wsConnection.url == this->sessionConfigs.getUrlWebsocketBase().at(CCAPI_EXCHANGE_NAME_KUCOIN)) {
+    if (this->name == CCAPI_EXCHANGE_NAME_KUCOIN) {
       auto hostPort = this->extractHostFromUrl(CCAPI_KUCOIN_URL_REST_BASE);
       std::string host = hostPort.first;
       std::string port = hostPort.second;
