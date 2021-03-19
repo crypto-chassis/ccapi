@@ -9,7 +9,6 @@
 #include "ccapi_cpp/service/ccapi_service.h"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_request.h"
-#include "ccapi_cpp/service/ccapi_service.h"
 #include "boost/shared_ptr.hpp"
 #include "ccapi_cpp/ccapi_queue.h"
 #include "ccapi_cpp/ccapi_http_retry.h"

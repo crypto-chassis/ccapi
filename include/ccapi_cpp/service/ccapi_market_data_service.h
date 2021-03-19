@@ -54,12 +54,12 @@ class MarketDataService : public Service {
       }
     }
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
-      for (const auto& y: x.second) {
+      for (const auto& y : x.second) {
         y.second->cancel();
       }
     }
     for (const auto& x : this->pongTimeOutTimerByMethodByConnectionIdMap) {
-      for (const auto& y: x.second) {
+      for (const auto& y : x.second) {
         y.second->cancel();
       }
     }

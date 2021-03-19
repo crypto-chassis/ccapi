@@ -59,7 +59,7 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
       document.AddMember("type", rj::Value("subscribe").Move(), allocator);
       document.AddMember("privateChannel", false, allocator);
       document.AddMember("response", true, allocator);
-      document.AddMember("topic", rj::Value((topic + ":" + UtilString::join(symbolList, ",")).c_str(), allocator).Move() ,allocator);
+      document.AddMember("topic", rj::Value((topic + ":" + UtilString::join(symbolList, ",")).c_str(), allocator).Move(), allocator);
       rj::StringBuffer stringBuffer;
       rj::Writer<rj::StringBuffer> writer(stringBuffer);
       document.Accept(writer);
@@ -124,7 +124,7 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
         {MarketDataMessage::DataType::BID, "bids"},
         {MarketDataMessage::DataType::ASK, "asks"}
       };
-      for (const auto& x: bidAsk) {
+      for (const auto& x : bidAsk) {
         int index = 0;
         for (const auto& y : data[x.second].GetArray()) {
           if (index >= maxMarketDepth) {

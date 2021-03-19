@@ -18,9 +18,6 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/asio/strand.hpp>
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
 #include <sstream>
 #include <iomanip>
@@ -120,8 +117,7 @@ class Service : public std::enable_shared_from_this<Service> {
     return std::make_pair(host, port);
   }
   template <typename Derived>
-  std::shared_ptr<Derived> shared_from_base()
-  {
+  std::shared_ptr<Derived> shared_from_base() {
       return std::static_pointer_cast<Derived>(shared_from_this());
   }
   void sendRequest(const std::string& host, const std::string& port,
@@ -146,8 +142,7 @@ class Service : public std::enable_shared_from_this<Service> {
     this->resolver.async_resolve(
         host,
         port,
-        beast::bind_front_handler(&Service::onResolve, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds)
-    );
+        beast::bind_front_handler(&Service::onResolve, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds));
   }
   void onResolve(std::shared_ptr<HttpConnection> httpConnectionPtr, http::request<http::string_body> req, std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
                  long timeoutMilliSeconds, beast::error_code ec, tcp::resolver::results_type tcpResolverResults) {
@@ -161,8 +156,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
       tcpResolverResults,
-      beast::bind_front_handler(&Service::onConnect, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler)
-    );
+      beast::bind_front_handler(&Service::onConnect, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler));
     CCAPI_LOGGER_TRACE("after async_connect");
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
