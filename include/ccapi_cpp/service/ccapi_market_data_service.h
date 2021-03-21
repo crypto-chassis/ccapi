@@ -13,17 +13,17 @@ namespace ccapi {
 class MarketDataService : public Service {
  public:
   enum class PingPongMethod {
-    WEBSOCKET_STANDARD_LEVEL,
-    APPLICATION_LEVEL
+    WEBSOCKET_PROTOCOL_LEVEL,
+    WEBSOCKET_APPLICATION_LEVEL
   };
   static std::string pingPongMethodToString(PingPongMethod pingPongMethod) {
     std::string output;
     switch (pingPongMethod) {
-      case PingPongMethod::WEBSOCKET_STANDARD_LEVEL:
-        output = "WEBSOCKET_STANDARD_LEVEL";
+      case PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL:
+        output = "WEBSOCKET_PROTOCOL_LEVEL";
         break;
-      case PingPongMethod::APPLICATION_LEVEL:
-        output = "APPLICATION_LEVEL";
+      case PingPongMethod::WEBSOCKET_APPLICATION_LEVEL:
+        output = "WEBSOCKET_APPLICATION_LEVEL";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
@@ -38,8 +38,12 @@ class MarketDataService : public Service {
         sessionConfigs(sessionConfigs),
         serviceContextPtr(serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_STANDARD_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_STANDARD_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
+    this->enableCheckPingPongWebsocketProtocolLevel = this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel;
+    this->enableCheckPingPongWebsocketApplicationLevel = this->sessionOptions.enableCheckPingPongWebsocketApplicationLevel;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~MarketDataService() {
@@ -102,6 +106,7 @@ class MarketDataService : public Service {
                 that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
                 that->prepareSubscription(wsConnection, subscription);
               }
+              CCAPI_LOGGER_INFO("about to subscribe to exchange");
               that->subscribeToExchange(wsConnection);
             } else {
               auto url = UtilString::split(instrumentGroup, "|").at(0);
@@ -153,9 +158,14 @@ class MarketDataService : public Service {
     message.setElementList({ element });
     event.setMessageList({ message });
     this->eventHandler(event);
-    if (this->sessionOptions.enableCheckPingPong) {
-      this->setPingPongTimer(PingPongMethod::WEBSOCKET_STANDARD_LEVEL, wsConnection, hdl, [that = shared_from_base<MarketDataService>()](wspp::connection_hdl hdl, ErrorCode & ec){
+    if (this->enableCheckPingPongWebsocketProtocolLevel) {
+      this->setPingPongTimer(PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL, wsConnection, hdl, [that = shared_from_base<MarketDataService>()](wspp::connection_hdl hdl, ErrorCode & ec){
         that->ping(hdl, "", ec);
+      });
+    }
+    if (this->enableCheckPingPongWebsocketApplicationLevel) {
+      this->setPingPongTimer(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnection, hdl, [that = shared_from_base<MarketDataService>()](wspp::connection_hdl hdl, ErrorCode & ec){
+        that->pingOnApplicationLevel(hdl, ec);
       });
     }
     auto instrumentGroup = wsConnection.instrumentGroup;
@@ -164,6 +174,7 @@ class MarketDataService : public Service {
       this->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
       this->prepareSubscription(wsConnection, subscription);
     }
+    CCAPI_LOGGER_INFO("about to subscribe to exchange");
     this->subscribeToExchange(wsConnection);
   }
   std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
@@ -425,12 +436,15 @@ class MarketDataService : public Service {
     }
   }
   void onPong(wspp::connection_hdl hdl, std::string payload) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     auto now = UtilTime::now();
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL, hdl, payload, now);
+  }
+  void onPongByMethod(PingPongMethod method, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    CCAPI_LOGGER_TRACE("received a pong from " + toString(wsConnection));
-    this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_STANDARD_LEVEL] = now;
+    CCAPI_LOGGER_TRACE(pingPongMethodToString(method) + ": received a pong from " + toString(wsConnection));
+    this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][method] = timeReceived;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   bool onPing(wspp::connection_hdl hdl, std::string payload) {
@@ -541,6 +555,7 @@ class MarketDataService : public Service {
         }
       }
     }
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void updateOrderBook(std::map<Decimal, std::string>& snapshot, const Decimal& price, const std::string& size) {
@@ -893,7 +908,7 @@ class MarketDataService : public Service {
     con->set_close_handler(std::bind(&MarketDataService::onClose, shared_from_base<MarketDataService>(), std::placeholders::_1));
     con->set_message_handler(
         std::bind(&MarketDataService::onMessage, shared_from_base<MarketDataService>(), std::placeholders::_1, std::placeholders::_2));
-    if (this->sessionOptions.enableCheckPingPong) {
+    if (this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel) {
       con->set_pong_handler(std::bind(&MarketDataService::onPong, shared_from_base<MarketDataService>(), std::placeholders::_1, std::placeholders::_2));
     }
     con->set_ping_handler(std::bind(&MarketDataService::onPing, shared_from_base<MarketDataService>(), std::placeholders::_1, std::placeholders::_2));
@@ -915,6 +930,7 @@ class MarketDataService : public Service {
   void ping(wspp::connection_hdl hdl, std::string const & payload, ErrorCode & ec) {
     this->serviceContextPtr->tlsClientPtr->ping(hdl, payload, ec);
   }
+  virtual void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode & ec) {}
   void copySnapshot(bool isBid, const std::map<Decimal, std::string>& original, std::map<Decimal, std::string>& copy,
                     const int maxMarketDepth) {
     size_t nToCopy = std::min(original.size(), static_cast<size_t>(maxMarketDepth));
@@ -1315,8 +1331,8 @@ class MarketDataService : public Service {
                                 if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                                   auto now = UtilTime::now();
                                   if (that->lastPongTpByMethodByConnectionIdMap.find(wsConnection.id) != that->lastPongTpByMethodByConnectionIdMap.end() &&
-                                      that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(PingPongMethod::WEBSOCKET_STANDARD_LEVEL) != that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).end() &&
-                                      std::chrono::duration_cast<std::chrono::milliseconds>(now - that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).at(PingPongMethod::WEBSOCKET_STANDARD_LEVEL)).count() >= pongTimeoutMilliSeconds) {
+                                      that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(method) != that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).end() &&
+                                      std::chrono::duration_cast<std::chrono::milliseconds>(now - that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).at(method)).count() >= pongTimeoutMilliSeconds) {
                                     auto thisWsConnection = wsConnection;
                                     ErrorCode ec;
                                     that->close(thisWsConnection, hdl, websocketpp::close::status::normal, "pong timeout", ec);
@@ -1461,6 +1477,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void subscribeToExchange(const WsConnection& wsConnection) {
+    CCAPI_LOGGER_INFO("exchange is "+this->name);
     std::vector<std::string> requestStringList = this->createRequestStringList(wsConnection);
     for (const auto & requestString : requestStringList) {
       CCAPI_LOGGER_INFO("requestString = "+requestString);
@@ -1517,6 +1534,8 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::map<std::string, Decimal > > > lowByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string > > > closeByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::string> > extraPropertyByConnectionIdMap;
+  bool enableCheckPingPongWebsocketProtocolLevel{};
+  bool enableCheckPingPongWebsocketApplicationLevel{};
 };
 } /* namespace ccapi */
 #endif

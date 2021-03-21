@@ -10,8 +10,9 @@ class SessionOptions CCAPI_FINAL {
     std::string output = "SessionOptions [warnLateEventMaxMilliSeconds = " + ccapi::toString(warnLateEventMaxMilliSeconds)
         + ", enableCheckSequence = " + ccapi::toString(enableCheckSequence) + ", enableCheckOrderBookChecksum = "
         + ccapi::toString(enableCheckOrderBookChecksum) + ", enableCheckOrderBookCrossed = "
-        + ccapi::toString(enableCheckOrderBookCrossed) + ", enableCheckPingPong = "
-        + ccapi::toString(enableCheckPingPong) + ", pingIntervalMilliSeconds = "
+        + ccapi::toString(enableCheckOrderBookCrossed) + ", enableCheckPingPongWebsocketProtocolLevel = "
+        + ccapi::toString(enableCheckPingPongWebsocketProtocolLevel) + ", enableCheckPingPongWebsocketApplicationLevel = "
+        + ccapi::toString(enableCheckPingPongWebsocketApplicationLevel) + ", pingIntervalMilliSeconds = "
         + ccapi::toString(pingIntervalMilliSeconds) + ", pongTimeoutMilliSeconds = "
         + ccapi::toString(pongTimeoutMilliSeconds) + "]";
     return output;
@@ -20,7 +21,8 @@ class SessionOptions CCAPI_FINAL {
   bool enableCheckSequence{};  // used to check sequence number discontinuity
   bool enableCheckOrderBookChecksum{};  // used to check order book checksum
   bool enableCheckOrderBookCrossed{true};  // used to check order book cross, usually this should be set to true
-  bool enableCheckPingPong{};  // used to check ping-pong health for exchange connections
+  bool enableCheckPingPongWebsocketProtocolLevel{true};  // used to check ping-pong health for exchange connections on websocket protocol level
+  bool enableCheckPingPongWebsocketApplicationLevel{true};  // used to check ping-pong health for exchange connections on websocket application level
   long pingIntervalMilliSeconds{10000};
   long pongTimeoutMilliSeconds{5000};
   int maxEventQueueSize{0};  // if set to a positive integer, the event queue will throw an exception when overflown
