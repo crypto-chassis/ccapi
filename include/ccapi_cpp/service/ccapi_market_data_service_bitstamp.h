@@ -9,6 +9,7 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
   MarketDataServiceBitstamp(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_BITSTAMP;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->enableCheckPingPongWebsocketApplicationLevel = false;
   }
 
  private:

@@ -43,6 +43,7 @@ class Request CCAPI_FINAL {
     }
     return output;
   }
+  Request() {}
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId =
       "", std::map<std::string, std::string> credential = {})
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
@@ -51,9 +52,6 @@ class Request CCAPI_FINAL {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
   }
-#ifdef SWIG
-  Request() {}
-#endif
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;
     for (const auto& x : credential) {
@@ -91,6 +89,21 @@ class Request CCAPI_FINAL {
   void setParamList(const std::vector<std::map<std::string, std::string> >& paramList) {
     this->paramList = paramList;
   }
+  bool getIsHttpRequestRaw() const {
+    return isHttpRequestRaw;
+  }
+  void setHttpRequestRaw(bool isHttpRequestRaw) {
+    this->isHttpRequestRaw = isHttpRequestRaw;
+    if (this->isHttpRequestRaw) {
+      this->isHttpResponseRaw = true;
+    }
+  }
+  bool getIsHttpResponseRaw() const {
+    return isHttpResponseRaw;
+  }
+  void setHttpResponseRaw(bool isHttpResponseRaw) {
+    this->isHttpResponseRaw = isHttpResponseRaw;
+  }
 
  private:
   std::string exchange;
@@ -100,6 +113,8 @@ class Request CCAPI_FINAL {
   std::vector<std::map<std::string, std::string> > paramList;
   std::map<std::string, std::string> credential;
   Operation operation;
+  bool isHttpRequestRaw;
+  bool isHttpResponseRaw;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_

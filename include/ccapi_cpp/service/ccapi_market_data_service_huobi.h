@@ -17,6 +17,10 @@ class MarketDataServiceHuobi CCAPI_FINAL : public MarketDataService {
   }
 
  private:
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode & ec) override {
+    auto now = UtilTime::now();
+    this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
+  }
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {

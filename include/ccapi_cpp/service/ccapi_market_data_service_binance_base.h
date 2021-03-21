@@ -7,6 +7,7 @@ namespace ccapi {
 class MarketDataServiceBinanceBase : public MarketDataService {
  public:
   MarketDataServiceBinanceBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+    this->enableCheckPingPongWebsocketApplicationLevel = false;
   }
   virtual ~MarketDataServiceBinanceBase() {
   }

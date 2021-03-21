@@ -29,7 +29,6 @@ jobs:
         #     cc: "cl", cxx: "cl",
         #     environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
         #   }
-        # TODO: "Windows Latest MinGW" is not working yet: https://github.com/zaphoyd/websocketpp/blob/master/docs/faq.dox, search for _WEBSOCKETPP_MINGW_THREAD_
         - {
             name: "Windows Latest MinGW",
             os: windows-latest,

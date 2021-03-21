@@ -14,7 +14,7 @@ class WsConnection CCAPI_FINAL {
     this->assignDummyId();
   }
   void assignDummyId() {
-    this->id = this->url + "|" + this->instrumentGroup + "|" + ccapi::toString(this->subscriptionList);
+    this->id = this->url + "||" + this->instrumentGroup + "||" + ccapi::toString(this->subscriptionList);
     this->hdl.reset();
   }
   std::string toString() const {
