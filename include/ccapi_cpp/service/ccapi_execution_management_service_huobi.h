@@ -52,6 +52,11 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
     queryString += "&Signature=";
     queryString += Url::urlEncode(signature);
     req.target(path + "?" + queryString);
+
+//    std::cout << "REQUEST (Target):" << std::endl;
+//    std::cout << req.target() << std::endl;
+//    std::cout << "REQUEST (Header, Body):" << std::endl;
+//    std::cout << req << std::endl;
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
@@ -167,7 +172,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
       }
       break;
       default:
-      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+          CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
   std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) override {
