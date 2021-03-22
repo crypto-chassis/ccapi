@@ -1488,6 +1488,43 @@ class MarketDataService : public Service {
       }
     }
   }
+  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    auto marketDataMessageList = this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived);
+    CCAPI_LOGGER_TRACE("marketDataMessageList = "+toString(marketDataMessageList));
+    if (!marketDataMessageList.empty()) {
+      for (auto const & marketDataMessage : marketDataMessageList) {
+        Event event;
+        bool shouldEmitEvent = true;
+        if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
+          event.setType(Event::Type::RESPONSE);
+          std::vector<std::string> correlationIdList = {request.getCorrelationId()};
+          CCAPI_LOGGER_TRACE("correlationIdList = "+toString(correlationIdList));
+          if (wsMessage.data.find(MarketDataMessage::DataType::TRADE) != wsMessage.data.end()) {
+            this->processTrade(wsConnection, channelId, symbolId, event, shouldEmitEvent, marketDataMessage.tp,
+                                                        timeReceived, marketDataMessage.data, field, optionMap, correlationIdList);
+          }
+        } else {
+          CCAPI_LOGGER_WARN("market data event type is unknown!");
+        }
+        CCAPI_LOGGER_TRACE("event type is "+event.typeToString(event.getType()));
+        if (event.getType() == Event::Type::UNKNOWN) {
+          CCAPI_LOGGER_WARN("event type is unknown!");
+        } else {
+          if (event.getMessageList().empty()) {
+            CCAPI_LOGGER_DEBUG("event has no messages!");
+            shouldEmitEvent = false;
+          }
+          if (shouldEmitEvent) {
+            this->eventHandler(event);
+          }
+        }
+      }
+    }
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
   virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage,
                                                            const TimePoint& timeReceived) = 0;

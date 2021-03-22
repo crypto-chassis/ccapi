@@ -9,6 +9,7 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
   MarketDataServiceCoinbase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->getTradesTarget = "/products/<product-id>/trades";
   }
 
  private:
@@ -128,6 +129,46 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
     return wsMessageList;
+  }
+  void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+    for (const auto& kv : param) {
+      auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      auto value = kv.second;
+      target = target.replace(target.find(key), key.length(), value);
+    }
+  }
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+    for (const auto& kv : param) {
+      std::string key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      queryString += key;
+      queryString += "=";
+      queryString += key == "before" ? std::to_string(std::stoll(kv.second) - 1) :Url::urlEncode(kv.second);
+      queryString += "&";
+    }
+  }
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+    req.set(beast::http::field::content_type, "application/json");
+    switch (operation) {
+      case Request::Operation::GET_TRADES:
+      {
+        req.method(http::verb::get);
+        auto target = this->getTradesTarget;
+        this->substituteParam(target, {
+          {"<product-id>", symbolId}
+        });
+        std::string queryString;
+        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        this->appendParam(queryString, param, {
+            {CCAPI_START_TRADE_ID, "before"},
+            {CCAPI_END_TRADE_ID, "after"},
+            {CCAPI_END_LIMIT, "limit"}
+        });
+        req.target(target + "?" + queryString);
+      }
+      break;
+      default:
+      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
   }
 };
 } /* namespace ccapi */
