@@ -9,17 +9,22 @@
 namespace ccapi {
 class Request CCAPI_FINAL {
  public:
+  static constexpr int operationTypeMarketData = 0x100;
+  static constexpr int operationTypeExecutionManagement = 0x200;
   enum class Operation {
-    CREATE_ORDER = 0x100,
+    GET_TRADES = operationTypeMarketData,
+    CREATE_ORDER = operationTypeExecutionManagement,
     CANCEL_ORDER,
     GET_ORDER,
     GET_OPEN_ORDERS,
-    CANCEL_OPEN_ORDERS,
-    GET_TRADES = 0x200
+    CANCEL_OPEN_ORDERS
   };
   static std::string operationToString(Operation operation) {
     std::string output;
     switch (operation) {
+      case Operation::GET_TRADES:
+        output = "GET_TRADES";
+        break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
         break;
@@ -44,12 +49,7 @@ class Request CCAPI_FINAL {
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId =
       "", std::map<std::string, std::string> credential = {})
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
-        CREATE_ORDER,
-        CANCEL_ORDER,
-        GET_ORDER,
-        GET_OPEN_ORDERS,
-        CANCEL_OPEN_ORDERS
-    this->serviceName = operation >= 0x100 && operation < 0x200 ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+    this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }

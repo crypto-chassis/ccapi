@@ -161,7 +161,7 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
         this->appendParam(queryString, param, {
             {CCAPI_START_TRADE_ID, "before"},
             {CCAPI_END_TRADE_ID, "after"},
-            {CCAPI_END_LIMIT, "limit"}
+            {CCAPI_LIMIT, "limit"}
         });
         req.target(target + "?" + queryString);
       }
@@ -169,6 +169,35 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
       default:
       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
+  }
+  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    rj::Document document;
+    document.Parse(textMessage.c_str());
+    std::vector<MarketDataMessage> marketDataMessageList;
+    auto operation = request.getOperation();
+    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
+    auto correlationIdList = {request.getCorrelationId()};
+    switch (operation) {
+      case Request::Operation::GET_TRADES:
+      {
+        for (const auto& x : document.GetArray()) {
+          MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.tp = UtilTime::parse(std::string(document["time"].GetString()));
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(document["price"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(document["size"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["trade_id"].GetInt64())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "buy" ? "1" : "0"});
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+          marketDataMessageList.push_back(std::move(marketDataMessage));
+        }
+      }
+      break;
+      default:
+      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
+    return marketDataMessageList;
   }
 };
 } /* namespace ccapi */

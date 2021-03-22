@@ -10,9 +10,6 @@
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_request.h"
 #include "boost/shared_ptr.hpp"
-#include "ccapi_cpp/ccapi_queue.h"
-#include "ccapi_cpp/ccapi_http_retry.h"
-#include "ccapi_cpp/ccapi_url.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_hmac.h"
 namespace ccapi {
@@ -121,14 +118,8 @@ class ExecutionManagementService : public Service {
     return element;
   }
   virtual std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) = 0;
-  std::string host;
-  std::string port;
-  tcp::resolver::results_type tcpResolverResults;
-  std::once_flag tcpResolverResultsFlag;
-  Queue<std::shared_ptr<HttpConnection> > httpConnectionPool;
   std::string apiKeyName;
   std::string apiSecretName;
-  std::map<std::string, std::string> credentialDefault;
   std::string createOrderTarget;
   std::string cancelOrderTarget;
   std::string getOrderTarget;

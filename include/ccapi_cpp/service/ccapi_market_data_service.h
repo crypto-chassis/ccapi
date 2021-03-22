@@ -1500,9 +1500,8 @@ class MarketDataService : public Service {
           event.setType(Event::Type::RESPONSE);
           std::vector<std::string> correlationIdList = {request.getCorrelationId()};
           CCAPI_LOGGER_TRACE("correlationIdList = "+toString(correlationIdList));
-          if (wsMessage.data.find(MarketDataMessage::DataType::TRADE) != wsMessage.data.end()) {
-            this->processTrade(wsConnection, channelId, symbolId, event, shouldEmitEvent, marketDataMessage.tp,
-                                                        timeReceived, marketDataMessage.data, field, optionMap, correlationIdList);
+          if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end()) {
+            this->processTrade(event, marketDataMessage.tp, timeReceived, marketDataMessage.data, correlationIdList);
           }
         } else {
           CCAPI_LOGGER_WARN("market data event type is unknown!");
@@ -1521,8 +1520,23 @@ class MarketDataService : public Service {
         }
       }
     }
-    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void processTrade(Event& event, const TimePoint& tp, const TimePoint& timeReceived, const MarketDataMessage::TypeForData& input, const std::vector<std::string>& correlationIdList) {
+      std::vector<Message> messageList;
+      std::vector<Element> elementList;
+      this->updateElementListWithTrade(CCAPI_TRADE, input, elementList);
+      CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
+      if (!elementList.empty()) {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(Message::Type::MARKET_DATA_EVENTS);
+        message.setTime(tp);
+        message.setElementList(elementList);
+        message.setCorrelationIdList(correlationIdList);
+        messageList.push_back(std::move(message));
+      }
+      event.addMessages(messageList);
   }
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
@@ -1573,6 +1587,7 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::string> > extraPropertyByConnectionIdMap;
   bool enableCheckPingPongWebsocketProtocolLevel{};
   bool enableCheckPingPongWebsocketApplicationLevel{};
+  std::string getTradesTarget;
 };
 } /* namespace ccapi */
 #endif
