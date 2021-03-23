@@ -195,6 +195,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     return elementList;
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
  public:
 #endif
   std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
@@ -203,6 +204,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
  protected:
 #endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
