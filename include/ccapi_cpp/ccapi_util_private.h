@@ -734,7 +734,7 @@ template<typename K, typename V> std::map<V, K> invertMap(const std::map<K, V>& 
   return output;
 }
 template <template<class, class, class...> class C, typename K, typename V, typename... Args>
-V mapGetWithDefault(const C<K, V, Args...>& m, K const& key, const V & defaultValue) {
+V mapGetWithDefault(const C<K, V, Args...>& m, const K& key, const V defaultValue = {}) {
     typename C<K, V, Args...>::const_iterator it = m.find(key);
     if (it == m.end()) {
       return defaultValue;

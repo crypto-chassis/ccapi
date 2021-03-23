@@ -28,7 +28,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
 
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
     preSignedText += std::string(req.method_string());
     preSignedText += req.target().to_string();
@@ -51,9 +51,9 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {
     document.AddMember("product_id", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("CB-ACCESS-KEY", apiKey);
     req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
@@ -176,7 +176,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::processSuccessfulTextMessage;
+  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceCoinbaseTest, signRequest);
 #endif
 };

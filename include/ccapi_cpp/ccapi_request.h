@@ -9,19 +9,21 @@
 namespace ccapi {
 class Request CCAPI_FINAL {
  public:
+  static constexpr int operationTypeMarketData = 0x100;
+  static constexpr int operationTypeExecutionManagement = 0x200;
   enum class Operation {
-      UNKNOWN,
-      CREATE_ORDER,
-      CANCEL_ORDER,
-      GET_ORDER,
-      GET_OPEN_ORDERS,
-      CANCEL_OPEN_ORDERS
-    };
+    GET_TRADES = operationTypeMarketData,
+    CREATE_ORDER = operationTypeExecutionManagement,
+    CANCEL_ORDER,
+    GET_ORDER,
+    GET_OPEN_ORDERS,
+    CANCEL_OPEN_ORDERS
+  };
   static std::string operationToString(Operation operation) {
     std::string output;
     switch (operation) {
-      case Operation::UNKNOWN:
-        output = "UNKNOWN";
+      case Operation::GET_TRADES:
+        output = "GET_TRADES";
         break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
@@ -47,7 +49,7 @@ class Request CCAPI_FINAL {
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId =
       "", std::map<std::string, std::string> credential = {})
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
-    this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
+    this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
@@ -103,6 +105,13 @@ class Request CCAPI_FINAL {
   }
   void setHttpResponseRaw(bool isHttpResponseRaw) {
     this->isHttpResponseRaw = isHttpResponseRaw;
+  }
+  std::map<std::string, std::string> getFirstParamWithDefault(const std::map<std::string, std::string> defaultValue = {}) const {
+    if (this->paramList.empty()) {
+      return defaultValue;
+    } else {
+      return this->paramList.front();
+    }
   }
 
  private:

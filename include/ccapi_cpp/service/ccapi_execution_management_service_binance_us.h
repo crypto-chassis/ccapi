@@ -27,7 +27,7 @@ class ExecutionManagementServiceBinanceUs CCAPI_FINAL : public ExecutionManageme
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::processSuccessfulTextMessage;
+  using ExecutionManagementService::convertTextMessageToMessage;
   using ExecutionManagementServiceBinanceBase::signRequest;
 #endif
 };

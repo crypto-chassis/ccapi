@@ -29,11 +29,11 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
 
  protected:
   void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     rj::Document tokenPayloadDocument;
     tokenPayloadDocument.SetObject();
     rj::Document::AllocatorType& tokenPayloadAllocator = tokenPayloadDocument.GetAllocator();
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     tokenPayloadDocument.AddMember("sub", rj::Value(apiKey.c_str(), tokenPayloadAllocator).Move(), tokenPayloadAllocator);
     tokenPayloadDocument.AddMember("iat", rj::Value(UtilTime::getUnixTimestamp(now)).Move(), tokenPayloadAllocator);
     rj::StringBuffer tokenPayloadStringBuffer;
@@ -72,7 +72,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       target = target.replace(target.find(key), key.length(), value);
     }
   }
-  void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     switch (operation) {
       case Request::Operation::CREATE_ORDER:
@@ -202,9 +202,9 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
 
  public:
 #endif
-  std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
-    return ExecutionManagementService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
+    return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
@@ -225,6 +225,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
 
  public:
   using ExecutionManagementService::convertRequest;
+  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceErisxTest, signRequest);
 #endif
 };

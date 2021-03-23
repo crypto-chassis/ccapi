@@ -21,7 +21,7 @@ class ExecutionManagementServiceBinanceFuturesTest : public ::testing::Test {
   TimePoint now{};
 };
 
-TEST_F(ExecutionManagementServiceBinanceFuturesTest, processSuccessfulTextMessageGetOrder) {
+TEST_F(ExecutionManagementServiceBinanceFuturesTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "BTCUSDT", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -51,7 +51,7 @@ TEST_F(ExecutionManagementServiceBinanceFuturesTest, processSuccessfulTextMessag
     "priceProtect": false
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   auto message = messageList.at(0);
   auto elementList = message.getElementList();

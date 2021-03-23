@@ -459,7 +459,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto wsMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
+    const std::vector<MarketDataMessage>& wsMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_TRACE("websocketMessageList = "+toString(wsMessageList));
     if (!wsMessageList.empty()) {
       for (auto const & wsMessage : wsMessageList) {
@@ -1488,6 +1488,57 @@ class MarketDataService : public Service {
       }
     }
   }
+  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    const std::vector<MarketDataMessage>& marketDataMessageList = this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived);
+    CCAPI_LOGGER_TRACE("marketDataMessageList = "+toString(marketDataMessageList));
+    if (!marketDataMessageList.empty()) {
+      for (auto const & marketDataMessage : marketDataMessageList) {
+        Event event;
+        bool shouldEmitEvent = true;
+        if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
+          event.setType(Event::Type::RESPONSE);
+          std::vector<std::string> correlationIdList = {request.getCorrelationId()};
+          CCAPI_LOGGER_TRACE("correlationIdList = "+toString(correlationIdList));
+          if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end()) {
+            this->processTrade(event, marketDataMessage.tp, timeReceived, marketDataMessage.data, correlationIdList);
+          }
+        } else {
+          CCAPI_LOGGER_WARN("market data event type is unknown!");
+        }
+        CCAPI_LOGGER_TRACE("event type is "+event.typeToString(event.getType()));
+        if (event.getType() == Event::Type::UNKNOWN) {
+          CCAPI_LOGGER_WARN("event type is unknown!");
+        } else {
+          if (event.getMessageList().empty()) {
+            CCAPI_LOGGER_DEBUG("event has no messages!");
+            shouldEmitEvent = false;
+          }
+          if (shouldEmitEvent) {
+            this->eventHandler(event);
+          }
+        }
+      }
+    }
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void processTrade(Event& event, const TimePoint& tp, const TimePoint& timeReceived, const MarketDataMessage::TypeForData& input, const std::vector<std::string>& correlationIdList) {
+      std::vector<Message> messageList;
+      std::vector<Element> elementList;
+      this->updateElementListWithTrade(CCAPI_TRADE, input, elementList);
+      CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
+      if (!elementList.empty()) {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(Message::Type::MARKET_DATA_EVENTS);
+        message.setTime(tp);
+        message.setElementList(elementList);
+        message.setCorrelationIdList(correlationIdList);
+        messageList.push_back(std::move(message));
+      }
+      event.addMessages(messageList);
+  }
+  virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
   virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage,
                                                            const TimePoint& timeReceived) = 0;
@@ -1536,6 +1587,7 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::string> > extraPropertyByConnectionIdMap;
   bool enableCheckPingPongWebsocketProtocolLevel{};
   bool enableCheckPingPongWebsocketApplicationLevel{};
+  std::string getTradesTarget;
 };
 } /* namespace ccapi */
 #endif
