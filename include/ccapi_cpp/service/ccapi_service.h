@@ -50,7 +50,8 @@ class Service : public std::enable_shared_from_this<Service> {
       :
         eventHandler(eventHandler),
         sessionOptions(sessionOptions),
-        sessionConfigs(sessionConfigs), serviceContextPtr(serviceContextPtr), resolver(*serviceContextPtr->ioContextPtr) {
+        sessionConfigs(sessionConfigs), serviceContextPtr(serviceContextPtr), resolver(*serviceContextPtr->ioContextPtr),
+        httpConnectionPool(sessionOptions.httpConnectionPoolMaxSize) {
   }
   virtual ~Service() {
   }

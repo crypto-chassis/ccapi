@@ -42,7 +42,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const Request::Operation operation, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
     req.set("X-MBX-APIKEY", apiKey);
     switch (operation) {

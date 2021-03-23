@@ -22,9 +22,8 @@ class ExecutionManagementService : public Service {
   };
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
-  : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr),
-//  resolver(*serviceContextPtr->ioContextPtr),
-  httpConnectionPool(sessionOptions.httpConnectionPoolMaxSize) {
+  : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr)
+  {
   }
   virtual ~ExecutionManagementService() {
   }
