@@ -106,6 +106,13 @@ class Request CCAPI_FINAL {
   void setHttpResponseRaw(bool isHttpResponseRaw) {
     this->isHttpResponseRaw = isHttpResponseRaw;
   }
+  const std::map<std::string, std::string>& getFirstParamWithDefault(const std::map<std::string, std::string> & defaultValue = {}) const {
+    if (this->paramList.empty()) {
+      return defaultValue;
+    } else {
+      return this->paramList.front();
+    }
+  }
 
  private:
   std::string exchange;

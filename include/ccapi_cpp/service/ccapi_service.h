@@ -125,6 +125,11 @@ class Service : public std::enable_shared_from_this<Service> {
   }
 
  protected:
+  void setHostFromUrl(std::string baseUrlRest) {
+    auto hostPort = this->extractHostFromUrl(baseUrlRest);
+    this->hostRest = hostPort.first;
+    this->portRest = hostPort.second;
+  }
   std::pair<std::string, std::string> extractHostFromUrl(std::string baseUrlRest) {
     std::string host;
     std::string port;
@@ -310,7 +315,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_DEBUG("retry = "+toString(retry));
     try {
       std::call_once(tcpResolverResultsFlag, [that = shared_from_this()]() {
-        that->tcpResolverResults = that->resolver.resolve(that->host, that->port);
+        that->tcpResolverResults = that->resolver.resolve(that->hostRest, that->portRest);
       });
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
@@ -483,13 +488,13 @@ class Service : public std::enable_shared_from_this<Service> {
         if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool.empty()) {
           std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
           try {
-            streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host);
+            streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostRest);
           } catch (const beast::error_code& ec) {
             CCAPI_LOGGER_TRACE("fail");
             this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream");
             return;
           }
-          std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->host, this->port, streamPtr));
+          std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->hostRest, this->portRest, streamPtr));
           this->performRequest(httpConnectionPtr, request, req, retry);
         } else {
           std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
@@ -502,13 +507,13 @@ class Service : public std::enable_shared_from_this<Service> {
             }
             std::shared_ptr<beast::ssl_stream <beast::tcp_stream> > streamPtr(nullptr);
             try {
-              streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->host);
+              streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostRest);
             } catch (const beast::error_code& ec) {
               CCAPI_LOGGER_TRACE("fail");
               this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream");
               return;
             }
-            httpConnectionPtr = std::make_shared<HttpConnection>(this->host, this->port, streamPtr);
+            httpConnectionPtr = std::make_shared<HttpConnection>(this->hostRest, this->portRest, streamPtr);
             this->performRequest(httpConnectionPtr, request, req, retry);
           }
         }
@@ -537,7 +542,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("instrument = "+instrument);
     auto operation = request.getOperation();
     http::request<http::string_body> req;
-    req.set(http::field::host, this->host+":"+this->port);
+    req.set(http::field::host, this->hostRest+":"+this->portRest);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertReq(req, request, operation, now, symbolId, credential);
     return req;
@@ -550,8 +555,8 @@ class Service : public std::enable_shared_from_this<Service> {
   SessionConfigs sessionConfigs;
   ServiceContextPtr serviceContextPtr;
   tcp::resolver resolver;
-  std::string host;
-  std::string port;
+  std::string hostRest;
+  std::string portRest;
   tcp::resolver::results_type tcpResolverResults;
   std::once_flag tcpResolverResultsFlag;
   Queue<std::shared_ptr<HttpConnection> > httpConnectionPool;

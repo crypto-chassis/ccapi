@@ -9,6 +9,8 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
   MarketDataServiceCoinbase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getTradesTarget = "/products/<product-id>/trades";
   }
 
@@ -157,7 +159,7 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
           {"<product-id>", symbolId}
         });
         std::string queryString;
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string>& param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param, {
             {CCAPI_START_TRADE_ID, "before"},
             {CCAPI_END_TRADE_ID, "after"},
@@ -183,12 +185,12 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-          marketDataMessage.tp = UtilTime::parse(std::string(document["time"].GetString()));
+          marketDataMessage.tp = UtilTime::parse(std::string(x["time"].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(document["price"].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(document["size"].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["trade_id"].GetInt64())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "buy" ? "1" : "0"});
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, std::string(x["price"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::string(x["size"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(x["trade_id"].GetInt64())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "buy" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }

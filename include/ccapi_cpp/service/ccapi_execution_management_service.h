@@ -32,11 +32,6 @@ class ExecutionManagementService : public Service {
   void subscribe(const std::vector<Subscription>& subscriptionList) override {}
 
  protected:
-  void setHostFromUrl(std::string baseUrlRest) {
-    auto hostPort = this->extractHostFromUrl(baseUrlRest);
-    this->host = hostPort.first;
-    this->port = hostPort.second;
-  }
   void setupCredential(std::vector<std::string> nameList) {
     for (const auto& x : nameList) {
       if (this->sessionConfigs.getCredential().find(x) != this->sessionConfigs.getCredential().end()) {
