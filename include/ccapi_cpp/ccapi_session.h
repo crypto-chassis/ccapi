@@ -75,6 +75,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
 #include "ccapi_cpp/service/ccapi_execution_management_service_kucoin.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX
+#include "ccapi_cpp/service/ccapi_execution_management_service_ftx.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -195,6 +198,9 @@ class Session CCAPI_FINAL {
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KUCOIN] = std::make_shared<ExecutionManagementServiceKucoin>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+    #ifdef CCAPI_ENABLE_EXCHANGE_FTX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX] = std::make_shared<ExecutionManagementServiceFTX>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {

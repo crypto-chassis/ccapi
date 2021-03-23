@@ -25,3 +25,5 @@ add_subdirectory(src/execution_management_complex)
 add_subdirectory(src/market_making)
 add_subdirectory(src/cross_exchange_arbitrage)
 add_subdirectory(src/enable_library_logging)
+add_subdirectory(src/ftx_market_execution)
+
