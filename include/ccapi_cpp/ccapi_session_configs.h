@@ -250,6 +250,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_FTX},
     };
   }
   std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {
