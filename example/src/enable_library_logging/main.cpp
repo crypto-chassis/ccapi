@@ -21,11 +21,11 @@ MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
 } /* namespace ccapi */
 using ::ccapi::Session;
-using ::ccapi::Request;
+using ::ccapi::Subscription;
 int main(int argc, char **argv) {
   Session session;
-  Request request(Request::Operation::GET_TRADES, "coinbase", "BTC-USD");
-  session.sendRequest(request);
+  Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+  session.subscribe(subscription);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();
   return EXIT_SUCCESS;
