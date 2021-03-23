@@ -18,7 +18,8 @@ class ExecutionManagementService : public Service {
   enum class JsonDataType {
     STRING,
     INTEGER,
-    BOOLEAN
+    BOOLEAN,
+    DOUBLE
   };
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)

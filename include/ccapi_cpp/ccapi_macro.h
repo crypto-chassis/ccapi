@@ -68,6 +68,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_KUCOIN
 #define CCAPI_EXCHANGE_NAME_KUCOIN "kucoin"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_FTX
+#define CCAPI_EXCHANGE_NAME_FTX "ftx"
+#endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -215,6 +218,9 @@
 #ifndef CCAPI_EM_ORDER_ID
 #define CCAPI_EM_ORDER_ID "ORDER_ID"
 #endif
+#ifndef CCAPI_EM_ORDER_TYPE
+#define CCAPI_EM_ORDER_TYPE "ORDER_TYPE"
+#endif
 #ifndef CCAPI_EM_CLIENT_ORDER_ID
 #define CCAPI_EM_CLIENT_ORDER_ID "CLIENT_ORDER_ID"
 #endif
@@ -312,6 +318,9 @@
 #ifndef CCAPI_KUCOIN_URL_REST_BASE
 #define CCAPI_KUCOIN_URL_REST_BASE "https://api.kucoin.com"
 #endif
+#ifndef CCAPI_FTX_URL_REST_BASE
+#define CCAPI_FTX_URL_REST_BASE "https://ftx.com/api"
+#endif
 // end: exchange REST urls
 
 // start: exchange API credentials
@@ -365,6 +374,12 @@
 #endif
 #ifndef CCAPI_ERISX_API_SECRET
 #define CCAPI_ERISX_API_SECRET "ERISX_API_SECRET"
+#endif
+#ifndef CCAPI_FTX_API_KEY
+#define CCAPI_FTX_API_KEY "FTX_API_KEY"
+#endif
+#ifndef CCAPI_FTX_API_SECRET
+#define CCAPI_FTX_API_SECRET "FTX_API_SECRET"
 #endif
 // end: exchange API credentials
 
