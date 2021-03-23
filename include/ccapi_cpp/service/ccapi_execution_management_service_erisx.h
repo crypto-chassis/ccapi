@@ -72,7 +72,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       target = target.replace(target.find(key), key.length(), value);
     }
   }
-  void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     switch (operation) {
       case Request::Operation::CREATE_ORDER:

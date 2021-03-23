@@ -75,7 +75,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string symbolId) {
     queryParamMap.insert(std::make_pair("symbol", Url::urlEncode(symbolId)));
   }
-  void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
     std::map<std::string, std::string> queryParamMap;
