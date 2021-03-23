@@ -22,8 +22,7 @@ class ExecutionManagementService : public Service {
   };
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
       SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
-  : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr)
-  {
+  : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
   }
   virtual ~ExecutionManagementService() {
   }
