@@ -161,6 +161,14 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
     }
     return wsMessageList;
   }
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+    // TODO(cryptochassis): implement
+  }
+  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    std::vector<MarketDataMessage> marketDataMessageList;
+    // TODO(cryptochassis): implement
+    return marketDataMessageList;
+  }
   std::map<std::string, int> nextRequestIdByConnectionIdMap;
 };
 } /* namespace ccapi */
