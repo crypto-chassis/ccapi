@@ -26,7 +26,7 @@ class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionMan
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
  public:
-  using ExecutionManagementService::processSuccessfulTextMessage;
+  using ExecutionManagementService::convertTextMessageToMessage;
 #endif
 };
 } /* namespace ccapi */

@@ -321,7 +321,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`.
-* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`.
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `CCAPI_EM_ORDER_POSITION_EFFECT`.
 
 ### Advanced Execution Management
 

@@ -534,6 +534,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   http::request<http::string_body> convertRequest(const Request& request, const TimePoint& now) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
     auto credential = request.getCredential();
     if (credential.empty()) {
       credential = this->credentialDefault;
@@ -546,6 +547,7 @@ class Service : public std::enable_shared_from_this<Service> {
     req.set(http::field::host, this->hostRest+":"+this->portRest);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertReq(req, request, operation, now, symbolId, credential);
+    CCAPI_LOGGER_FUNCTION_EXIT;
     return req;
   }
   std::string name;

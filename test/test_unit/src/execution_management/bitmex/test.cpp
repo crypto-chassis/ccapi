@@ -67,7 +67,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -107,7 +107,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageCreateO
     "timestamp": "2021-01-12T20:48:37.807Z"
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -150,7 +150,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCancelOrderByClientOr
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -192,7 +192,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageCancelO
     }
   ]
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -231,7 +231,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOrderByClientOrder
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageGetOrder) {
+TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -273,7 +273,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageGetOrde
     }
   ]
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -314,7 +314,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOpenOrdersAllInstr
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
-void verifyProcessSuccessfulTextMessageGetOpenOrders(const ExecutionManagementServiceBitmexTest* fixture, bool isOneInstrument) {
+void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceBitmexTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "XBTUSD" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BITMEX, symbol, "", fixture->credential);
   std::string textMessage =
@@ -357,7 +357,7 @@ void verifyProcessSuccessfulTextMessageGetOpenOrders(const ExecutionManagementSe
     }
   ]
   )";
-  auto messageList = fixture->service->processSuccessfulTextMessage(request, textMessage, fixture->now);
+  auto messageList = fixture->service->convertTextMessageToMessage(request, textMessage, fixture->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -376,12 +376,12 @@ void verifyProcessSuccessfulTextMessageGetOpenOrders(const ExecutionManagementSe
   }
 }
 
-TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageGetOpenOrdersOneInstrument) {
-  verifyProcessSuccessfulTextMessageGetOpenOrders(this, true);
+TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
+  verifyconvertTextMessageToMessageGetOpenOrders(this, true);
 }
 
-TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageGetOpenOrdersAllInstruments) {
-  verifyProcessSuccessfulTextMessageGetOpenOrders(this, false);
+TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
+  verifyconvertTextMessageToMessageGetOpenOrders(this, false);
 }
 
 TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCancelOpenOrders) {
@@ -396,7 +396,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCancelOpenOrders) {
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageCancelOpenOrders) {
+TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -438,7 +438,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, processSuccessfulTextMessageCancelO
     }
   ]
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

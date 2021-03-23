@@ -159,7 +159,7 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
           {"<product-id>", symbolId}
         });
         std::string queryString;
-        const std::map<std::string, std::string>& param = request.getFirstParamWithDefault();
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param, {
             {CCAPI_START_TRADE_ID, "before"},
             {CCAPI_END_TRADE_ID, "after"},

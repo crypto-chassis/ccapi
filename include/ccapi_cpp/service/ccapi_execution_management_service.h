@@ -43,7 +43,7 @@ class ExecutionManagementService : public Service {
     return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN
     : CCAPI_EM_ORDER_STATUS_CLOSED;
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  virtual std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
@@ -84,6 +84,10 @@ class ExecutionManagementService : public Service {
     message.setElementList(this->extractOrderInfo(operation, document));
     std::vector<Message> messageList;
     messageList.push_back(std::move(message));
+    return messageList;
+  }
+  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    const std::vector<Message>& messageList = this->convertTextMessageToMessage(request, textMessage, timeReceived);
     Event event;
     event.setType(Event::Type::RESPONSE);
     event.addMessages(messageList);

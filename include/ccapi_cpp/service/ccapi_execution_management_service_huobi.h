@@ -47,7 +47,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
       i++;
     }
     preSignedText += queryString;
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
     queryString += "&Signature=";
     queryString += Url::urlEncode(signature);
@@ -77,7 +77,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
   }
   void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     std::map<std::string, std::string> queryParamMap;
     queryParamMap.insert(std::make_pair("AccessKeyId", apiKey));
     queryParamMap.insert(std::make_pair("SignatureMethod", "HmacSHA256"));
@@ -203,7 +203,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::processSuccessfulTextMessage;
+  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceHuobiTest, signRequest);
 #endif
 };

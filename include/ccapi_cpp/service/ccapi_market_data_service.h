@@ -459,7 +459,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(
         this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto wsMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
+    const std::vector<MarketDataMessage>& wsMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
     CCAPI_LOGGER_TRACE("websocketMessageList = "+toString(wsMessageList));
     if (!wsMessageList.empty()) {
       for (auto const & wsMessage : wsMessageList) {
@@ -1490,7 +1490,7 @@ class MarketDataService : public Service {
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    auto marketDataMessageList = this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived);
+    const std::vector<MarketDataMessage>& marketDataMessageList = this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived);
     CCAPI_LOGGER_TRACE("marketDataMessageList = "+toString(marketDataMessageList));
     if (!marketDataMessageList.empty()) {
       for (auto const & marketDataMessage : marketDataMessageList) {

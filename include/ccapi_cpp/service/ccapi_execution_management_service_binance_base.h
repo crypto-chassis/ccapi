@@ -24,7 +24,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     if (queryString.back() == '&') {
       queryString.pop_back();
     }
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
     queryString += "&signature=";
     queryString += signature;
@@ -43,7 +43,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += "&";
   }
   void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("X-MBX-APIKEY", apiKey);
     switch (operation) {
       case Request::Operation::CREATE_ORDER:

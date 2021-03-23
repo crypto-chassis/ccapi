@@ -28,7 +28,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
 
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = std::string(req.method_string());
     preSignedText += req.target().to_string();
     preSignedText += req.base().at("api-expires").to_string();
@@ -67,7 +67,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
   void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>((now+std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch()).count()));
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("api-key", apiKey);
     switch (operation) {
       case Request::Operation::CREATE_ORDER:
@@ -84,6 +84,9 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
             {CCAPI_EM_ORDER_LIMIT_PRICE , "price"},
             {CCAPI_EM_CLIENT_ORDER_ID , "clOrdID"}
         });
+        if (param.find(CCAPI_EM_ORDER_POSITION_EFFECT) != param.end() && param.at(CCAPI_EM_ORDER_POSITION_EFFECT) == CCAPI_EM_ORDER_POSITION_EFFECT_CLOSE) {
+          document.AddMember("execInst", rj::Value("Close").Move(), allocator);
+        }
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -192,15 +195,14 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     return elementList;
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
  public:
 #endif
-  std::vector<Message> processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
-    return ExecutionManagementService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
+    CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
+    return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
  protected:
 #endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
@@ -219,6 +221,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
 
  public:
   using ExecutionManagementService::convertRequest;
+  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceBitmexTest, signRequest);
 #endif
 };
