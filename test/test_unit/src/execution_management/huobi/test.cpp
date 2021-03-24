@@ -96,7 +96,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -104,7 +104,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageCreateOr
     "data": "59378"
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -148,7 +148,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByClientOrd
   verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -156,7 +156,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageCancelOr
     "data": "59378"
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -198,7 +198,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByClientOrderI
   verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageGetOrder) {
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "ethusdt", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -222,7 +222,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageGetOrder
     }
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -254,7 +254,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOpenOrdersOneInstru
   verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageGetOpenOrdersOneInstrument) {
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "ethusdt", "", this->credential);
   std::string textMessage =
   R"(
@@ -277,7 +277,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, processSuccessfulTextMessageGetOpenO
     ]
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

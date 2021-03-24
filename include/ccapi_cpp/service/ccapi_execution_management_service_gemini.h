@@ -38,7 +38,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto base64Payload = UtilAlgorithm::base64Encode(body);
     req.set("X-GEMINI-PAYLOAD", base64Payload);
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName, {});
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = UtilString::toLower(Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true));
     req.set("X-GEMINI-SIGNATURE", signature);
   }
@@ -59,8 +59,8 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req, const std::map<std::string, std::string>& credential, const std::string& symbolId, const Request::Operation operation) override {
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("Content-Length", "0");
     req.set("Content-Type", "text/plain");
     req.set("X-GEMINI-APIKEY", apiKey);
@@ -194,7 +194,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::processSuccessfulTextMessage;
+  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceGeminiTest, signRequest);
 #endif
 };

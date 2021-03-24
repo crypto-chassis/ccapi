@@ -74,7 +74,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCreateOrder) {
   verifyJwt(req, this->credential.at(CCAPI_ERISX_API_KEY), this->credential.at(CCAPI_ERISX_API_SECRET), this->timestamp);
 }
 
-TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -137,7 +137,7 @@ TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageCreateOr
    ]
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -175,7 +175,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOrderByOrderId) 
   verifyJwt(req, this->credential.at(CCAPI_ERISX_API_KEY), this->credential.at(CCAPI_ERISX_API_SECRET), this->timestamp);
 }
 
-TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -238,7 +238,7 @@ TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageCancelOr
    ]
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -258,7 +258,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOrder) {
   verifyJwt(req, this->credential.at(CCAPI_ERISX_API_KEY), this->credential.at(CCAPI_ERISX_API_SECRET), this->timestamp);
 }
 
-TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageGetOrder) {
+TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -321,7 +321,7 @@ TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageGetOrder
    ]
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -351,7 +351,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOpenOrders) {
   verifyJwt(req, this->credential.at(CCAPI_ERISX_API_KEY), this->credential.at(CCAPI_ERISX_API_SECRET), this->timestamp);
 }
 
-TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageGetOpenOrders) {
+TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOpenOrders) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "", this->credential);
   std::string textMessage =
   R"(
@@ -420,7 +420,7 @@ TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageGetOpenO
    ]
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -451,7 +451,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOpenOrders) {
   verifyJwt(req, this->credential.at(CCAPI_ERISX_API_KEY), this->credential.at(CCAPI_ERISX_API_SECRET), this->timestamp);
 }
 
-TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageCancelOpenOrders) {
+TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
   std::string textMessage =
   R"(
@@ -462,7 +462,7 @@ TEST_F(ExecutionManagementServiceErisxTest, processSuccessfulTextMessageCancelOp
    "message": "Accepted"
   }
   )";
-  auto messageList = this->service->processSuccessfulTextMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

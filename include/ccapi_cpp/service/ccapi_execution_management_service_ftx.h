@@ -3,7 +3,23 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
-
+//used for ftx authentication
+constexpr char hexmap[] = {'0',
+                           '1',
+                           '2',
+                           '3',
+                           '4',
+                           '5',
+                           '6',
+                           '7',
+                           '8',
+                           '9',
+                           'a',
+                           'b',
+                           'c',
+                           'd',
+                           'e',
+                           'f'};
 std::string string_to_hex(unsigned char* data, std::size_t len)
 {
     std::string s(len * 2, ' ');
@@ -16,25 +32,25 @@ std::string string_to_hex(unsigned char* data, std::size_t len)
 
 
 namespace ccapi {
-    class ExecutionManagementServiceFTX CCAPI_FINAL: public ExecutionManagementService {
-        public: ExecutionManagementServiceFTX(std:: function < void(Event & event) > eventHandler, SessionOptions sessionOptions,
+    class ExecutionManagementServiceFtx CCAPI_FINAL: public ExecutionManagementService {
+        public: ExecutionManagementServiceFtx(std:: function < void(Event & event) > eventHandler, SessionOptions sessionOptions,
             SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr): ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
             CCAPI_LOGGER_FUNCTION_ENTER;
-            this -> name = CCAPI_EXCHANGE_NAME_FTX;
-            this -> baseUrlRest = this -> sessionConfigs.getUrlRestBase().at(this -> name);
-            this -> setHostFromUrl(this -> baseUrlRest);
-            this -> apiKeyName = CCAPI_FTX_API_KEY;
-            this -> apiSecretName = CCAPI_FTX_API_SECRET;
-            this -> setupCredential({
-                this -> apiKeyName,
-                this -> apiSecretName
+            this->name = CCAPI_EXCHANGE_NAME_FTX;
+            this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+            this->setHostFromUrl(this->baseUrlRest);
+            this->apiKeyName = CCAPI_FTX_API_KEY;
+            this->apiSecretName = CCAPI_FTX_API_SECRET;
+            this->setupCredential({
+                this->apiKeyName,
+                this->apiSecretName
             });
-            this -> createOrderTarget = "/api/orders";
-            this -> cancelOrderTarget = "/api/orders";
-            this -> getOrderTarget = "/api/orders";
-            this -> getOpenOrdersTarget = "/api/orders";
-            this -> cancelOpenOrdersTarget = "/api/orders";
-            this -> orderStatusOpenSet = {
+            this->createOrderTarget = "/api/orders";
+            this->cancelOrderTarget = "/api/orders";
+            this->getOrderTarget = "/api/orders";
+            this->getOpenOrdersTarget = "/api/orders";
+            this->cancelOpenOrdersTarget = "/api/orders";
+            this->orderStatusOpenSet = {
                 "new"
             };
             CCAPI_LOGGER_FUNCTION_EXIT;
@@ -42,7 +58,7 @@ namespace ccapi {
 
         protected:
         void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::string& body, const std::map<std::string, std::string>& credential) {
-                auto apiSecret = mapGetWithDefault(credential, this -> apiSecretName, {});
+                auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
                 std::string ts = std::to_string(std::chrono::duration_cast < std::chrono::milliseconds > (now.time_since_epoch()).count());
 
                 std::string method(req.method_string());
@@ -84,11 +100,9 @@ namespace ccapi {
         void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {
             document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
         }
-        void convertReq(const Request& request, const TimePoint& now, http::request<http::string_body>& req,
-                const std::map<std::string, std::string>& credential, const std::string& symbolId,
-                const Request::Operation operation) override {
+        void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
             req.set(beast::http::field::content_type, "application/json");
-            auto apiKey = mapGetWithDefault(credential, this->apiKeyName, {});
+            auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
             req.set("FTX-KEY", apiKey);
 
             switch (operation) {
