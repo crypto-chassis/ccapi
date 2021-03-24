@@ -203,6 +203,9 @@
 #ifndef CCAPI_EM_ORDER_POSITION_EFFECT_CLOSE
 #define CCAPI_EM_ORDER_POSITION_EFFECT_CLOSE "CLOSE"
 #endif
+#ifndef CCAPI_EM_ORDER_TYPE
+#define CCAPI_EM_ORDER_TYPE "ORDER_TYPE"
+#endif
 #ifndef CCAPI_EM_ORDER_QUANTITY
 #define CCAPI_EM_ORDER_QUANTITY "QUANTITY"
 #endif
@@ -217,9 +220,6 @@
 #endif
 #ifndef CCAPI_EM_ORDER_ID
 #define CCAPI_EM_ORDER_ID "ORDER_ID"
-#endif
-#ifndef CCAPI_EM_ORDER_TYPE
-#define CCAPI_EM_ORDER_TYPE "ORDER_TYPE"
 #endif
 #ifndef CCAPI_EM_CLIENT_ORDER_ID
 #define CCAPI_EM_CLIENT_ORDER_ID "CLIENT_ORDER_ID"
@@ -319,7 +319,7 @@
 #define CCAPI_KUCOIN_URL_REST_BASE "https://api.kucoin.com"
 #endif
 #ifndef CCAPI_FTX_URL_REST_BASE
-#define CCAPI_FTX_URL_REST_BASE "https://ftx.com/api"
+#define CCAPI_FTX_URL_REST_BASE "https://ftx.com"
 #endif
 // end: exchange REST urls
 

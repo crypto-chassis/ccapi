@@ -199,8 +199,8 @@ class Session CCAPI_FINAL {
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KUCOIN] = std::make_shared<ExecutionManagementServiceKucoin>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-    #ifdef CCAPI_ENABLE_EXCHANGE_FTX
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX] = std::make_shared<ExecutionManagementServiceFTX>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX] = std::make_shared<ExecutionManagementServiceFtx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
