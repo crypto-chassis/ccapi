@@ -47,7 +47,7 @@
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
   * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, okex, erisx, kucoin.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, erisx.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, erisx, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Since symbol normalization is a tedious task, you can choose to use a reference file at https://marketdata-e0323a9039add2978bf5b49550572c7c-public.s3.amazonaws.com/supported_exchange_instrument_subscription_data.csv.gz which we frequently update.
@@ -321,7 +321,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`.
-* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `CCAPI_EM_ORDER_POSITION_EFFECT`.
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `CCAPI_EM_ORDER_POSITION_EFFECT`, `ORDER_TYPE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_complex/main.cpp).
 
 ### Advanced Execution Management
 
