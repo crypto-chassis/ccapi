@@ -162,6 +162,8 @@
 #define CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_AGG_TRADE "aggTrade"
 #define CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL "market.$symbol.trade.detail"
 #define CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX "market\\.(.+)\\.trade\\.detail"
+#define CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO "market.$symbol.bbo"
+#define CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO_REGEX "market\\.(.+)\\.bbo"
 #define CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH "market.$symbol.depth.step0"
 #define CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX "market\\.(.+)\\.depth\\.step0"
 #define CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE "spot/trade"

@@ -15,16 +15,17 @@
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITMEX)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
-#
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
-#
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
 # find_package(ZLIB REQUIRED)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
 # find_package(ZLIB REQUIRED)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX)
 #
 # add_compile_definitions(CCAPI_ENABLE_LOG_TRACE)
 #

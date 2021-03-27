@@ -34,6 +34,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
+#include "ccapi_cpp/service/ccapi_market_data_service_huobi_usdt_swap.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
 #include "ccapi_cpp/service/ccapi_market_data_service_okex.h"
 #endif
@@ -163,6 +166,9 @@ class Session CCAPI_FINAL {
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HUOBI] = std::make_shared<MarketDataServiceHuobi>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP] = std::make_shared<MarketDataServiceHuobiUsdtSwap>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKEX] = std::make_shared<MarketDataServiceOkex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);

@@ -189,15 +189,22 @@ class MarketDataService : public Service {
   }
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
+    CCAPI_LOGGER_TRACE("instrument = " + instrument);
     auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+    CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     auto field = subscription.getField();
+    CCAPI_LOGGER_TRACE("field = " + field);
     auto optionMap = subscription.getOptionMap();
+    CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field);
+    CCAPI_LOGGER_TRACE("channelId = " + channelId);
+    CCAPI_LOGGER_TRACE("this->name = " + this->name);
     if (field == CCAPI_MARKET_DEPTH) {
       if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX
           || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US || this->name == CCAPI_EXCHANGE_NAME_BINANCE || this->name == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES
-          || this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+          || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
         int marketDepthSubscribedToExchange = 1;
         marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
             marketDepthRequested,
@@ -222,6 +229,10 @@ class MarketDataService : public Service {
         } else if (marketDepthRequested <= 25) {
           channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
         }
+      } else if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP) {
+        if (marketDepthRequested == 1) {
+          channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
+        }
       } else if (this->name == CCAPI_EXCHANGE_NAME_ERISX) {
         if (marketDepthRequested <= 20) {
           channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthRequested);
@@ -243,6 +254,7 @@ class MarketDataService : public Service {
         channelId += "|" + field;
       }
     }
+    CCAPI_LOGGER_TRACE("channelId = " + channelId);
     this->correlationIdListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(
         subscription.getCorrelationId());
     this->subscriptionListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(
@@ -407,8 +419,8 @@ class MarketDataService : public Service {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, e);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
-#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
-      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
+      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
         std::string payload = msg->get_payload();
         try {
@@ -1573,7 +1585,7 @@ class MarketDataService : public Service {
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   std::function<void(Event& event)> eventHandler;
-#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled <monostate> inflater;
 #endif
