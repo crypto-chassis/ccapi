@@ -40,6 +40,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
 #include "ccapi_cpp/service/ccapi_market_data_service_okex.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_OKEX_PERPETUAL
+#include "ccapi_cpp/service/ccapi_market_data_service_okex_perpetual.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
 #include "ccapi_cpp/service/ccapi_market_data_service_erisx.h"
 #endif
@@ -173,6 +176,9 @@ class Session CCAPI_FINAL {
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKEX] = std::make_shared<MarketDataServiceOkex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_OKEX_PERPETUAL
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKEX_PERPETUAL] = std::make_shared<MarketDataServiceOkexPerpetual>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ERISX] = std::make_shared<MarketDataServiceErisx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
@@ -276,22 +282,13 @@ class Session CCAPI_FINAL {
           CCAPI_LOGGER_DEBUG("exchange = "+exchange);
           auto field = subscription.getField();
           auto optionMap = subscription.getOptionMap();
-            CCAPI_LOGGER_DEBUG("field = "+field);
-            if (exchangeFieldMap.find(exchange) == exchangeFieldMap.end()
-                || std::find(exchangeFieldMap.find(exchange)->second.begin(), exchangeFieldMap.find(exchange)->second.end(),
-                             field) == exchangeFieldMap.find(exchange)->second.end()) {
-              CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
-              unsupportedExchangeFieldSet.insert(exchange + "|" + field);
-            }
-//            if (field == CCAPI_MARKET_DEPTH) {
-//              auto depth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-//              if (((exchange == CCAPI_EXCHANGE_NAME_KRAKEN || exchange == CCAPI_EXCHANGE_NAME_BITSTAMP || exchange == CCAPI_EXCHANGE_NAME_BITFINEX || exchange == CCAPI_EXCHANGE_NAME_HUOBI || exchange == CCAPI_EXCHANGE_NAME_OKEX)
-//                  && depth > this->sessionConfigs.getWebsocketAvailableMarketDepth().at(exchange).back())
-//                      ) {
-//                CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
-//                unsupportedExchangeMarketDepthSet.insert(exchange + "|" + toString(depth));
-//              }
-//            }
+          CCAPI_LOGGER_DEBUG("field = "+field);
+          if (exchangeFieldMap.find(exchange) == exchangeFieldMap.end()
+              || std::find(exchangeFieldMap.find(exchange)->second.begin(), exchangeFieldMap.find(exchange)->second.end(),
+                           field) == exchangeFieldMap.find(exchange)->second.end()) {
+            CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = "+field);
+            unsupportedExchangeFieldSet.insert(exchange + "|" + field);
+          }
           subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
         if (!duplicateCorrelationIdSet.empty()) {
