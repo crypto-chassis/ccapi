@@ -32,7 +32,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "contract_code");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, const std::map<std::string, std::string>& queryParamMap) override {
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
     switch (operation) {
       case Request::Operation::CREATE_ORDER:
       {

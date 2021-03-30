@@ -28,12 +28,12 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
 
  protected:
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
-    this->appendSymbolId(document, allocator, symbolId, "symbol");
+    ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "symbol");
   }
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
-    this->appendSymbolId(queryParamMap, symbolId, "symbol");
+    ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "symbol");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, const std::map<std::string, std::string>& queryParamMap) override {
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
     switch (operation) {
       case Request::Operation::CREATE_ORDER:
       {
@@ -96,7 +96,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         auto target = shouldUseOrderId ? std::regex_replace(this->getOrderTarget, std::regex("\\{order\\-id\\}"), id) : this->getOrderByClientOrderIdTarget;
         req.target(target);
         if (!shouldUseOrderId) {
-          this->appendParam(queryParamMap, param, {
+          ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, param, {
               {CCAPI_EM_ACCOUNT_ID , "account-id"}
           });
           queryParamMap.insert(std::make_pair("clientOrderId", Url::urlEncode(id)));
@@ -107,7 +107,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
       case Request::Operation::GET_OPEN_ORDERS:
       {
         req.method(http::verb::get);
-        this->appendParam(queryParamMap, {}, {
+        ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, {}, {
             {CCAPI_EM_ACCOUNT_ID , "account-id"}
         });
         if (!symbolId.empty()) {

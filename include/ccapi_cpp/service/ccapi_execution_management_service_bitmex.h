@@ -84,9 +84,6 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
             {CCAPI_EM_ORDER_LIMIT_PRICE , "price"},
             {CCAPI_EM_CLIENT_ORDER_ID , "clOrdID"}
         });
-        if (param.find(CCAPI_EM_ORDER_POSITION_EFFECT) != param.end() && param.at(CCAPI_EM_ORDER_POSITION_EFFECT) == CCAPI_EM_ORDER_POSITION_EFFECT_CLOSE) {
-          document.AddMember("execInst", rj::Value("Close").Move(), allocator);
-        }
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);

@@ -79,7 +79,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
     this->convertReqDetail(req, request, operation, now, symbolId, credential, queryParamMap);
   }
-  virtual void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, const std::map<std::string, std::string>& queryParamMap) = 0;
+  virtual void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) = 0;
   bool isDerivatives{};
 };
 } /* namespace ccapi */
