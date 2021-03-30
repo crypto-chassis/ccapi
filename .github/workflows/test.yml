@@ -181,9 +181,9 @@ jobs:
         set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
 
         if ("$ENV{GITHUB_EVENT_NAME}" STREQUAL "push")
-          set(ENV{<BUILD_TYPE>} "Release")
+          set(ENV{BUILD_TYPE} "Release")
         else()
-          set(ENV{<BUILD_TYPE>} "Debug")
+          set(ENV{BUILD_TYPE} "Debug")
         endif()
 
         execute_process(
