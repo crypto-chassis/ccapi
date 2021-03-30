@@ -62,7 +62,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
-  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {
+  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
   void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
@@ -78,7 +78,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       case Request::Operation::CREATE_ORDER:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->createOrderTarget);
         rj::Document document;
         document.SetObject();
@@ -106,7 +106,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       case Request::Operation::CANCEL_ORDER:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOrderTarget);
         rj::Document document;
         document.SetObject();
@@ -129,7 +129,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       case Request::Operation::GET_ORDER:
       {
         req.method(http::verb::get);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string target = this->getOrderTarget;
         this->substituteParam(target, param, {
             {CCAPI_EM_ORDER_ID, "{orderID}"},
@@ -142,7 +142,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       case Request::Operation::GET_OPEN_ORDERS:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getOpenOrdersTarget);
         rj::Document document;
         document.SetObject();
@@ -157,7 +157,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       case Request::Operation::CANCEL_OPEN_ORDERS:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOpenOrdersTarget);
         rj::Document document;
         document.SetObject();
@@ -225,7 +225,6 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceErisxTest, signRequest);
 #endif
 };

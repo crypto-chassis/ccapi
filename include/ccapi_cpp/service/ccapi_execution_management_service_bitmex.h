@@ -56,10 +56,10 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
       queryString += "&";
     }
   }
-  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {
+  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void appendSymbolId(std::string& queryString, const std::string symbolId) {
+  void appendSymbolId(std::string& queryString, const std::string& symbolId) {
     queryString += "symbol=";
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
@@ -73,7 +73,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
       case Request::Operation::CREATE_ORDER:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->createOrderTarget);
         rj::Document document;
         document.SetObject();
@@ -84,9 +84,6 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
             {CCAPI_EM_ORDER_LIMIT_PRICE , "price"},
             {CCAPI_EM_CLIENT_ORDER_ID , "clOrdID"}
         });
-        if (param.find(CCAPI_EM_ORDER_POSITION_EFFECT) != param.end() && param.at(CCAPI_EM_ORDER_POSITION_EFFECT) == CCAPI_EM_ORDER_POSITION_EFFECT_CLOSE) {
-          document.AddMember("execInst", rj::Value("Close").Move(), allocator);
-        }
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -99,7 +96,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
       {
         req.method(http::verb::delete_);
         std::string queryString;
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param, {
             {CCAPI_EM_ORDER_ID , "orderID"},
             {CCAPI_EM_CLIENT_ORDER_ID , "clOrdID"}
@@ -115,7 +112,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
       {
         req.method(http::verb::get);
         std::string queryString;
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         if (!param.empty()) {
           rj::Document document;
           document.SetObject();
@@ -223,7 +220,6 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceBitmexTest, signRequest);
 #endif
 };

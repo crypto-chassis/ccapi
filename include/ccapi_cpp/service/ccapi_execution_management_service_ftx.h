@@ -97,7 +97,7 @@ namespace ccapi {
 
             }
         }
-        void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {
+        void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
             document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
         }
         void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
@@ -109,7 +109,7 @@ namespace ccapi {
                 case Request::Operation::CREATE_ORDER:
                 {
                     req.method(http::verb::post);
-                    const std::map<std::string, std::string>& param = request.getParamList().at(0);
+                    const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
                     req.target(this->createOrderTarget);
                     rj::Document document;
                     document.SetObject();
@@ -136,7 +136,7 @@ namespace ccapi {
                 case Request::Operation::CANCEL_ORDER:
                 {
                     req.method(http::verb::delete_);
-                    const std::map<std::string, std::string>& param = request.getParamList().at(0);
+                    const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
                     std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end() ? param.at(CCAPI_EM_ORDER_ID): "";
                     req.target(this->cancelOrderTarget +"/"+id);
                     this->signRequest(req, now, "", credential);
@@ -145,7 +145,7 @@ namespace ccapi {
                 case Request::Operation::GET_ORDER:
                 {
                     req.method(http::verb::get);
-                    const std::map<std::string, std::string>& param = request.getParamList().at(0);
+                    const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
                     std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end() ? param.at(CCAPI_EM_ORDER_ID): "";
                     req.target(this->getOrderTarget+"/"+id);
                     this->signRequest(req,now, "", credential);

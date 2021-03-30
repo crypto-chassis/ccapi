@@ -98,7 +98,7 @@ class ExecutionManagementService : public Service {
     Element element;
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
-      if (it != x.MemberEnd()) {
+      if (it != x.MemberEnd() && !it->value.IsNull()) {
         std::string value = y.second.second == JsonDataType::STRING ? it->value.GetString() :
           y.second.second == JsonDataType::INTEGER ? std::to_string(it->value.GetInt64()) :
           y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) :

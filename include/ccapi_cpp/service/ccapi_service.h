@@ -1,8 +1,9 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
-// #ifndef RAPIDJSON_ASSERT
-// #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
-// #endif
+#include "ccapi_cpp/ccapi_logger.h"
+#ifndef RAPIDJSON_ASSERT
+#define RAPIDJSON_ASSERT(x) if (!(x)) { CCAPI_LOGGER_ERROR("rapidjson internal assertion failure"); }
+#endif
 #include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "ccapi_cpp/ccapi_event.h"
@@ -18,7 +19,7 @@
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/asio/strand.hpp>
-#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
 #include <sstream>
 #include <iomanip>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
@@ -420,7 +421,8 @@ class Service : public std::enable_shared_from_this<Service> {
     try {
       if (statusCode / 100 == 2) {
         if ((this->name == CCAPI_EXCHANGE_NAME_HUOBI && body.find("err-code") != std::string::npos) ||
-            (this->name == CCAPI_EXCHANGE_NAME_ERISX && (body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos || body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos))) {
+           (this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP && body.find("err_code") != std::string::npos) ||
+           (this->name == CCAPI_EXCHANGE_NAME_ERISX && (body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos || body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos))) {
           this->onResponseError(400, body);
         } else {
           this->processSuccessfulTextMessage(request, body, now);

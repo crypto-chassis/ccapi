@@ -134,6 +134,11 @@ class SessionConfigs CCAPI_FINAL {
     CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL }, {
     CCAPI_MARKET_DEPTH,
     CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH }, };
+    std::map<std::string, std::string> fieldWebsocketChannelMapHuobiUsdtSwap = { {
+    CCAPI_TRADE,
+    CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL }, {
+    CCAPI_MARKET_DEPTH,
+    CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH }, };
     std::map<std::string, std::string> fieldWebsocketChannelMapOkex = { {
     CCAPI_TRADE,
     CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE }, {
@@ -179,6 +184,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHuobi) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HUOBI].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHuobiUsdtSwap) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP].push_back(fieldWebsocketChannel.first);
+    }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapOkex) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_OKEX].push_back(fieldWebsocketChannel.first);
     }
@@ -200,6 +208,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE, fieldWebsocketChannelMapBinance},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures},
       { CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi},
+      { CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, fieldWebsocketChannelMapHuobiUsdtSwap},
       { CCAPI_EXCHANGE_NAME_OKEX, fieldWebsocketChannelMapOkex},
       { CCAPI_EXCHANGE_NAME_ERISX, fieldWebsocketChannelMapErisx},
       { CCAPI_EXCHANGE_NAME_KUCOIN, fieldWebsocketChannelMapKucoin}
@@ -213,6 +222,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})},
+      { CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, std::vector<int>({150})},
       { CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({400})},
       { CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
     };
@@ -227,6 +237,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE, "wss://stream.binance.com:9443/stream"},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
       { CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
+      { CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "wss://api.hbdm.com/linear-swap-ws"},
       { CCAPI_EXCHANGE_NAME_OKEX, "wss://real.okex.com:8443/ws/v3"},
       { CCAPI_EXCHANGE_NAME_ERISX, "wss://publicmd-api.erisx.com"},
       //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
@@ -248,6 +259,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
