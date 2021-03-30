@@ -122,7 +122,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
   }
   std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-      {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::INTEGER)},
+      {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
       {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
       {CCAPI_EM_ORDER_SIDE, std::make_pair("direction", JsonDataType::STRING)},
       {CCAPI_EM_ORDER_QUANTITY, std::make_pair("volume", JsonDataType::STRING)},
@@ -134,19 +134,28 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
     std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER) {
-      elementList.emplace_back(ExecutionManagementService::extractOrderInfo(data, extractionFieldNameMap));
+      elementList.emplace_back(ExecutionManagementServiceHuobiUsdtSwap::extractOrderInfo(data, extractionFieldNameMap));
     } else if (operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, std::string(data["successes"].GetString()));
       elementList.emplace_back(element);
     } else if (operation == Request::Operation::GET_ORDER) {
-      elementList.emplace_back(ExecutionManagementService::extractOrderInfo(data[0], extractionFieldNameMap));
+      elementList.emplace_back(ExecutionManagementServiceHuobiUsdtSwap::extractOrderInfo(data[0], extractionFieldNameMap));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : data["orders"].GetArray()) {
-        elementList.emplace_back(ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap));
+        elementList.emplace_back(ExecutionManagementServiceHuobiUsdtSwap::extractOrderInfo(x, extractionFieldNameMap));
       }
     }
     return elementList;
+  }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
+ public:
+#endif
+  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
+    return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
   }
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
@@ -164,7 +173,6 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
   FRIEND_TEST(ExecutionManagementServiceHuobiUsdtSwapTest, signRequest);
 #endif
 };

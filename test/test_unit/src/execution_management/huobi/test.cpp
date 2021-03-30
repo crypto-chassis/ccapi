@@ -22,7 +22,7 @@ class ExecutionManagementServiceHuobiTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyApiKeyEtc(const std::map<std::string, std::string>& queryParamMap, const std::string& apiKey, const std::string& timestamp) {
+void verifyApiKeyEtc(const std::map<std::string, std::string> queryParamMap, const std::string& apiKey, const std::string& timestamp) {
   EXPECT_EQ(queryParamMap.at("AccessKeyId"), apiKey);
   EXPECT_EQ(queryParamMap.at("SignatureMethod"), "HmacSHA256");
   EXPECT_EQ(queryParamMap.at("SignatureVersion"), "2");

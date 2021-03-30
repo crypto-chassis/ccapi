@@ -56,7 +56,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
       }
     }
   }
-  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string symbolId) {
+  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
   void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
@@ -69,7 +69,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
       case Request::Operation::CREATE_ORDER:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->createOrderTarget);
         rj::Document document;
         document.SetObject();
@@ -90,7 +90,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
       case Request::Operation::CANCEL_ORDER:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOrderTarget);
         rj::Document document;
         document.SetObject();
@@ -104,7 +104,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
       case Request::Operation::GET_ORDER:
       {
         req.method(http::verb::post);
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getOrderTarget);
         rj::Document document;
         document.SetObject();

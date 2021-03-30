@@ -37,7 +37,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       queryString += "&";
     }
   }
-  void appendSymbolId(std::string& queryString, const std::string symbolId) {
+  void appendSymbolId(std::string& queryString, const std::string& symbolId) {
     queryString += "symbol=";
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
@@ -50,7 +50,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {
         req.method(http::verb::post);
         std::string queryString;
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param, {
             {CCAPI_EM_ORDER_SIDE , "side"},
             {CCAPI_EM_ORDER_QUANTITY , "quantity"},
@@ -72,7 +72,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {
         req.method(http::verb::delete_);
         std::string queryString;
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param, {
             {CCAPI_EM_ORDER_ID , "orderId"},
             {CCAPI_EM_CLIENT_ORDER_ID , "origClientOrderId"}
@@ -86,7 +86,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       {
         req.method(http::verb::get);
         std::string queryString;
-        const std::map<std::string, std::string>& param = request.getParamList().at(0);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param, {
             {CCAPI_EM_ORDER_ID , "orderId"},
             {CCAPI_EM_CLIENT_ORDER_ID , "origClientOrderId"}
