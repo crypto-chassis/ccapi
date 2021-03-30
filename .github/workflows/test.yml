@@ -116,6 +116,7 @@ jobs:
     - name: Install OpenSSL
       shell: cmake -P {0}
       run: |
+        message(STATUS "Using host CMake version: ${cmake_version}")
         if ("${{ runner.os }}" STREQUAL "macOS")
           execute_process(
             COMMAND brew reinstall openssl@1.1
