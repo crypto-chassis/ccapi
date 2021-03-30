@@ -1,8 +1,9 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
-// #ifndef RAPIDJSON_ASSERT
-// #define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
-// #endif
+#include "ccapi_cpp/ccapi_logger.h"
+#ifndef RAPIDJSON_ASSERT
+#define RAPIDJSON_ASSERT(x) if (!(x)) { CCAPI_LOGGER_ERROR("rapidjson internal assertion failure"); }
+#endif
 #include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "ccapi_cpp/ccapi_event.h"
