@@ -1,9 +1,24 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #include "ccapi_cpp/ccapi_logger.h"
-// #ifndef RAPIDJSON_ASSERT
-// #define RAPIDJSON_ASSERT(x) if (!(x)) { CCAPI_LOGGER_ERROR("rapidjson internal assertion failure"); }
-// #endif
+#ifndef RAPIDJSON_ASSERT
+#define RAPIDJSON_ASSERT(x) if (!(x)) { throw std::runtime_error("rapidjson internal assertion failure"); }
+#endif
+#ifndef RAPIDJSON_NOEXCEPT_ASSERT
+#define RAPIDJSON_NOEXCEPT_ASSERT(x) if (!(x)) { CCAPI_LOGGER_ERROR("rapidjson internal assertion failure"); }
+#endif
+#ifndef RAPIDJSON_PARSE_ERROR_NORETURN
+#define RAPIDJSON_PARSE_ERROR_NORETURN(parseErrorCode,offset) \
+   throw ParseException(parseErrorCode, #parseErrorCode, offset)
+#include <stdexcept>               // std::runtime_error
+#include "rapidjson/error/error.h" // rapidjson::ParseResult
+struct ParseException : std::runtime_error, rapidjson::ParseResult {
+  ParseException(rapidjson::ParseErrorCode code, const char* msg, size_t offset)
+    : std::runtime_error(msg), ParseResult(code, offset) {
+      CCAPI_LOGGER_ERROR(msg);
+    }
+};
+#endif
 #include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "ccapi_cpp/ccapi_event.h"
