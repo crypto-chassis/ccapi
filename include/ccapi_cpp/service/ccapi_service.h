@@ -9,15 +9,7 @@
 #endif
 #ifndef RAPIDJSON_PARSE_ERROR_NORETURN
 #define RAPIDJSON_PARSE_ERROR_NORETURN(parseErrorCode, offset) \
-  throw ParseException(parseErrorCode, #parseErrorCode, offset)
-#include <stdexcept>                // std::runtime_error
-#include "rapidjson/error/error.h"  // rapidjson::ParseResult
-struct ParseException : std::runtime_error, rapidjson::ParseResult {
-  ParseException(rapidjson::ParseErrorCode code, const char* msg, size_t offset)
-    : std::runtime_error(msg), ParseResult(code, offset) {
-      CCAPI_LOGGER_ERROR(msg);
-    }
-};
+  throw std::runtime_error(#parseErrorCode)
 #endif
 #include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
@@ -83,11 +75,6 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_DEBUG("request = "+toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = "+toString(useFuture));
     auto req = this->convertRequest(request, now);
-#if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
-    std::ostringstream oss;
-    oss << req;
-    CCAPI_LOGGER_DEBUG("req = \n"+oss.str());
-#endif
     std::promise<void>* promisePtrRaw = nullptr;
     if (useFuture) {
       promisePtrRaw = new std::promise<void>();
@@ -435,13 +422,18 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string body = resPtr->body();
     try {
       if (statusCode / 100 == 2) {
-        if ((this->name == CCAPI_EXCHANGE_NAME_HUOBI && body.find("err-code") != std::string::npos) ||
-           (this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP && body.find("err_code") != std::string::npos) ||
-           (this->name == CCAPI_EXCHANGE_NAME_ERISX && (body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos || body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos))) {
+        if (this->doesHttpBodyContainError(request, body)) {
           this->onResponseError(400, body);
         } else {
           this->processSuccessfulTextMessage(request, body, now);
         }
+        // if ((this->name == CCAPI_EXCHANGE_NAME_HUOBI && body.find("err-code") != std::string::npos) ||
+        //    (this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP && body.find("err_code") != std::string::npos) ||
+        //    (this->name == CCAPI_EXCHANGE_NAME_ERISX && (body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos || body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos))) {
+        //   this->onResponseError(400, body);
+        // } else {
+        //   this->processSuccessfulTextMessage(request, body, now);
+        // }
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base().at("Location").to_string());
@@ -483,6 +475,9 @@ class Service : public std::enable_shared_from_this<Service> {
       retry.promisePtr->set_value();
     }
   }
+  virtual bool doesHttpBodyContainError(const Request& request, const std::string& body) {
+    return false;
+  }
   void onShutdown_2(std::shared_ptr<HttpConnection> httpConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_shutdown callback start");
     if (ec == net::error::eof) {
@@ -500,6 +495,11 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   void tryRequest(const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
+        std::ostringstream oss;
+        oss << req;
+        CCAPI_LOGGER_DEBUG("req = \n"+oss.str());
+    #endif
     CCAPI_LOGGER_TRACE("retry = " + toString(retry));
     if (retry.numRetry <= this->sessionOptions.httpMaxNumRetry && retry.numRedirect <= this->sessionOptions.httpMaxNumRedirect) {
       try {
@@ -561,7 +561,11 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("instrument = "+instrument);
     auto operation = request.getOperation();
     http::request<http::string_body> req;
-    req.set(http::field::host, this->hostRest+":"+this->portRest);
+    if (this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+      req.set(http::field::host, this->hostRest);
+    } else {
+      req.set(http::field::host, this->hostRest+":"+this->portRest);
+    }
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertReq(req, request, operation, now, symbolId, credential);
     CCAPI_LOGGER_FUNCTION_EXIT;

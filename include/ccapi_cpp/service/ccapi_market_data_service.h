@@ -426,7 +426,7 @@ class MarketDataService : public Service {
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
-      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+      if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP || this->name == CCAPI_EXCHANGE_NAME_OKEX || this->name == CCAPI_EXCHANGE_NAME_OKEX_PERPETUAL_SWAP) {
         std::string decompressed;
         std::string payload = msg->get_payload();
         try {

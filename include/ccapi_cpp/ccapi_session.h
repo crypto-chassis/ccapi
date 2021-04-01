@@ -78,6 +78,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_usdt_swap.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
+#include "ccapi_cpp/service/ccapi_execution_management_service_okex.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
 #include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
 #endif
@@ -134,6 +137,7 @@ class Session CCAPI_FINAL {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void start() {
+    CCAPI_LOGGER_FUNCTION_ENTER;
     std::thread t([this](){
       this->serviceContextPtr->start();
     });
@@ -211,6 +215,9 @@ class Session CCAPI_FINAL {
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP] = std::make_shared<ExecutionManagementServiceHuobiUsdtSwap>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_OKEX] = std::make_shared<ExecutionManagementServiceOkex>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ERISX] = std::make_shared<ExecutionManagementServiceErisx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
@@ -228,6 +235,7 @@ class Session CCAPI_FINAL {
         CCAPI_LOGGER_INFO("enabled service: " + serviceName + ", exchange: " + exchange);
       }
     }
+    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void stop() {
     if (this->useInternalEventDispatcher) {

@@ -27,6 +27,9 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
   }
 
  private:
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+    return body.find("err-code") != std::string::npos;
+  }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "symbol");
   }
@@ -120,7 +123,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) override {
+  std::vector<Element> extractOrderInfo(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
       {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::INTEGER)},
       {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client-order-id", JsonDataType::STRING)},

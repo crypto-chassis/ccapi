@@ -1,35 +1,32 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_H_
+#ifndef EXAMPLE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_PERPETUAL_SWAP_H
+#define EXAMPLE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_PERPETUAL_SWAP_H
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
+#ifdef CCAPI_ENABLE_EXCHANGE_OKEX_PERPETUAL_SWAP
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-    class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementService {
+    class ExecutionManagementServiceOkexPerpetualSwap CCAPI_FINAL : public ExecutionManagementService {
     public:
-        ExecutionManagementServiceOkex(std::function<void(Event &event)> eventHandler,
+        ExecutionManagementServiceOkexPerpetualSwap(std::function<void(Event &event)> eventHandler,
                                                 SessionOptions sessionOptions,
                                                 SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
                 : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
             CCAPI_LOGGER_FUNCTION_ENTER;
-            this->name = CCAPI_EXCHANGE_NAME_OKEX;
+            this->name = CCAPI_EXCHANGE_NAME_OKEX_PERPETUAL_SWAP;
             this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
             this->setHostFromUrl(this->baseUrlRest);
-            this->apiKeyName = CCAPI_OKEX_API_KEY;
-            this->apiSecretName = CCAPI_OKEX_API_SECRET;
-            this->apiPassphraseName = CCAPI_OKEX_API_PASSPHRASE;
+            this->apiKeyName = CCAPI_OKEX_PERPETUAL_SWAP_API_KEY;
+            this->apiSecretName = CCAPI_OKEX_PERPETUAL_SWAP_API_SECRET;
+            this->apiPassphraseName = CCAPI_OKEX_PERPETUAL_SWAP_API_PASSPHRASE;
             this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
-            this->createOrderTarget = "/api/v5/trade/order";
-            this->cancelOrderTarget = "/api/v5/trade/cancel-order";
-            this->getOrderTarget = "/api/v5/trade/order";
-            this->getOpenOrdersTarget = "/api/v5/trade/orders-pending";
-            this->orderStatusOpenSet = {"live", "partially_filled"};
+            this->createOrderTarget = "/api/swap/v3/order";
+            this->cancelOrderTarget = "/api/swap/v3/cancel_order/<instrument_id>/<order_id>";
+            this->getOrderTarget = "/api/swap/v3/orders/<instrument_id>/<order_id>";
+            this->getOpenOrdersTarget = "/api/swap/v3/orders/<instrument_id>";
+            this->orderStatusOpenSet = {"0", "1", "3", "4", "6"};
             CCAPI_LOGGER_FUNCTION_EXIT;
         }
 
-    private:
-      bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-        return body.find("sCode") != std::string::npos;
-      }
+    protected:
       void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
         auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
         auto preSignedText = req.base().at("OK-ACCESS-TIMESTAMP").to_string();
@@ -47,21 +44,19 @@ namespace ccapi {
           auto value = kv.second;
           if (key == "side") {
             value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
-          } else if (key == "ordType") {
-            value = UtilString::toLower(value);
           }
           document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
         }
       }
       void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
-        document.AddMember("instId", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+        document.AddMember("instrument_id", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
       }
       void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
         req.set(beast::http::field::content_type, "application/json");
         auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
         req.set("OK-ACCESS-KEY", apiKey);
-        std::string timeStr = UtilTime::getISOTimestamp(now);
-        req.set("OK-ACCESS-TIMESTAMP", timeStr.substr(0, timeStr.length() - 7) + "Z");
+        std::string millisecondStr = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+        req.set("OK-ACCESS-TIMESTAMP", millisecondStr.substr(0, millisecondStr.length() - 3) + "." + millisecondStr.substr(millisecondStr.length() - 3));
         auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
         req.set("OK-ACCESS-PASSPHRASE", apiPassphrase);
         switch (operation) {
@@ -74,15 +69,13 @@ namespace ccapi {
             document.SetObject();
             rj::Document::AllocatorType& allocator = document.GetAllocator();
             this->appendParam(document, allocator, param, {
-                {CCAPI_EM_ORDER_TYPE , "ordType"},
-                {CCAPI_EM_ORDER_SIDE , "side"},
-                {CCAPI_EM_ORDER_QUANTITY , "sz"},
-                {CCAPI_EM_ORDER_LIMIT_PRICE , "px"},
-                {CCAPI_EM_CLIENT_ORDER_ID , "clOrdId"}
+                {CCAPI_EM_ORDER_QUANTITY , "size"},
+                {CCAPI_EM_ORDER_LIMIT_PRICE , "price"},
+                {CCAPI_EM_CLIENT_ORDER_ID , "client_oid"}
             });
             if (!symbolId.empty()) {
               this->appendSymbolId(document, allocator, symbolId);
-            }
+            }            
             rj::StringBuffer stringBuffer;
             rj::Writer<rj::StringBuffer> writer(stringBuffer);
             document.Accept(writer);
@@ -186,10 +179,10 @@ namespace ccapi {
 //         public:
 //          using ExecutionManagementService::convertRequest;
 //          using ExecutionManagementService::processSuccessfulTextMessage;
-//          FRIEND_TEST(ExecutionManagementServiceOkexTest, signRequest);
+//          FRIEND_TEST(ExecutionManagementServiceOkexPerpetualSwapTest, signRequest);
 // #endif
     };
 } /* namespace ccapi */
 #endif
 #endif
-#endif //INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_H_
+#endif //EXAMPLE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_PERPETUAL_SWAP_H

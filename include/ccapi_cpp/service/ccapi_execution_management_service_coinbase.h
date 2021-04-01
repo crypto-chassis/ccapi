@@ -137,7 +137,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) override {
+  std::vector<Element> extractOrderInfo(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
       {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
       {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},

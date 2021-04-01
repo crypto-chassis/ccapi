@@ -101,6 +101,7 @@ class Message CCAPI_FINAL {
         break;
       case Type::GENERIC_ERROR:
         output = "GENERIC_ERROR";
+        break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
