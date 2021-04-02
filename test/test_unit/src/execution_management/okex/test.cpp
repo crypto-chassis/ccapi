@@ -1,95 +1,97 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
+#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
 #include "gtest/gtest.h"
-#include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_okex.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 namespace ccapi {
-class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
+class ExecutionManagementServiceOkexTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceCoinbase>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceOkex>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
-       { CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0" },
-       { CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ==" },
-       { CCAPI_COINBASE_API_PASSPHRASE, "0x1a5y8koaa9" }
+       { CCAPI_OKEX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0" },
+       { CCAPI_OKEX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ==" },
+       { CCAPI_OKEX_API_PASSPHRASE, "0x1a5y8koaa9" }
     };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
+    this->timestampStr = "2017-07-12T02:41:59.000Z";
   }
-  std::shared_ptr<ExecutionManagementServiceCoinbase> service{nullptr};
+  std::shared_ptr<ExecutionManagementServiceOkex> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};
   TimePoint now{};
+  std::string timestampStr;
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, long long timestamp) {
-  EXPECT_EQ(req.base().at("CB-ACCESS-KEY").to_string(), apiKey);
-  EXPECT_EQ(req.base().at("CB-ACCESS-PASSPHRASE").to_string(), apiPassphrase);
-  EXPECT_EQ(req.base().at("CB-ACCESS-TIMESTAMP").to_string(), std::to_string(timestamp));
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, std::string timestampStr) {
+  EXPECT_EQ(req.base().at("OK-ACCESS-KEY").to_string(), apiKey);
+  EXPECT_EQ(req.base().at("OK-ACCESS-PASSPHRASE").to_string(), apiPassphrase);
+  EXPECT_EQ(req.base().at("OK-ACCESS-TIMESTAMP").to_string(), timestampStr);
 }
 
 void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
-  auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
+  auto preSignedText = req.base().at("OK-ACCESS-TIMESTAMP").to_string();
   preSignedText += UtilString::toUpper(std::string(req.method_string()));
   preSignedText += req.target().to_string();
   preSignedText += req.body();
-  auto signature = req.base().at("CB-ACCESS-SIGN").to_string();
-  EXPECT_EQ(UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText)), signature);
+  auto signature = req.base().at("OK-ACCESS-SIGN").to_string();
+  EXPECT_EQ(UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText)), signature);
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, signRequest) {
+TEST_F(ExecutionManagementServiceOkexTest, signRequest) {
   http::request<http::string_body> req;
-  req.set("CB-ACCESS-TIMESTAMP", "1610075590");
+  req.set("OK-ACCESS-TIMESTAMP", "2021-04-01T18:23:16.027Z");
   req.method(http::verb::post);
-  req.target("/orders");
-  std::string body("{\"size\": \"1.0\", \"price\": \"1.0\", \"side\": \"buy\", \"product_id\": \"BTC-USD\"}");
+  req.target("/api/v5/trade/order");
+  std::string body("{\"px\":\"2.15\",\"ordType\":\"limit\",\"sz\":\"2\",\"side\":\"buy\",\"tdMode\":\"cash\",\"instId\":\"BTC-USDT\"}");
   this->service->signRequest(req, body, this->credential);
-  EXPECT_EQ(req.base().at("CB-ACCESS-SIGN").to_string(), "QLKK5AWZ5akrAiaH5ugZzm3uRs5XnbsChlojmAs78Wk=");
+  EXPECT_EQ(req.base().at("OK-ACCESS-SIGN").to_string(), "vnOpLd3yPc2Ojwm8w0TafZqnujwm3qfjyIpNrmhUrsk=");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
     {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
-    {CCAPI_EM_ORDER_QUANTITY, "1"},
-    {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}
+    {CCAPI_EM_ORDER_QUANTITY, "2"},
+    {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"},
+    {CCAPI_EM_ORDER_TYPE, CCAPI_EM_ORDER_TYPE_LIMIT},
+    {"tdMode", "cash"}
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  EXPECT_EQ(req.target(), "/orders");
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  EXPECT_EQ(req.target(), "/api/v5/trade/order");
   rj::Document document;
   document.Parse(req.body().c_str());
-  EXPECT_EQ(std::string(document["product_id"].GetString()), "BTC-USD");
+  EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
   EXPECT_EQ(std::string(document["side"].GetString()), "buy");
-  EXPECT_EQ(std::string(document["price"].GetString()), "0.1");
-  EXPECT_EQ(std::string(document["size"].GetString()), "1");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+  EXPECT_EQ(std::string(document["sz"].GetString()), "2");
+  EXPECT_EQ(std::string(document["px"].GetString()), "2.15");
+  EXPECT_EQ(std::string(document["ordType"].GetString()), "limit");
+  EXPECT_EQ(std::string(document["tdMode"].GetString()), "cash");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageCreateOrder) {
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
   R"(
-  {
-    "id": "d0c5340b-6d6c-49d9-b567-48c4bfca13d2",
-    "price": "0.10000000",
-    "size": "0.01000000",
-    "product_id": "BTC-USD",
-    "side": "buy",
-    "stp": "dc",
-    "type": "limit",
-    "time_in_force": "GTC",
-    "post_only": false,
-    "created_at": "2016-12-08T20:02:28.53864Z",
-    "fill_fees": "0.0000000000000000",
-    "filled_size": "0.00000000",
-    "executed_value": "0.0000000000000000",
-    "status": "pending",
-    "settled": false
-  }
+    {
+      "code": "0",
+      "msg": "",
+      "data": [
+        {
+          "clOrdId": "oktswap6",
+          "ordId": "12345689",
+          "tag": "",
+          "sCode": "0",
+          "sMsg": ""
+        }
+      ]
+    }
   )";
   auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
@@ -99,99 +101,147 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCreate
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "12345689");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByOrderId) {
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
+    {CCAPI_EM_ORDER_ID, "2510789768709120"}
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
-  EXPECT_EQ(req.method(), http::verb::delete_);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
-  EXPECT_EQ(splitted.at(0), "/orders/d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
-  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+  EXPECT_EQ(req.method(), http::verb::post);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
+  rj::Document document;
+  document.Parse(req.body().c_str());
+  EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
+  EXPECT_EQ(std::string(document["ordId"].GetString()), "2510789768709120");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByClientOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByClientOrderId) {
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
-    {CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
+    {CCAPI_EM_CLIENT_ORDER_ID, "oktswap6"}
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
-  EXPECT_EQ(req.method(), http::verb::delete_);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
-  EXPECT_EQ(splitted.at(0), "/orders/client:d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
-  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+  EXPECT_EQ(req.method(), http::verb::post);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
+  rj::Document document;
+  document.Parse(req.body().c_str());
+  EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
+  EXPECT_EQ(std::string(document["clOrdId"].GetString()), "oktswap6");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancelOrder) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  auto messageList = this->service->convertTextMessageToMessage(request, "\"415bbb90-b5a5-48cc-85b9-49589cc12626\"", this->now);
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageCancelOrder) {
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+  std::string textMessage =
+  R"(
+    {
+        "code":"0",
+        "msg":"",
+        "data":[
+            {
+                "clOrdId":"oktswap6",
+                "ordId":"12345689",
+                "sCode":"0",
+                "sMsg":""
+            }
+        ]
+    }
+  )";
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::CANCEL_ORDER);
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByOrderId) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByOrderId) {
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
+    {CCAPI_EM_ORDER_ID, "2510789768709120"}
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/orders/d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  std::cout<<req.target().to_string()<<std::endl;
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("ordId"), "2510789768709120");
+  EXPECT_EQ(paramMap.at("instId"), "BTC-USDT");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByClientOrderId) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByClientOrderId) {
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
-    {CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
+    {CCAPI_EM_CLIENT_ORDER_ID, "b1"}
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/orders/client:d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  std::cout<<req.target().to_string()<<std::endl;
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("clOrdId"), "b1");
+  EXPECT_EQ(paramMap.at("instId"), "BTC-USDT");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOrder) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageGetOrder) {
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
   R"(
-  {
-    "id": "68e6a28f-ae28-4788-8d4f-5ab4e5e5ae08",
-    "size": "1.00000000",
-    "product_id": "BTC-USD",
-    "side": "buy",
-    "stp": "dc",
-    "funds": "9.9750623400000000",
-    "specified_funds": "10.0000000000000000",
-    "type": "market",
-    "post_only": false,
-    "created_at": "2016-12-08T20:09:05.508883Z",
-    "done_at": "2016-12-08T20:09:05.527Z",
-    "done_reason": "filled",
-    "fill_fees": "0.0249376391550000",
-    "filled_size": "0.01291771",
-    "executed_value": "9.9750556620000000",
-    "status": "done",
-    "settled": true
-  }
+    {
+      "code": "0",
+      "msg": "",
+      "data": [
+        {
+          "instType": "FUTURES",
+          "instId": "BTC-USD-200329",
+          "ccy": "",
+          "ordId": "123445",
+          "clOrdId": "b1",
+          "tag": "",
+          "px": "999",
+          "sz": "323",
+          "pnl": "5",
+          "ordType": "limit",
+          "side": "buy",
+          "posSide": "long",
+          "tdMode": "isolated",
+          "accFillSz": "3",
+          "fillPx": "0",
+          "tradeId": "0",
+          "fillSz": "0",
+          "fillTime": "0",
+          "state": "live",
+          "avgPx": "2",
+          "lever": "20",
+          "tpTriggerPx": "",
+          "tpOrdPx": "",
+          "slTriggerPx": "",
+          "slOrdPx": "",
+          "feeCcy": "",
+          "fee": "",
+          "rebateCcy": "",
+          "rebate": "",
+          "category": "",
+          "uTime": "1597026383085",
+          "cTime": "1597026383085"
+        }
+      ]
+    }
   )";
   auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
@@ -201,77 +251,81 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOrd
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "68e6a28f-ae28-4788-8d4f-5ab4e5e5ae08");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "123445");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.00000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.01291771");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "9.9750556620000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_CLOSED);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "323");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "3");
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 6);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_OPEN);
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOpenOrdersOneInstrument) {
-  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersOneInstrument) {
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
-  EXPECT_EQ(splitted.at(0), "/orders");
+  EXPECT_EQ(splitted.at(0), "/api/v5/trade/orders-pending");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+  EXPECT_EQ(paramMap.at("instId"), "BTC-USDT");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOpenOrdersAllInstruments) {
-  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersAllInstruments) {
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
-  EXPECT_EQ(splitted.at(0), "/orders");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+  EXPECT_EQ(splitted.at(0), "/api/v5/trade/orders-pending");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceCoinbaseTest* fixture, bool isOneInstrument) {
-  std::string symbol = isOneInstrument ? "BTC-USD" : "";
-  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, symbol, "", fixture->credential);
+void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceOkexTest* fixture, bool isOneInstrument) {
+  std::string symbol = isOneInstrument ? "BTC-USDT" : "";
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, symbol, "", fixture->credential);
   std::string textMessage =
   R"(
-  [
     {
-        "id": "d0c5340b-6d6c-49d9-b567-48c4bfca13d2",
-        "price": "0.10000000",
-        "size": "0.01000000",
-        "product_id": "BTC-USD",
-        "side": "buy",
-        "stp": "dc",
-        "type": "limit",
-        "time_in_force": "GTC",
-        "post_only": false,
-        "created_at": "2016-12-08T20:02:28.53864Z",
-        "fill_fees": "0.0000000000000000",
-        "filled_size": "0.00000000",
-        "executed_value": "0.0000000000000000",
-        "status": "open",
-        "settled": false
-    },
-    {
-        "id": "8b99b139-58f2-4ab2-8e7a-c11c846e3022",
-        "price": "1.00000000",
-        "size": "1.00000000",
-        "product_id": "BTC-USD",
-        "side": "buy",
-        "stp": "dc",
-        "type": "limit",
-        "time_in_force": "GTC",
-        "post_only": false,
-        "created_at": "2016-12-08T20:01:19.038644Z",
-        "fill_fees": "0.0000000000000000",
-        "filled_size": "0.00000000",
-        "executed_value": "0.0000000000000000",
-        "status": "open",
-        "settled": false
+      "code": "0",
+      "msg": "",
+      "data": [
+        {
+          "instType": "FUTURES",
+          "instId": "BTC-USDT",
+          "ccy": "",
+          "ordId": "123445",
+          "clOrdId": "b1",
+          "tag": "",
+          "px": "999",
+          "sz": "3",
+          "pnl": "5",
+          "ordType": "limit",
+          "side": "buy",
+          "posSide": "long",
+          "tdMode": "isolated",
+          "accFillSz": "323",
+          "fillPx": "0",
+          "tradeId": "0",
+          "fillSz": "0",
+          "fillTime": "0",
+          "state": "live",
+          "avgPx": "0",
+          "lever": "20",
+          "tpTriggerPx": "",
+          "tpOrdPx": "",
+          "slTriggerPx": "",
+          "slOrdPx": "",
+          "feeCcy": "",
+          "fee": "",
+          "rebateCcy": "",
+          "rebate": "",
+          "category": "",
+          "uTime": "1597026383085",
+          "cTime": "1597026383085"
+        }
+      ]
     }
-  ]
   )";
   auto messageList = fixture->service->convertTextMessageToMessage(request, textMessage, fixture->now);
   EXPECT_EQ(messageList.size(), 1);
@@ -279,57 +333,27 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::GET_OPEN_ORDERS);
   auto elementList = message.getElementList();
-  EXPECT_EQ(elementList.size(), 2);
+  EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "123445");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "0.01000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.10000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.00000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0000000000000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "3");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "999");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "323");
+  EXPECT_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
   if (!isOneInstrument) {
-    EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+    EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
   }
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
   verifyconvertTextMessageToMessageGetOpenOrders(this, true);
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
   verifyconvertTextMessageToMessageGetOpenOrders(this, false);
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOpenOrders) {
-  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  auto req = this->service->convertRequest(request, this->now);
-  EXPECT_EQ(req.method(), http::verb::delete_);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
-  EXPECT_EQ(splitted.at(0), "/orders");
-  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
-  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
-}
-
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancelOpenOrders) {
-  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::string textMessage =
-  R"(
-  [
-    "144c6f8e-713f-4682-8435-5280fbe8b2b4",
-    "debe4907-95dc-442f-af3b-cec12f42ebda",
-    "cf7aceee-7b08-4227-a76c-3858144323ab",
-    "dfc5ae27-cadb-4c0c-beef-8994936fde8a",
-    "34fecfbf-de33-4273-b2c6-baf8e8948be4"
-  ]
-  )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
-  EXPECT_EQ(messageList.size(), 1);
-  verifyCorrelationId(messageList, request.getCorrelationId());
-  auto message = messageList.at(0);
-  EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
-}
 } /* namespace ccapi */
 #endif
 #endif

@@ -82,7 +82,7 @@ class ExecutionManagementService : public Service {
       default:
       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    message.setElementList(this->extractOrderInfo(request, operation, document));
+    message.setElementList(this->extractOrderInfoFromRequest(request, operation, document));
     std::vector<Message> messageList;
     messageList.push_back(std::move(message));
     return messageList;
@@ -115,7 +115,7 @@ class ExecutionManagementService : public Service {
     }
     return element;
   }
-  virtual std::vector<Element> extractOrderInfo(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
+  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
   std::string apiKeyName;
   std::string apiSecretName;
   std::string createOrderTarget;

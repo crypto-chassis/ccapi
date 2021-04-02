@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+#include <regex>
 namespace ccapi {
     class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementService {
     public:
@@ -28,7 +29,7 @@ namespace ccapi {
 
     private:
       bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-        return body.find("sCode") != std::string::npos;
+        return !std::regex_search(body, std::regex("\"code\":\\s*\"0\""));
       }
       void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
         auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
@@ -53,8 +54,21 @@ namespace ccapi {
           document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
         }
       }
+      void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+        for (const auto& kv : param) {
+          queryString += regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+          queryString += "=";
+          queryString += Url::urlEncode(kv.second);
+          queryString += "&";
+        }
+      }
       void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
         document.AddMember("instId", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+      }
+      void appendSymbolId(std::string& queryString, const std::string& symbolId) {
+        queryString += "instId=";
+        queryString += Url::urlEncode(symbolId);
+        queryString += "&";
       }
       void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
         req.set(beast::http::field::content_type, "application/json");
@@ -68,8 +82,8 @@ namespace ccapi {
           case Request::Operation::CREATE_ORDER:
           {
             req.method(http::verb::post);
-            const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
             req.target(this->createOrderTarget);
+            const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
             rj::Document document;
             document.SetObject();
             rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -78,7 +92,8 @@ namespace ccapi {
                 {CCAPI_EM_ORDER_SIDE , "side"},
                 {CCAPI_EM_ORDER_QUANTITY , "sz"},
                 {CCAPI_EM_ORDER_LIMIT_PRICE , "px"},
-                {CCAPI_EM_CLIENT_ORDER_ID , "clOrdId"}
+                {CCAPI_EM_CLIENT_ORDER_ID , "clOrdId"},
+                {CCAPI_SYMBOL_ID , "instId"}
             });
             if (!symbolId.empty()) {
               this->appendSymbolId(document, allocator, symbolId);
@@ -90,104 +105,122 @@ namespace ccapi {
             this->signRequest(req, body, credential);
           }
           break;
-          // case Request::Operation::CANCEL_ORDER:
-          // {
-          //   req.method(http::verb::delete_);
-          //   const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-          //   std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end() ? param.at(CCAPI_EM_ORDER_ID)
-          //       : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
-          //       : "";
-          //   auto target = std::regex_replace(this->cancelOrderTarget, std::regex("\\{id\\}"), id);
-          //   if (!symbolId.empty()) {
-          //     target += "?product_id=";
-          //     target += symbolId;
-          //   }
-          //   req.target(target);
-          //   this->signRequest(req, "", credential);
-          // }
-          // break;
-          // case Request::Operation::GET_ORDER:
-          // {
-          //   req.method(http::verb::get);
-          //   const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-          //   std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end() ? param.at(CCAPI_EM_ORDER_ID)
-          //       : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
-          //       : "";
-          //   auto target = std::regex_replace(this->getOrderTarget, std::regex("\\{id\\}"), id);
-          //   req.target(target);
-          //   this->signRequest(req, "", credential);
-          // }
-          // break;
-          // case Request::Operation::GET_OPEN_ORDERS:
-          // {
-          //   req.method(http::verb::get);
-          //   auto target = this->getOpenOrdersTarget;
-          //   if (!symbolId.empty()) {
-          //     target += "?product_id=";
-          //     target += symbolId;
-          //   }
-          //   req.target(target);
-          //   this->signRequest(req, "", credential);
-          // }
-          // break;
-          // case Request::Operation::CANCEL_OPEN_ORDERS:
-          // {
-          //   req.method(http::verb::delete_);
-          //   auto target = this->cancelOpenOrdersTarget;
-          //   if (!symbolId.empty()) {
-          //     target += "?product_id=";
-          //     target += symbolId;
-          //   }
-          //   req.target(target);
-          //   this->signRequest(req, "", credential);
-          // }
-          // break;
+          case Request::Operation::CANCEL_ORDER:
+          {
+            req.method(http::verb::post);
+            req.target(this->cancelOrderTarget);
+            const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+            rj::Document document;
+            document.SetObject();
+            rj::Document::AllocatorType& allocator = document.GetAllocator();
+            this->appendParam(document, allocator, param, {
+                {CCAPI_EM_ORDER_ID , "ordId"},
+                {CCAPI_EM_CLIENT_ORDER_ID , "clOrdId"},
+                {CCAPI_SYMBOL_ID , "instId"}
+            });
+            if (!symbolId.empty()) {
+              this->appendSymbolId(document, allocator, symbolId);
+            }
+            rj::StringBuffer stringBuffer;
+            rj::Writer<rj::StringBuffer> writer(stringBuffer);
+            document.Accept(writer);
+            auto body = stringBuffer.GetString();
+            this->signRequest(req, body, credential);
+          }
+          break;
+          case Request::Operation::GET_ORDER:
+          {
+            req.method(http::verb::get);
+            std::string queryString;
+            const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+            this->appendParam(queryString, param, {
+                {CCAPI_EM_ORDER_ID , "ordId"},
+                {CCAPI_EM_CLIENT_ORDER_ID , "clOrdId"},
+                {CCAPI_SYMBOL_ID , "instId"}
+            });
+            if (!symbolId.empty()) {
+              this->appendSymbolId(queryString, symbolId);
+            }
+            if (queryString.back() == '&') {
+              queryString.pop_back();
+            }
+            req.target(this->getOrderTarget + "?" + queryString);
+            this->signRequest(req, "", credential);
+          }
+          break;
+          case Request::Operation::GET_OPEN_ORDERS:
+          {
+            req.method(http::verb::get);
+            std::string queryString;
+            const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+            this->appendParam(queryString, param, {
+                {CCAPI_EM_ORDER_TYPE , "ordType"},
+                {CCAPI_EM_ORDER_ID , "ordId"},
+                {CCAPI_EM_CLIENT_ORDER_ID , "clOrdId"},
+                {CCAPI_SYMBOL_ID , "instId"}
+            });
+            if (!symbolId.empty()) {
+              this->appendSymbolId(queryString, symbolId);
+            }
+            if (queryString.back() == '&') {
+              queryString.pop_back();
+            }
+            req.target(this->getOpenOrdersTarget + "?" + queryString);
+            this->signRequest(req, "", credential);
+          }
+          break;
           default:
           CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
         }
       }
-      std::vector<Element> extractOrderInfo(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+      std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-          {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
-          {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
+          {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
+          {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
           {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-          {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
-          {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-          {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_qty", JsonDataType::STRING)},
+          {CCAPI_EM_ORDER_QUANTITY, std::make_pair("sz", JsonDataType::STRING)},
+          {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("px", JsonDataType::STRING)},
+          {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
           {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
-          {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_id", JsonDataType::STRING)}
+          {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instId", JsonDataType::STRING)}
         };
         std::vector<Element> elementList;
-        if (operation == Request::Operation::CANCEL_ORDER) {
-          Element element;
-          element.insert(CCAPI_EM_ORDER_ID, document.GetString());
-          elementList.emplace_back(element);
-        } else if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
-          for (const auto& x : document.GetArray()) {
-            Element element;
-            element.insert(CCAPI_EM_ORDER_ID, x.GetString());
-            elementList.emplace_back(element);
-          }
+        const rj::Value& data = document["data"];
+        if (data.IsObject()) {
+          elementList.emplace_back(this->extractOrderInfo(data, extractionFieldNameMap));
         } else {
-          if (document.IsObject()) {
-            elementList.emplace_back(ExecutionManagementService::extractOrderInfo(document, extractionFieldNameMap));
-          } else {
-            for (const auto& x : document.GetArray()) {
-              elementList.emplace_back(ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap));
-            }
+          for (const auto& x : data.GetArray()) {
+            elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
           }
         }
         return elementList;
       }
-        std::string apiPassphraseName;
+      std::string apiPassphraseName;
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
-// #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-//
-//         public:
-//          using ExecutionManagementService::convertRequest;
-//          using ExecutionManagementService::processSuccessfulTextMessage;
-//          FRIEND_TEST(ExecutionManagementServiceOkexTest, signRequest);
-// #endif
+ protected:
+#endif
+  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    CCAPI_LOGGER_TRACE("");
+    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+    {
+      auto it1 = x.FindMember("accFillSz");
+      auto it2 = x.FindMember("avgPx");
+      if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                       std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
+      }
+    }
+    CCAPI_LOGGER_TRACE("");
+    return element;
+  }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
+        public:
+         using ExecutionManagementService::convertRequest;
+         using ExecutionManagementService::convertTextMessageToMessage;
+         FRIEND_TEST(ExecutionManagementServiceOkexTest, signRequest);
+#endif
     };
 } /* namespace ccapi */
 #endif

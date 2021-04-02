@@ -176,7 +176,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfo(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
       {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
       {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdID", JsonDataType::STRING)},

@@ -179,7 +179,7 @@ namespace ccapi {
                     CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
             }
         }
-        std::vector < Element > extractOrderInfo(const Request::Operation operation,
+        std::vector < Element > extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
                                                  const rj::Document & document) override {
             rj::StringBuffer buffer;
             rj::Writer<rj::StringBuffer> writer(buffer);
@@ -227,11 +227,11 @@ namespace ccapi {
             }
             else if (document["result"].IsArray()) {
                 for (const auto & x: document["result"].GetArray()) {
-                    elementList.emplace_back(ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap));
+                    elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
                 }
             }
             else if (document.IsObject()) {
-                elementList.emplace_back(ExecutionManagementService::extractOrderInfo(document["result"], extractionFieldNameMap));
+                elementList.emplace_back(this->extractOrderInfo(document["result"], extractionFieldNameMap));
             }
             return elementList;
         }
