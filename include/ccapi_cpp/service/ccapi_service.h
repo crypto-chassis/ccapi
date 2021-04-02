@@ -427,13 +427,6 @@ class Service : public std::enable_shared_from_this<Service> {
         } else {
           this->processSuccessfulTextMessage(request, body, now);
         }
-        // if ((this->name == CCAPI_EXCHANGE_NAME_HUOBI && body.find("err-code") != std::string::npos) ||
-        //    (this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP && body.find("err_code") != std::string::npos) ||
-        //    (this->name == CCAPI_EXCHANGE_NAME_ERISX && (body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos || body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos))) {
-        //   this->onResponseError(400, body);
-        // } else {
-        //   this->processSuccessfulTextMessage(request, body, now);
-        // }
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base().at("Location").to_string());

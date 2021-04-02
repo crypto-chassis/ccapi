@@ -171,7 +171,6 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByOrderId) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
-  std::cout<<req.target().to_string()<<std::endl;
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
@@ -189,7 +188,6 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByClientOrderId
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
-  std::cout<<req.target().to_string()<<std::endl;
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));

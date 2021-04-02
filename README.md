@@ -46,8 +46,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, okex-perpetual-swap, erisx, kucoin.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, okex-perpetual-swap, erisx, ftx.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
