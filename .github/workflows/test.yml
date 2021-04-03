@@ -19,21 +19,10 @@ jobs:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         config:
-        # TODO: "Windows Latest MSVC" is not working yet
-        # - {
-        #     name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
-        #     os: windows-latest,
-        #     cc: "cl", cxx: "cl",
-        #     environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-        #   }
-        - {
-            name: "Windows Latest MinGW",
-            os: windows-latest,
-            cc: "gcc", cxx: "g++"
-          }
         - {
             name: "Ubuntu Latest GCC",
             os: ubuntu-latest,
@@ -44,6 +33,18 @@ jobs:
             os: macos-latest,
             cc: "clang", cxx: "clang++"
           }
+        - {
+            name: "Windows Latest MinGW",
+            os: windows-latest,
+            cc: "gcc", cxx: "g++"
+          }
+      # TODO: "Windows Latest MSVC" is not working yet
+      # - {
+      #     name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
+      #     os: windows-latest,
+      #     cc: "cl", cxx: "cl",
+      #     environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+      #   }
 
     steps:
     - uses: actions/checkout@v1
@@ -272,7 +273,7 @@ jobs:
         # execute_process(COMMAND ccache -z)
 
         execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build -j 2
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -280,7 +281,7 @@ jobs:
         endif()
 
         execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build example/build
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build example/build -j 2
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -289,7 +290,7 @@ jobs:
 
         if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
           execute_process(
-            COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build binding/build
+            COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build binding/build -j 2
             RESULT_VARIABLE result
           )
           if (NOT result EQUAL 0)
