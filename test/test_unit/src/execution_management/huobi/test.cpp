@@ -1,18 +1,17 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
-#include "gtest/gtest.h"
-#include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceHuobiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceHuobi>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {
-       { CCAPI_HUOBI_API_KEY, "7f72bbdb-d3fa3d40-uymylwhfeg-17388" },
-       { CCAPI_HUOBI_API_SECRET, "3e02e507-e8f8f2ae-a543363d-d2037" }
-    };
+    this->service = std::make_shared<ExecutionManagementServiceHuobi>(
+        [](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_HUOBI_API_KEY, "7f72bbdb-d3fa3d40-uymylwhfeg-17388"},
+                        {CCAPI_HUOBI_API_SECRET, "3e02e507-e8f8f2ae-a543363d-d2037"}};
     this->timestamp = "2017-05-11T15:19:30";
     this->now = UtilTime::parse(this->timestamp + "Z");
   }
@@ -22,7 +21,8 @@ class ExecutionManagementServiceHuobiTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyApiKeyEtc(const std::map<std::string, std::string> queryParamMap, const std::string& apiKey, const std::string& timestamp) {
+void verifyApiKeyEtc(const std::map<std::string, std::string> queryParamMap, const std::string& apiKey,
+                     const std::string& timestamp) {
   EXPECT_EQ(queryParamMap.at("AccessKeyId"), apiKey);
   EXPECT_EQ(queryParamMap.at("SignatureMethod"), "HmacSHA256");
   EXPECT_EQ(queryParamMap.at("SignatureVersion"), "2");
@@ -61,24 +61,22 @@ TEST_F(ExecutionManagementServiceHuobiTest, signRequest) {
   req.method(http::verb::post);
   req.set(http::field::host, "api.huobi.pro");
   std::string path = "/v1/order/orders/place";
-  std::map<std::string, std::string> queryParamMap = {
-      {"AccessKeyId", this->credential.at(CCAPI_HUOBI_API_KEY)},
-      {"SignatureMethod", "HmacSHA256"},
-      {"SignatureVersion", "2"},
-      {"Timestamp", "2021-01-14T00%3A05%3A31"}
-  };
+  std::map<std::string, std::string> queryParamMap = {{"AccessKeyId", this->credential.at(CCAPI_HUOBI_API_KEY)},
+                                                      {"SignatureMethod", "HmacSHA256"},
+                                                      {"SignatureVersion", "2"},
+                                                      {"Timestamp", "2021-01-14T00%3A05%3A31"}};
   this->service->signRequest(req, path, queryParamMap, this->credential);
-  EXPECT_EQ(Url::urlDecode(Url::convertQueryStringToMap(UtilString::split(req.target().to_string(), "?").at(1)).at("Signature")), "Ns/D8rLOXixLe3yU3pRl4EhCjI0R4KckPMOIu6VpWmE=");
+  EXPECT_EQ(
+      Url::urlDecode(Url::convertQueryStringToMap(UtilString::split(req.target().to_string(), "?").at(1)).at("Signature")),
+      "Ns/D8rLOXixLe3yU3pRl4EhCjI0R4KckPMOIu6VpWmE=");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
-    {CCAPI_EM_ORDER_QUANTITY, "10.1"},
-    {CCAPI_EM_ORDER_LIMIT_PRICE, "100.1"},
-    {CCAPI_EM_ACCOUNT_ID, "100009"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+                                           {CCAPI_EM_ORDER_QUANTITY, "10.1"},
+                                           {CCAPI_EM_ORDER_LIMIT_PRICE, "100.1"},
+                                           {CCAPI_EM_ACCOUNT_ID, "100009"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -99,7 +97,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCreateOrder) {
 TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "data": "59378"
   }
@@ -117,9 +115,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageCreateOrd
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "59378"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "59378"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -132,9 +128,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByOrderId) 
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByClientOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_CLIENT_ORDER_ID, "a0001"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "a0001"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -151,7 +145,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByClientOrd
 TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "data": "59378"
   }
@@ -169,9 +163,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageCancelOrd
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "59378"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "59378"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -184,9 +176,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByOrderId) {
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_CLIENT_ORDER_ID, "a0001"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "a0001"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -201,7 +191,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByClientOrderI
 TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "ethusdt", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {  
     "data": {
       "id": 59378,
@@ -241,9 +231,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageGetOrder)
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOpenOrdersOneInstrument) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
-  request.appendParam({
-    {"ACCOUNT_ID", "100009"}
-  });
+  request.appendParam({{"ACCOUNT_ID", "100009"}});
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   auto splitted = UtilString::split(req.target().to_string(), "?");
@@ -257,7 +245,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOpenOrdersOneInstru
 TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "ethusdt", "", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "data": [
       {

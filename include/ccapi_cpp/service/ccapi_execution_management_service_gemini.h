@@ -7,7 +7,7 @@ namespace ccapi {
 class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementService {
  public:
   ExecutionManagementServiceGemini(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                      SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+                                   SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_GEMINI;
@@ -25,7 +25,9 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
   }
 
  protected:
-  void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+  void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,
+                   const std::map<std::string, std::string>& param, const TimePoint& now,
+                   const std::map<std::string, std::string>& credential) {
     document.AddMember("request", rj::Value(req.target().to_string().c_str(), allocator).Move(), allocator);
     int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     document.AddMember("nonce", rj::Value(nonce).Move(), allocator);
@@ -35,14 +37,17 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
     auto body = stringBuffer.GetString();
     this->signRequest(req, body, credential);
   }
-  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
+  void signRequest(http::request<http::string_body>& req, const std::string& body,
+                   const std::map<std::string, std::string>& credential) {
     auto base64Payload = UtilAlgorithm::base64Encode(body);
     req.set("X-GEMINI-PAYLOAD", base64Payload);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = UtilString::toLower(Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true));
     req.set("X-GEMINI-SIGNATURE", signature);
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator,
+                   const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
@@ -50,7 +55,8 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
       }
       if (key == "order_id") {
-        document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(static_cast<int64_t>(std::stoll(value))).Move(), allocator);
+        document.AddMember(rj::Value(key.c_str(), allocator).Move(),
+                           rj::Value(static_cast<int64_t>(std::stoll(value))).Move(), allocator);
       } else {
         document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
       }
@@ -59,104 +65,88 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
+                  const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("Content-Length", "0");
     req.set("Content-Type", "text/plain");
     req.set("X-GEMINI-APIKEY", apiKey);
     req.set("Cache-Control", "no-cache");
     switch (operation) {
-      case Request::Operation::CREATE_ORDER:
-      {
+      case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->createOrderTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {
-            {CCAPI_EM_ORDER_SIDE , "side"},
-            {CCAPI_EM_ORDER_QUANTITY , "amount"},
-            {CCAPI_EM_ORDER_LIMIT_PRICE , "price"},
-            {CCAPI_EM_CLIENT_ORDER_ID , "client_order_id"}
-        });
+        this->appendParam(document, allocator, param,
+                          {{CCAPI_EM_ORDER_SIDE, "side"},
+                           {CCAPI_EM_ORDER_QUANTITY, "amount"},
+                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                           {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
         this->appendSymbolId(document, allocator, symbolId);
         if (param.find("type") == param.end()) {
           document.AddMember("type", rj::Value("exchange limit").Move(), allocator);
         }
         this->signRequest(req, document, allocator, param, now, credential);
-      }
-      break;
-      case Request::Operation::CANCEL_ORDER:
-      {
+      } break;
+      case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOrderTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {
-            {CCAPI_EM_ORDER_ID , "order_id"}
-        });
+        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}});
         this->signRequest(req, document, allocator, param, now, credential);
-      }
-      break;
-      case Request::Operation::GET_ORDER:
-      {
+      } break;
+      case Request::Operation::GET_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getOrderTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {
-            {CCAPI_EM_ORDER_ID , "order_id"},
-            {CCAPI_EM_CLIENT_ORDER_ID , "client_order_id"},
-            {CCAPI_EM_ACCOUNT_ID, "account"}
-        });
+        this->appendParam(document, allocator, param,
+                          {{CCAPI_EM_ORDER_ID, "order_id"},
+                           {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
+                           {CCAPI_EM_ACCOUNT_ID, "account"}});
         this->signRequest(req, document, allocator, param, now, credential);
-      }
-      break;
-      case Request::Operation::GET_OPEN_ORDERS:
-      {
+      } break;
+      case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::post);
         req.target(this->getOpenOrdersTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, {}, {
-            {CCAPI_EM_ACCOUNT_ID, "account"}
-        });
+        this->appendParam(document, allocator, {}, {{CCAPI_EM_ACCOUNT_ID, "account"}});
         this->signRequest(req, document, allocator, {}, now, credential);
-      }
-      break;
-      case Request::Operation::CANCEL_OPEN_ORDERS:
-      {
+      } break;
+      case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::post);
         req.target(this->cancelOpenOrdersTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, {}, {
-            {CCAPI_EM_ACCOUNT_ID, "account"}
-        });
+        this->appendParam(document, allocator, {}, {{CCAPI_EM_ACCOUNT_ID, "account"}});
         this->signRequest(req, document, allocator, {}, now, credential);
-      }
-      break;
+      } break;
       default:
-      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
+                                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-      {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
-      {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_QUANTITY, std::make_pair("original_amount", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executed_amount", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}
-    };
+        {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("original_amount", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executed_amount", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document["details"]["cancelledOrders"].GetArray()) {
@@ -173,19 +163,23 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
     }
     return elementList;
   }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  Element extractOrderInfo(
+      const rj::Value& x,
+      const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("executed_amount");
       auto it2 = x.FindMember("avg_execution_price");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
-        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                       std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
       }
     }
     {
       auto it = x.FindMember("is_live");
       if (it != x.MemberEnd()) {
-        element.insert(CCAPI_EM_ORDER_STATUS, it->value.GetBool() ? CCAPI_EM_ORDER_STATUS_OPEN : CCAPI_EM_ORDER_STATUS_CLOSED);
+        element.insert(CCAPI_EM_ORDER_STATUS,
+                       it->value.GetBool() ? CCAPI_EM_ORDER_STATUS_OPEN : CCAPI_EM_ORDER_STATUS_CLOSED);
       }
     }
     return element;

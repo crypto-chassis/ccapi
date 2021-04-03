@@ -1,9 +1,9 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
-#include <string>
+#include <condition_variable>
 #include <map>
 #include <mutex>
-#include <condition_variable>
+#include <string>
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
@@ -45,12 +45,7 @@ class Request CCAPI_FINAL {
     }
     return output;
   }
-  enum class ApiType {
-    UNKNOWN,
-    REST,
-    WEBSOCKET,
-    FIX
-  };
+  enum class ApiType { UNKNOWN, REST, WEBSOCKET, FIX };
   static std::string apiTypeToString(ApiType apiType) {
     std::string output;
     switch (apiType) {
@@ -72,10 +67,15 @@ class Request CCAPI_FINAL {
     return output;
   }
   Request() {}
-  Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId =
-      "", std::map<std::string, std::string> credential = {})
-      : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
-    this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+  Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId = "",
+          std::map<std::string, std::string> credential = {})
+      : operation(operation),
+        exchange(exchange),
+        instrument(instrument),
+        correlationId(correlationId),
+        credential(credential) {
+    this->serviceName =
+        static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
@@ -83,56 +83,35 @@ class Request CCAPI_FINAL {
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;
     for (const auto& x : credential) {
-      shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
+      shortCredential.insert(
+          std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
-    std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = "+serviceName+", correlationId = "
-        + correlationId +", paramList = "+ccapi::toString(paramList)+ ", credential = "
-        + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
+    std::string output =
+        "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName +
+        ", correlationId = " + correlationId + ", paramList = " + ccapi::toString(paramList) +
+        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
     return output;
   }
-  const std::string& getCorrelationId() const {
-    return correlationId;
-  }
-  const std::string& getExchange() const {
-    return exchange;
-  }
-  const std::string& getInstrument() const {
-    return instrument;
-  }
-  const std::map<std::string, std::string>& getCredential() const {
-    return credential;
-  }
-  const std::string& getServiceName() const {
-    return serviceName;
-  }
-  void appendParam(const std::map<std::string, std::string>& param) {
-      this->paramList.push_back(param);
-  }
-  Operation getOperation() const {
-    return operation;
-  }
-  const std::vector<std::map<std::string, std::string> >& getParamList() const {
-    return paramList;
-  }
-  void setParamList(const std::vector<std::map<std::string, std::string> >& paramList) {
-    this->paramList = paramList;
-  }
-  bool getIsHttpRequestRaw() const {
-    return isHttpRequestRaw;
-  }
+  const std::string& getCorrelationId() const { return correlationId; }
+  const std::string& getExchange() const { return exchange; }
+  const std::string& getInstrument() const { return instrument; }
+  const std::map<std::string, std::string>& getCredential() const { return credential; }
+  const std::string& getServiceName() const { return serviceName; }
+  void appendParam(const std::map<std::string, std::string>& param) { this->paramList.push_back(param); }
+  Operation getOperation() const { return operation; }
+  const std::vector<std::map<std::string, std::string> >& getParamList() const { return paramList; }
+  void setParamList(const std::vector<std::map<std::string, std::string> >& paramList) { this->paramList = paramList; }
+  bool getIsHttpRequestRaw() const { return isHttpRequestRaw; }
   void setHttpRequestRaw(bool isHttpRequestRaw) {
     this->isHttpRequestRaw = isHttpRequestRaw;
     if (this->isHttpRequestRaw) {
       this->isHttpResponseRaw = true;
     }
   }
-  bool getIsHttpResponseRaw() const {
-    return isHttpResponseRaw;
-  }
-  void setHttpResponseRaw(bool isHttpResponseRaw) {
-    this->isHttpResponseRaw = isHttpResponseRaw;
-  }
-  std::map<std::string, std::string> getFirstParamWithDefault(const std::map<std::string, std::string> defaultValue = {}) const {
+  bool getIsHttpResponseRaw() const { return isHttpResponseRaw; }
+  void setHttpResponseRaw(bool isHttpResponseRaw) { this->isHttpResponseRaw = isHttpResponseRaw; }
+  std::map<std::string, std::string> getFirstParamWithDefault(
+      const std::map<std::string, std::string> defaultValue = {}) const {
     if (this->paramList.empty()) {
       return defaultValue;
     } else {

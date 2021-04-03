@@ -3,12 +3,12 @@ namespace ccapi {
 Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session *session) override {
+  bool processEvent(const Event& event, Session* session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      for (const auto & message : event.getMessageList()) {
+      for (const auto& message : event.getMessageList()) {
         auto correlationId = message.getCorrelationIdList().at(0);
         if (correlationId == "c") {
-          for (const auto & element : message.getElementList()) {
+          for (const auto& element : message.getElementList()) {
             if (element.has("BID_PRICE")) {
               bestBidPriceCoinbase = element.getValue("BID_PRICE");
             }
@@ -24,7 +24,7 @@ class MyEventHandler : public EventHandler {
           }
         }
         if (correlationId == "g") {
-          for (const auto & element : message.getElementList()) {
+          for (const auto& element : message.getElementList()) {
             if (element.has("BID_PRICE")) {
               bestBidPriceGemini = element.getValue("BID_PRICE");
             }
@@ -39,41 +39,27 @@ class MyEventHandler : public EventHandler {
             }
           }
         }
-        if (!bestBidPriceCoinbase.empty() && !bestAskPriceGemini.empty() && Decimal(bestBidPriceCoinbase) >= Decimal(bestAskPriceGemini)) {
+        if (!bestBidPriceCoinbase.empty() && !bestAskPriceGemini.empty() &&
+            Decimal(bestBidPriceCoinbase) >= Decimal(bestAskPriceGemini)) {
           std::string orderQuantity = std::min(Decimal(bestBidSizeCoinbase), Decimal(bestAskSizeGemini)).toString();
           std::vector<Request> requestList;
           Request requestBuy(Request::Operation::CREATE_ORDER, "gemini", "btcusd");
-          requestBuy.appendParam({
-            {"SIDE", "BUY"},
-            {"QUANTITY", orderQuantity},
-            {"LIMIT_PRICE", bestAskPriceGemini}
-          });
+          requestBuy.appendParam({{"SIDE", "BUY"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestAskPriceGemini}});
           requestList.push_back(requestBuy);
           Request requestSell(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
-          requestSell.appendParam({
-            {"SIDE", "SELL"},
-            {"QUANTITY", orderQuantity},
-            {"LIMIT_PRICE", bestBidPriceCoinbase}
-          });
+          requestSell.appendParam({{"SIDE", "SELL"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestBidPriceCoinbase}});
           requestList.push_back(requestSell);
           session->sendRequest(requestList);
         }
-        if (!bestBidPriceGemini.empty() && !bestAskPriceCoinbase.empty() && Decimal(bestBidPriceGemini) >= Decimal(bestAskPriceCoinbase)) {
+        if (!bestBidPriceGemini.empty() && !bestAskPriceCoinbase.empty() &&
+            Decimal(bestBidPriceGemini) >= Decimal(bestAskPriceCoinbase)) {
           std::string orderQuantity = std::min(Decimal(bestBidSizeGemini), Decimal(bestAskSizeCoinbase)).toString();
           std::vector<Request> requestList;
           Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
-          requestBuy.appendParam({
-            {"SIDE", "BUY"},
-            {"QUANTITY", orderQuantity},
-            {"LIMIT_PRICE", bestAskPriceCoinbase}
-          });
+          requestBuy.appendParam({{"SIDE", "BUY"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestAskPriceCoinbase}});
           requestList.push_back(requestBuy);
           Request requestSell(Request::Operation::CREATE_ORDER, "gemini", "btcusd");
-          requestSell.appendParam({
-            {"SIDE", "SELL"},
-            {"QUANTITY", orderQuantity},
-            {"LIMIT_PRICE", bestBidPriceGemini}
-          });
+          requestSell.appendParam({{"SIDE", "SELL"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestBidPriceGemini}});
           requestList.push_back(requestSell);
           session->sendRequest(requestList);
         }
@@ -93,12 +79,12 @@ class MyEventHandler : public EventHandler {
   std::string bestAskSizeGemini;
 };
 } /* namespace ccapi */
-using ::ccapi::SessionOptions;
-using ::ccapi::SessionConfigs;
 using ::ccapi::MyEventHandler;
 using ::ccapi::Session;
+using ::ccapi::SessionConfigs;
+using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;

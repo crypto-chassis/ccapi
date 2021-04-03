@@ -77,32 +77,24 @@ class Event CCAPI_FINAL {
     return output;
   }
   std::string toString() const {
-    std::string output = "Event [type = " + typeToString(type) + ", messageList = " + ccapi::toString(messageList)
-        + "]";
+    std::string output = "Event [type = " + typeToString(type) + ", messageList = " + ccapi::toString(messageList) + "]";
     return output;
   }
   std::string toStringPretty(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
     std::string sl(leftToIndent, ' ');
     std::string ss(leftToIndent + space, ' ');
-    std::string output = (indentFirstLine ? sl : "") + "Event [\n" + ss + "type = " + typeToString(type) + ",\n" + ss + "messageList = " + ccapi::toStringPretty(messageList, space, leftToIndent + space, false)
-        + "\n" + sl + "]";
+    std::string output = (indentFirstLine ? sl : "") + "Event [\n" + ss + "type = " + typeToString(type) + ",\n" + ss +
+                         "messageList = " + ccapi::toStringPretty(messageList, space, leftToIndent + space, false) + "\n" +
+                         sl + "]";
     return output;
   }
-  const std::vector<Message>& getMessageList() const {
-    return messageList;
-  }
+  const std::vector<Message>& getMessageList() const { return messageList; }
   void addMessages(const std::vector<Message>& newMessageList) {
     this->messageList.insert(std::end(this->messageList), std::begin(newMessageList), std::end(newMessageList));
   }
-  void setMessageList(const std::vector<Message>& messageList) {
-    this->messageList = messageList;
-  }
-  Type getType() const {
-    return type;
-  }
-  void setType(Type type) {
-    this->type = type;
-  }
+  void setMessageList(const std::vector<Message>& messageList) { this->messageList = messageList; }
+  Type getType() const { return type; }
+  void setType(Type type) { this->type = type; }
 
  private:
   Type type{Type::UNKNOWN};

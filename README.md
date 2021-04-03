@@ -449,4 +449,5 @@ Logger* Logger::logger = &myLogger;
 
 ### Contributing
 * (Required) Submit a pull request to the master branch.
+* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html.
 * (Optional) Commit message format: https://conventionalcommits.org.

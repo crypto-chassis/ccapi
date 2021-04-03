@@ -6,7 +6,9 @@
 namespace ccapi {
 class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
  public:
-  MarketDataServiceBitstamp(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr): MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+  MarketDataServiceBitstamp(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions,
+                            SessionConfigs sessionConfigs, std::shared_ptr<ServiceContext> serviceContextPtr)
+      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->name = CCAPI_EXCHANGE_NAME_BITSTAMP;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
     this->enableCheckPingPongWebsocketApplicationLevel = false;
@@ -15,9 +17,10 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
  private:
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
-    for (const auto & subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+    for (const auto& subscriptionListByChannelIdSymbolId :
+         this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
-      for (auto & subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
+      for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -35,28 +38,40 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
         document.Accept(writer);
         std::string requestString = stringBuffer.GetString();
         requestStringList.push_back(std::move(requestString));
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
-        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = "+toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
+                                                                      [CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
+                                                                      [CCAPI_SYMBOL_ID] = symbolId;
+        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
+                           toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
     return requestStringList;
   }
-  std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+  std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage,
+                                                    const TimePoint& timeReceived) override {
+    WsConnection& wsConnection =
+        this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> wsMessageList;
     const rj::Value& data = document["data"];
-    if (document.IsObject() && document.HasMember("event") && std::string(document["event"].GetString()) == "bts:subscription_succeeded") {
-    } else if (document.IsObject() && document.HasMember("event") && (std::string(document["event"].GetString()) == "data" || std::string(document["event"].GetString()) == "trade")) {
+    if (document.IsObject() && document.HasMember("event") &&
+        std::string(document["event"].GetString()) == "bts:subscription_succeeded") {
+    } else if (document.IsObject() && document.HasMember("event") &&
+               (std::string(document["event"].GetString()) == "data" ||
+                std::string(document["event"].GetString()) == "trade")) {
       MarketDataMessage wsMessage;
       std::string exchangeSubscriptionId = document["channel"].GetString();
-      std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
-      std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
+      std::string channelId =
+          this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
+                                                                        [CCAPI_CHANNEL_ID];
+      std::string symbolId =
+          this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
+                                                                        [CCAPI_SYMBOL_ID];
       auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
-      CCAPI_LOGGER_TRACE("exchangeSubscriptionId = "+exchangeSubscriptionId);
-      CCAPI_LOGGER_TRACE("channelId = "+channelId);
+      CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
+      CCAPI_LOGGER_TRACE("channelId = " + channelId);
       wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       if (channelId == CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_ORDER_BOOK) {
         wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
@@ -109,10 +124,14 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     }
     return wsMessageList;
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
+                  const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     // TODO(cryptochassis): implement
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request,
+                                                                       const std::string& textMessage,
+                                                                       const TimePoint& timeReceived) override {
     std::vector<MarketDataMessage> marketDataMessageList;
     // TODO(cryptochassis): implement
     return marketDataMessageList;

@@ -3,10 +3,10 @@ namespace ccapi {
 Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session *session) override {
+  bool processEvent(const Event& event, Session* session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      for (const auto & message : event.getMessageList()) {
-        for (const auto & element : message.getElementList()) {
+      for (const auto& message : event.getMessageList()) {
+        for (const auto& element : message.getElementList()) {
           std::lock_guard<std::mutex> lock(m);
           if (element.has("BID_PRICE")) {
             bestBidPrice = element.getValue("BID_PRICE");
@@ -35,17 +35,18 @@ std::string regularizePrice(double price) {
   stream << std::fixed << std::setprecision(2) << price;
   return stream.str();
 }
-using ::ccapi::SessionOptions;
-using ::ccapi::SessionConfigs;
 using ::ccapi::MyEventHandler;
-using ::ccapi::Session;
-using ::ccapi::Subscription;
 using ::ccapi::Request;
+using ::ccapi::Session;
+using ::ccapi::SessionConfigs;
+using ::ccapi::SessionOptions;
+using ::ccapi::Subscription;
 using ::ccapi::UtilSystem;
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   if (argc != 3) {
-    std::cerr << "Usage: <program name> <spread percentage> <order quantity>\n" << "Example:\n" << "    main 0.5 0.01"
-              << std::endl;
+    std::cerr << "Usage: <program name> <spread percentage> <order quantity>\n"
+              << "Example:\n"
+              << "    main 0.5 0.01" << std::endl;
     return EXIT_FAILURE;
   }
   double spreadPercentage = std::stod(argv[1]);
@@ -63,10 +64,9 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
   std::map<std::string, std::string> myCredentials = {
-        {CCAPI_COINBASE_API_KEY, UtilSystem::getEnvAsString("COINBASE_API_KEY")},
-        {CCAPI_COINBASE_API_SECRET, UtilSystem::getEnvAsString("COINBASE_API_SECRET")},
-        {CCAPI_COINBASE_API_PASSPHRASE, UtilSystem::getEnvAsString("CCAPI_COINBASE_API_PASSPHRASE")}
-    };
+      {CCAPI_COINBASE_API_KEY, UtilSystem::getEnvAsString("COINBASE_API_KEY")},
+      {CCAPI_COINBASE_API_SECRET, UtilSystem::getEnvAsString("COINBASE_API_SECRET")},
+      {CCAPI_COINBASE_API_PASSPHRASE, UtilSystem::getEnvAsString("CCAPI_COINBASE_API_PASSPHRASE")}};
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
@@ -85,18 +85,10 @@ int main(int argc, char **argv) {
       std::string sellPrice = regularizePrice(midPrice * (1 + spreadPercentage / 100 / 2));
       std::vector<Request> requestList;
       Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
-      requestBuy.appendParam({
-        {"SIDE", "BUY"},
-        {"QUANTITY", orderQuantity},
-        {"LIMIT_PRICE", buyPrice}
-      });
+      requestBuy.appendParam({{"SIDE", "BUY"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", buyPrice}});
       requestList.push_back(requestBuy);
       Request requestSell(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
-      requestSell.appendParam({
-        {"SIDE", "SELL"},
-        {"QUANTITY", orderQuantity},
-        {"LIMIT_PRICE", sellPrice}
-      });
+      requestSell.appendParam({{"SIDE", "SELL"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", sellPrice}});
       requestList.push_back(requestSell);
       session.sendRequest(requestList);
       std::cout << "Buy " + orderQuantity + " BTC-USD at price " + buyPrice << std::endl;

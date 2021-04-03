@@ -8,9 +8,7 @@ namespace ccapi {
 class WsConnection CCAPI_FINAL {
  public:
   WsConnection(std::string url, std::string instrumentGroup, std::vector<Subscription> subscriptionList)
-      : url(url),
-        instrumentGroup(instrumentGroup),
-        subscriptionList(subscriptionList) {
+      : url(url), instrumentGroup(instrumentGroup), subscriptionList(subscriptionList) {
     this->assignDummyId();
   }
   void assignDummyId() {
@@ -18,18 +16,12 @@ class WsConnection CCAPI_FINAL {
     this->hdl.reset();
   }
   std::string toString() const {
-    std::string output = "WsConnection [id = " + id + ", url = " + url + ", instrumentGroup = " + instrumentGroup + ", subscriptionList = "
-        + ccapi::toString(subscriptionList) + ", status = " + statusToString(status) + "]";
+    std::string output = "WsConnection [id = " + id + ", url = " + url + ", instrumentGroup = " + instrumentGroup +
+                         ", subscriptionList = " + ccapi::toString(subscriptionList) +
+                         ", status = " + statusToString(status) + "]";
     return output;
   }
-  enum class Status {
-    UNKNOWN,
-    CONNECTING,
-    OPEN,
-    FAILED,
-    CLOSING,
-    CLOSED
-  };
+  enum class Status { UNKNOWN, CONNECTING, OPEN, FAILED, CLOSING, CLOSED };
   static std::string statusToString(Status status) {
     std::string output;
     switch (status) {

@@ -10,7 +10,7 @@ namespace ccapi {
 class ExecutionManagementServiceBinance CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinance(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                      SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+                                    SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_BINANCE;

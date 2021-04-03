@@ -1,18 +1,17 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
-#include "gtest/gtest.h"
-#include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceErisxTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceErisx>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {
-       { CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4" },
-       { CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw" }
-    };
+    this->service = std::make_shared<ExecutionManagementServiceErisx>(
+        [](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4"},
+                        {CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"}};
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -22,7 +21,8 @@ class ExecutionManagementServiceErisxTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyJwt(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiSecret, long long timestamp) {
+void verifyJwt(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiSecret,
+               long long timestamp) {
   auto authorizationHeader = req.base().at("Authorization").to_string();
   std::string toErase = "Bearer ";
   auto pos = authorizationHeader.find(toErase);
@@ -48,13 +48,11 @@ TEST_F(ExecutionManagementServiceErisxTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
-    {CCAPI_EM_ORDER_QUANTITY, "1"},
-    {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
-    {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},
-    {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+                                           {CCAPI_EM_ORDER_QUANTITY, "1"},
+                                           {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
+                                           {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},
+                                           {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -77,7 +75,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCreateOrder) {
 TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
    "correlation": "134582149605314482",
    "type": "ExecutionReport",
@@ -150,13 +148,11 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCreateOrd
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "281474982380221"},
-    {CCAPI_EM_ORDER_SIDE, "BUY"},
-    {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-b"},
-    {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},
-    {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "281474982380221"},
+                                           {CCAPI_EM_ORDER_SIDE, "BUY"},
+                                           {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-b"},
+                                           {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},
+                                           {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -178,7 +174,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOrderByOrderId) 
 TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
    "correlation": "134582149605314482",
    "type": "ExecutionReport",
@@ -247,10 +243,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCancelOrd
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "281474982380221"},
-    {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "281474982380221"}, {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -261,7 +254,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOrder) {
 TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
    "correlation": "134582149605314482",
    "type": "ExecutionReport",
@@ -339,9 +332,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOrder)
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOpenOrders) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  request.appendParam({
-    {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}
-  });
+  request.appendParam({{CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}});
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target().to_string(), "/rest-api/order-mass-status");
@@ -354,7 +345,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOpenOrders) {
 TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOpenOrders) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
    "type": "MassOrderStatus",
    "correlation": "foo678",
@@ -439,9 +430,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOpenOr
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  request.appendParam({
-    {"PARTY_ID", "ENRY34D6CVV"}
-  });
+  request.appendParam({{"PARTY_ID", "ENRY34D6CVV"}});
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target().to_string(), "/rest-api/cancel-all");
@@ -454,7 +443,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOpenOrders) {
 TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
    "correlation": "5535410536258384820",
    "type": "CancelAllOrdersResponse",
