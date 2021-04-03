@@ -19,31 +19,32 @@ jobs:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
     strategy:
+      max-parallel: 1
       fail-fast: false
       matrix:
         config:
-        # TODO: "Windows Latest MSVC" is not working yet
         # - {
-        #     name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
-        #     os: windows-latest,
-        #     cc: "cl", cxx: "cl",
-        #     environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
-        #   }
-        # - {
-        #     name: "Windows Latest MinGW",
-        #     os: windows-latest,
+        #     name: "Ubuntu Latest GCC",
+        #     os: ubuntu-latest,
         #     cc: "gcc", cxx: "g++"
         #   }
+        # - {
+        #     name: "macOS Latest Clang",
+        #     os: macos-latest,
+        #     cc: "clang", cxx: "clang++"
+        #   }
         - {
-            name: "Ubuntu Latest GCC",
-            os: ubuntu-latest,
+            name: "Windows Latest MinGW",
+            os: windows-latest,
             cc: "gcc", cxx: "g++"
           }
-        - {
-            name: "macOS Latest Clang",
-            os: macos-latest,
-            cc: "clang", cxx: "clang++"
-          }
+      # TODO: "Windows Latest MSVC" is not working yet
+      # - {
+      #     name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
+      #     os: windows-latest,
+      #     cc: "cl", cxx: "cl",
+      #     environment_script: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+      #   }
 
     steps:
     - uses: actions/checkout@v1
@@ -303,7 +304,7 @@ jobs:
       shell: cmake -P {0}
       run: |
         execute_process(
-          COMMAND ctest -VV -j 2
+          COMMAND ctest -VV
           WORKING_DIRECTORY test/build
           RESULT_VARIABLE result
         )
@@ -313,7 +314,7 @@ jobs:
 
         if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
           execute_process(
-            COMMAND ctest -VV -j 2
+            COMMAND ctest -VV
             WORKING_DIRECTORY binding/build
             RESULT_VARIABLE result
           )

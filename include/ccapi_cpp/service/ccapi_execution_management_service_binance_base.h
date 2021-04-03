@@ -122,7 +122,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfo(const Request::Operation operation, const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
       {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
       {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
@@ -136,10 +136,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     };
     std::vector<Element> elementList;
     if (document.IsObject()) {
-      elementList.emplace_back(ExecutionManagementService::extractOrderInfo(document, extractionFieldNameMap));
+      elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
     } else {
       for (const auto& x : document.GetArray()) {
-        elementList.emplace_back(ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap));
+        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
       }
     }
     return elementList;

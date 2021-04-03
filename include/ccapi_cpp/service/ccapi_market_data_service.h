@@ -204,7 +204,7 @@ class MarketDataService : public Service {
     if (field == CCAPI_MARKET_DEPTH) {
       if (this->name == CCAPI_EXCHANGE_NAME_KRAKEN || this->name == CCAPI_EXCHANGE_NAME_BITFINEX
           || this->name == CCAPI_EXCHANGE_NAME_BINANCE_US || this->name == CCAPI_EXCHANGE_NAME_BINANCE || this->name == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES
-          || this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+          ) {
         int marketDepthSubscribedToExchange = 1;
         marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
             marketDepthRequested,
@@ -232,6 +232,12 @@ class MarketDataService : public Service {
       } else if (this->name == CCAPI_EXCHANGE_NAME_HUOBI || this->name == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP) {
         if (marketDepthRequested == 1) {
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
+        }
+      } else if (this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+        if (marketDepthRequested <= 5) {
+          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5;
+        } else {
+          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400;
         }
       } else if (this->name == CCAPI_EXCHANGE_NAME_ERISX) {
         if (marketDepthRequested <= 20) {

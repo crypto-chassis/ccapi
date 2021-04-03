@@ -223,7 +223,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},
       { CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})},
       { CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, std::vector<int>({150})},
-      { CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({400})},
+      { CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({5, 400})},
       { CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
     };
     this->urlWebsocketBase = {
@@ -238,7 +238,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
       { CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
       { CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "wss://api.hbdm.com/linear-swap-ws"},
-      { CCAPI_EXCHANGE_NAME_OKEX, "wss://real.okex.com:8443/ws/v3"},
+      { CCAPI_EXCHANGE_NAME_OKEX, "wss://ws.okex.com:8443/ws/v5"},
       { CCAPI_EXCHANGE_NAME_ERISX, "wss://publicmd-api.erisx.com"},
       //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
       { CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"}
@@ -260,6 +260,7 @@ class SessionConfigs CCAPI_FINAL {
       { CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE},
+      { CCAPI_EXCHANGE_NAME_OKEX, CCAPI_OKEX_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
       { CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
