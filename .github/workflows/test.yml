@@ -23,16 +23,16 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {
-            name: "Ubuntu Latest GCC",
-            os: ubuntu-latest,
-            cc: "gcc", cxx: "g++"
-          }
-        - {
-            name: "macOS Latest Clang",
-            os: macos-latest,
-            cc: "clang", cxx: "clang++"
-          }
+        # - {
+        #     name: "Ubuntu Latest GCC",
+        #     os: ubuntu-latest,
+        #     cc: "gcc", cxx: "g++"
+        #   }
+        # - {
+        #     name: "macOS Latest Clang",
+        #     os: macos-latest,
+        #     cc: "clang", cxx: "clang++"
+        #   }
         - {
             name: "Windows Latest MinGW",
             os: windows-latest,
