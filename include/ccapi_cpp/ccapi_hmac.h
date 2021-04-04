@@ -38,6 +38,7 @@
  */
 
 #include <stdint.h>
+#include <iomanip>
 /*
  * If you do not have the ISO standard stdint.h header file, then you
  * must typedef the following:

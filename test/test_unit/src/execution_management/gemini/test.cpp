@@ -1,8 +1,9 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
+#include "gtest/gtest.h"
+
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
-#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceGeminiTest : public ::testing::Test {
  public:
@@ -69,24 +70,24 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCreateOr
   std::string textMessage =
       R"(
   {
-    "order_id": "19492382044", 
-    "id": "106817811", 
-    "symbol": "btcusd", 
-    "exchange": "gemini", 
+    "order_id": "19492382044",
+    "id": "106817811",
+    "symbol": "btcusd",
+    "exchange": "gemini",
     "avg_execution_price": "3632.8508430064554",
-    "side": "buy", 
-    "type": "exchange limit", 
-    "timestamp": "1547220404", 
-    "timestampms": 1547220404836, 
-    "is_live": true, 
-    "is_cancelled": false, 
-    "is_hidden": false, 
+    "side": "buy",
+    "type": "exchange limit",
+    "timestamp": "1547220404",
+    "timestampms": 1547220404836,
+    "is_live": true,
+    "is_cancelled": false,
+    "is_hidden": false,
     "was_forced": false,
     "executed_amount": "3.7567928949",
     "remaining_amount": "1.2432071051",
     "client_order_id": "20190110-4738721",
     "options": [],
-    "price": "3633.00", 
+    "price": "3633.00",
     "original_amount": "5"
   }
   )";

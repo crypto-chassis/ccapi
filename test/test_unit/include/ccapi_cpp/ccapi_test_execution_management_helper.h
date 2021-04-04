@@ -1,5 +1,6 @@
 #ifndef TEST_TEST_UNIT_INCLUDE_CCAPI_CPP_CCAPI_TEST_EXECUTION_MANAGEMENT_HELPER_H_
 #define TEST_TEST_UNIT_INCLUDE_CCAPI_CPP_CCAPI_TEST_EXECUTION_MANAGEMENT_HELPER_H_
+#include "ccapi_cpp/ccapi_message.h"
 namespace ccapi {
 inline void verifyCorrelationId(const std::vector<Message>& messageList, const std::string& correlationId) {
   for (const auto& message : messageList) {

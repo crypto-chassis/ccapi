@@ -1,8 +1,9 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
+#include "gtest/gtest.h"
+
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
-#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceHuobiTest : public ::testing::Test {
  public:
@@ -192,7 +193,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageGetOrder)
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "ethusdt", "foo", this->credential);
   std::string textMessage =
       R"(
-  {  
+  {
     "data": {
       "id": 59378,
       "symbol": "ethusdt",
