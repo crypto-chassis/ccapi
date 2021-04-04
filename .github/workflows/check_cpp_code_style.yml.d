@@ -3,9 +3,11 @@ on:
   pull_request:
     branches:
       - master
+      - development
   push:
     branches:
       - master
+      - development
 jobs:
   cpplint:
     runs-on: ubuntu-latest
