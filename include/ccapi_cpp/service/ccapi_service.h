@@ -30,7 +30,7 @@
 #include "websocketpp/client.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "websocketpp/config/asio_client.hpp"
-#include "websocketpp/config/boost_config.hpp"
+// #include "websocketpp/config/boost_config.hpp"
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || \
     defined(CCAPI_ENABLE_EXCHANGE_OKEX)
 #include <iomanip>

@@ -157,14 +157,11 @@ class UtilTime CCAPI_FINAL {
     output += millisecondStr;
     return output;
   }
-  static timePointToParts(TimePoint tp, int& year, int& month, int& day,
-                 int& hour, int& minute, int& second, int& millisecond)
-{
-    auto epoch_sec = std::chrono::time_point_cast<
-        std::chrono::seconds>(tp).time_since_epoch().count();
+  static void timePointToParts(TimePoint tp, int& year, int& month, int& day, int& hour, int& minute, int& second,
+                               int& millisecond) {
+    auto epoch_sec = std::chrono::time_point_cast<std::chrono::seconds>(tp).time_since_epoch().count();
     auto day_sec = epoch_sec - (epoch_sec % 86400);
     auto days_since_epoch = day_sec / 86400;
-
     // see http://howardhinnant.github.io/date_algorithms.html
     days_since_epoch += 719468;
     const unsigned era = (days_since_epoch >= 0 ? days_since_epoch : days_since_epoch - 146096) / 146097;
@@ -176,17 +173,15 @@ class UtilTime CCAPI_FINAL {
     day = doy - (153 * mp + 2) / 5 + 1;
     month = mp + (mp < 10 ? 3 : -9);
     year += month <= 2;
-
     auto in_day = tp - std::chrono::seconds(day_sec);
-    millisecond = std::chrono::time_point_cast<std::chrono::milliseconds>(
-            in_day).time_since_epoch().count();
+    millisecond = std::chrono::time_point_cast<std::chrono::milliseconds>(in_day).time_since_epoch().count();
     hour = millisecond / (60 * 60 * 1000);
     millisecond -= hour * 60 * 60 * 1000;
     minute = millisecond / (60 * 1000);
     millisecond -= minute * 60 * 1000;
     second = millisecond / 1000;
     millisecond -= second * 1000;
-}
+  }
 
   static TimePoint now() {
     auto now = std::chrono::system_clock::now();

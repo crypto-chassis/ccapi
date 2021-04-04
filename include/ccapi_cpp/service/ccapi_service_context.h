@@ -4,7 +4,7 @@
 #include "websocketpp/client.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "websocketpp/config/asio_client.hpp"
-#include "websocketpp/config/boost_config.hpp"
+// #include "websocketpp/config/boost_config.hpp"
 namespace wspp = websocketpp;
 namespace ccapi {
 
