@@ -2,7 +2,6 @@ name: Cpplint
 on:
   pull_request:
     branches:
-      - master
       - development
   push:
     branches:

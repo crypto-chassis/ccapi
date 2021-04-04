@@ -443,6 +443,6 @@ Logger* Logger::logger = &myLogger;
 * Only enable the services and exchanges that you need.
 
 ### Contributing
-* (Required) Submit a pull request to the development branch.
+* (Required) Create a new branch from the `development` branch and submit a pull request to the `development` branch.
 * (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html.
 * (Optional) Commit message format: https://conventionalcommits.org.
