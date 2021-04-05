@@ -63,10 +63,9 @@ int main(int argc, char** argv) {
     std::cerr << "Please set environment variable CCAPI_COINBASE_API_PASSPHRASE" << std::endl;
     return EXIT_FAILURE;
   }
-  std::map<std::string, std::string> myCredentials = {
-      {CCAPI_COINBASE_API_KEY, UtilSystem::getEnvAsString("COINBASE_API_KEY")},
-      {CCAPI_COINBASE_API_SECRET, UtilSystem::getEnvAsString("COINBASE_API_SECRET")},
-      {CCAPI_COINBASE_API_PASSPHRASE, UtilSystem::getEnvAsString("CCAPI_COINBASE_API_PASSPHRASE")}};
+  std::map<std::string, std::string> myCredentials = {{CCAPI_COINBASE_API_KEY, UtilSystem::getEnvAsString("COINBASE_API_KEY")},
+                                                      {CCAPI_COINBASE_API_SECRET, UtilSystem::getEnvAsString("COINBASE_API_SECRET")},
+                                                      {CCAPI_COINBASE_API_PASSPHRASE, UtilSystem::getEnvAsString("CCAPI_COINBASE_API_PASSPHRASE")}};
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;

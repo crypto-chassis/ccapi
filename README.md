@@ -444,5 +444,5 @@ Logger* Logger::logger = &myLogger;
 
 ### Contributing
 * (Required) Create a new branch from the `development` branch and submit a pull request to the `development` branch.
-* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html.
+* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters.
 * (Optional) Commit message format: https://conventionalcommits.org.

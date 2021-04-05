@@ -2,11 +2,9 @@
 namespace ccapi {
 class MyLogger final : public Logger {
  public:
-  void logMessage(std::string severity, std::string threadId, std::string timeISO, std::string fileName,
-                  std::string lineNumber, std::string message) override {
+  void logMessage(std::string severity, std::string threadId, std::string timeISO, std::string fileName, std::string lineNumber, std::string message) override {
     std::lock_guard<std::mutex> lock(m);
-    std::cout << threadId << ": [" << timeISO << "] {" << fileName << ":" << lineNumber << "} " << severity
-              << std::string(8, ' ') << message << std::endl;
+    std::cout << threadId << ": [" << timeISO << "] {" << fileName << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message << std::endl;
   }
 
  private:

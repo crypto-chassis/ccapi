@@ -12,7 +12,7 @@ class Request CCAPI_FINAL {
   static constexpr int operationTypeMarketData = 0x100;
   static constexpr int operationTypeExecutionManagement = 0x200;
   enum class Operation {
-    GET_TRADES = operationTypeMarketData,
+    GET_RECENT_TRADES = operationTypeMarketData,
     CREATE_ORDER = operationTypeExecutionManagement,
     CANCEL_ORDER,
     GET_ORDER,
@@ -22,8 +22,8 @@ class Request CCAPI_FINAL {
   static std::string operationToString(Operation operation) {
     std::string output;
     switch (operation) {
-      case Operation::GET_TRADES:
-        output = "GET_TRADES";
+      case Operation::GET_RECENT_TRADES:
+        output = "GET_RECENT_TRADES";
         break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
@@ -69,13 +69,8 @@ class Request CCAPI_FINAL {
   Request() {}
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId = "",
           std::map<std::string, std::string> credential = {})
-      : operation(operation),
-        exchange(exchange),
-        instrument(instrument),
-        correlationId(correlationId),
-        credential(credential) {
-    this->serviceName =
-        static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+      : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
+    this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
@@ -83,13 +78,11 @@ class Request CCAPI_FINAL {
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;
     for (const auto& x : credential) {
-      shortCredential.insert(
-          std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
+      shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
-    std::string output =
-        "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName +
-        ", correlationId = " + correlationId + ", paramList = " + ccapi::toString(paramList) +
-        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
+    std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName +
+                         ", correlationId = " + correlationId + ", paramList = " + ccapi::toString(paramList) +
+                         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -110,8 +103,7 @@ class Request CCAPI_FINAL {
   }
   bool getIsHttpResponseRaw() const { return isHttpResponseRaw; }
   void setHttpResponseRaw(bool isHttpResponseRaw) { this->isHttpResponseRaw = isHttpResponseRaw; }
-  std::map<std::string, std::string> getFirstParamWithDefault(
-      const std::map<std::string, std::string> defaultValue = {}) const {
+  std::map<std::string, std::string> getFirstParamWithDefault(const std::map<std::string, std::string> defaultValue = {}) const {
     if (this->paramList.empty()) {
       return defaultValue;
     } else {

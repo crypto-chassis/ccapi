@@ -8,8 +8,8 @@ namespace ccapi {
 class Subscription CCAPI_FINAL {
  public:
   Subscription() {}
-  Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "",
-               std::string correlationId = "", std::map<std::string, std::string> credential = {})
+  Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId = "",
+               std::map<std::string, std::string> credential = {})
       : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential) {
     std::vector<std::string> optionList;
     if (!options.empty()) {
@@ -31,8 +31,7 @@ class Subscription CCAPI_FINAL {
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;
     for (const auto& x : credential) {
-      shortCredential.insert(
-          std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
+      shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = " + field +
                          ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = " + correlationId +

@@ -14,55 +14,37 @@ class SessionConfigs CCAPI_FINAL {
   explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap,
                           std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {},
                           std::map<std::string, std::string> credential = {})
-      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap),
-        exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest),
-        credential(credential) {
+      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap), exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest), credential(credential) {
     this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
     this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
     this->updateExchangeInstrumentMap();
     this->updateExchangeInstrumentMapRest();
   }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const {
-    return exchangeInstrumentSymbolMap;
-  }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMapRest() const {
-    return exchangeInstrumentSymbolMapRest;
-  }
-  void setExchangeInstrumentSymbolMap(
-      const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const { return exchangeInstrumentSymbolMap; }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMapRest() const { return exchangeInstrumentSymbolMapRest; }
+  void setExchangeInstrumentSymbolMap(const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
     this->exchangeInstrumentSymbolMap = exchangeInstrumentSymbolMap;
     this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
     this->updateExchangeInstrumentMap();
     this->updateExchangeInstrumentMapRest();
   }
-  void setExchangeInstrumentSymbolMapRest(
-      const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMapRest) {
+  void setExchangeInstrumentSymbolMapRest(const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMapRest) {
     this->exchangeInstrumentSymbolMapRest = exchangeInstrumentSymbolMapRest;
     this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
     this->updateExchangeInstrumentMapRest();
   }
   const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const { return exchangeInstrumentMap; }
-  const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const {
-    return exchangeInstrumentMapRest;
-  }
+  const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const { return exchangeInstrumentMapRest; }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const { return exchangeFieldMap; }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeFieldWebsocketChannelMap() const {
-    return exchangeFieldWebsocketChannelMap;
-  }
-  const std::map<std::string, std::vector<int> >& getWebsocketAvailableMarketDepth() const {
-    return websocketAvailableMarketDepth;
-  }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeFieldWebsocketChannelMap() const { return exchangeFieldWebsocketChannelMap; }
+  const std::map<std::string, std::vector<int> >& getWebsocketAvailableMarketDepth() const { return websocketAvailableMarketDepth; }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const { return urlWebsocketBase; }
   const std::map<std::string, std::string>& getUrlRestBase() const { return urlRestBase; }
   const std::map<std::string, int>& getInitialSequenceByExchangeMap() const { return initialSequenceByExchangeMap; }
   const std::map<std::string, std::string>& getCredential() const { return credential; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMap() const {
-    return exchangeSymbolInstrumentMap;
-  }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMapRest() const {
-    return exchangeSymbolInstrumentMapRest;
-  }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMap() const { return exchangeSymbolInstrumentMap; }
+  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMapRest() const { return exchangeSymbolInstrumentMapRest; }
 
  private:
   void updateExchangeInstrumentMap() {
@@ -77,8 +59,7 @@ class SessionConfigs CCAPI_FINAL {
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapGemini = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_GEMINI_PARAMETER_TRADES},
-        {CCAPI_MARKET_DEPTH,
-         std::string(CCAPI_WEBSOCKET_GEMINI_PARAMETER_BIDS) + "," + CCAPI_WEBSOCKET_GEMINI_PARAMETER_OFFERS},
+        {CCAPI_MARKET_DEPTH, std::string(CCAPI_WEBSOCKET_GEMINI_PARAMETER_BIDS) + "," + CCAPI_WEBSOCKET_GEMINI_PARAMETER_OFFERS},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapKraken = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE},
@@ -198,22 +179,21 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_OKEX, std::vector<int>({5, 400})},
         {CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
     };
-    this->urlWebsocketBase = {
-        {CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},
-        {CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata"},
-        {CCAPI_EXCHANGE_NAME_KRAKEN, "wss://ws.kraken.com"},
-        {CCAPI_EXCHANGE_NAME_BITSTAMP, "wss://ws.bitstamp.net"},
-        {CCAPI_EXCHANGE_NAME_BITFINEX, "wss://api-pub.bitfinex.com/ws/2"},
-        {CCAPI_EXCHANGE_NAME_BITMEX, "wss://www.bitmex.com/realtime"},
-        {CCAPI_EXCHANGE_NAME_BINANCE_US, "wss://stream.binance.us:9443/stream"},
-        {CCAPI_EXCHANGE_NAME_BINANCE, "wss://stream.binance.com:9443/stream"},
-        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
-        {CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
-        {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "wss://api.hbdm.com/linear-swap-ws"},
-        {CCAPI_EXCHANGE_NAME_OKEX, "wss://ws.okex.com:8443/ws/v5"},
-        {CCAPI_EXCHANGE_NAME_ERISX, "wss://publicmd-api.erisx.com"},
-        //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
-        {CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"}};
+    this->urlWebsocketBase = {{CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},
+                              {CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata"},
+                              {CCAPI_EXCHANGE_NAME_KRAKEN, "wss://ws.kraken.com"},
+                              {CCAPI_EXCHANGE_NAME_BITSTAMP, "wss://ws.bitstamp.net"},
+                              {CCAPI_EXCHANGE_NAME_BITFINEX, "wss://api-pub.bitfinex.com/ws/2"},
+                              {CCAPI_EXCHANGE_NAME_BITMEX, "wss://www.bitmex.com/realtime"},
+                              {CCAPI_EXCHANGE_NAME_BINANCE_US, "wss://stream.binance.us:9443/stream"},
+                              {CCAPI_EXCHANGE_NAME_BINANCE, "wss://stream.binance.com:9443/stream"},
+                              {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
+                              {CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
+                              {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "wss://api.hbdm.com/linear-swap-ws"},
+                              {CCAPI_EXCHANGE_NAME_OKEX, "wss://ws.okex.com:8443/ws/v5"},
+                              {CCAPI_EXCHANGE_NAME_ERISX, "wss://publicmd-api.erisx.com"},
+                              //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
+                              {CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"}};
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
   void updateExchangeInstrumentMapRest() {
@@ -223,18 +203,12 @@ class SessionConfigs CCAPI_FINAL {
       }
     }
     this->urlRestBase = {
-        {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_OKEX, CCAPI_OKEX_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_REST_BASE}, {CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_REST_BASE},     {CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_REST_BASE},   {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},       {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_OKEX, CCAPI_OKEX_URL_REST_BASE},         {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},     {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
     };
   }
   std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(

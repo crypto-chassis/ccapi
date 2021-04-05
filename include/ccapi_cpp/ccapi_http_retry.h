@@ -10,8 +10,8 @@ class HttpRetry CCAPI_FINAL {
   std::string toString() const {
     std::ostringstream oss;
     oss << promisePtr;
-    std::string output = "HttpConnection [numRetry = " + ccapi::toString(numRetry) +
-                         ", numRedirect = " + ccapi::toString(numRedirect) + ", promisePtr = " + oss.str() + "]";
+    std::string output =
+        "HttpConnection [numRetry = " + ccapi::toString(numRetry) + ", numRedirect = " + ccapi::toString(numRedirect) + ", promisePtr = " + oss.str() + "]";
     return output;
   }
   int numRetry;

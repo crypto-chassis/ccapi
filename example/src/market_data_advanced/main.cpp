@@ -18,16 +18,15 @@ using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
 using ::ccapi::toString;
 int main(int argc, char** argv) {
-  std::vector<std::string> modeList = {
-      "specify_correlation_id",
-      "normalize_instrument_name",
-      "multiple_exchanges_instruments",
-      "specify_market_depth",
-      "receive_events_at_periodic_intervals",
-      "receive_events_at_periodic_intervals_including_when_the_market_depth_snapshot_has_not_changed",
-      "receive_market_depth_update",
-      "dispatch_events_to_multiple_threads",
-      "handle_events_in_batching_mode"};
+  std::vector<std::string> modeList = {"specify_correlation_id",
+                                       "normalize_instrument_name",
+                                       "multiple_exchanges_instruments",
+                                       "specify_market_depth",
+                                       "receive_events_at_periodic_intervals",
+                                       "receive_events_at_periodic_intervals_including_when_the_market_depth_snapshot_has_not_changed",
+                                       "receive_market_depth_update",
+                                       "dispatch_events_to_multiple_threads",
+                                       "handle_events_in_batching_mode"};
   if (argc != 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
     std::cerr << "Please provide one command line argument from this list: " + toString(modeList) << std::endl;
     return EXIT_FAILURE;
@@ -90,8 +89,7 @@ int main(int argc, char** argv) {
     SessionConfigs sessionConfigs;
     MyEventHandler eventHandler;
     Session session(sessionOptions, sessionConfigs, &eventHandler);
-    Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH",
-                              "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
+    Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
     session.subscribe(subscription);
     std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();

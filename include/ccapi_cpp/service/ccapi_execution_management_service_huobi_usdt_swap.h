@@ -6,8 +6,8 @@
 namespace ccapi {
 class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionManagementServiceHuobiBase {
  public:
-  ExecutionManagementServiceHuobiUsdtSwap(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                          SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceHuobiUsdtSwap(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                          ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
@@ -26,18 +26,15 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
   }
 
  private:
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-    return body.find("err_code") != std::string::npos;
-  }
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err_code") != std::string::npos; }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "contract_code");
   }
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "contract_code");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
-                        const TimePoint& now, const std::string& symbolId,
-                        const std::map<std::string, std::string>& credential,
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                        const std::string& symbolId, const std::map<std::string, std::string>& credential,
                         std::map<std::string, std::string>& queryParamMap) override {
     switch (operation) {
       case Request::Operation::CREATE_ORDER: {
@@ -66,8 +63,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
+        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -83,8 +79,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
+        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -113,8 +108,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
-                                                   const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
@@ -145,24 +139,19 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
 
  public:
 #endif
-  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage,
-                                                   const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage =
-        std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
     return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
   }
-  Element extractOrderInfo(
-      const rj::Value& x,
-      const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("trade_volume");
       auto it2 = x.FindMember("trade_avg_price");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
         element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                       std::to_string(std::stod(it1->value.GetString()) *
-                                      (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
+                       std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
     return element;

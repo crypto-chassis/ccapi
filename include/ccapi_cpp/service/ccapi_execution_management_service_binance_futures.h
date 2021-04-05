@@ -6,8 +6,8 @@
 namespace ccapi {
 class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
  public:
-  ExecutionManagementServiceBinanceFutures(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                           SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceBinanceFutures(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;

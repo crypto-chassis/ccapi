@@ -44,8 +44,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Request request(Request::Operation::CREATE_ORDER, "binance-us", argv[2]);
-    request.appendParam(
-        {{"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"}, {"QUANTITY", argv[4]}, {"LIMIT_PRICE", argv[5]}});
+    request.appendParam({{"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"}, {"QUANTITY", argv[4]}, {"LIMIT_PRICE", argv[5]}});
     session.sendRequest(request);
   } else if (mode == "cancel_order") {
     if (argc != 4) {

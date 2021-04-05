@@ -109,29 +109,24 @@ class Message CCAPI_FINAL {
   }
   std::string toString() const {
     std::string output = "Message [type = " + typeToString(type) + ", recapType = " + recapTypeToString(recapType) +
-                         ", time = " + UtilTime::getISOTimestamp(time) +
-                         ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) +
-                         ", elementList = " + ccapi::firstNToString(elementList, 10) +
-                         ", correlationIdList = " + ccapi::toString(correlationIdList) + "]";
+                         ", time = " + UtilTime::getISOTimestamp(time) + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) +
+                         ", elementList = " + ccapi::firstNToString(elementList, 10) + ", correlationIdList = " + ccapi::toString(correlationIdList) + "]";
     return output;
   }
   std::string toStringPretty(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
     std::string sl(leftToIndent, ' ');
     std::string ss(leftToIndent + space, ' ');
-    std::string output =
-        (indentFirstLine ? sl : "") + "Message [\n" + ss + "type = " + typeToString(type) + ",\n" + ss +
-        "recapType = " + recapTypeToString(recapType) + ",\n" + ss + "time = " + UtilTime::getISOTimestamp(time) + ",\n" +
-        ss + "timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ",\n" + ss +
-        "elementList = " + ccapi::firstNToStringPretty(elementList, 10, space, space + leftToIndent, false) + ",\n" + ss +
-        "correlationIdList = " + ccapi::toString(correlationIdList) + "\n" + sl + "]";
+    std::string output = (indentFirstLine ? sl : "") + "Message [\n" + ss + "type = " + typeToString(type) + ",\n" + ss +
+                         "recapType = " + recapTypeToString(recapType) + ",\n" + ss + "time = " + UtilTime::getISOTimestamp(time) + ",\n" + ss +
+                         "timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ",\n" + ss +
+                         "elementList = " + ccapi::firstNToStringPretty(elementList, 10, space, space + leftToIndent, false) + ",\n" + ss +
+                         "correlationIdList = " + ccapi::toString(correlationIdList) + "\n" + sl + "]";
     return output;
   }
   const std::vector<Element>& getElementList() const { return elementList; }
   void setElementList(const std::vector<Element>& elementList) { this->elementList = elementList; }
   const std::vector<std::string>& getCorrelationIdList() const { return correlationIdList; }
-  void setCorrelationIdList(const std::vector<std::string>& correlationIdList) {
-    this->correlationIdList = correlationIdList;
-  }
+  void setCorrelationIdList(const std::vector<std::string>& correlationIdList) { this->correlationIdList = correlationIdList; }
   TimePoint getTime() const { return time; }
   std::string getTimeISO() const { return UtilTime::getISOTimestamp(time); }
   std::pair<long long, long long> getTimePair() const { return UtilTime::divide(time); }

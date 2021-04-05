@@ -6,8 +6,8 @@
 namespace ccapi {
 class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementServiceHuobiBase {
  public:
-  ExecutionManagementServiceHuobi(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                  SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceHuobi(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_HUOBI;
@@ -27,18 +27,15 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
   }
 
  private:
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-    return body.find("err-code") != std::string::npos;
-  }
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "symbol");
   }
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "symbol");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
-                        const TimePoint& now, const std::string& symbolId,
-                        const std::map<std::string, std::string>& credential,
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                        const std::string& symbolId, const std::map<std::string, std::string>& credential,
                         std::map<std::string, std::string>& queryParamMap) override {
     switch (operation) {
       case Request::Operation::CREATE_ORDER: {
@@ -66,12 +63,10 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         auto shouldUseOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
-        std::string id =
-            shouldUseOrderId
-                ? param.at(CCAPI_EM_ORDER_ID)
-                : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
-        auto target = shouldUseOrderId ? std::regex_replace(this->cancelOrderTarget, std::regex("\\{order\\-id\\}"), id)
-                                       : this->cancelOrderByClientOrderIdTarget;
+        std::string id = shouldUseOrderId ? param.at(CCAPI_EM_ORDER_ID)
+                                          : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        auto target =
+            shouldUseOrderId ? std::regex_replace(this->cancelOrderTarget, std::regex("\\{order\\-id\\}"), id) : this->cancelOrderByClientOrderIdTarget;
         if (!shouldUseOrderId) {
           rj::Document document;
           document.SetObject();
@@ -90,11 +85,9 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         auto shouldUseOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
-        std::string id = shouldUseOrderId
-                             ? param.at(CCAPI_EM_ORDER_ID)
-                             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
-        auto target = shouldUseOrderId ? std::regex_replace(this->getOrderTarget, std::regex("\\{order\\-id\\}"), id)
-                                       : this->getOrderByClientOrderIdTarget;
+        std::string id =
+            shouldUseOrderId ? param.at(CCAPI_EM_ORDER_ID) : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        auto target = shouldUseOrderId ? std::regex_replace(this->getOrderTarget, std::regex("\\{order\\-id\\}"), id) : this->getOrderByClientOrderIdTarget;
         req.target(target);
         if (!shouldUseOrderId) {
           ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, param, {{CCAPI_EM_ACCOUNT_ID, "account-id"}});
@@ -114,8 +107,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
-                                                   const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::INTEGER)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client-order-id", JsonDataType::STRING)},

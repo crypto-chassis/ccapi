@@ -7,8 +7,8 @@
 namespace ccapi {
 class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceOkex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                 SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceOkex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                 ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_OKEX;
@@ -27,11 +27,8 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
   }
 
  private:
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-    return !std::regex_search(body, std::regex("\"code\":\\s*\"0\""));
-  }
-  void signRequest(http::request<http::string_body>& req, const std::string& body,
-                   const std::map<std::string, std::string>& credential) {
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
+  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("OK-ACCESS-TIMESTAMP").to_string();
     preSignedText += std::string(req.method_string());
@@ -42,8 +39,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     req.body() = body;
     req.prepare_payload();
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator,
-                   const std::map<std::string, std::string>& param,
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
@@ -56,8 +52,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       queryString += regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       queryString += "=";
@@ -73,9 +68,8 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
-                  const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("OK-ACCESS-KEY", apiKey);
@@ -114,9 +108,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(
-            document, allocator, param,
-            {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
         }
@@ -130,9 +122,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(
-            queryString, param,
-            {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
@@ -147,10 +137,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param,
-                          {{CCAPI_EM_ORDER_TYPE, "ordType"},
-                           {CCAPI_EM_ORDER_ID, "ordId"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
-                           {CCAPI_SYMBOL_ID, "instId"}});
+                          {{CCAPI_EM_ORDER_TYPE, "ordType"}, {CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
@@ -164,8 +151,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
-                                                   const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
@@ -191,9 +177,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
 
  protected:
 #endif
-  Element extractOrderInfo(
-      const rj::Value& x,
-      const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     CCAPI_LOGGER_TRACE("");
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
@@ -201,8 +185,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
       auto it2 = x.FindMember("avgPx");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
         element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                       std::to_string(std::stod(it1->value.GetString()) *
-                                      (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
+                       std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
     CCAPI_LOGGER_TRACE("");

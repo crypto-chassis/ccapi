@@ -17,8 +17,7 @@ class WsConnection CCAPI_FINAL {
   }
   std::string toString() const {
     std::string output = "WsConnection [id = " + id + ", url = " + url + ", instrumentGroup = " + instrumentGroup +
-                         ", subscriptionList = " + ccapi::toString(subscriptionList) +
-                         ", status = " + statusToString(status) + "]";
+                         ", subscriptionList = " + ccapi::toString(subscriptionList) + ", status = " + statusToString(status) + "]";
     return output;
   }
   enum class Status { UNKNOWN, CONNECTING, OPEN, FAILED, CLOSING, CLOSED };

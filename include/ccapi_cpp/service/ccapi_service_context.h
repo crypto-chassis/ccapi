@@ -39,8 +39,7 @@ class ServiceContext CCAPI_FINAL {
       CCAPI_LOGGER_FATAL("asio initialization error: " + ec.message());
     }
     CCAPI_LOGGER_DEBUG("asio initialization end");
-    this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 |
-                                     SslContext::single_dh_use);
+    this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 | SslContext::single_dh_use);
     this->sslContextPtr->set_verify_mode(wspp::lib::asio::ssl::verify_none);
     // TODO(cryptochassis): verify ssl certificate to strengthen security
     // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp

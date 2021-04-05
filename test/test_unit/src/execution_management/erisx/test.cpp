@@ -9,8 +9,8 @@ class ExecutionManagementServiceErisxTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceErisx>(
-        [](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service =
+        std::make_shared<ExecutionManagementServiceErisx>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {{CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4"},
                         {CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"}};
     this->timestamp = 1499827319;
@@ -22,8 +22,7 @@ class ExecutionManagementServiceErisxTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyJwt(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiSecret,
-               long long timestamp) {
+void verifyJwt(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiSecret, long long timestamp) {
   auto authorizationHeader = req.base().at("Authorization").to_string();
   std::string toErase = "Bearer ";
   auto pos = authorizationHeader.find(toErase);

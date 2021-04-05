@@ -9,12 +9,11 @@ class ExecutionManagementServiceOkexTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceOkex>([](Event& event) {}, SessionOptions(), SessionConfigs(),
-                                                                     wspp::lib::make_shared<ServiceContext>());
-    this->credential = {
-        {CCAPI_OKEX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
-        {CCAPI_OKEX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
-        {CCAPI_OKEX_API_PASSPHRASE, "0x1a5y8koaa9"}};
+    this->service =
+        std::make_shared<ExecutionManagementServiceOkex>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_OKEX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
+                        {CCAPI_OKEX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
+                        {CCAPI_OKEX_API_PASSPHRASE, "0x1a5y8koaa9"}};
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
     this->timestampStr = "2017-07-12T02:41:59.000Z";
@@ -26,8 +25,7 @@ class ExecutionManagementServiceOkexTest : public ::testing::Test {
   std::string timestampStr;
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey,
-                     const std::string& apiPassphrase, std::string timestampStr) {
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, std::string timestampStr) {
   EXPECT_EQ(req.base().at("OK-ACCESS-KEY").to_string(), apiKey);
   EXPECT_EQ(req.base().at("OK-ACCESS-PASSPHRASE").to_string(), apiPassphrase);
   EXPECT_EQ(req.base().at("OK-ACCESS-TIMESTAMP").to_string(), timestampStr);
@@ -47,8 +45,7 @@ TEST_F(ExecutionManagementServiceOkexTest, signRequest) {
   req.set("OK-ACCESS-TIMESTAMP", "2021-04-01T18:23:16.027Z");
   req.method(http::verb::post);
   req.target("/api/v5/trade/order");
-  std::string body(
-      "{\"px\":\"2.15\",\"ordType\":\"limit\",\"sz\":\"2\",\"side\":\"buy\",\"tdMode\":\"cash\",\"instId\":\"BTC-USDT\"}");
+  std::string body("{\"px\":\"2.15\",\"ordType\":\"limit\",\"sz\":\"2\",\"side\":\"buy\",\"tdMode\":\"cash\",\"instId\":\"BTC-USDT\"}");
   this->service->signRequest(req, body, this->credential);
   EXPECT_EQ(req.base().at("OK-ACCESS-SIGN").to_string(), "vnOpLd3yPc2Ojwm8w0TafZqnujwm3qfjyIpNrmhUrsk=");
 }
@@ -63,8 +60,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE),
-                  this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/order");
   rj::Document document;
   document.Parse(req.body().c_str());
@@ -112,8 +108,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByOrderId) {
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE),
-                  this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
   rj::Document document;
   document.Parse(req.body().c_str());
@@ -128,8 +123,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByClientOrde
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE),
-                  this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
   rj::Document document;
   document.Parse(req.body().c_str());
@@ -168,8 +162,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByOrderId) {
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE),
-                  this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
@@ -184,8 +177,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByClientOrderId
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE),
-                  this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
@@ -259,8 +251,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersOneInstrum
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE),
-                  this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/orders-pending");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
@@ -272,15 +263,13 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersAllInstrum
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE),
-                  this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/orders-pending");
   verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceOkexTest* fixture,
-                                                    bool isOneInstrument) {
+void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceOkexTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "BTC-USDT" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, symbol, "", fixture->credential);
   std::string textMessage =

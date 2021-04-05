@@ -125,8 +125,7 @@ class MarketDataMessage CCAPI_FINAL {
     return output;
   }
   std::string toString() const {
-    std::string output = "MarketDataMessage [type = " + typeToString(type) +
-                         ", recapType = " + recapTypeToString(recapType) + ", tp = " + ccapi::toString(tp) +
+    std::string output = "MarketDataMessage [type = " + typeToString(type) + ", recapType = " + recapTypeToString(recapType) + ", tp = " + ccapi::toString(tp) +
                          ", exchangeSubscriptionId = " + exchangeSubscriptionId + ", data = " + dataToString(data) + "]";
     return output;
   }

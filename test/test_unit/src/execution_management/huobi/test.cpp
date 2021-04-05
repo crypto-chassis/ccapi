@@ -9,10 +9,9 @@ class ExecutionManagementServiceHuobiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceHuobi>(
-        [](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_HUOBI_API_KEY, "7f72bbdb-d3fa3d40-uymylwhfeg-17388"},
-                        {CCAPI_HUOBI_API_SECRET, "3e02e507-e8f8f2ae-a543363d-d2037"}};
+    this->service =
+        std::make_shared<ExecutionManagementServiceHuobi>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_HUOBI_API_KEY, "7f72bbdb-d3fa3d40-uymylwhfeg-17388"}, {CCAPI_HUOBI_API_SECRET, "3e02e507-e8f8f2ae-a543363d-d2037"}};
     this->timestamp = "2017-05-11T15:19:30";
     this->now = UtilTime::parse(this->timestamp + "Z");
   }
@@ -22,8 +21,7 @@ class ExecutionManagementServiceHuobiTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyApiKeyEtc(const std::map<std::string, std::string> queryParamMap, const std::string& apiKey,
-                     const std::string& timestamp) {
+void verifyApiKeyEtc(const std::map<std::string, std::string> queryParamMap, const std::string& apiKey, const std::string& timestamp) {
   EXPECT_EQ(queryParamMap.at("AccessKeyId"), apiKey);
   EXPECT_EQ(queryParamMap.at("SignatureMethod"), "HmacSHA256");
   EXPECT_EQ(queryParamMap.at("SignatureVersion"), "2");
@@ -67,9 +65,8 @@ TEST_F(ExecutionManagementServiceHuobiTest, signRequest) {
                                                       {"SignatureVersion", "2"},
                                                       {"Timestamp", "2021-01-14T00%3A05%3A31"}};
   this->service->signRequest(req, path, queryParamMap, this->credential);
-  EXPECT_EQ(
-      Url::urlDecode(Url::convertQueryStringToMap(UtilString::split(req.target().to_string(), "?").at(1)).at("Signature")),
-      "Ns/D8rLOXixLe3yU3pRl4EhCjI0R4KckPMOIu6VpWmE=");
+  EXPECT_EQ(Url::urlDecode(Url::convertQueryStringToMap(UtilString::split(req.target().to_string(), "?").at(1)).at("Signature")),
+            "Ns/D8rLOXixLe3yU3pRl4EhCjI0R4KckPMOIu6VpWmE=");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCreateOrder) {

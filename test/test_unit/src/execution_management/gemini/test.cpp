@@ -9,10 +9,9 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceGemini>(
-        [](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"},
-                        {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"}};
+    this->service =
+        std::make_shared<ExecutionManagementServiceGemini>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"}, {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"}};
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -39,16 +38,14 @@ TEST_F(ExecutionManagementServiceGeminiTest, signRequest) {
   http::request<http::string_body> req;
   std::string body("{\"request\":\"/v1/order/status\",\"nonce\":123456,\"order_id\":18834}");
   this->service->signRequest(req, body, this->credential);
-  EXPECT_EQ(req.base().at("X-GEMINI-PAYLOAD").to_string(),
-            "eyJyZXF1ZXN0IjoiL3YxL29yZGVyL3N0YXR1cyIsIm5vbmNlIjoxMjM0NTYsIm9yZGVyX2lkIjoxODgzNH0=");
+  EXPECT_EQ(req.base().at("X-GEMINI-PAYLOAD").to_string(), "eyJyZXF1ZXN0IjoiL3YxL29yZGVyL3N0YXR1cyIsIm5vbmNlIjoxMjM0NTYsIm9yZGVyX2lkIjoxODgzNH0=");
   EXPECT_EQ(UtilString::toLower(req.base().at("X-GEMINI-SIGNATURE").to_string()),
             "7c3929f78a3b4cb6c14c1ca76e851fb095d2aad9a224e0b94a9bca45d0dac6b36e7923d0e4b9469706379ec589249783");
 }
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "btcusd", "foo", this->credential);
-  std::map<std::string, std::string> param{
-      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);

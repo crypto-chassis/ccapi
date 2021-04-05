@@ -17,8 +17,8 @@ std::string string_to_hex(unsigned char* data, std::size_t len) {
 namespace ccapi {
 class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceFtx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceFtx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_FTX;
@@ -37,8 +37,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
   }
 
  protected:
-  void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::string& body,
-                   const std::map<std::string, std::string>& credential) {
+  void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     std::string ts = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
 
@@ -56,8 +55,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
     req.set("FTX-SIGN", sign);
     req.set("FTX-TS", ts);
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator,
-                   const std::map<std::string, std::string>& param,
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
@@ -82,9 +80,8 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
-                  const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("FTX-KEY", apiKey);
@@ -152,8 +149,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
-                                                   const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     rj::StringBuffer buffer;
     rj::Writer<rj::StringBuffer> writer(buffer);
     rj::Document d = rj::Document();

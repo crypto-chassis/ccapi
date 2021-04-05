@@ -81,9 +81,7 @@ class UtilString CCAPI_FINAL {
     str.erase(str.find_last_not_of(chars) + 1);
     return str;
   }
-  static std::string trim(const std::string& original, const std::string& chars = "\t\n\v\f\r ") {
-    return ltrim(rtrim(original, chars), chars);
-  }
+  static std::string trim(const std::string& original, const std::string& chars = "\t\n\v\f\r ") { return ltrim(rtrim(original, chars), chars); }
   static std::string firstNCharacter(const std::string& str, const size_t n) {
     if (str.length() > n) {
       return str.substr(0, n) + "...";
@@ -157,8 +155,7 @@ class UtilTime CCAPI_FINAL {
     output += millisecondStr;
     return output;
   }
-  static void timePointToParts(TimePoint tp, int& year, int& month, int& day, int& hour, int& minute, int& second,
-                               int& millisecond) {
+  static void timePointToParts(TimePoint tp, int& year, int& month, int& day, int& hour, int& minute, int& second, int& millisecond) {
     auto epoch_sec = std::chrono::time_point_cast<std::chrono::seconds>(tp).time_since_epoch().count();
     auto day_sec = epoch_sec - (epoch_sec % 86400);
     auto days_since_epoch = day_sec / 86400;
@@ -211,8 +208,7 @@ class UtilTime CCAPI_FINAL {
   static std::pair<long long, long long> divide(const std::string& seconds) {
     if (seconds.find(".") != std::string::npos) {
       auto splittedSeconds = UtilString::split(UtilString::rtrim(UtilString::rtrim(seconds, "0"), "."), ".");
-      return std::make_pair(std::stoi(splittedSeconds[0]),
-                            splittedSeconds.size() == 1 ? 0 : std::stoi(UtilString::rightPadTo(splittedSeconds[1], 9, '0')));
+      return std::make_pair(std::stoi(splittedSeconds[0]), splittedSeconds.size() == 1 ? 0 : std::stoi(UtilString::rightPadTo(splittedSeconds[1], 9, '0')));
     } else {
       return std::make_pair(std::stoi(seconds), 0);
     }
@@ -226,9 +222,7 @@ class UtilTime CCAPI_FINAL {
     auto s = std::chrono::duration_cast<std::chrono::seconds>(then);
     return s.count();
   }
-  static TimePoint makeTimePointFromMilliseconds(long long milliseconds) {
-    return TimePoint(std::chrono::milliseconds(milliseconds));
-  }
+  static TimePoint makeTimePointFromMilliseconds(long long milliseconds) { return TimePoint(std::chrono::milliseconds(milliseconds)); }
 };
 class UtilAlgorithm CCAPI_FINAL {
  public:
@@ -244,15 +238,13 @@ class UtilAlgorithm CCAPI_FINAL {
   }
   static int hexValue(unsigned char hex_digit) {
     static const signed char hex_values[256] = {
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
-        -1, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  -1, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
     };
     int value = hex_values[hex_digit];
     if (value == -1) throw std::invalid_argument("invalid hex digit");
@@ -281,8 +273,7 @@ class UtilAlgorithm CCAPI_FINAL {
         valb -= 6;
       }
     }
-    if (valb > -6)
-      out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val << 8) >> (valb + 8)) & 0x3F]);
+    if (valb > -6) out.push_back("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"[((val << 8) >> (valb + 8)) & 0x3F]);
     while (out.size() % 4) out.push_back('=');
     return out;
   }
@@ -304,8 +295,7 @@ class UtilAlgorithm CCAPI_FINAL {
   }
   //  https://github.com/brianloveswords/base64url
   static std::string base64UrlFromBase64(const std::string& base64) {
-    return std::regex_replace(std::regex_replace(std::regex_replace(base64, std::regex("="), ""), std::regex("\\+"), "-"),
-                              std::regex("\\/"), "_");
+    return std::regex_replace(std::regex_replace(std::regex_replace(base64, std::regex("="), ""), std::regex("\\+"), "-"), std::regex("\\/"), "_");
   }
   static std::string base64FromBase64Url(const std::string& base64Url) {
     auto segmentLength = 4;
@@ -321,9 +311,7 @@ class UtilAlgorithm CCAPI_FINAL {
   }
   static std::string base64UrlEncode(const std::string& in) { return base64UrlFromBase64(base64Encode(in)); }
   static std::string base64UrlDecode(const std::string& in) { return base64Decode(base64FromBase64Url(in)); }
-  static double exponentialBackoff(double initial, double multiplier, double base, double exponent) {
-    return initial + multiplier * (pow(base, exponent) - 1);
-  }
+  static double exponentialBackoff(double initial, double multiplier, double base, double exponent) { return initial + multiplier * (pow(base, exponent) - 1); }
   template <typename InputIterator>
   static uint_fast32_t crc(InputIterator first, InputIterator last);
 };
@@ -347,10 +335,9 @@ uint_fast32_t UtilAlgorithm::crc(InputIterator first, InputIterator last) {
   }();
   // Calculate the checksum - make sure to clip to 32 bits, for systems that don't
   // have a true (fast) 32-bit type.
-  return uint_fast32_t{0xFFFFFFFFuL} & ~std::accumulate(first, last, ~uint_fast32_t{0} & uint_fast32_t{0xFFFFFFFFuL},
-                                                        [](uint_fast32_t checksum, std::uint_fast8_t value) {
-                                                          return table[(checksum ^ value) & 0xFFu] ^ (checksum >> 8);
-                                                        });
+  return uint_fast32_t{0xFFFFFFFFuL} &
+         ~std::accumulate(first, last, ~uint_fast32_t{0} & uint_fast32_t{0xFFFFFFFFuL},
+                          [](uint_fast32_t checksum, std::uint_fast8_t value) { return table[(checksum ^ value) & 0xFFu] ^ (checksum >> 8); });
 }
 class UtilSystem CCAPI_FINAL {
  public:
@@ -495,19 +482,16 @@ void keepLastN(std::map<K, V>& c, size_t n) {
   }
 }
 template <typename T>
-typename std::enable_if<std::is_same<decltype(std::declval<const T&>().toString()), std::string>::value, std::string>::type
-toString(const T& t) {
+typename std::enable_if<std::is_same<decltype(std::declval<const T&>().toString()), std::string>::value, std::string>::type toString(const T& t) {
   return t.toString();
 }
 template <typename T>
-typename std::enable_if<std::is_same<decltype(std::declval<const T&>().toStringPretty()), std::string>::value,
-                        std::string>::type
-toStringPretty(const T& t, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
+typename std::enable_if<std::is_same<decltype(std::declval<const T&>().toStringPretty()), std::string>::value, std::string>::type toStringPretty(
+    const T& t, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
   return t.toStringPretty(space, leftToIndent, indentFirstLine);
 }
 template <typename T>
-typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())), std::string>::value, std::string>::type
-toString(const T& t) {
+typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())), std::string>::value, std::string>::type toString(const T& t) {
   return std::to_string(t);
 }
 template <typename T>
@@ -515,8 +499,8 @@ typename std::enable_if<std::is_same<T, std::string>::value, std::string>::type 
   return t;
 }
 template <typename T>
-typename std::enable_if<std::is_same<T, std::string>::value, std::string>::type toStringPretty(
-    const T& t, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
+typename std::enable_if<std::is_same<T, std::string>::value, std::string>::type toStringPretty(const T& t, const int space = 2, const int leftToIndent = 0,
+                                                                                               const bool indentFirstLine = true) {
   std::string sl(leftToIndent, ' ');
   std::string output = (indentFirstLine ? sl : "") + t;
   return output;
@@ -590,8 +574,7 @@ std::string toString(const std::map<K, V>& c) {
   return output;
 }
 template <typename K, typename V>
-std::string toStringPretty(const std::map<K, V>& c, const int space = 2, const int leftToIndent = 0,
-                           const bool indentFirstLine = true) {
+std::string toStringPretty(const std::map<K, V>& c, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
   std::string sl(leftToIndent, ' ');
   std::string output = (indentFirstLine ? sl : "") + "{\n";
   auto size = c.size();
@@ -687,8 +670,7 @@ std::string toString(const std::vector<T>& c) {
   return output;
 }
 template <typename T>
-std::string toStringPretty(const std::vector<T>& c, const int space = 2, const int leftToIndent = 0,
-                           const bool indentFirstLine = true) {
+std::string toStringPretty(const std::vector<T>& c, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
   std::string sl(leftToIndent, ' ');
   std::string output = (indentFirstLine ? sl : "") + "[\n";
   auto size = c.size();
@@ -725,8 +707,7 @@ std::string firstNToString(const std::vector<T>& c, const size_t n) {
   return output;
 }
 template <typename T>
-std::string firstNToStringPretty(const std::vector<T>& c, const size_t n, const int space = 2, const int leftToIndent = 0,
-                                 const bool indentFirstLine = true) {
+std::string firstNToStringPretty(const std::vector<T>& c, const size_t n, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
   std::string sl(leftToIndent, ' ');
   std::string output = (indentFirstLine ? sl : "") + "[\n";
   auto size = c.size();

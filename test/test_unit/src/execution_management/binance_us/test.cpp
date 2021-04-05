@@ -9,8 +9,8 @@ class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceBinanceUs>(
-        [](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceBinanceUs>([](Event& event) {}, SessionOptions(), SessionConfigs(),
+                                                                          wspp::lib::make_shared<ServiceContext>());
     this->credential = {{CCAPI_BINANCE_US_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"},
                         {CCAPI_BINANCE_US_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"}};
     this->timestamp = 1499827319559;
@@ -22,9 +22,7 @@ class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) {
-  EXPECT_EQ(req.base().at("X-MBX-APIKEY").to_string(), apiKey);
-}
+void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(req.base().at("X-MBX-APIKEY").to_string(), apiKey); }
 
 void verifySignature(const std::string& paramString, const std::string& apiSecret) {
   auto pos = paramString.find_last_of("&");
@@ -34,8 +32,7 @@ void verifySignature(const std::string& paramString, const std::string& apiSecre
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, signRequest) {
-  std::string queryString =
-      "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
+  std::string queryString = "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559";
   this->service->signRequest(queryString, {{"timestamp", "1499827319559"}}, this->now, this->credential);
   EXPECT_EQ(queryString,
             "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559&"
@@ -44,8 +41,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -225,8 +221,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllIn
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
-void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceBinanceUsTest* fixture,
-                                                    bool isOneInstrument) {
+void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceBinanceUsTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "LTCBTC" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, symbol, "", fixture->credential);
   std::string textMessage =

@@ -7,8 +7,8 @@
 namespace ccapi {
 class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceErisx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                  SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceErisx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_ERISX;
@@ -32,8 +32,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
     return body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos ||
            body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos;
   }
-  void signRequest(http::request<http::string_body>& req, const TimePoint& now,
-                   const std::map<std::string, std::string>& credential) {
+  void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     rj::Document tokenPayloadDocument;
     tokenPayloadDocument.SetObject();
@@ -50,8 +49,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
   void setBody(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,
                const std::map<std::string, std::string>& param, const TimePoint& now) {
     if (param.find("transactionTime") == param.end()) {
-      document.AddMember("transactionTime", rj::Value(UtilTime::convertTimePointToFIXTime(now).c_str(), allocator).Move(),
-                         allocator);
+      document.AddMember("transactionTime", rj::Value(UtilTime::convertTimePointToFIXTime(now).c_str(), allocator).Move(), allocator);
     }
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -59,8 +57,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
     req.body() = stringBuffer.GetString();
     req.prepare_payload();
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator,
-                   const std::map<std::string, std::string>& param,
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
@@ -74,17 +71,15 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void substituteParam(std::string& target, const std::map<std::string, std::string>& param,
-                       const std::map<std::string, std::string> regularizationMap = {}) {
+  void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       target = target.replace(target.find(key), key.length(), value);
     }
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
-                  const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     switch (operation) {
       case Request::Operation::CREATE_ORDER: {
@@ -106,8 +101,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
         }
         if (param.find("currency") == param.end()) {
           if (symbolId.find("/") != std::string::npos) {
-            document.AddMember("currency", rj::Value(UtilString::split(symbolId, "/").at(0).c_str(), allocator).Move(),
-                               allocator);
+            document.AddMember("currency", rj::Value(UtilString::split(symbolId, "/").at(0).c_str(), allocator).Move(), allocator);
           }
         }
         this->setBody(req, document, allocator, param, now);
@@ -167,8 +161,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
-                                                   const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdID", JsonDataType::STRING)},
@@ -196,19 +189,15 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
 
  public:
 #endif
-  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage,
-                                                   const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage =
-        std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  protected:
 #endif
-  Element extractOrderInfo(
-      const rj::Value& x,
-      const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("cumQty");

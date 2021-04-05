@@ -29,15 +29,14 @@ class Decimal CCAPI_FINAL {
           std::vector<std::string> splittedByDecimal = UtilString::split(fixedPointValue, ".");
           if (splitted.at(1).at(0) != '-') {
             if (std::stoi(splitted.at(1)) < splittedByDecimal.at(1).length()) {
-              fixedPointValue = splittedByDecimal.at(0) + splittedByDecimal.at(1).substr(0, std::stoi(splitted.at(1))) +
-                                "." + splittedByDecimal.at(1).substr(std::stoi(splitted.at(1)));
+              fixedPointValue = splittedByDecimal.at(0) + splittedByDecimal.at(1).substr(0, std::stoi(splitted.at(1))) + "." +
+                                splittedByDecimal.at(1).substr(std::stoi(splitted.at(1)));
             } else {
-              fixedPointValue = splittedByDecimal.at(0) + splittedByDecimal.at(1) +
-                                std::string(std::stoi(splitted.at(1)) - splittedByDecimal.at(1).length(), '0');
+              fixedPointValue =
+                  splittedByDecimal.at(0) + splittedByDecimal.at(1) + std::string(std::stoi(splitted.at(1)) - splittedByDecimal.at(1).length(), '0');
             }
           } else {
-            fixedPointValue =
-                "0." + std::string(-std::stoi(splitted.at(1)) - 1, '0') + splittedByDecimal.at(0) + splittedByDecimal.at(1);
+            fixedPointValue = "0." + std::string(-std::stoi(splitted.at(1)) - 1, '0') + splittedByDecimal.at(0) + splittedByDecimal.at(1);
           }
         } else {
           if (splitted.at(1).at(0) != '-') {

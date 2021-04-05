@@ -1,14 +1,13 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || \
-    defined(CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES)
+#if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
 class ExecutionManagementServiceBinanceBase : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceBinanceBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                        SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceBinanceBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                        ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->orderStatusOpenSet = {"NEW", "PARTIALLY_FILLED"};
   }
@@ -30,8 +29,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += "&signature=";
     queryString += signature;
   }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       queryString += regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       queryString += "=";
@@ -44,9 +42,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation,
-                  const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("X-MBX-APIKEY", apiKey);
     switch (operation) {
@@ -73,8 +70,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         req.method(http::verb::delete_);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param,
-                          {{CCAPI_EM_ORDER_ID, "orderId"}, {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"}});
+        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "orderId"}, {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"}});
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
         req.target(this->cancelOrderTarget + "?" + queryString);
@@ -83,8 +79,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param,
-                          {{CCAPI_EM_ORDER_ID, "orderId"}, {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"}});
+        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "orderId"}, {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"}});
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
         req.target(this->getOrderTarget + "?" + queryString);
@@ -111,8 +106,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
-                                                   const rj::Document& document) override {
+  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
@@ -120,8 +114,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("origQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executedQty", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-         std::make_pair(this->isFutures ? "cumQuote" : "cummulativeQuoteQty", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair(this->isFutures ? "cumQuote" : "cummulativeQuoteQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     std::vector<Element> elementList;

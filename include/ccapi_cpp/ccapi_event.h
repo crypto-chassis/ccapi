@@ -84,8 +84,7 @@ class Event CCAPI_FINAL {
     std::string sl(leftToIndent, ' ');
     std::string ss(leftToIndent + space, ' ');
     std::string output = (indentFirstLine ? sl : "") + "Event [\n" + ss + "type = " + typeToString(type) + ",\n" + ss +
-                         "messageList = " + ccapi::toStringPretty(messageList, space, leftToIndent + space, false) + "\n" +
-                         sl + "]";
+                         "messageList = " + ccapi::toStringPretty(messageList, space, leftToIndent + space, false) + "\n" + sl + "]";
     return output;
   }
   const std::vector<Message>& getMessageList() const { return messageList; }

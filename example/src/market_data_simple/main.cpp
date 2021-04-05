@@ -6,8 +6,7 @@ class MyEventHandler : public EventHandler {
   bool processEvent(const Event& event, Session* session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto& message : event.getMessageList()) {
-        std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:"
-                  << std::endl;
+        std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
         for (const auto& element : message.getElementList()) {
           const std::map<std::string, std::string>& elementNameValueMap = element.getNameValueMap();
           std::cout << "  " + toString(elementNameValueMap) << std::endl;

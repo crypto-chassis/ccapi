@@ -16,8 +16,8 @@ namespace ccapi {
 class ExecutionManagementService : public Service {
  public:
   enum class JsonDataType { STRING, INTEGER, BOOLEAN, DOUBLE };
-  ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                             SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                             ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~ExecutionManagementService() {}
   void stop() override {}
@@ -34,11 +34,9 @@ class ExecutionManagementService : public Service {
     }
   }
   std::string convertOrderStatus(const std::string& status) {
-    return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN
-                                                                                   : CCAPI_EM_ORDER_STATUS_CLOSED;
+    return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN : CCAPI_EM_ORDER_STATUS_CLOSED;
   }
-  virtual std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage,
-                                                           const TimePoint& timeReceived) {
+  virtual std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
@@ -71,16 +69,14 @@ class ExecutionManagementService : public Service {
     messageList.push_back(std::move(message));
     return messageList;
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage,
-                                    const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::vector<Message>& messageList = this->convertTextMessageToMessage(request, textMessage, timeReceived);
     Event event;
     event.setType(Event::Type::RESPONSE);
     event.addMessages(messageList);
     this->eventHandler(event);
   }
-  virtual Element extractOrderInfo(
-      const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
+  virtual Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
     Element element;
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
@@ -89,9 +85,7 @@ class ExecutionManagementService : public Service {
                                 ? it->value.GetString()
                                 : y.second.second == JsonDataType::INTEGER
                                       ? std::to_string(it->value.GetInt64())
-                                      : y.second.second == JsonDataType::BOOLEAN
-                                            ? std::to_string(static_cast<int>(it->value.GetBool()))
-                                            : "null";
+                                      : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) : "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
         } else if (y.first == CCAPI_EM_ORDER_STATUS) {
@@ -104,8 +98,7 @@ class ExecutionManagementService : public Service {
     }
     return element;
   }
-  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation,
-                                                           const rj::Document& document) = 0;
+  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
   std::string apiKeyName;
   std::string apiSecretName;
   std::string createOrderTarget;

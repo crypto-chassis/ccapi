@@ -6,9 +6,7 @@
 namespace ccapi {
 class Element CCAPI_FINAL {
  public:
-  void insert(std::string name, std::string value) {
-    this->nameValueMap.insert(std::pair<std::string, std::string>(name, value));
-  }
+  void insert(std::string name, std::string value) { this->nameValueMap.insert(std::pair<std::string, std::string>(name, value)); }
   bool has(std::string name) const { return this->nameValueMap.find(name) != this->nameValueMap.end(); }
   std::string getValue(std::string name, std::string valueDefault = "") const {
     auto it = this->nameValueMap.find(name);
@@ -22,8 +20,7 @@ class Element CCAPI_FINAL {
     std::string sl(leftToIndent, ' ');
     std::string ss(leftToIndent + space, ' ');
     std::string output = (indentFirstLine ? sl : "") + "Element [\n" + ss +
-                         "nameValueMap = " + ccapi::toStringPretty(nameValueMap, space, space + leftToIndent, false) + "\n" +
-                         sl + "]";
+                         "nameValueMap = " + ccapi::toStringPretty(nameValueMap, space, space + leftToIndent, false) + "\n" + sl + "]";
     return output;
   }
   const std::map<std::string, std::string>& getNameValueMap() const { return nameValueMap; }
