@@ -6,15 +6,14 @@
 namespace ccapi {
 class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceHuobiBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                      SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
-      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-  }
-  virtual ~ExecutionManagementServiceHuobiBase() {
-  }
+  ExecutionManagementServiceHuobiBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                      ServiceContextPtr serviceContextPtr)
+      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+  virtual ~ExecutionManagementServiceHuobiBase() {}
 
  protected:
-  void signRequest(http::request<http::string_body>& req, const std::string& path, const std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& credential) {
+  void signRequest(http::request<http::string_body>& req, const std::string& path, const std::map<std::string, std::string>& queryParamMap,
+                   const std::map<std::string, std::string>& credential) {
     std::string preSignedText;
     preSignedText += std::string(req.method_string());
     preSignedText += "\n";
@@ -40,7 +39,8 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryString += Url::urlEncode(signature);
     req.target(path + "?" + queryString);
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
@@ -56,10 +56,11 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
-  void appendParam(std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
-      queryParamMap.insert(std::make_pair(regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first,
-                         Url::urlEncode(kv.second)));
+      queryParamMap.insert(
+          std::make_pair(regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first, Url::urlEncode(kv.second)));
     }
   }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId, const std::string symbolIdCalled) {
@@ -68,7 +69,8 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId, const std::string symbolIdCalled) {
     queryParamMap.insert(std::make_pair(symbolIdCalled, Url::urlEncode(symbolId)));
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     std::map<std::string, std::string> queryParamMap;
@@ -79,7 +81,9 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
     this->convertReqDetail(req, request, operation, now, symbolId, credential, queryParamMap);
   }
-  virtual void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) = 0;
+  virtual void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                                const std::string& symbolId, const std::map<std::string, std::string>& credential,
+                                std::map<std::string, std::string>& queryParamMap) = 0;
   bool isDerivatives{};
 };
 } /* namespace ccapi */

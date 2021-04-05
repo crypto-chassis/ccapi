@@ -6,8 +6,8 @@
 namespace ccapi {
 class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionManagementServiceHuobiBase {
  public:
-  ExecutionManagementServiceHuobiUsdtSwap(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                      SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceHuobiUsdtSwap(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                          ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
@@ -26,30 +26,28 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
   }
 
  private:
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-    return body.find("err_code") != std::string::npos;
-  }
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err_code") != std::string::npos; }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "contract_code");
   }
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "contract_code");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                        const std::string& symbolId, const std::map<std::string, std::string>& credential,
+                        std::map<std::string, std::string>& queryParamMap) override {
     switch (operation) {
-      case Request::Operation::CREATE_ORDER:
-      {
+      case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {
-            {CCAPI_EM_ORDER_SIDE , "direction"},
-            {CCAPI_EM_ORDER_QUANTITY , "volume"},
-            {CCAPI_EM_ORDER_LIMIT_PRICE , "price"},
-            {CCAPI_EM_CLIENT_ORDER_ID , "client_order_id"}
-        });
+        this->appendParam(document, allocator, param,
+                          {{CCAPI_EM_ORDER_SIDE, "direction"},
+                           {CCAPI_EM_ORDER_QUANTITY, "volume"},
+                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                           {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -58,19 +56,14 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         req.body() = body;
         req.prepare_payload();
         this->signRequest(req, this->createOrderTarget, queryParamMap, credential);
-      }
-      break;
-      case Request::Operation::CANCEL_ORDER:
-      {
+      } break;
+      case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {
-          {CCAPI_EM_ORDER_ID , "order_id"},
-          {CCAPI_EM_CLIENT_ORDER_ID , "client_order_id"}
-        });
+        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -79,19 +72,14 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         req.body() = body;
         req.prepare_payload();
         this->signRequest(req, this->cancelOrderTarget, queryParamMap, credential);
-      }
-      break;
-      case Request::Operation::GET_ORDER:
-      {
+      } break;
+      case Request::Operation::GET_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {
-          {CCAPI_EM_ORDER_ID , "order_id"},
-          {CCAPI_EM_CLIENT_ORDER_ID , "client_order_id"}
-        });
+        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -100,10 +88,8 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         req.body() = body;
         req.prepare_payload();
         this->signRequest(req, this->getOrderTarget, queryParamMap, credential);
-      }
-      break;
-      case Request::Operation::GET_OPEN_ORDERS:
-      {
+      } break;
+      case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
@@ -117,23 +103,21 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         req.body() = body;
         req.prepare_payload();
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
-      }
-      break;
+      } break;
       default:
-      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-      {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
-      {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_SIDE, std::make_pair("direction", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_QUANTITY, std::make_pair("volume", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("trade_volume", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("contract_code", JsonDataType::STRING)}
-    };
+        {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_SIDE, std::make_pair("direction", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("volume", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("trade_volume", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("contract_code", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER) {

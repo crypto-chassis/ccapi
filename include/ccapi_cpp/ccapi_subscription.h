@@ -1,29 +1,25 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_
-#include "ccapi_cpp/ccapi_macro.h"
-#include <string>
 #include <set>
+#include <string>
+#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class Subscription CCAPI_FINAL {
  public:
   Subscription() {}
-  Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId =
-                   "", std::map<std::string, std::string> credential = {})
+  Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId = "",
+               std::map<std::string, std::string> credential = {})
       : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential) {
     std::vector<std::string> optionList;
     if (!options.empty()) {
       optionList = UtilString::split(options, "&");
     }
-    this->optionMap[CCAPI_MARKET_DEPTH_MAX] =
-    CCAPI_MARKET_DEPTH_MAX_DEFAULT;
-    this->optionMap[CCAPI_CONFLATE_INTERVAL_MILLISECONDS] =
-    CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
-    this->optionMap[CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS] =
-    CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
-    this->optionMap[CCAPI_MARKET_DEPTH_RETURN_UPDATE] =
-    CCAPI_MARKET_DEPTH_RETURN_UPDATE_DEFAULT;
-    for (const auto & option : optionList) {
+    this->optionMap[CCAPI_MARKET_DEPTH_MAX] = CCAPI_MARKET_DEPTH_MAX_DEFAULT;
+    this->optionMap[CCAPI_CONFLATE_INTERVAL_MILLISECONDS] = CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+    this->optionMap[CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS] = CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
+    this->optionMap[CCAPI_MARKET_DEPTH_RETURN_UPDATE] = CCAPI_MARKET_DEPTH_RETURN_UPDATE_DEFAULT;
+    for (const auto& option : optionList) {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
@@ -37,37 +33,22 @@ class Subscription CCAPI_FINAL {
     for (const auto& x : credential) {
       shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
-    std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = "
-        + field + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = "
-        + correlationId + ", credential = "
-        + ccapi::toString(shortCredential) + ", serviceName = " + serviceName + "]";
+    std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = " + field +
+                         ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = " + correlationId +
+                         ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName + "]";
     return output;
   }
-  const std::string& getCorrelationId() const {
-    return correlationId;
-  }
-  const std::string& getExchange() const {
-    return exchange;
-  }
-  const std::string& getInstrument() const {
-    return instrument;
-  }
-  const std::string& getField() const {
-    return field;
-  }
-  const std::map<std::string, std::string>& getOptionMap() const {
-    return optionMap;
-  }
-  const std::map<std::string, std::string>& getCredential() const {
-    return credential;
-  }
-  const std::string& getServiceName() const {
-    return serviceName;
-  }
+  const std::string& getCorrelationId() const { return correlationId; }
+  const std::string& getExchange() const { return exchange; }
+  const std::string& getInstrument() const { return instrument; }
+  const std::string& getField() const { return field; }
+  const std::map<std::string, std::string>& getOptionMap() const { return optionMap; }
+  const std::map<std::string, std::string>& getCredential() const { return credential; }
+  const std::string& getServiceName() const { return serviceName; }
   const std::string getSerializedOptions() const {
     std::string output;
     int i = 0;
-    for (const auto & option : this->optionMap) {
+    for (const auto& option : this->optionMap) {
       output += option.first;
       output += "=";
       output += option.second;
@@ -78,13 +59,7 @@ class Subscription CCAPI_FINAL {
     }
     return output;
   }
-  enum class Status {
-    UNKNOWN,
-    SUBSCRIBING,
-    SUBSCRIBED,
-    UNSUBSCRIBING,
-    UNSUBSCRIBED
-  };
+  enum class Status { UNKNOWN, SUBSCRIBING, SUBSCRIBED, UNSUBSCRIBING, UNSUBSCRIBED };
   static std::string statusToString(Status status) {
     std::string output;
     switch (status) {

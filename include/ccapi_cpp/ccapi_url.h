@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_URL_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_URL_H_
-#include <string>
 #include <regex>
+#include <string>
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
@@ -17,11 +17,9 @@ class Url CCAPI_FINAL {
       this->target = std::string(what[4].first, what[4].second);
     }
   }
-  Url(std::string protocol, std::string host, std::string port, std::string target) : protocol(protocol), host(host), port(port), target(target) {
-  }
+  Url(std::string protocol, std::string host, std::string port, std::string target) : protocol(protocol), host(host), port(port), target(target) {}
   std::string toString() const {
-    std::string output = "Url [protocol = " + protocol + ", host = " + host + ", port = " + port + ", target = "
-        + target + "]";
+    std::string output = "Url [protocol = " + protocol + ", host = " + host + ", port = " + port + ", target = " + target + "]";
     return output;
   }
   static std::string urlEncode(const std::string &value) {
@@ -37,7 +35,7 @@ class Url CCAPI_FINAL {
       }
       // Any other characters are percent-encoded
       escaped << std::uppercase;
-      escaped << '%' << std::setw(2) << int((unsigned char) c);
+      escaped << '%' << std::setw(2) << int((unsigned char)c);
       escaped << std::nouppercase;
     }
     return escaped.str();
@@ -60,7 +58,7 @@ class Url CCAPI_FINAL {
   }
   static std::map<std::string, std::string> convertQueryStringToMap(const std::string &input) {
     std::map<std::string, std::string> output;
-    for (const auto & x : UtilString::split(input, "&")) {
+    for (const auto &x : UtilString::split(input, "&")) {
       auto y = UtilString::split(x, "=");
       output.insert(std::make_pair(y.at(0), y.at(1)));
     }

@@ -3,12 +3,11 @@ namespace ccapi {
 Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session *session) override {
+  bool processEvent(const Event& event, Session* session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      for (const auto & message : event.getMessageList()) {
-        std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:"
-                  << std::endl;
-        for (const auto & element : message.getElementList()) {
+      for (const auto& message : event.getMessageList()) {
+        std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
+        for (const auto& element : message.getElementList()) {
           const std::map<std::string, std::string>& elementNameValueMap = element.getNameValueMap();
           std::cout << "  " + toString(elementNameValueMap) << std::endl;
         }
@@ -18,12 +17,12 @@ class MyEventHandler : public EventHandler {
   }
 };
 } /* namespace ccapi */
-using ::ccapi::SessionOptions;
-using ::ccapi::SessionConfigs;
 using ::ccapi::MyEventHandler;
 using ::ccapi::Session;
+using ::ccapi::SessionConfigs;
+using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;

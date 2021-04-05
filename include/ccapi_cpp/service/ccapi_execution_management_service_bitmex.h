@@ -6,8 +6,8 @@
 namespace ccapi {
 class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceBitmex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions,
-                                      SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceBitmex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                   ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->name = CCAPI_EXCHANGE_NAME_BITMEX;
@@ -38,7 +38,8 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     req.body() = body;
     req.prepare_payload();
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> regularizationMap = {}) {
     for (const auto& kv : param) {
       auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
@@ -64,52 +65,46 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
+                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
-    req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>((now+std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch()).count()));
+    req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+                                              (now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch())
+                                              .count()));
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("api-key", apiKey);
     switch (operation) {
-      case Request::Operation::CREATE_ORDER:
-      {
+      case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->createOrderTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {
-            {CCAPI_EM_ORDER_SIDE , "side"},
-            {CCAPI_EM_ORDER_QUANTITY , "orderQty"},
-            {CCAPI_EM_ORDER_LIMIT_PRICE , "price"},
-            {CCAPI_EM_CLIENT_ORDER_ID , "clOrdID"}
-        });
+        this->appendParam(document, allocator, param,
+                          {{CCAPI_EM_ORDER_SIDE, "side"},
+                           {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
+                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
         auto body = stringBuffer.GetString();
         this->signRequest(req, body, credential);
-      }
-      break;
-      case Request::Operation::CANCEL_ORDER:
-      {
+      } break;
+      case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {
-            {CCAPI_EM_ORDER_ID , "orderID"},
-            {CCAPI_EM_CLIENT_ORDER_ID , "clOrdID"}
-        });
+        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "orderID"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
         if (!queryString.empty()) {
           queryString.pop_back();
         }
         req.target(this->cancelOrderTarget + "?" + queryString);
         this->signRequest(req, "", credential);
-      }
-      break;
-      case Request::Operation::GET_ORDER:
-      {
+      } break;
+      case Request::Operation::GET_ORDER: {
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -117,10 +112,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
           rj::Document document;
           document.SetObject();
           rj::Document::AllocatorType& allocator = document.GetAllocator();
-          this->appendParam(document, allocator, param, {
-              {CCAPI_EM_ORDER_ID , "orderID"},
-              {CCAPI_EM_CLIENT_ORDER_ID , "clOrdID"}
-          });
+          this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "orderID"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
           queryString += "filter=";
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -136,10 +128,8 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
         }
         req.target(this->getOrderTarget + "?" + queryString);
         this->signRequest(req, "", credential);
-      }
-      break;
-      case Request::Operation::GET_OPEN_ORDERS:
-      {
+      } break;
+      case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::get);
         std::string queryString("filter=");
         queryString += Url::urlEncode("{\"open\": true}");
@@ -152,10 +142,8 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
         }
         req.target(this->getOrderTarget + "?" + queryString);
         this->signRequest(req, "", credential);
-      }
-      break;
-      case Request::Operation::CANCEL_OPEN_ORDERS:
-      {
+      } break;
+      case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
         auto target = this->cancelOpenOrdersTarget;
         if (!symbolId.empty()) {
@@ -164,23 +152,21 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
         }
         req.target(target);
         this->signRequest(req, "", credential);
-      }
-      break;
+      } break;
       default:
-      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-      {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
-      {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdID", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_QUANTITY, std::make_pair("orderQty", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumQty", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_STATUS, std::make_pair("ordStatus", JsonDataType::STRING)},
-      {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}
-    };
+        {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdID", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("orderQty", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumQty", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_STATUS, std::make_pair("ordStatus", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     if (document.IsObject()) {
       elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));

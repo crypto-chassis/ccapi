@@ -1,17 +1,17 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "gtest/gtest.h"
+
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
 namespace ccapi {
 class ExecutionManagementServiceBinanceFuturesTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceBinanceFutures>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {
-       { CCAPI_BINANCE_FUTURES_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A" },
-       { CCAPI_BINANCE_FUTURES_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j" }
-    };
+    this->service = std::make_shared<ExecutionManagementServiceBinanceFutures>([](Event& event) {}, SessionOptions(), SessionConfigs(),
+                                                                               wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_BINANCE_FUTURES_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"},
+                        {CCAPI_BINANCE_FUTURES_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"}};
     this->timestamp = 1499827319559;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp);
   }
@@ -24,7 +24,7 @@ class ExecutionManagementServiceBinanceFuturesTest : public ::testing::Test {
 TEST_F(ExecutionManagementServiceBinanceFuturesTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "BTCUSDT", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "avgPrice": "0.00000",
     "clientOrderId": "abc",

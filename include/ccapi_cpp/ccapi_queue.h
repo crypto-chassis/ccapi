@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_QUEUE_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_QUEUE_H_
-#include <queue>
 #include <mutex>
+#include <queue>
 #include <vector>
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
@@ -10,12 +10,11 @@ class Queue {
  public:
   std::string EXCEPTION_QUEUE_FULL = "queue is full";
   std::string EXCEPTION_QUEUE_EMPTY = "queue is empty";
-  explicit Queue(const size_t maxSize = 0)
-        : maxSize(maxSize) {}
+  explicit Queue(const size_t maxSize = 0) : maxSize(maxSize) {}
   void pushBack(T&& t) {
     std::lock_guard<std::mutex> lock(this->m);
     if (this->maxSize <= 0 || this->queue.size() < this->maxSize) {
-      CCAPI_LOGGER_TRACE("this->queue.size() = "+size_tToString(this->queue.size()));
+      CCAPI_LOGGER_TRACE("this->queue.size() = " + size_tToString(this->queue.size()));
       this->queue.push_back(t);
     } else {
       throw std::runtime_error(EXCEPTION_QUEUE_FULL);

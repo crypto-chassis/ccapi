@@ -1,18 +1,17 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 #include "gtest/gtest.h"
-#include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
+
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
 namespace ccapi {
 class ExecutionManagementServiceGeminiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceGemini>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {
-       { CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh" },
-       { CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw" }
-    };
+    this->service =
+        std::make_shared<ExecutionManagementServiceGemini>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"}, {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"}};
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -40,16 +39,13 @@ TEST_F(ExecutionManagementServiceGeminiTest, signRequest) {
   std::string body("{\"request\":\"/v1/order/status\",\"nonce\":123456,\"order_id\":18834}");
   this->service->signRequest(req, body, this->credential);
   EXPECT_EQ(req.base().at("X-GEMINI-PAYLOAD").to_string(), "eyJyZXF1ZXN0IjoiL3YxL29yZGVyL3N0YXR1cyIsIm5vbmNlIjoxMjM0NTYsIm9yZGVyX2lkIjoxODgzNH0=");
-  EXPECT_EQ(UtilString::toLower(req.base().at("X-GEMINI-SIGNATURE").to_string()), "7c3929f78a3b4cb6c14c1ca76e851fb095d2aad9a224e0b94a9bca45d0dac6b36e7923d0e4b9469706379ec589249783");
+  EXPECT_EQ(UtilString::toLower(req.base().at("X-GEMINI-SIGNATURE").to_string()),
+            "7c3929f78a3b4cb6c14c1ca76e851fb095d2aad9a224e0b94a9bca45d0dac6b36e7923d0e4b9469706379ec589249783");
 }
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "btcusd", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
-    {CCAPI_EM_ORDER_QUANTITY, "1"},
-    {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -69,26 +65,26 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
 TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "btcusd", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
-    "order_id": "19492382044", 
-    "id": "106817811", 
-    "symbol": "btcusd", 
-    "exchange": "gemini", 
+    "order_id": "19492382044",
+    "id": "106817811",
+    "symbol": "btcusd",
+    "exchange": "gemini",
     "avg_execution_price": "3632.8508430064554",
-    "side": "buy", 
-    "type": "exchange limit", 
-    "timestamp": "1547220404", 
-    "timestampms": 1547220404836, 
-    "is_live": true, 
-    "is_cancelled": false, 
-    "is_hidden": false, 
+    "side": "buy",
+    "type": "exchange limit",
+    "timestamp": "1547220404",
+    "timestampms": 1547220404836,
+    "is_live": true,
+    "is_cancelled": false,
+    "is_hidden": false,
     "was_forced": false,
     "executed_amount": "3.7567928949",
     "remaining_amount": "1.2432071051",
     "client_order_id": "20190110-4738721",
     "options": [],
-    "price": "3633.00", 
+    "price": "3633.00",
     "original_amount": "5"
   }
   )";
@@ -105,9 +101,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCreateOr
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "19492382044"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "19492382044"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -124,7 +118,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOrderByOrderId)
 TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "order_id":"19492382044",
     "id":"106817811",
@@ -156,9 +150,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCancelOr
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "19492382044"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "19492382044"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -174,9 +166,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByOrderId) {
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_CLIENT_ORDER_ID, "20190110-4738721"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "20190110-4738721"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -193,7 +183,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByClientOrder
 TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "order_id" : "19492382044",
     "id" : "44375901",
@@ -246,7 +236,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOpenOrdersAllInstr
 TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_GEMINI, "", "", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   [   {
     "order_id": "19492382044",
     "id": "107421210",
@@ -321,7 +311,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOpenOrders) {
 TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "result":"ok",
     "details":
