@@ -42,8 +42,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       }
     }
     document.AddMember("params", params, allocator);
-    document.AddMember("id", rj::Value(exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
-    exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
+    document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
+    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
@@ -121,11 +121,11 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         wsMessageList.push_back(std::move(wsMessage));
       } else if (channelId == CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_AGG_TRADE) {
         if (this->isFutures) {
-          int64_t firstTradeId = data["f"].GetInt64();
-          int64_t lastTradeId = data["l"].GetInt64();
-          auto tradeId = firstTradeId;
+          // int64_t firstTradeId = data["f"].GetInt64();
+          // int64_t lastTradeId = data["l"].GetInt64();
+          int64_t tradeId = data["a"].GetInt64();
           auto time = UtilTime::makeTimePointFromMilliseconds(data["T"].GetInt64());
-          while (tradeId <= lastTradeId) {
+          // while (tradeId <= lastTradeId) {
             MarketDataMessage wsMessage;
             wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
             wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
@@ -139,7 +139,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
             wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
             wsMessageList.push_back(std::move(wsMessage));
             ++tradeId;
-          }
+          // }
         }
       }
     }
@@ -178,7 +178,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["qty"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(x["id"].GetInt64())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["isBuyerMaker"].GetBool())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::to_string(x["isBuyerMaker"].GetBool())});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
@@ -188,8 +188,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     }
     return marketDataMessageList;
   }
-  std::map<std::string, int>
-      exchangeJsonPayloadIdByConnectionIdMap;  // https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md#live-subscribingunsubscribing-to-streams
+  // https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md#live-subscribingunsubscribing-to-streams
+  std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
   bool isFutures{};
 };
 } /* namespace ccapi */

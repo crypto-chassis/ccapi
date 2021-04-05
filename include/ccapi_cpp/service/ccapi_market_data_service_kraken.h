@@ -236,7 +236,7 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
-        for (const auto& x : document["result"][symbolId].GetArray()) {
+        for (const auto& x : document["result"][symbolId.c_str()].GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
           auto timePair = UtilTime::divide(std::string(x[2].GetString()));
