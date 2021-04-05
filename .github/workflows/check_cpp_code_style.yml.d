@@ -2,11 +2,11 @@ name: Cpplint
 on:
   pull_request:
     branches:
-      - development
+      - develop
   push:
     branches:
       - master
-      - development
+      - develop
 jobs:
   cpplint:
     runs-on: ubuntu-latest
