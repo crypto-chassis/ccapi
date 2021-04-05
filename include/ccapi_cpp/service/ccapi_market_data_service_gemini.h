@@ -49,18 +49,18 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
-    std::vector<MarketDataMessage> wsMessageList;
+    std::vector<MarketDataMessage> marketDataMessageList;
     if (this->sessionOptions.enableCheckSequence) {
       int sequence = document["socket_sequence"].GetInt();
       if (!this->checkSequence(wsConnection, sequence)) {
         this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, "");
-        return wsMessageList;
+        return marketDataMessageList;
       }
     }
     if (type == "update") {
-      MarketDataMessage wsMessage;
-      wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-      wsMessage.exchangeSubscriptionId = wsConnection.url;
+      MarketDataMessage marketDataMessage;
+      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      marketDataMessage.exchangeSubscriptionId = wsConnection.url;
       TimePoint time = timeReceived;
       auto it = document.FindMember("timestampms");
       if (it != document.MemberEnd()) {
@@ -75,48 +75,48 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
           auto isBid = std::string(event["side"].GetString()) == "bid";
           std::string reason = event["reason"].GetString();
           if (reason == "place" || reason == "cancel" || reason == "trade") {
-            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
-            wsMessage.tp = time;
+            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+            marketDataMessage.tp = time;
             if (isBid) {
-              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             } else {
-              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           } else if (reason == "initial") {
-            wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
-            wsMessage.tp = time;
+            marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
+            marketDataMessage.tp = time;
             if (isBid) {
-              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             } else {
-              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           } else if (reason == "top-of-book") {
-            wsMessage.tp = time;
-            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+            marketDataMessage.tp = time;
+            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
             if (isBid) {
-              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             } else {
-              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           }
         } else if (gType == "trade") {
           std::string makerSide = event["makerSide"].GetString();
           if (makerSide == "bid" || makerSide == "ask") {
-            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
-            wsMessage.tp = time;
+            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+            marketDataMessage.tp = time;
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(event["price"].GetString()))});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(event["amount"].GetString()))});
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(event["tid"].GetInt64())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, makerSide == "bid" ? "1" : "0"});
-            wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           }
         }
       }
-      wsMessageList.push_back(std::move(wsMessage));
+      marketDataMessageList.push_back(std::move(marketDataMessage));
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
-    return wsMessageList;
+    return marketDataMessageList;
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto symbol = this->convertInstrumentToWebsocketSymbolId(subscription.getInstrument());

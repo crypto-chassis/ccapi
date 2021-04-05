@@ -1,18 +1,19 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #include "ccapi_cpp/ccapi_logger.h"
+#define RAPIDJSON_HAS_CXX11_NOEXCEPT 0
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x)                                           \
   if (!(x)) {                                                         \
     throw std::runtime_error("rapidjson internal assertion failure"); \
   }
 #endif
-#ifndef RAPIDJSON_NOEXCEPT_ASSERT
-#define RAPIDJSON_NOEXCEPT_ASSERT(x)                            \
-  if (!(x)) {                                                   \
-    CCAPI_LOGGER_ERROR("rapidjson internal assertion failure"); \
-  }
-#endif
+// #ifndef RAPIDJSON_NOEXCEPT_ASSERT
+// #define RAPIDJSON_NOEXCEPT_ASSERT(x)                            \
+//   if (!(x)) {                                                   \
+//     CCAPI_LOGGER_ERROR("rapidjson internal assertion failure"); \
+//   }
+// #endif
 #ifndef RAPIDJSON_PARSE_ERROR_NORETURN
 #define RAPIDJSON_PARSE_ERROR_NORETURN(parseErrorCode, offset) throw std::runtime_error(#parseErrorCode)
 #endif

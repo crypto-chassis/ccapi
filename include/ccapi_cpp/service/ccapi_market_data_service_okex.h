@@ -53,7 +53,7 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
   }
   std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    std::vector<MarketDataMessage> wsMessageList;
+    std::vector<MarketDataMessage> marketDataMessageList;
     if (textMessage.at(0) == '{') {
       rj::Document document;
       document.Parse(textMessage.c_str());
@@ -66,55 +66,55 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
           std::string action = channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 ? "" : document["action"].GetString();
           CCAPI_LOGGER_TRACE("action = " + toString(action));
           for (const auto& datum : document["data"].GetArray()) {
-            MarketDataMessage wsMessage;
-            wsMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
-            CCAPI_LOGGER_TRACE("wsMessage.tp = " + toString(wsMessage.tp));
-            wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-            wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+            MarketDataMessage marketDataMessage;
+            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
+            CCAPI_LOGGER_TRACE("marketDataMessage.tp = " + toString(marketDataMessage.tp));
+            marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
             if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5) {
               if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
-                wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+                marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
               } else {
-                wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
+                marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
               }
             } else {
-              wsMessage.recapType = action == "update" ? MarketDataMessage::RecapType::NONE : MarketDataMessage::RecapType::SOLICITED;
+              marketDataMessage.recapType = action == "update" ? MarketDataMessage::RecapType::NONE : MarketDataMessage::RecapType::SOLICITED;
             }
             for (const auto& x : datum["bids"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             }
             for (const auto& x : datum["asks"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
-            wsMessageList.push_back(std::move(wsMessage));
+            marketDataMessageList.push_back(std::move(marketDataMessage));
           }
         } else if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE) {
           for (const auto& datum : document["data"].GetArray()) {
-            MarketDataMessage wsMessage;
-            wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-            wsMessage.recapType = MarketDataMessage::RecapType::NONE;
-            wsMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
-            wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+            MarketDataMessage marketDataMessage;
+            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
+            marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["px"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["sz"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString()});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "sell" ? "1" : "0"});
-            wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-            wsMessageList.push_back(std::move(wsMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+            marketDataMessageList.push_back(std::move(marketDataMessage));
           }
         }
       }
     } else {
       CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     }
-    return wsMessageList;
+    return marketDataMessageList;
   }
   void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
                   const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
@@ -124,7 +124,7 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID,"instId"},{CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, "instId"}, {CCAPI_LIMIT, "limit"}});
         req.target(target + "?" + queryString);
       } break;
       default:

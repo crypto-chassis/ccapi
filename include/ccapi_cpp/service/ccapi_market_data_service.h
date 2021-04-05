@@ -452,20 +452,21 @@ class MarketDataService : public Service {
   virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    const std::vector<MarketDataMessage>& wsMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_TRACE("websocketMessageList = " + toString(wsMessageList));
-    if (!wsMessageList.empty()) {
-      for (auto const& wsMessage : wsMessageList) {
+    const std::vector<MarketDataMessage>& marketDataMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
+    CCAPI_LOGGER_TRACE("websocketMessageList = " + toString(marketDataMessageList));
+    if (!marketDataMessageList.empty()) {
+      for (auto const& marketDataMessage : marketDataMessageList) {
         Event event;
         bool shouldEmitEvent = true;
-        if (wsMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
-          if (wsMessage.recapType == MarketDataMessage::RecapType::NONE && this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
-              std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - wsMessage.tp).count() > this->sessionOptions.warnLateEventMaxMilliSeconds) {
-            CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", wsMessage.tp = " + toString(wsMessage.tp) +
-                              ", wsConnection = " + toString(wsConnection));
+        if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
+          if (marketDataMessage.recapType == MarketDataMessage::RecapType::NONE && this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+              std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
+                  this->sessionOptions.warnLateEventMaxMilliSeconds) {
+            CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) +
+                              ", marketDataMessage.tp = " + toString(marketDataMessage.tp) + ", wsConnection = " + toString(wsConnection));
           }
           event.setType(Event::Type::SUBSCRIPTION_DATA);
-          std::string exchangeSubscriptionId = wsMessage.exchangeSubscriptionId;
+          std::string exchangeSubscriptionId = marketDataMessage.exchangeSubscriptionId;
           std::string channelId =
               this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
           std::string symbolId =
@@ -479,14 +480,14 @@ class MarketDataService : public Service {
           CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
           auto correlationIdList = this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
           CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
-          if (wsMessage.data.find(MarketDataMessage::DataType::BID) != wsMessage.data.end() ||
-              wsMessage.data.find(MarketDataMessage::DataType::ASK) != wsMessage.data.end()) {
+          if (marketDataMessage.data.find(MarketDataMessage::DataType::BID) != marketDataMessage.data.end() ||
+              marketDataMessage.data.find(MarketDataMessage::DataType::ASK) != marketDataMessage.data.end()) {
             std::map<Decimal, std::string>& snapshotBid = this->snapshotBidByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
             std::map<Decimal, std::string>& snapshotAsk = this->snapshotAskByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
             if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] &&
-                wsMessage.recapType == MarketDataMessage::RecapType::NONE) {
-              this->processUpdateSnapshot(wsConnection, channelId, symbolId, event, shouldEmitEvent, wsMessage.tp, timeReceived, wsMessage.data, field,
-                                          optionMap, correlationIdList, snapshotBid, snapshotAsk);
+                marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
+              this->processUpdateSnapshot(wsConnection, channelId, symbolId, event, shouldEmitEvent, marketDataMessage.tp, timeReceived, marketDataMessage.data,
+                                          field, optionMap, correlationIdList, snapshotBid, snapshotAsk);
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
                 bool shouldProcessRemainingMessage = true;
                 std::string receivedOrderBookChecksumStr = this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId];
@@ -510,16 +511,16 @@ class MarketDataService : public Service {
                   return;
                 }
               }
-            } else if (wsMessage.recapType == MarketDataMessage::RecapType::SOLICITED) {
-              this->processInitialSnapshot(wsConnection, channelId, symbolId, event, shouldEmitEvent, wsMessage.tp, timeReceived, wsMessage.data, field,
-                                           optionMap, correlationIdList, snapshotBid, snapshotAsk);
+            } else if (marketDataMessage.recapType == MarketDataMessage::RecapType::SOLICITED) {
+              this->processInitialSnapshot(wsConnection, channelId, symbolId, event, shouldEmitEvent, marketDataMessage.tp, timeReceived,
+                                           marketDataMessage.data, field, optionMap, correlationIdList, snapshotBid, snapshotAsk);
             }
             CCAPI_LOGGER_TRACE("snapshotBid.size() = " + toString(snapshotBid.size()));
             CCAPI_LOGGER_TRACE("snapshotAsk.size() = " + toString(snapshotAsk.size()));
           }
-          if (wsMessage.data.find(MarketDataMessage::DataType::TRADE) != wsMessage.data.end()) {
-            this->processTrade(wsConnection, channelId, symbolId, event, shouldEmitEvent, wsMessage.tp, timeReceived, wsMessage.data, field, optionMap,
-                               correlationIdList);
+          if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end()) {
+            this->processTrade(wsConnection, channelId, symbolId, event, shouldEmitEvent, marketDataMessage.tp, timeReceived, marketDataMessage.data, field,
+                               optionMap, correlationIdList);
           }
         } else {
           CCAPI_LOGGER_WARN("websocket event type is unknown!");
