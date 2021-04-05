@@ -86,7 +86,7 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> wsMessageList;
+    std::vector<MarketDataMessage> marketDataMessageList;
     if (document.IsArray() && document.Size() >= 4 && document.Size() <= 5) {
       auto documentSize = document.Size();
       auto channelNameWithSuffix = std::string(document[documentSize - 2].GetString());
@@ -130,17 +130,17 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
               }
             }
           }
-          MarketDataMessage wsMessage;
-          wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-          wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-          wsMessage.tp = latestTp;
-          wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+          MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+          marketDataMessage.tp = latestTp;
+          marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
           if (anonymous2.HasMember("b")) {
             for (const auto& x : anonymous2["b"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
             }
           }
           if (anonymous2.HasMember("a")) {
@@ -148,42 +148,42 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
             }
           }
-          wsMessageList.push_back(std::move(wsMessage));
+          marketDataMessageList.push_back(std::move(marketDataMessage));
         } else if (anonymous.IsObject() && anonymous.HasMember("as") && anonymous.HasMember("bs")) {
           CCAPI_LOGGER_TRACE("this is snapshot");
-          MarketDataMessage wsMessage;
-          wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-          wsMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-          wsMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
-          wsMessage.tp = timeReceived;
+          MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+          marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
+          marketDataMessage.tp = timeReceived;
           for (const auto& x : anonymous["bs"].GetArray()) {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-            wsMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
           }
           for (const auto& x : anonymous["as"].GetArray()) {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-            wsMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
           }
-          wsMessageList.push_back(std::move(wsMessage));
+          marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } else if (channelNameWithSuffix == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
         for (const auto& x : document[1].GetArray()) {
-          MarketDataMessage wsMessage;
-          wsMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
           auto symbolId = std::string(document[documentSize - 1].GetString());
-          wsMessage.exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
-          wsMessage.recapType = MarketDataMessage::RecapType::NONE;
+          marketDataMessage.exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
+          marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
           auto timePair = UtilTime::divide(std::string(x[2].GetString()));
           auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
           tp += std::chrono::nanoseconds(timePair.second);
-          wsMessage.tp = tp;
+          marketDataMessage.tp = tp;
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x[0].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x[1].GetString()))});
@@ -191,8 +191,8 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
           ss << std::setw(9) << std::setfill('0') << timePair.second;
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x[3].GetString()) == "s" ? "1" : "0"});
-          wsMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          wsMessageList.push_back(std::move(wsMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+          marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       }
     } else if (document.IsObject() && document.HasMember("event")) {
@@ -203,7 +203,7 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
         // TODO(cryptochassis): implement
       }
     }
-    return wsMessageList;
+    return marketDataMessageList;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
