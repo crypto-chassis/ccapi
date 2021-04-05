@@ -443,6 +443,6 @@ Logger* Logger::logger = &myLogger;
 * Only enable the services and exchanges that you need.
 
 ### Contributing
-* (Required) Create a new branch from the `development` branch and submit a pull request to the `development` branch.
+* (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
 * (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters.
 * (Optional) Commit message format: https://conventionalcommits.org.
