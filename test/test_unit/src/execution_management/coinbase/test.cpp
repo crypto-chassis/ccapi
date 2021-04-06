@@ -1,19 +1,19 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
 #include "gtest/gtest.h"
-#include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
+
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
 namespace ccapi {
 class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceCoinbase>([](Event& event){}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {
-       { CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0" },
-       { CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ==" },
-       { CCAPI_COINBASE_API_PASSPHRASE, "0x1a5y8koaa9" }
-    };
+    this->service =
+        std::make_shared<ExecutionManagementServiceCoinbase>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->credential = {{CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
+                        {CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
+                        {CCAPI_COINBASE_API_PASSPHRASE, "0x1a5y8koaa9"}};
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -50,11 +50,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
-    {CCAPI_EM_ORDER_QUANTITY, "1"},
-    {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -72,7 +68,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "id": "d0c5340b-6d6c-49d9-b567-48c4bfca13d2",
     "price": "0.10000000",
@@ -104,9 +100,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCreate
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
@@ -120,9 +114,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByOrderI
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByClientOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
@@ -145,9 +137,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancel
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -158,9 +148,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByOrderId) 
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{
-    {CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}
-  };
+  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -172,7 +160,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByClientOrd
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "id": "68e6a28f-ae28-4788-8d4f-5ab4e5e5ae08",
     "size": "1.00000000",
@@ -235,7 +223,7 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
   std::string symbol = isOneInstrument ? "BTC-USD" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, symbol, "", fixture->credential);
   std::string textMessage =
-  R"(
+      R"(
   [
     {
         "id": "d0c5340b-6d6c-49d9-b567-48c4bfca13d2",
@@ -315,7 +303,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOpenOrders) {
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   [
     "144c6f8e-713f-4682-8435-5280fbe8b2b4",
     "debe4907-95dc-442f-af3b-cec12f42ebda",

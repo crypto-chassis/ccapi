@@ -19,10 +19,10 @@ class MyEventHandler : public EventHandler {
   }
 };
 } /* namespace ccapi */
-using ::ccapi::SessionOptions;
-using ::ccapi::SessionConfigs;
 using ::ccapi::MyEventHandler;
 using ::ccapi::Session;
+using ::ccapi::SessionConfigs;
+using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
 int main(int argc, char **argv) {
   SessionOptions sessionOptions;

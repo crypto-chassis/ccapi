@@ -125,18 +125,6 @@
 #ifndef CCAPI_CLOSE
 #define CCAPI_CLOSE "CLOSE"
 #endif
-#ifndef CCAPI_START_TIME
-#define CCAPI_START_TIME "START_TIME"
-#endif
-#ifndef CCAPI_START_TRADE_ID
-#define CCAPI_START_TRADE_ID "START_TRADE_ID"
-#endif
-#ifndef CCAPI_END_TIME
-#define CCAPI_END_TIME "END_TIME"
-#endif
-#ifndef CCAPI_END_TRADE_ID
-#define CCAPI_END_TRADE_ID "END_TRADE_ID"
-#endif
 #ifndef CCAPI_LIMIT
 #define CCAPI_LIMIT "LIMIT"
 #endif
@@ -332,6 +320,9 @@
 #endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_CANCEL_ALL_ORDERS_TARGET
 #define CCAPI_HUOBI_USDT_SWAP_CANCEL_ALL_ORDERS_TARGET "/linear-swap-api/v1/swap_cross_cancelall"
+#endif
+#ifndef CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_TARGET
+#define CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_TARGET "/linear-swap-ex/market/history/trade"
 #endif
 #ifndef CCAPI_OKEX_URL_REST_BASE
 #define CCAPI_OKEX_URL_REST_BASE "https://www.okex.com"

@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_JWT_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_JWT_H_
-#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_hmac.h"
+#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class Jwt CCAPI_FINAL {

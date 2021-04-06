@@ -3,7 +3,6 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [ccapi](#ccapi)
-  - [Usage](#usage)
   - [Build](#build)
     - [C++](#c)
     - [Python](#python)
@@ -52,10 +51,6 @@
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
 * Join us on Medium https://cryptochassis.medium.com and Telegram https://t.me/cryptochassis.
-
-## Usage
-* Real-time market data fetching, high frequency market making, cross exchange arbitrage, etc.
-* For stability, please usa stable releases. Master branch might contain experimental features.
 
 ## Build
 
@@ -448,5 +443,6 @@ Logger* Logger::logger = &myLogger;
 * Only enable the services and exchanges that you need.
 
 ### Contributing
-* (Required) Submit a pull request to the master branch.
+* (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
+* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters.
 * (Optional) Commit message format: https://conventionalcommits.org.
