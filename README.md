@@ -32,8 +32,8 @@
       - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
       - [Thread safety](#thread-safety)
       - [Enable library logging](#enable-library-logging)
-    - [Performance Tuning](#performance-tuning)
-    - [Contributing](#contributing)
+  - [Performance Tuning](#performance-tuning)
+  - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -436,13 +436,13 @@ Logger* Logger::logger = &myLogger;
 }
 ```
 
-### Performance Tuning
+## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
 * Enable link time optimization (e.g. in CMakeLists.txt `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)` before a target is created).
 * Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
 * Only enable the services and exchanges that you need.
 
-### Contributing
+## Contributing
 * (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
 * (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters.
 * (Optional) Commit message format: https://conventionalcommits.org.

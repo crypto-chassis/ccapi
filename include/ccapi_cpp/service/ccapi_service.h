@@ -93,7 +93,8 @@ class Service : public std::enable_shared_from_this<Service> {
     return futurePtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage) {
+  void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
+               const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
     Event event;
     event.setType(eventType);
@@ -102,17 +103,21 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setTimeReceived(now);
     message.setTime(now);
     message.setType(messageType);
+    message.setCorrelationIdList(correlationIdList);
     Element element;
     element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event);
   }
-  void onError(const Event::Type eventType, const Message::Type messageType, const ErrorCode& ec, const std::string& what) {
-    this->onError(eventType, messageType, what + ": " + ec.message() + ", category: " + ec.category().name());
+  void onError(const Event::Type eventType, const Message::Type messageType, const ErrorCode& ec, const std::string& what,
+               const std::vector<std::string> correlationIdList = {}) {
+    this->onError(eventType, messageType, what + ": " + ec.message() + ", category: " + ec.category().name(), correlationIdList);
   }
-  void onError(const Event::Type eventType, const Message::Type messageType, const std::exception& e) { this->onError(eventType, messageType, e.what()); }
-  void onResponseError(int statusCode, const std::string& errorMessage) {
+  void onError(const Event::Type eventType, const Message::Type messageType, const std::exception& e, const std::vector<std::string> correlationIdList = {}) {
+    this->onError(eventType, messageType, e.what(), correlationIdList);
+  }
+  void onResponseError(const Request& request, int statusCode, const std::string& errorMessage) {
     std::string statusCodeStr = std::to_string(statusCode);
     CCAPI_LOGGER_ERROR("statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
     Event event;
@@ -122,6 +127,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setTimeReceived(now);
     message.setTime(now);
     message.setType(Message::Type::RESPONSE_ERROR);
+    message.setCorrelationIdList({request.getCorrelationId()});
     Element element;
     element.insert(CCAPI_HTTP_STATUS_CODE, statusCodeStr);
     element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
@@ -436,7 +442,7 @@ class Service : public std::enable_shared_from_this<Service> {
     try {
       if (statusCode / 100 == 2) {
         if (this->doesHttpBodyContainError(request, body)) {
-          this->onResponseError(400, body);
+          this->onResponseError(request, 400, body);
         } else {
           this->processSuccessfulTextMessage(request, body, now);
         }
@@ -456,17 +462,17 @@ class Service : public std::enable_shared_from_this<Service> {
           this->tryRequest(request, req, retry);
           return;
         } else {
-          this->onResponseError(statusCode, body);
+          this->onResponseError(request, statusCode, body);
         }
       } else if (statusCode / 100 == 4) {
-        this->onResponseError(statusCode, body);
+        this->onResponseError(request, statusCode, body);
       } else if (statusCode / 100 == 5) {
-        this->onResponseError(statusCode, body);
+        this->onResponseError(request, statusCode, body);
         retry.numRetry += 1;
         this->tryRequest(request, *reqPtr, retry);
         return;
       } else {
-        this->onResponseError(statusCode, "unhandled response");
+        this->onResponseError(request, statusCode, "unhandled response");
       }
     } catch (const std::exception& e) {
       CCAPI_LOGGER_ERROR(e.what());

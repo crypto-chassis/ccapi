@@ -146,6 +146,16 @@ class MarketDataService : public Service {
     Message message;
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_UP);
+    std::vector<std::string> correlationIdList;
+    if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+      for (const auto& x : this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+        for (const auto& y : x.second) {
+          correlationIdList.insert(correlationIdList.end(), y.second.begin(), y.second.end());
+        }
+      }
+    }
+    CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
+    message.setCorrelationIdList(correlationIdList);
     Element element;
     element.insert(CCAPI_CONNECTION, toString(wsConnection));
     message.setElementList({element});
