@@ -10,8 +10,8 @@ class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionMan
                                            ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->name = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_BINANCE_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_FUTURES_API_SECRET;

@@ -378,14 +378,14 @@ class Session CCAPI_FINAL {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const Request& request, Queue<Event>* eventQueuePtr = nullptr) {
+  void sendRequest(const Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList;
     requestList.push_back(request);
-    this->sendRequest(requestList, eventQueuePtr);
+    this->sendRequest(requestList, eventQueuePtr, delayMilliSeconds);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr) {
+  void sendRequest(const std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     std::set<std::string> serviceNameExchangeSet;
@@ -409,7 +409,7 @@ class Session CCAPI_FINAL {
         serviceNameExchangeSet.insert(key);
       }
       auto now = UtilTime::now();
-      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now);
+      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now, delayMilliSeconds);
       if (eventQueuePtr) {
         futurePtrList.push_back(futurePtr);
       }

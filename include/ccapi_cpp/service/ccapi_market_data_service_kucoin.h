@@ -9,8 +9,8 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
   MarketDataServiceKucoin(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_KUCOIN;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->getRecentTradesTarget = "/api/v1/market/histories";
   }
   virtual ~MarketDataServiceKucoin() {}
@@ -196,8 +196,6 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {

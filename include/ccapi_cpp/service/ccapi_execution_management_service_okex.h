@@ -11,8 +11,8 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->name = CCAPI_EXCHANGE_NAME_OKEX;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_OKEX_API_KEY;
     this->apiSecretName = CCAPI_OKEX_API_SECRET;

@@ -9,8 +9,8 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
   MarketDataServiceOkex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                         std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_OKEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name) + "/public";
+    this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/public";
     ErrorCode ec = this->inflater.init(false);
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
@@ -137,8 +137,6 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {

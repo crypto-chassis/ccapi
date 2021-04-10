@@ -9,8 +9,8 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
   MarketDataServiceKraken(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_KRAKEN;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->shouldAlignSnapshot = true;
     this->getRecentTradesTarget = "/0/public/Trades";
   }
@@ -232,8 +232,6 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["result"][symbolId.c_str()].GetArray()) {

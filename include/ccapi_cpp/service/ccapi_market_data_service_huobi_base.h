@@ -219,8 +219,6 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {

@@ -10,7 +10,6 @@
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/ccapi_macro.h"
-#include "ccapi_cpp/ccapi_request.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 namespace ccapi {
 class ExecutionManagementService : public Service {
@@ -20,7 +19,9 @@ class ExecutionManagementService : public Service {
                              ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~ExecutionManagementService() {}
-  void stop() override {}
+  void stop() override {
+    Service::stop();
+  }
   void subscribe(const std::vector<Subscription>& subscriptionList) override {}
 
  protected:

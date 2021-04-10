@@ -10,8 +10,8 @@ class MarketDataServiceErisx CCAPI_FINAL : public MarketDataService {
   MarketDataServiceErisx(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                          std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_ERISX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
   }
 
  private:

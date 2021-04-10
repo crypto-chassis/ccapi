@@ -69,23 +69,47 @@ class Service : public std::enable_shared_from_this<Service> {
         httpConnectionPool(sessionOptions.httpConnectionPoolMaxSize) {}
   virtual ~Service() {}
   void setEventHandler(const std::function<void(Event& event)>& eventHandler) { this->eventHandler = eventHandler; }
-  virtual void stop() = 0;
+  virtual void stop() {
+    for (const auto& x : this->sendRequestDelayTimerByCorrelationIdMap) {
+      x.second->cancel();
+    }
+    sendRequestDelayTimerByCorrelationIdMap.clear();
+  }
   virtual void subscribe(const std::vector<Subscription>& subscriptionList) = 0;
   virtual void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
                           const std::string& symbolId, const std::map<std::string, std::string>& credential) = 0;
   virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
-  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now) {
+  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = " + toString(useFuture));
-    auto req = this->convertRequest(request, now);
+    TimePoint then;
+    if (delayMilliSeconds > 0) {
+      then = now + std::chrono::milliseconds(delayMilliSeconds);
+    } else {
+      then = now;
+    }
+    auto req = this->convertRequest(request, then);
     std::promise<void>* promisePtrRaw = nullptr;
     if (useFuture) {
       promisePtrRaw = new std::promise<void>();
     }
     std::shared_ptr<std::promise<void> > promisePtr(promisePtrRaw);
     HttpRetry retry(0, 0, "", promisePtr);
-    this->tryRequest(request, req, retry);
+    if (delayMilliSeconds > 0) {
+      this->sendRequestDelayTimerByCorrelationIdMap[request.getCorrelationId()] = this->serviceContextPtr->tlsClientPtr->set_timer(delayMilliSeconds, [that = shared_from_this(), request, req, retry](ErrorCode const& ec) {
+        if (ec) {
+          CCAPI_LOGGER_ERROR("request = " + toString(request) + ", sendRequest timer error: " + ec.message());
+          that->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+        } else {
+          auto thatReq = req;
+          that->tryRequest(request, thatReq, retry);
+        }
+        that->sendRequestDelayTimerByCorrelationIdMap.erase(request.getCorrelationId());
+      });
+    } else {
+      this->tryRequest(request, req, retry);
+    }
     std::shared_ptr<std::future<void> > futurePtr(nullptr);
     if (useFuture) {
       futurePtr = std::make_shared<std::future<void> >(std::move(promisePtr->get_future()));
@@ -93,6 +117,23 @@ class Service : public std::enable_shared_from_this<Service> {
     return futurePtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  // virtual std::shared_ptr<std::future<void> > sendRequestWithDelay(const Request& request, const bool useFuture, const TimePoint& then) {
+  //   auto now = UtilTime::now();
+  //   long delayMilliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(then - now).count()
+  //   if (delayMilliSeconds > 0) {
+  //     this->serviceContextPtr->tlsClientPtr->set_timer(
+  //         delayMilliSeconds * 1000, [that = shared_from_this(), request, useFuture, then](ErrorCode const& ec) {
+  //             if (ec) {
+  //               CCAPI_LOGGER_ERROR("request = " + toString(request) + ", sendRequestWithDelay timer error: " + ec.message());
+  //               that->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+  //             } else {
+  //               that->sendRequest(request, useFuture, then);
+  //             }
+  //         });
+  //   } else {
+  //     this->sendRequest(request, useFuture, now);
+  //   }
+  // }
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
                const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
@@ -137,6 +178,7 @@ class Service : public std::enable_shared_from_this<Service> {
   }
 
  protected:
+   typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
   void setHostFromUrl(std::string baseUrlRest) {
     auto hostPort = this->extractHostFromUrl(baseUrlRest);
     this->hostRest = hostPort.first;
@@ -303,15 +345,16 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   std::string convertInstrumentToRestSymbolId(std::string instrument) {
     std::string symbolId = instrument;
+    CCAPI_LOGGER_DEBUG("instrument = "+instrument);
     if (!instrument.empty()) {
-      if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(this->name) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->name).find(instrument) !=
-              this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->name).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->name).at(instrument);
-      } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->name) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-                 this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).find(instrument) !=
-                     this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->name).at(instrument);
+      if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(this->exchangeName) != this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
+          this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).find(instrument) !=
+              this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).end()) {
+        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).at(instrument);
+      } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+                 this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
+                     this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
+        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
       }
     }
     return symbolId;
@@ -319,14 +362,14 @@ class Service : public std::enable_shared_from_this<Service> {
   std::string convertRestSymbolIdToInstrument(std::string symbolId) {
     std::string instrument = symbolId;
     if (!symbolId.empty()) {
-      if (this->sessionConfigs.getExchangeSymbolInstrumentMapRest().find(this->name) != this->sessionConfigs.getExchangeSymbolInstrumentMapRest().end() &&
-          this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->name).find(symbolId) !=
-              this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->name).end()) {
-        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->name).at(symbolId);
-      } else if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->name) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
-                 this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->name).find(symbolId) !=
-                     this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->name).end()) {
-        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->name).at(symbolId);
+      if (this->sessionConfigs.getExchangeSymbolInstrumentMapRest().find(this->exchangeName) != this->sessionConfigs.getExchangeSymbolInstrumentMapRest().end() &&
+          this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).find(symbolId) !=
+              this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).end()) {
+        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).at(symbolId);
+      } else if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
+                 this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
+                     this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
+        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
       }
     }
     return instrument;
@@ -567,10 +610,10 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     auto instrument = request.getInstrument();
     auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
-    CCAPI_LOGGER_TRACE("instrument = " + instrument);
+    CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     auto operation = request.getOperation();
     http::request<http::string_body> req;
-    if (this->name == CCAPI_EXCHANGE_NAME_OKEX) {
+    if (this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
       req.set(http::field::host, this->hostRest);
     } else {
       req.set(http::field::host, this->hostRest + ":" + this->portRest);
@@ -580,7 +623,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return req;
   }
-  std::string name;
+  std::string exchangeName;
   std::string baseUrl;
   std::string baseUrlRest;
   std::function<void(Event& event)> eventHandler;
@@ -594,6 +637,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::once_flag tcpResolverResultsFlag;
   Queue<std::shared_ptr<HttpConnection> > httpConnectionPool;
   std::map<std::string, std::string> credentialDefault;
+  std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
