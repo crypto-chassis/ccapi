@@ -12,37 +12,27 @@
 namespace ccapi {
 class MarketDataService : public Service {
  public:
-  enum class PingPongMethod { WEBSOCKET_PROTOCOL_LEVEL, WEBSOCKET_APPLICATION_LEVEL };
-  static std::string pingPongMethodToString(PingPongMethod pingPongMethod) {
-    std::string output;
-    switch (pingPongMethod) {
-      case PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL:
-        output = "WEBSOCKET_PROTOCOL_LEVEL";
-        break;
-      case PingPongMethod::WEBSOCKET_APPLICATION_LEVEL:
-        output = "WEBSOCKET_APPLICATION_LEVEL";
-        break;
-      default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
-    }
-    return output;
-  }
+  // enum class PingPongMethod { WEBSOCKET_PROTOCOL_LEVEL, WEBSOCKET_APPLICATION_LEVEL };
+  // static std::string pingPongMethodToString(PingPongMethod pingPongMethod) {
+  //   std::string output;
+  //   switch (pingPongMethod) {
+  //     case PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL:
+  //       output = "WEBSOCKET_PROTOCOL_LEVEL";
+  //       break;
+  //     case PingPongMethod::WEBSOCKET_APPLICATION_LEVEL:
+  //       output = "WEBSOCKET_APPLICATION_LEVEL";
+  //       break;
+  //     default:
+  //       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+  //   }
+  //   return output;
+  // }
   MarketDataService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                     std::shared_ptr<ServiceContext> serviceContextPtr)
-      : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr),
-        eventHandler(eventHandler),
-        sessionOptions(sessionOptions),
-        sessionConfigs(sessionConfigs),
-        serviceContextPtr(serviceContextPtr) {
+      : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->enableCheckPingPongWebsocketProtocolLevel = this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel;
-    this->enableCheckPingPongWebsocketApplicationLevel = this->sessionOptions.enableCheckPingPongWebsocketApplicationLevel;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
     this->requestOperationToMessageTypeMap = {
-      {Request::Operation::GET_RECENT_TRADES, Message::Type::GET_RECENT_TRADES},
+        {Request::Operation::GET_RECENT_TRADES, Message::Type::GET_RECENT_TRADES},
     };
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -54,33 +44,33 @@ class MarketDataService : public Service {
         }
       }
     }
-    for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
-      for (const auto& y : x.second) {
-        y.second->cancel();
-      }
-    }
-    for (const auto& x : this->pongTimeOutTimerByMethodByConnectionIdMap) {
-      for (const auto& y : x.second) {
-        y.second->cancel();
-      }
-    }
-    for (const auto& x : this->connectRetryOnFailTimerByConnectionIdMap) {
-      x.second->cancel();
-    }
+    // for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
+    //   for (const auto& y : x.second) {
+    //     y.second->cancel();
+    //   }
+    // }
+    // for (const auto& x : this->pongTimeOutTimerByMethodByConnectionIdMap) {
+    //   for (const auto& y : x.second) {
+    //     y.second->cancel();
+    //   }
+    // }
+    // for (const auto& x : this->connectRetryOnFailTimerByConnectionIdMap) {
+    //   x.second->cancel();
+    // }
   }
-  void stop() override {
-    Service::stop();
-    this->shouldContinue = false;
-    for (const auto& x : this->wsConnectionMap) {
-      auto wsConnection = x.second;
-      ErrorCode ec;
-      this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
-      if (ec) {
-        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
-      }
-      this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
-    }
-  }
+  // void stop() override {
+  //   Service::stop();
+  //   this->shouldContinue = false;
+  //   for (const auto& x : this->wsConnectionMap) {
+  //     auto wsConnection = x.second;
+  //     ErrorCode ec;
+  //     this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
+  //     if (ec) {
+  //       this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+  //     }
+  //     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
+  //   }
+  // }
   void subscribe(const std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrl = " + this->baseUrl);
@@ -120,8 +110,6 @@ class MarketDataService : public Service {
   }
 
  protected:
-  typedef ServiceContext::SslContextPtr SslContextPtr;
-  typedef ServiceContext::TlsClient TlsClient;
   typedef wspp::lib::error_code ErrorCode;
   typedef wspp::lib::function<void(ErrorCode const&)> TimerHandler;
   std::map<std::string, std::vector<Subscription>> groupSubscriptionListByInstrumentGroup(const std::vector<Subscription>& subscriptionList) {
@@ -135,7 +123,7 @@ class MarketDataService : public Service {
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
     return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
   }
-  SslContextPtr onTlsInit(wspp::connection_hdl hdl) { return this->serviceContextPtr->sslContextPtr; }
+  // SslContextPtr onTlsInit(wspp::connection_hdl hdl) { return this->serviceContextPtr->sslContextPtr; }
   virtual void onOpen(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto now = UtilTime::now();
@@ -169,7 +157,7 @@ class MarketDataService : public Service {
           PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnection, hdl,
           [that = shared_from_base<MarketDataService>()](wspp::connection_hdl hdl, ErrorCode& ec) { that->pingOnApplicationLevel(hdl, ec); });
     }
-    auto instrumentGroup = wsConnection.instrumentGroup;
+    auto instrumentGroup = wsConnection.group;
     for (const auto& subscription : wsConnection.subscriptionList) {
       auto instrument = subscription.getInstrument();
       this->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
@@ -178,17 +166,17 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_INFO("about to subscribe to exchange");
     this->subscribeToExchange(wsConnection);
   }
-  std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
-    std::string symbolId = instrument;
-    if (!instrument.empty()) {
-      if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
-              this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
-      }
-    }
-    return symbolId;
-  }
+  // std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
+  //   std::string symbolId = instrument;
+  //   if (!instrument.empty()) {
+  //     if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+  //         this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
+  //             this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
+  //       symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
+  //     }
+  //   }
+  //   return symbolId;
+  // }
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
     CCAPI_LOGGER_TRACE("instrument = " + instrument);
@@ -204,11 +192,12 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_TRACE("channelId = " + channelId);
     CCAPI_LOGGER_TRACE("this->exchangeName = " + this->exchangeName);
     if (field == CCAPI_MARKET_DEPTH) {
-      if (this->exchangeName == CCAPI_EXCHANGE_NAME_KRAKEN || this->exchangeName == CCAPI_EXCHANGE_NAME_BITFINEX || this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE_US ||
-          this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE || this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
+      if (this->exchangeName == CCAPI_EXCHANGE_NAME_KRAKEN || this->exchangeName == CCAPI_EXCHANGE_NAME_BITFINEX ||
+          this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE_US || this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE ||
+          this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
         int marketDepthSubscribedToExchange = 1;
-        marketDepthSubscribedToExchange =
-            this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, this->sessionConfigs.getWebsocketAvailableMarketDepth().at(this->exchangeName));
+        marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
+            marketDepthRequested, this->sessionConfigs.getWebsocketAvailableMarketDepth().at(this->exchangeName));
         channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
         this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
       } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_GEMINI) {
@@ -290,14 +279,10 @@ class MarketDataService : public Service {
               auto thatWsConnection = thisWsConnection;
               thatWsConnection.assignDummyId();
               that->prepareConnect(thatWsConnection);
-              // that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thatWsConnection.id, thatWsConnection));
-              // that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thatWsConnection.id,
-              // thatWsConnection.instrumentGroup));
               that->connectNumRetryOnFailByConnectionUrlMap[urlBase] += 1;
             }
           }
-        }
-      );
+        });
   }
   virtual void onFail(wspp::connection_hdl hdl) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -387,9 +372,6 @@ class MarketDataService : public Service {
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
       this->prepareConnect(thisWsConnection);
-      // this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
-      // this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id,
-      // thisWsConnection.instrumentGroup));
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -414,7 +396,8 @@ class MarketDataService : public Service {
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
-      if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI || this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP || this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
+      if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI || this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP ||
+          this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
         std::string payload = msg->get_payload();
         try {
@@ -466,7 +449,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_TRACE("websocketMessageList = " + toString(marketDataMessageList));
     if (!marketDataMessageList.empty()) {
       for (auto const& marketDataMessage : marketDataMessageList) {
-        // TODO: should make Event outside of this for-loop, but need to carefully study the implications
+        // TODO(cryptochassis): should make Event outside of this for-loop, but need to carefully study the implications
         Event event;
         bool shouldEmitEvent = true;
         if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
@@ -841,10 +824,10 @@ class MarketDataService : public Service {
                 that->connect(thisWsConnection);
                 // that->wsConnectionMap.insert(std::pair<std::string, WsConnection>(thisWsConnection.id, thisWsConnection));
                 // that->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(thisWsConnection.id,
-                // thisWsConnection.instrumentGroup));
+                // thisWsConnection.group));
                 for (const auto& subscription : thisWsConnection.subscriptionList) {
                   auto instrument = subscription.getInstrument();
-                  that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
+                  that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.group][instrument] = Subscription::Status::SUBSCRIBING;
                 }
                 that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({{"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
                                                                                   {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())}});
@@ -861,7 +844,7 @@ class MarketDataService : public Service {
       this->connect(wsConnection);
       // this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
       // this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id,
-      // wsConnection.instrumentGroup));
+      // wsConnection.group));
     }
   }
   void connect(WsConnection& wsConnection) {
@@ -881,7 +864,7 @@ class MarketDataService : public Service {
     }
     this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
     CCAPI_LOGGER_DEBUG("this->wsConnectionMap = " + toString(this->wsConnectionMap));
-    this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.instrumentGroup));
+    this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.group));
     CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = " + toString(this->instrumentGroupByWsConnectionIdMap));
     con->set_open_handler(std::bind(&MarketDataService::onOpen, shared_from_base<MarketDataService>(), std::placeholders::_1));
     con->set_fail_handler(std::bind(&MarketDataService::onFail, shared_from_base<MarketDataService>(), std::placeholders::_1));
@@ -894,14 +877,14 @@ class MarketDataService : public Service {
     this->serviceContextPtr->tlsClientPtr->connect(con);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void close(WsConnection& wsConnection, wspp::connection_hdl hdl, wspp::close::status::value const code, std::string const& reason, ErrorCode& ec) {
-    if (wsConnection.status == WsConnection::Status::CLOSING) {
-      CCAPI_LOGGER_WARN("websocket connection is already in the state of closing");
-      return;
-    }
-    wsConnection.status = WsConnection::Status::CLOSING;
-    this->serviceContextPtr->tlsClientPtr->close(hdl, code, reason, ec);
-  }
+  // void close(WsConnection& wsConnection, wspp::connection_hdl hdl, wspp::close::status::value const code, std::string const& reason, ErrorCode& ec) {
+  //   if (wsConnection.status == WsConnection::Status::CLOSING) {
+  //     CCAPI_LOGGER_WARN("websocket connection is already in the state of closing");
+  //     return;
+  //   }
+  //   wsConnection.status = WsConnection::Status::CLOSING;
+  //   this->serviceContextPtr->tlsClientPtr->close(hdl, code, reason, ec);
+  // }
   void send(wspp::connection_hdl hdl, std::string const& payload, wspp::frame::opcode::value op, ErrorCode& ec) {
     this->serviceContextPtr->tlsClientPtr->send(hdl, payload, op, ec);
   }
@@ -1201,15 +1184,15 @@ class MarketDataService : public Service {
     }
     CCAPI_LOGGER_TRACE("snapshotAsk.size() = " + toString(snapshotAsk.size()));
   }
-  WsConnection& getWsConnectionFromConnectionPtr(TlsClient::connection_ptr connectionPtr) {
-    return this->wsConnectionMap.at(this->connectionAddressToString(connectionPtr));
-  }
-  std::string connectionAddressToString(const TlsClient::connection_ptr con) {
-    const void* address = static_cast<const void*>(con.get());
-    std::stringstream ss;
-    ss << address;
-    return ss.str();
-  }
+  // WsConnection& getWsConnectionFromConnectionPtr(TlsClient::connection_ptr connectionPtr) {
+  //   return this->wsConnectionMap.at(this->connectionAddressToString(connectionPtr));
+  // }
+  // std::string connectionAddressToString(const TlsClient::connection_ptr con) {
+  //   const void* address = static_cast<const void*>(con.get());
+  //   std::stringstream ss;
+  //   ss << address;
+  //   return ss.str();
+  // }
   void setPingPongTimer(PingPongMethod method, WsConnection& wsConnection, wspp::connection_hdl hdl,
                         std::function<void(wspp::connection_hdl, ErrorCode&)> pingMethod) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -1438,13 +1421,13 @@ class MarketDataService : public Service {
     std::vector<Element> elementList;
     this->updateElementListWithTrade(CCAPI_TRADE, input, elementList);
     CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
-      Message message;
-      message.setTimeReceived(timeReceived);
-      message.setType(messageType);
-      message.setTime(tp);
-      message.setElementList(elementList);
-      message.setCorrelationIdList(correlationIdList);
-      messageList.push_back(std::move(message));
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setType(messageType);
+    message.setTime(tp);
+    message.setElementList(elementList);
+    message.setCorrelationIdList(correlationIdList);
+    messageList.push_back(std::move(message));
     event.addMessages(messageList);
   }
   void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
@@ -1480,8 +1463,8 @@ class MarketDataService : public Service {
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
   virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) = 0;
 
-  std::shared_ptr<ServiceContext> serviceContextPtr;
-  std::map<std::string, WsConnection> wsConnectionMap;
+  // std::shared_ptr<ServiceContext> serviceContextPtr;
+  // std::map<std::string, WsConnection> wsConnectionMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, int>>> marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap;
@@ -1497,35 +1480,35 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::map<std::string, bool>>> processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, bool>>> processedInitialTradeByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, bool>>> l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap;
-  std::map<std::string, bool> shouldProcessRemainingMessageOnClosingByConnectionIdMap;
+  // std::map<std::string, bool> shouldProcessRemainingMessageOnClosingByConnectionIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, TimePoint>>> previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, TimerPtr>>> conflateTimerMapByConnectionIdChannelIdSymbolIdMap;
-  std::map<std::string, int> connectNumRetryOnFailByConnectionUrlMap;
-  std::map<std::string, TimerPtr> connectRetryOnFailTimerByConnectionIdMap;
-  std::map<std::string, std::map<PingPongMethod, TimePoint>> lastPongTpByMethodByConnectionIdMap;
-  std::map<std::string, std::map<PingPongMethod, TimerPtr>> pingTimerByMethodByConnectionIdMap;
-  std::map<std::string, std::map<PingPongMethod, TimerPtr>> pongTimeOutTimerByMethodByConnectionIdMap;
-  std::map<PingPongMethod, long> pingIntervalMilliSecondsByMethodMap;
-  std::map<PingPongMethod, long> pongTimeoutMilliSecondsByMethodMap;
+  // std::map<std::string, int> connectNumRetryOnFailByConnectionUrlMap;
+  // std::map<std::string, TimerPtr> connectRetryOnFailTimerByConnectionIdMap;
+  // std::map<std::string, std::map<PingPongMethod, TimePoint>> lastPongTpByMethodByConnectionIdMap;
+  // std::map<std::string, std::map<PingPongMethod, TimerPtr>> pingTimerByMethodByConnectionIdMap;
+  // std::map<std::string, std::map<PingPongMethod, TimerPtr>> pongTimeOutTimerByMethodByConnectionIdMap;
+  // std::map<PingPongMethod, long> pingIntervalMilliSecondsByMethodMap;
+  // std::map<PingPongMethod, long> pongTimeoutMilliSecondsByMethodMap;
   std::map<std::string, std::map<std::string, std::string>> orderBookChecksumByConnectionIdSymbolIdMap;
   bool shouldAlignSnapshot{};
-  SessionOptions sessionOptions;
-  SessionConfigs sessionConfigs;
-  std::function<void(Event& event)> eventHandler;
+  // SessionOptions sessionOptions;
+  // SessionConfigs sessionConfigs;
+  // std::function<void(Event& event)> eventHandler;
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled<monostate> inflater;
 #endif
-  std::atomic<bool> shouldContinue{true};
+  // std::atomic<bool> shouldContinue{true};
   std::map<std::string, std::map<std::string, Subscription::Status>> subscriptionStatusByInstrumentGroupInstrumentMap;
   std::map<std::string, std::string> instrumentGroupByWsConnectionIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> openByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, Decimal>>> highByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, Decimal>>> lowByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> closeByConnectionIdChannelIdSymbolIdMap;
-  std::map<std::string, std::map<std::string, std::string>> extraPropertyByConnectionIdMap;
-  bool enableCheckPingPongWebsocketProtocolLevel{};
-  bool enableCheckPingPongWebsocketApplicationLevel{};
+  // std::map<std::string, std::map<std::string, std::string>> extraPropertyByConnectionIdMap;
+  // bool enableCheckPingPongWebsocketProtocolLevel{};
+  // bool enableCheckPingPongWebsocketApplicationLevel{};
   std::string getRecentTradesTarget;
   std::map<Request::Operation, Message::Type> requestOperationToMessageTypeMap;
 };

@@ -5,7 +5,6 @@ on:
       - develop
   push:
     branches:
-      - master
       - develop
 jobs:
   cpplint:

@@ -7,17 +7,16 @@ namespace wspp = websocketpp;
 namespace ccapi {
 class WsConnection CCAPI_FINAL {
  public:
-  WsConnection(std::string url, std::string instrumentGroup, std::vector<Subscription> subscriptionList)
-      : url(url), instrumentGroup(instrumentGroup), subscriptionList(subscriptionList) {
+  WsConnection(std::string url, std::string group, std::vector<Subscription> subscriptionList) : url(url), group(group), subscriptionList(subscriptionList) {
     this->assignDummyId();
   }
   void assignDummyId() {
-    this->id = this->url + "||" + this->instrumentGroup + "||" + ccapi::toString(this->subscriptionList);
+    this->id = this->url + "||" + this->group + "||" + ccapi::toString(this->subscriptionList);
     this->hdl.reset();
   }
   std::string toString() const {
-    std::string output = "WsConnection [id = " + id + ", url = " + url + ", instrumentGroup = " + instrumentGroup +
-                         ", subscriptionList = " + ccapi::toString(subscriptionList) + ", status = " + statusToString(status) + "]";
+    std::string output = "WsConnection [id = " + id + ", url = " + url + ", group = " + group + ", subscriptionList = " + ccapi::toString(subscriptionList) +
+                         ", status = " + statusToString(status) + "]";
     return output;
   }
   enum class Status { UNKNOWN, CONNECTING, OPEN, FAILED, CLOSING, CLOSED };
@@ -49,7 +48,7 @@ class WsConnection CCAPI_FINAL {
   }
   std::string id;
   std::string url;
-  std::string instrumentGroup;
+  std::string group;
   std::vector<Subscription> subscriptionList;
   Status status{Status::UNKNOWN};
   wspp::connection_hdl hdl = wspp::lib::weak_ptr<void>();

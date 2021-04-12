@@ -344,9 +344,22 @@ class Session CCAPI_FINAL {
           }
           serviceByExchangeMap.at(exchange)->subscribe(subscriptionList);
         }
-      }
-      if (serviceName == CCAPI_EXECUTION_MANAGEMENT) {
-        // TODO(cryptochassis): implement
+      } else if (serviceName == CCAPI_EXECUTION_MANAGEMENT) {
+        std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
+        for (const auto& subscription : subscriptionList) {
+          auto exchange = subscription.getExchange();
+          subscriptionListByExchangeMap[exchange].push_back(subscription);
+        }
+        for (auto& subscriptionListByExchange : subscriptionListByExchangeMap) {
+          auto exchange = subscriptionListByExchange.first;
+          auto subscriptionList = subscriptionListByExchange.second;
+          std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+          if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
+            this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "please enable exchange: " + exchange);
+            return;
+          }
+          serviceByExchangeMap.at(exchange)->subscribe(subscriptionList);
+        }
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;

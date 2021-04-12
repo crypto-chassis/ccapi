@@ -17,11 +17,9 @@ class SessionOptions CCAPI_FINAL {
                          ", pongTimeoutMilliSeconds = " + ccapi::toString(pongTimeoutMilliSeconds) +
                          ", maxEventQueueSize = " + ccapi::toString(maxEventQueueSize) +
                          ", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) +
-                         ", httpMaxNumRetry = " + ccapi::toString(httpMaxNumRetry) +
-                         ", httpMaxNumRedirect = " + ccapi::toString(httpMaxNumRedirect) +
+                         ", httpMaxNumRetry = " + ccapi::toString(httpMaxNumRetry) + ", httpMaxNumRedirect = " + ccapi::toString(httpMaxNumRedirect) +
                          ", httpRequestTimeoutMilliSeconds = " + ccapi::toString(httpRequestTimeoutMilliSeconds) +
-                         ", httpConnectionPoolMaxSize = " + ccapi::toString(httpConnectionPoolMaxSize) +
-                          + "]";
+                         ", httpConnectionPoolMaxSize = " + ccapi::toString(httpConnectionPoolMaxSize) + +"]";
     return output;
   }
   long warnLateEventMaxMilliSeconds{};                      // used to print a warning log message if en event arrives late
