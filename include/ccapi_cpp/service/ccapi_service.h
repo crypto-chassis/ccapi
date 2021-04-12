@@ -79,7 +79,7 @@ class Service : public std::enable_shared_from_this<Service> {
   virtual void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
                           const std::string& symbolId, const std::map<std::string, std::string>& credential) = 0;
   virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
-  virtual std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
+  std::shared_ptr<std::future<void> > sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = " + toString(useFuture));
@@ -100,7 +100,7 @@ class Service : public std::enable_shared_from_this<Service> {
       this->sendRequestDelayTimerByCorrelationIdMap[request.getCorrelationId()] = this->serviceContextPtr->tlsClientPtr->set_timer(delayMilliSeconds, [that = shared_from_this(), request, req, retry](ErrorCode const& ec) {
         if (ec) {
           CCAPI_LOGGER_ERROR("request = " + toString(request) + ", sendRequest timer error: " + ec.message());
-          that->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+          that->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "timer", {request.getCorrelationId()});
         } else {
           auto thatReq = req;
           that->tryRequest(request, thatReq, retry);
@@ -137,6 +137,7 @@ class Service : public std::enable_shared_from_this<Service> {
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
                const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
+    CCAPI_LOGGER_ERROR("correlationIdList = " + toString(correlationIdList));
     Event event;
     event.setType(eventType);
     Message message;
@@ -399,7 +400,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("async_connect callback start");
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "connect");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "connect", {request.getCorrelationId()});
       return;
     }
     CCAPI_LOGGER_TRACE("connected");
@@ -414,7 +415,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("async_handshake callback start");
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "handshake");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "handshake", {request.getCorrelationId()});
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
@@ -430,7 +431,7 @@ class Service : public std::enable_shared_from_this<Service> {
     boost::ignore_unused(bytes_transferred);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "write");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "write", {request.getCorrelationId()});
       auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
@@ -454,7 +455,7 @@ class Service : public std::enable_shared_from_this<Service> {
     boost::ignore_unused(bytes_transferred);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "read");
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "read", {request.getCorrelationId()});
       auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
@@ -522,7 +523,7 @@ class Service : public std::enable_shared_from_this<Service> {
       std::ostringstream oss;
       oss << *resPtr;
       CCAPI_LOGGER_ERROR("res = " + oss.str());
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, e);
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, e, {request.getCorrelationId()});
     }
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
     if (retry.promisePtr) {
@@ -561,10 +562,11 @@ class Service : public std::enable_shared_from_this<Service> {
             streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostRest);
           } catch (const beast::error_code& ec) {
             CCAPI_LOGGER_TRACE("fail");
-            this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream");
+            this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream", {request.getCorrelationId()});
             return;
           }
           std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->hostRest, this->portRest, streamPtr));
+          CCAPI_LOGGER_TRACE("about to perform request with new http connection");
           this->performRequest(httpConnectionPtr, request, req, retry);
         } else {
           std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
@@ -580,22 +582,23 @@ class Service : public std::enable_shared_from_this<Service> {
               streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostRest);
             } catch (const beast::error_code& ec) {
               CCAPI_LOGGER_TRACE("fail");
-              this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream");
+              this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream", {request.getCorrelationId()});
               return;
             }
             httpConnectionPtr = std::make_shared<HttpConnection>(this->hostRest, this->portRest, streamPtr);
+            CCAPI_LOGGER_TRACE("about to perform request with existing http connection");
             this->performRequest(httpConnectionPtr, request, req, retry);
           }
         }
       } catch (const std::exception& e) {
         CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-        this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, e);
+        this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, e, {request.getCorrelationId()});
       }
     } else {
       std::string errorMessage = this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded";
       CCAPI_LOGGER_ERROR(errorMessage);
       CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, std::runtime_error(errorMessage));
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, std::runtime_error(errorMessage), {request.getCorrelationId()});
       if (retry.promisePtr) {
         retry.promisePtr->set_value();
       }

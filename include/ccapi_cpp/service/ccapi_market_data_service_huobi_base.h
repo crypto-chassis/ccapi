@@ -201,7 +201,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, this->isDerivatives ? "contract_code" : "symbol"}, {CCAPI_LIMIT, "size"}});
+        this->appendParam(queryString, param, {{CCAPI_LIMIT, "size"}});
+        this->appendSymbolId(queryString, symbolId, this->isDerivatives ? "contract_code" : "symbol");
         req.target(target + "?" + queryString);
       } break;
       default:

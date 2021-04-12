@@ -12,7 +12,9 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->getRecentTradesTarget = "/trade";
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
+    this->getRecentTradesTarget = "/api/v1/trade";
   }
 
  private:
@@ -205,7 +207,8 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, "symbol"}, {CCAPI_LIMIT, "count"}, {"reverse", "true"}});
+        this->appendParam(queryString, param, {{CCAPI_LIMIT, "count"}, {"reverse", "true"}});
+        this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
       default:

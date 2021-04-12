@@ -15,6 +15,8 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v5/market/trades";
   }
 
@@ -124,7 +126,8 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, "instId"}, {CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit"}});
+        this->appendSymbolId(queryString, symbolId, "instId");
         req.target(target + "?" + queryString);
       } break;
       default:

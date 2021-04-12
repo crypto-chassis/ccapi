@@ -772,7 +772,10 @@ class MarketDataService : public Service {
             Element element;
             element.insert(CCAPI_LAST_PRICE, y.at(MarketDataMessage::DataFieldType::PRICE));
             element.insert(CCAPI_LAST_SIZE, y.at(MarketDataMessage::DataFieldType::SIZE));
-            element.insert(CCAPI_TRADE_ID, y.at(MarketDataMessage::DataFieldType::TRADE_ID));
+            auto it = y.find(MarketDataMessage::DataFieldType::TRADE_ID);
+            if (it != y.end()) {
+              element.insert(CCAPI_TRADE_ID, it->second);
+            }
             element.insert(CCAPI_IS_BUYER_MAKER, y.at(MarketDataMessage::DataFieldType::IS_BUYER_MAKER));
             elementList.push_back(std::move(element));
           }
@@ -1282,7 +1285,6 @@ class MarketDataService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::map<std::string, std::map<std::string, std::string>> orderBookChecksumByConnectionIdSymbolIdMap;
   virtual bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk,
                                       const std::string& receivedOrderBookChecksumStr, bool& shouldProcessRemainingMessage) {
     return true;
@@ -1465,13 +1467,20 @@ class MarketDataService : public Service {
       ++i;
     }
   }
+  void appendSymbolId(std::string& queryString, const std::string& symbolId, const std::string symbolIdCalled) {
+    if (!symbolId.empty()) {
+      queryString += symbolIdCalled;
+      queryString += "=";
+      queryString += Url::urlEncode(symbolId);
+      queryString += "&";
+    }
+  }
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                                const TimePoint& timeReceived) = 0;
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
   virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) = 0;
 
   std::shared_ptr<ServiceContext> serviceContextPtr;
-  std::string name;
   std::map<std::string, WsConnection> wsConnectionMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
@@ -1498,6 +1507,7 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<PingPongMethod, TimerPtr>> pongTimeOutTimerByMethodByConnectionIdMap;
   std::map<PingPongMethod, long> pingIntervalMilliSecondsByMethodMap;
   std::map<PingPongMethod, long> pongTimeoutMilliSecondsByMethodMap;
+  std::map<std::string, std::map<std::string, std::string>> orderBookChecksumByConnectionIdSymbolIdMap;
   bool shouldAlignSnapshot{};
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;

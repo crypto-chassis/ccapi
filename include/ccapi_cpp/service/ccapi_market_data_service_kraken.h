@@ -12,6 +12,8 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->shouldAlignSnapshot = true;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/0/public/Trades";
   }
 
@@ -187,9 +189,9 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x[0].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x[1].GetString()))});
-          std::stringstream ss;
-          ss << std::setw(9) << std::setfill('0') << timePair.second;
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
+          // std::stringstream ss;
+          // ss << std::setw(9) << std::setfill('0') << timePair.second;
+          // dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x[3].GetString()) == "s" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
@@ -214,7 +216,7 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, "pair"}});
+        this->appendSymbolId(queryString, symbolId, "pair");
         req.target(target + "?" + queryString);
       } break;
       default:
@@ -232,6 +234,8 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
+    auto instrument = request.getInstrument();
+    auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["result"][symbolId.c_str()].GetArray()) {
@@ -244,9 +248,9 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x[0].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x[1].GetString()))});
-          std::stringstream ss;
-          ss << std::setw(9) << std::setfill('0') << timePair.second;
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
+          // std::stringstream ss;
+          // ss << std::setw(9) << std::setfill('0') << timePair.second;
+          // dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x[3].GetString()) == "s" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));

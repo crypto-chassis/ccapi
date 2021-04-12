@@ -279,6 +279,15 @@
 #ifndef CCAPI_GEMINI_URL_REST_BASE
 #define CCAPI_GEMINI_URL_REST_BASE "https://api.gemini.com"
 #endif
+#ifndef CCAPI_KRAKEN_URL_REST_BASE
+#define CCAPI_KRAKEN_URL_REST_BASE "https://api.kraken.com"
+#endif
+#ifndef CCAPI_BITSTAMP_URL_REST_BASE
+#define CCAPI_BITSTAMP_URL_REST_BASE "https://www.bitstamp.net"
+#endif
+#ifndef CCAPI_BITFINEX_URL_REST_BASE
+#define CCAPI_BITFINEX_URL_REST_BASE "https://api-pub.bitfinex.com"
+#endif
 #ifndef CCAPI_BITMEX_URL_REST_BASE
 #define CCAPI_BITMEX_URL_REST_BASE "https://www.bitmex.com"
 #endif

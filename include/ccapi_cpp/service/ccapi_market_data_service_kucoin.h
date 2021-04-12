@@ -11,6 +11,8 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v1/market/histories";
   }
   virtual ~MarketDataServiceKucoin() {}
@@ -178,7 +180,7 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, "symbol"}});
+        this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
       default:
@@ -198,7 +200,7 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
     auto operation = request.getOperation();
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
-        for (const auto& x : document.GetArray()) {
+        for (const auto& x : document["data"].GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
           std::string timeStr = x["time"].GetString();
