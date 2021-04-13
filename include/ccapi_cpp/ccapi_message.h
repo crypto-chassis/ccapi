@@ -32,6 +32,7 @@ class Message CCAPI_FINAL {
   enum class Type {
     UNKNOWN,
     MARKET_DATA_EVENTS,
+    EXECUTION_MANAGEMENT_EVENTS,
     SUBSCRIPTION_STARTED,
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
@@ -56,6 +57,9 @@ class Message CCAPI_FINAL {
         break;
       case Type::MARKET_DATA_EVENTS:
         output = "MARKET_DATA_EVENTS";
+        break;
+      case Type::EXECUTION_MANAGEMENT_EVENTS:
+        output = "EXECUTION_MANAGEMENT_EVENTS";
         break;
       case Type::SUBSCRIPTION_STARTED:
         output = "SUBSCRIPTION_STARTED";
