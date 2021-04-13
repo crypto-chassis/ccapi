@@ -10,9 +10,11 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
   MarketDataServiceBitmex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_BITMEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
-    this->getRecentTradesTarget = "/trade";
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
+    this->getRecentTradesTarget = "/api/v1/trade";
   }
 
  private:
@@ -205,7 +207,8 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, "symbol"}, {CCAPI_LIMIT, "count"}, {"reverse", "true"}});
+        this->appendParam(queryString, param, {{CCAPI_LIMIT, "count"}, {"reverse", "true"}});
+        this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
       default:
@@ -223,8 +226,6 @@ class MarketDataServiceBitmex CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {

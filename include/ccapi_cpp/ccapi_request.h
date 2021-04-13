@@ -45,27 +45,27 @@ class Request CCAPI_FINAL {
     }
     return output;
   }
-  enum class ApiType { UNKNOWN, REST, WEBSOCKET, FIX };
-  static std::string apiTypeToString(ApiType apiType) {
-    std::string output;
-    switch (apiType) {
-      case ApiType::UNKNOWN:
-        output = "UNKNOWN";
-        break;
-      case ApiType::REST:
-        output = "REST";
-        break;
-      case ApiType::WEBSOCKET:
-        output = "WEBSOCKET";
-        break;
-      case ApiType::FIX:
-        output = "FIX";
-        break;
-      default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
-    }
-    return output;
-  }
+  // enum class ApiType { UNKNOWN, REST, WEBSOCKET, FIX };
+  // static std::string apiTypeToString(ApiType apiType) {
+  //   std::string output;
+  //   switch (apiType) {
+  //     case ApiType::UNKNOWN:
+  //       output = "UNKNOWN";
+  //       break;
+  //     case ApiType::REST:
+  //       output = "REST";
+  //       break;
+  //     case ApiType::WEBSOCKET:
+  //       output = "WEBSOCKET";
+  //       break;
+  //     case ApiType::FIX:
+  //       output = "FIX";
+  //       break;
+  //     default:
+  //       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+  //   }
+  //   return output;
+  // }
   Request() {}
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId = "",
           std::map<std::string, std::string> credential = {})

@@ -9,9 +9,11 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
   MarketDataServiceBitstamp(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                             std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_BITSTAMP;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BITSTAMP;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->enableCheckPingPongWebsocketApplicationLevel = false;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}";
   }
 
@@ -136,21 +138,17 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-          std::string microtimestamp = x["microtimestamp"].GetString();
-          microtimestamp.insert(microtimestamp.size() - 6, ".");
-          marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(microtimestamp));
+          marketDataMessage.tp = UtilTime::makeTimePointFromSeconds(std::stol(x["date"].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["amount"].GetString()))});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(x["tid"].GetInt64())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, x["type"].GetInt() == 0 ? "1" : "0"});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["tid"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["type"].GetString()) == "0" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }

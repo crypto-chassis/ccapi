@@ -10,8 +10,8 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->name = CCAPI_EXCHANGE_NAME_BITMEX;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_BITMEX_API_KEY;
     this->apiSecretName = CCAPI_BITMEX_API_SECRET;

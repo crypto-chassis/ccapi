@@ -223,6 +223,7 @@ class UtilTime CCAPI_FINAL {
     return s.count();
   }
   static TimePoint makeTimePointFromMilliseconds(long long milliseconds) { return TimePoint(std::chrono::milliseconds(milliseconds)); }
+  static TimePoint makeTimePointFromSeconds(long seconds) { return TimePoint(std::chrono::seconds(seconds)); }
 };
 class UtilAlgorithm CCAPI_FINAL {
  public:

@@ -10,8 +10,8 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->name = CCAPI_EXCHANGE_NAME_GEMINI;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_GEMINI_API_KEY;
     this->apiSecretName = CCAPI_GEMINI_API_SECRET;

@@ -10,8 +10,8 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->name = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_HUOBI_USDT_SWAP_API_KEY;
     this->apiSecretName = CCAPI_HUOBI_USDT_SWAP_API_SECRET;

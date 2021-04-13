@@ -10,8 +10,8 @@ class ExecutionManagementServiceBinanceUs CCAPI_FINAL : public ExecutionManageme
                                       ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->name = CCAPI_EXCHANGE_NAME_BINANCE_US;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_US;
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_BINANCE_US_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_US_API_SECRET;

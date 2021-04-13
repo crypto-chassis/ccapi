@@ -9,8 +9,10 @@ class MarketDataServiceBinanceFutures CCAPI_FINAL : public MarketDataServiceBina
   MarketDataServiceBinanceFutures(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceBinanceBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/fapi/v1/trades";
     this->isFutures = true;
   }

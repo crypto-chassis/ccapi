@@ -31,8 +31,8 @@ class Message CCAPI_FINAL {
   }
   enum class Type {
     UNKNOWN,
-    UNKNOWN_ERROR,
     MARKET_DATA_EVENTS,
+    EXECUTION_MANAGEMENT_EVENTS,
     SUBSCRIPTION_STARTED,
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
@@ -43,6 +43,7 @@ class Message CCAPI_FINAL {
     GET_ORDER,
     GET_OPEN_ORDERS,
     CANCEL_OPEN_ORDERS,
+    GET_RECENT_TRADES,
     ORDER_MATCHED,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
@@ -54,11 +55,11 @@ class Message CCAPI_FINAL {
       case Type::UNKNOWN:
         output = "UNKNOWN";
         break;
-      case Type::UNKNOWN_ERROR:
-        output = "UNKNOWN_ERROR";
-        break;
       case Type::MARKET_DATA_EVENTS:
         output = "MARKET_DATA_EVENTS";
+        break;
+      case Type::EXECUTION_MANAGEMENT_EVENTS:
+        output = "EXECUTION_MANAGEMENT_EVENTS";
         break;
       case Type::SUBSCRIPTION_STARTED:
         output = "SUBSCRIPTION_STARTED";
@@ -89,6 +90,9 @@ class Message CCAPI_FINAL {
         break;
       case Type::CANCEL_OPEN_ORDERS:
         output = "CANCEL_OPEN_ORDERS";
+        break;
+      case Type::GET_RECENT_TRADES:
+        output = "GET_RECENT_TRADES";
         break;
       case Type::ORDER_MATCHED:
         output = "ORDER_MATCHED";

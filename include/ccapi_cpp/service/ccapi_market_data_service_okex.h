@@ -9,12 +9,14 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
   MarketDataServiceOkex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                         std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_OKEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name) + "/public";
+    this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/public";
     ErrorCode ec = this->inflater.init(false);
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v5/market/trades";
   }
 
@@ -124,7 +126,8 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_SYMBOL_ID, "instId"}, {CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit"}});
+        this->appendSymbolId(queryString, symbolId, "instId");
         req.target(target + "?" + queryString);
       } break;
       default:
@@ -137,8 +140,6 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {

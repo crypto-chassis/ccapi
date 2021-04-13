@@ -9,8 +9,10 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
   MarketDataServiceGemini(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->name = CCAPI_EXCHANGE_NAME_GEMINI;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->name);
+    this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/v1/trades/:symbol";
   }
 
@@ -121,9 +123,9 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto symbol = this->convertInstrumentToWebsocketSymbolId(subscription.getInstrument());
     auto field = subscription.getField();
-    auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->name).at(field), ",");
+    auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->exchangeName).at(field), ",");
     std::set<std::string> parameterSet(parameterList.begin(), parameterList.end());
-    std::string url = this->baseUrl + symbol;
+    std::string url = this->baseUrl + "/" + symbol;
     url += "?";
     if ((parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_BIDS) != parameterSet.end() ||
          parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_OFFERS) != parameterSet.end())) {
@@ -146,7 +148,7 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
   }
   bool checkSequence(const WsConnection& wsConnection, int sequence) {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
-      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->name)) {
+      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->exchangeName)) {
         CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = " + toString(wsConnection));
         return false;
       }
@@ -201,8 +203,6 @@ class MarketDataServiceGemini CCAPI_FINAL : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto operation = request.getOperation();
-    auto symbolId = convertInstrumentToRestSymbolId(request.getInstrument());
-    auto correlationIdList = {request.getCorrelationId()};
     switch (operation) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
