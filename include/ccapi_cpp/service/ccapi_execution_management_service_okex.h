@@ -40,9 +40,9 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     req.prepare_payload();
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> regularizationMap = {}) {
+                   const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
@@ -52,9 +52,10 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      queryString += regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      queryString += standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       queryString += "=";
       queryString += Url::urlEncode(kv.second);
       queryString += "&";

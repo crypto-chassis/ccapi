@@ -445,7 +445,7 @@ class MarketDataService : public Service {
   virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    const std::vector<MarketDataMessage>& marketDataMessageList = this->processTextMessage(hdl, textMessage, timeReceived);
+    const std::vector<MarketDataMessage>& marketDataMessageList = this->processTextMessage(wsConnection, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_TRACE("websocketMessageList = " + toString(marketDataMessageList));
     if (!marketDataMessageList.empty()) {
       for (auto const& marketDataMessage : marketDataMessageList) {
@@ -1430,17 +1430,18 @@ class MarketDataService : public Service {
     messageList.push_back(std::move(message));
     event.addMessages(messageList);
   }
-  void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       target = target.replace(target.find(key), key.length(), value);
     }
   }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> standardizationMap = {}) {
     int i = 0;
     for (const auto& kv : param) {
-      std::string key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      std::string key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       queryString += key;
       queryString += "=";
       queryString += Url::urlEncode(kv.second);
@@ -1461,7 +1462,8 @@ class MarketDataService : public Service {
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                                const TimePoint& timeReceived) = 0;
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
-  virtual std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) = 0;
+  virtual std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
+                                                            const TimePoint& timeReceived) = 0;
 
   // std::shared_ptr<ServiceContext> serviceContextPtr;
   // std::map<std::string, WsConnection> wsConnectionMap;

@@ -29,9 +29,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += "&signature=";
     queryString += signature;
   }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> regularizationMap = {}) {
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      queryString += regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      queryString += standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       queryString += "=";
       queryString += Url::urlEncode(kv.second);
       queryString += "&";

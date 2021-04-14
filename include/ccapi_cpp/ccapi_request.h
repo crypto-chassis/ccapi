@@ -94,15 +94,6 @@ class Request CCAPI_FINAL {
   Operation getOperation() const { return operation; }
   const std::vector<std::map<std::string, std::string> >& getParamList() const { return paramList; }
   void setParamList(const std::vector<std::map<std::string, std::string> >& paramList) { this->paramList = paramList; }
-  bool getIsHttpRequestRaw() const { return isHttpRequestRaw; }
-  void setHttpRequestRaw(bool isHttpRequestRaw) {
-    this->isHttpRequestRaw = isHttpRequestRaw;
-    if (this->isHttpRequestRaw) {
-      this->isHttpResponseRaw = true;
-    }
-  }
-  bool getIsHttpResponseRaw() const { return isHttpResponseRaw; }
-  void setHttpResponseRaw(bool isHttpResponseRaw) { this->isHttpResponseRaw = isHttpResponseRaw; }
   std::map<std::string, std::string> getFirstParamWithDefault(const std::map<std::string, std::string> defaultValue = {}) const {
     if (this->paramList.empty()) {
       return defaultValue;
@@ -119,8 +110,6 @@ class Request CCAPI_FINAL {
   std::vector<std::map<std::string, std::string> > paramList;
   std::map<std::string, std::string> credential;
   Operation operation;
-  bool isHttpRequestRaw;
-  bool isHttpResponseRaw;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
