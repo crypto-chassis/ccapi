@@ -32,8 +32,8 @@ class SessionOptions CCAPI_FINAL {
   long pongTimeoutMilliSeconds{5000};
   int maxEventQueueSize{0};  // if set to a positive integer, the event queue will throw an exception when overflown
   bool enableOneHttpConnectionPerRequest{};
-  int httpMaxNumRetry{3};
-  int httpMaxNumRedirect{3};
+  int httpMaxNumRetry{0};
+  int httpMaxNumRedirect{0};
   long httpRequestTimeoutMilliSeconds{10000};
   int httpConnectionPoolMaxSize{1};  // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
 };
