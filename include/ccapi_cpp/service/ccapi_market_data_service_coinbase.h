@@ -55,7 +55,8 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
     requestStringList.push_back(requestString);
     return requestStringList;
   }
-  std::vector<MarketDataMessage> processTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
+                                                    const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     document.Parse(textMessage.c_str());

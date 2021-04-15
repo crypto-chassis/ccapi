@@ -292,7 +292,9 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-    beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliSeconds));
+    if (timeoutMilliSeconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliSeconds));
+    }
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
         tcpResolverResults, beast::bind_front_handler(&Service::onConnect, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler));
@@ -458,7 +460,9 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliSeconds = " + toString(this->sessionOptions.httpRequestTimeoutMilliSeconds));
-    beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
+    if (this->sessionOptions.httpRequestTimeoutMilliSeconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
+    }
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(this->tcpResolverResults,
                                                   beast::bind_front_handler(&Service::onConnect_2, shared_from_this(), httpConnectionPtr, request, req, retry));
@@ -490,6 +494,9 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     CCAPI_LOGGER_TRACE("handshaked");
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+    if (this->sessionOptions.httpRequestTimeoutMilliSeconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
+    }
     std::shared_ptr<http::request<http::string_body>> reqPtr(new http::request<http::string_body>(std::move(req)));
     CCAPI_LOGGER_TRACE("before async_write");
     http::async_write(stream, *reqPtr, beast::bind_front_handler(&Service::onWrite_2, shared_from_this(), httpConnectionPtr, request, reqPtr, retry));
@@ -540,6 +547,7 @@ class Service : public std::enable_shared_from_this<Service> {
     } else {
       try {
         this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
+        CCAPI_LOGGER_TRACE("pushed back httpConnectionPtr " + toString(*httpConnectionPtr) + " to pool");
       } catch (const std::runtime_error& e) {
         if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_FULL) {
           CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -636,12 +644,13 @@ class Service : public std::enable_shared_from_this<Service> {
             return;
           }
           std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->hostRest, this->portRest, streamPtr));
-          CCAPI_LOGGER_TRACE("about to perform request with new http connection");
+          CCAPI_LOGGER_TRACE("about to perform request with new httpConnectionPtr " + toString(*httpConnectionPtr));
           this->performRequest(httpConnectionPtr, request, req, retry);
         } else {
           std::shared_ptr<HttpConnection> httpConnectionPtr(nullptr);
           try {
             httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
+            CCAPI_LOGGER_TRACE("about to perform request with existing httpConnectionPtr " + toString(*httpConnectionPtr));
             this->onHandshake_2(httpConnectionPtr, request, req, retry, {});
           } catch (const std::runtime_error& e) {
             if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
@@ -656,7 +665,7 @@ class Service : public std::enable_shared_from_this<Service> {
               return;
             }
             httpConnectionPtr = std::make_shared<HttpConnection>(this->hostRest, this->portRest, streamPtr);
-            CCAPI_LOGGER_TRACE("about to perform request with existing http connection");
+            CCAPI_LOGGER_TRACE("about to perform request with new httpConnectionPtr " + toString(*httpConnectionPtr));
             this->performRequest(httpConnectionPtr, request, req, retry);
           }
         }

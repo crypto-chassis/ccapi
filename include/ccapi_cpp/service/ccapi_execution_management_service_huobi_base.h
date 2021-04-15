@@ -40,9 +40,9 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     req.target(path + "?" + queryString);
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> regularizationMap = {}) {
+                   const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (this->isDerivatives) {
         if (key == "direction") {
@@ -57,10 +57,10 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     }
   }
   void appendParam(std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> regularizationMap = {}) {
+                   const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      queryParamMap.insert(
-          std::make_pair(regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first, Url::urlEncode(kv.second)));
+      queryParamMap.insert(std::make_pair(standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first,
+                                          Url::urlEncode(kv.second)));
     }
   }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId, const std::string symbolIdCalled) {

@@ -44,9 +44,9 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
     req.set("X-GEMINI-SIGNATURE", signature);
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> regularizationMap = {}) {
+                   const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      auto key = regularizationMap.find(kv.first) != regularizationMap.end() ? regularizationMap.at(kv.first) : kv.first;
+      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
