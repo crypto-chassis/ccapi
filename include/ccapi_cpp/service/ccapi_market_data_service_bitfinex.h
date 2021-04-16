@@ -167,23 +167,34 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
           }
         } else if (document[1].IsString()) {
           std::string str = document[1].GetString();
-          if (str == "tu") {
-            const rj::Value& x = document[2].GetArray();
-            MarketDataMessage marketDataMessage;
-            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
-            marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
-            std::string timestampInMilliseconds = x[1].GetString();
-            timestampInMilliseconds.insert(timestampInMilliseconds.size() - 3, ".");
-            marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(timestampInMilliseconds));
-            MarketDataMessage::TypeForDataPoint dataPoint;
-            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x[3].GetString()))});
-            auto amount = UtilString::normalizeDecimalString(x[2].GetString());
-            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount.at(0) == '-' ? amount.substr(1) : amount});
-            dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[0].GetString())});
-            dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, amount.at(0) == '-' ? "1" : "0"});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+          if (str == "tu" || str == "te") {
+            if (this->sessionOptions.enableCheckSequence) {
+              int sequence = std::stoi(document[3].GetString());
+              if (!this->checkSequence(wsConnection, sequence)) {
+                this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
+                return marketDataMessageList;
+              }
+            }
+            if (str == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) {
+              const rj::Value& x = document[2].GetArray();
+              MarketDataMessage marketDataMessage;
+              marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+              marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+              marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+              std::string timestampInMilliseconds = x[1].GetString();
+              timestampInMilliseconds.insert(timestampInMilliseconds.size() - 3, ".");
+              marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(timestampInMilliseconds));
+              MarketDataMessage::TypeForDataPoint dataPoint;
+              dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x[3].GetString()))});
+              auto amount = UtilString::normalizeDecimalString(x[2].GetString());
+              dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount.at(0) == '-' ? amount.substr(1) : amount});
+              if (str == "tu") {
+                dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[0].GetString())});
+              }
+              dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, amount.at(0) == '-' ? "1" : "0"});
+              marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+              marketDataMessageList.push_back(std::move(marketDataMessage));
+            }
           } else if (str == "cs") {
             if (this->sessionOptions.enableCheckSequence) {
               int sequence = std::stoi(document[3].GetString());
@@ -293,7 +304,7 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
       return true;
     } else {
       CCAPI_LOGGER_DEBUG("sequence: previous = " + toString(this->sequenceByConnectionIdMap[wsConnection.id]) + ", current = " + toString(sequence) +
-                         "wsConnection = " + toString(wsConnection));
+                         ", wsConnection = " + toString(wsConnection));
       if (sequence - this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
         this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
         return true;
