@@ -14,7 +14,7 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     this->enableCheckPingPongWebsocketApplicationLevel = false;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
-    this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}";
+    this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}/";  // must have trailing slash
   }
 
  private:
