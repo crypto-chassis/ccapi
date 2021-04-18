@@ -30,14 +30,6 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
         std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
     this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
         std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
-    //  must ping kucoin server
-    // this->setPingPongTimer(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnection, hdl, [that =
-    // shared_from_base<MarketDataServiceKucoin>()](wspp::connection_hdl hdl, ErrorCode & ec) {
-    //   auto now = UtilTime::now();
-    //   auto payload = "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}";
-    //   CCAPI_LOGGER_TRACE("payload = " + payload);
-    //   that->send(hdl, payload, wspp::frame::opcode::text, ec);
-    // });
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
@@ -89,7 +81,6 @@ class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
-    // WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
