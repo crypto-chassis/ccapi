@@ -211,7 +211,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     MarketDataService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
   }
