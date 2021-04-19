@@ -110,14 +110,14 @@ class MarketDataServiceCoinbase CCAPI_FINAL : public MarketDataService {
       marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
       marketDataMessage.tp = timeReceived;
       const rj::Value& bids = document["bids"];
-      for (auto& x : bids.GetArray()) {
+      for (const auto& x : bids.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
         dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
         dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
         marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
       }
       const rj::Value& asks = document["asks"];
-      for (auto& x : asks.GetArray()) {
+      for (const auto& x : asks.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
         dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
         dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});

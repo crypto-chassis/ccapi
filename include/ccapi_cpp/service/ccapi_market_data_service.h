@@ -448,7 +448,7 @@ class MarketDataService : public Service {
     std::vector<MarketDataMessage> marketDataMessageList = this->processTextMessage(wsConnection, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_TRACE("websocketMessageList = " + toString(marketDataMessageList));
     if (!marketDataMessageList.empty()) {
-      for (auto & marketDataMessage : marketDataMessageList) {
+      for (auto& marketDataMessage : marketDataMessageList) {
         // TODO(cryptochassis): should make Event outside of this for-loop, but need to carefully study the implications
         Event event;
         bool shouldEmitEvent = true;
@@ -1412,7 +1412,7 @@ class MarketDataService : public Service {
     if (!marketDataMessageList.empty()) {
       Event event;
       event.setType(Event::Type::RESPONSE);
-      for (auto & marketDataMessage : marketDataMessageList) {
+      for (auto& marketDataMessage : marketDataMessageList) {
         if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS) {
           const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
           CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));

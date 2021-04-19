@@ -92,17 +92,14 @@ class Event CCAPI_FINAL {
     this->messageList.insert(std::end(this->messageList), std::begin(newMessageList), std::end(newMessageList));
   }
   void addMessages(std::vector<Message>& newMessageList) {
-    if (this->messageList.empty())
-    {
-        this->messageList = std::move(newMessageList);
+    if (this->messageList.empty()) {
+      this->messageList = std::move(newMessageList);
+    } else {
+      this->messageList.reserve(this->messageList.size() + newMessageList.size());
+      std::move(std::begin(newMessageList), std::end(newMessageList), std::back_inserter(this->messageList));
+      // src.clear();
     }
-    else
-    {
-        this->messageList.reserve(this->messageList.size() + newMessageList.size());
-        std::move(std::begin(newMessageList), std::end(newMessageList), std::back_inserter(this->messageList));
-        // src.clear();
-    }
-}
+  }
   void setMessageList(const std::vector<Message>& messageList) { this->messageList = messageList; }
   Type getType() const { return type; }
   void setType(Type type) { this->type = type; }

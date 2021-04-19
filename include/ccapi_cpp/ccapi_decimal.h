@@ -48,7 +48,8 @@ class Decimal CCAPI_FINAL {
       }
     }
     std::vector<std::string> splitted = UtilString::split(fixedPointValue, ".");
-    this->before = std::stoul(splitted.at(0)); // replace with std::from_chars() once upgrade to C++17
+    // TODO(cryptochassis): replace with std::from_chars() once upgrade to C++17
+    this->before = std::stoul(splitted.at(0));
     if (splitted.size() > 1) {
       this->frac = splitted.at(1);
       this->frac = UtilString::rtrim(this->frac, "0");
