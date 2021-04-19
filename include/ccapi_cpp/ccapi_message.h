@@ -129,6 +129,7 @@ class Message CCAPI_FINAL {
   }
   const std::vector<Element>& getElementList() const { return elementList; }
   void setElementList(const std::vector<Element>& elementList) { this->elementList = elementList; }
+  void setElementList(std::vector<Element>& elementList) { this->elementList = std::move(elementList); }
   const std::vector<std::string>& getCorrelationIdList() const { return correlationIdList; }
   void setCorrelationIdList(const std::vector<std::string>& correlationIdList) { this->correlationIdList = correlationIdList; }
   TimePoint getTime() const { return time; }

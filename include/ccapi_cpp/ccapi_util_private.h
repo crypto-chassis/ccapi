@@ -42,10 +42,10 @@ class UtilString CCAPI_FINAL {
     std::string token;
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
-      output.push_back(token);
+      output.push_back(std::move(token));
       s.erase(0, pos + delimiter.length());
     }
-    output.push_back(s);
+    output.push_back(std::move(s));
     return output;
   }
   static std::string join(const std::vector<std::string>& strings, const std::string& delimiter) {
