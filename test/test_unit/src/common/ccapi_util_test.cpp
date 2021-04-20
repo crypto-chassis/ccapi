@@ -1,5 +1,6 @@
-#include "ccapi_cpp/ccapi_util_private.h"
 #include "gtest/gtest.h"
+
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 TEST(UtilAlgorithmTest, base64) {
   std::string original("+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ==");
@@ -20,5 +21,24 @@ TEST(UtilAlgorithmTest, base64FromBase64Url) {
   std::string original("TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ");
   auto result = UtilAlgorithm::base64FromBase64Url(original);
   EXPECT_EQ(result, "TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ=");
+}
+TEST(UtilStringTest, splitHasDot) {
+  std::string original("12.345");
+  auto result = UtilString::split(original,".");
+  EXPECT_EQ(result.size(), 2);
+  EXPECT_EQ(result.at(0), "12");
+  EXPECT_EQ(result.at(1), "345");
+}
+TEST(UtilStringTest, splitNoDot) {
+  std::string original("12");
+  auto result = UtilString::split(original,".");
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0), "12");
+}
+TEST(UtilStringTest, splitEmptyString) {
+  std::string original("");
+  auto result = UtilString::split(original,".");
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_EQ(result.at(0), "");
 }
 } /* namespace ccapi */
