@@ -32,7 +32,7 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 if (CMAKE_VERSION VERSION_LESS 2.8.11)
  include_directories("${gtest_SOURCE_DIR}/include")
 endif()
-find_package(GTest REQUIRED CONFIG)
+# find_package(GTest REQUIRED CONFIG)
 include(GoogleTest)
 include_directories(${CCAPI_CPP_PROJECT_DIR}/test/test_unit/include)
 link_libraries(gtest_main gmock_main)
