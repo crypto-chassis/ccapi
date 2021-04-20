@@ -24,20 +24,20 @@ TEST(UtilAlgorithmTest, base64FromBase64Url) {
 }
 TEST(UtilStringTest, splitHasDot) {
   std::string original("12.345");
-  auto result = UtilString::split(original,".");
+  auto result = UtilString::split(original, ".");
   EXPECT_EQ(result.size(), 2);
   EXPECT_EQ(result.at(0), "12");
   EXPECT_EQ(result.at(1), "345");
 }
 TEST(UtilStringTest, splitNoDot) {
   std::string original("12");
-  auto result = UtilString::split(original,".");
+  auto result = UtilString::split(original, ".");
   EXPECT_EQ(result.size(), 1);
   EXPECT_EQ(result.at(0), "12");
 }
 TEST(UtilStringTest, splitEmptyString) {
   std::string original("");
-  auto result = UtilString::split(original,".");
+  auto result = UtilString::split(original, ".");
   EXPECT_EQ(result.size(), 1);
   EXPECT_EQ(result.at(0), "");
 }

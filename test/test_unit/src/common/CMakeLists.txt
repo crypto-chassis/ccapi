@@ -1,5 +1,5 @@
 set(NAME common)
 project(${NAME})
-add_executable(${NAME} ${SOURCE_LOGGER} ccapi_jwt_test.cpp ccapi_decimal_test.cpp ccapi_hmac_test.cpp ccapi_util_test.cpp ccapi_url_test.cpp ccapi_event_test.cpp)
-target_link_libraries(${NAME} gtest_main)
+add_executable(${NAME} ${SOURCE_LOGGER} ccapi_event_test.cpp ccapi_jwt_test.cpp ccapi_decimal_test.cpp ccapi_hmac_test.cpp ccapi_util_test.cpp ccapi_url_test.cpp)
+target_link_libraries(${NAME})
 gtest_discover_tests(${NAME})

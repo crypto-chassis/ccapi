@@ -538,15 +538,16 @@ class MarketDataService : public Service {
   }
   void updateOrderBook(std::map<Decimal, std::string>& snapshot, Decimal& price, std::string& size) {
     // Decimal sizeDecimal(size);
-    if (snapshot.find(price) == snapshot.end()) {
+    auto it = snapshot.find(price);
+    if (it == snapshot.end()) {
       if (size != "0") {
         // snapshot.insert(std::pair<Decimal, std::string>(price, size));
-        snapshot.emplace(price, size);
+        snapshot.emplace(std::move(price), std::move(size));
       }
     } else {
       if (size != "0") {
         // snapshot[price] = size;
-        snapshot[price] = std::move(size);
+        it->second = std::move(size);
       } else {
         snapshot.erase(price);
       }
@@ -924,14 +925,16 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          snapshotBid.emplace(std::pair<Decimal, std::string>(Decimal(price), size));
+          Decimal decimalPrice(price);
+          snapshotBid.emplace(std::move(decimalPrice), std::move(size));
         }
         CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBid, maxMarketDepth));
       } else if (type == MarketDataMessage::DataType::ASK) {
         for (auto& y : detail) {
           auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          snapshotAsk.emplace(std::pair<Decimal, std::string>(Decimal(price), size));
+          Decimal decimalPrice(price);
+          snapshotAsk.emplace(std::move(decimalPrice), std::move(size));
         }
         CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, " + toString(maxMarketDepth) + ") = " + firstNToString(snapshotAsk, maxMarketDepth));
       } else {
@@ -1170,7 +1173,7 @@ class MarketDataService : public Service {
               this->highByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = Decimal(price);
               this->lowByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = Decimal(price);
             } else {
-              auto decimalPrice = Decimal(price);
+              Decimal decimalPrice(price);
               if (decimalPrice > this->highByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
                 this->highByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = decimalPrice;
               }
