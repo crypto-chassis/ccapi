@@ -1,5 +1,6 @@
-#include "ccapi_cpp/ccapi_jwt.h"
 #include "gtest/gtest.h"
+
+#include "ccapi_cpp/ccapi_jwt.h"
 namespace ccapi {
 TEST(JwtTest, generate) {
   auto result = Jwt::generate(Hmac::ShaVersion::SHA256, "your-256-bit-secret", "{\"sub\":\"1234567890\",\"name\":\"John Doe\",\"iat\":1516239022}");

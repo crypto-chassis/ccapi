@@ -6,9 +6,10 @@
 namespace ccapi {
 class Element CCAPI_FINAL {
  public:
-  void insert(std::string name, std::string value) { this->nameValueMap.insert(std::pair<std::string, std::string>(name, value)); }
-  bool has(std::string name) const { return this->nameValueMap.find(name) != this->nameValueMap.end(); }
-  std::string getValue(std::string name, std::string valueDefault = "") const {
+  void insert(const std::string& name, const std::string& value) { this->nameValueMap.insert(std::pair<std::string, std::string>(name, value)); }
+  void emplace(std::string& name, std::string& value) { this->nameValueMap.emplace(std::move(name), std::move(value)); }
+  bool has(const std::string& name) const { return this->nameValueMap.find(name) != this->nameValueMap.end(); }
+  std::string getValue(const std::string& name, const std::string valueDefault = "") const {
     auto it = this->nameValueMap.find(name);
     return it == this->nameValueMap.end() ? valueDefault : it->second;
   }

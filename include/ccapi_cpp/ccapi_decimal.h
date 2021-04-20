@@ -7,19 +7,19 @@ namespace ccapi {
 class Decimal CCAPI_FINAL {
  public:
   Decimal() {}
-  explicit Decimal(std::string originalValue) {
+  explicit Decimal(const std::string& originalValue) {
     if (originalValue.empty()) {
       CCAPI_LOGGER_FATAL("Decimal constructor input value cannot be empty");
     }
-    std::string value = originalValue;
+    std::string fixedPointValue = originalValue;
     this->sign = true;
     if (originalValue.at(0) == '-') {
-      value.erase(0);
+      fixedPointValue.erase(0);
       this->sign = false;
     }
-    std::string fixedPointValue = value;
-    if (value.find("E") != std::string::npos || value.find("e") != std::string::npos) {
-      std::vector<std::string> splitted = UtilString::split(value, value.find("E") != std::string::npos ? "E" : "e");
+    // std::string fixedPointValue = value;
+    if (fixedPointValue.find("E") != std::string::npos || fixedPointValue.find("e") != std::string::npos) {
+      std::vector<std::string> splitted = UtilString::split(fixedPointValue, fixedPointValue.find("E") != std::string::npos ? "E" : "e");
       fixedPointValue = splitted.at(0);
       if (fixedPointValue.find(".") != std::string::npos) {
         fixedPointValue = UtilString::rtrim(UtilString::rtrim(fixedPointValue, "0"), ".");
@@ -48,10 +48,11 @@ class Decimal CCAPI_FINAL {
       }
     }
     std::vector<std::string> splitted = UtilString::split(fixedPointValue, ".");
+    // TODO(cryptochassis): replace with std::from_chars() once upgrade to C++17
     this->before = std::stoul(splitted.at(0));
     if (splitted.size() > 1) {
       this->frac = splitted.at(1);
-      UtilString::rtrim(this->frac, "0");
+      this->frac = UtilString::rtrim(this->frac, "0");
     }
   }
   std::string toString() const {

@@ -581,6 +581,7 @@ class Service : public std::enable_shared_from_this<Service> {
           req.set(http::field::host, host);
           req.target(url.target);
           retry.numRedirect += 1;
+          CCAPI_LOGGER_WARN("redirect from request " + request.toString() + " to url " + url.toString());
           this->tryRequest(request, req, retry);
           return;
         } else {
@@ -674,7 +675,7 @@ class Service : public std::enable_shared_from_this<Service> {
         this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, e, {request.getCorrelationId()});
       }
     } else {
-      std::string errorMessage = this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded";
+      std::string errorMessage = retry.numRetry > this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded";
       CCAPI_LOGGER_ERROR(errorMessage);
       CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, std::runtime_error(errorMessage), {request.getCorrelationId()});

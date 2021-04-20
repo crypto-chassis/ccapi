@@ -3,7 +3,7 @@ project(${NAME})
 
 # Download and unpack googletest at configure time
 configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" -DBUILD_GMOCK=OFF .
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
   RESULT_VARIABLE result
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
 if(result)
@@ -32,9 +32,12 @@ add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
 if (CMAKE_VERSION VERSION_LESS 2.8.11)
  include_directories("${gtest_SOURCE_DIR}/include")
 endif()
+# find_package(GTest REQUIRED CONFIG)
 include(GoogleTest)
 include_directories(${CCAPI_CPP_PROJECT_DIR}/test/test_unit/include)
+link_libraries(gtest_main gmock_main)
 add_subdirectory(src/common)
+add_subdirectory(src/market_data/generic)
 add_subdirectory(src/execution_management/binance_futures)
 add_subdirectory(src/execution_management/binance_us)
 add_subdirectory(src/execution_management/bitmex)
