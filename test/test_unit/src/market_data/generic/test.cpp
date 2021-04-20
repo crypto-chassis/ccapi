@@ -1,0 +1,49 @@
+#ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
+
+#include "ccapi_cpp/ccapi_test_market_data_helper.h"
+#include "ccapi_cpp/service/ccapi_market_data_service.h"
+using ::testing::ElementsAre;
+using ::testing::Pair;
+namespace ccapi {
+class MarketDataServiceTest : public ::testing::Test {
+ public:
+  typedef Service::ServiceContextPtr ServiceContextPtr;
+  void SetUp() override {
+    this->service =
+        std::make_shared<MarketDataServiceGeneric>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+  }
+  std::shared_ptr<MarketDataServiceGeneric> service{nullptr};
+};
+
+TEST_F(MarketDataServiceTest, updateOrderBookInsert) {
+  std::map<Decimal, std::string> snapshot;
+  Decimal price("1");
+  std::string size("2");
+  this->service->updateOrderBook(snapshot, price, size);
+  EXPECT_THAT(snapshot, ElementsAre(Pair(price, size)));
+}
+TEST_F(MarketDataServiceTest, updateOrderBookUpdate) {
+  std::map<Decimal, std::string> snapshot{{Decimal("1"),std::string("2")}};
+  Decimal price("1");
+  std::string size("3");
+  this->service->updateOrderBook(snapshot, price, size);
+  EXPECT_THAT(snapshot, ElementsAre(Pair(price, size)));
+}
+TEST_F(MarketDataServiceTest, updateOrderBookDelete) {
+  std::map<Decimal, std::string> snapshot{{Decimal("1"),std::string("2")}};
+  Decimal price("1");
+  std::string size("0");
+  this->service->updateOrderBook(snapshot, price, size);
+  EXPECT_THAT(snapshot, ElementsAre());
+}
+TEST_F(MarketDataServiceTest, updateOrderBookNoInsert) {
+  std::map<Decimal, std::string> snapshot;
+  Decimal price("1");
+  std::string size("0");
+  this->service->updateOrderBook(snapshot, price, size);
+  EXPECT_THAT(snapshot, ElementsAre());
+}
+} /* namespace ccapi */
+#endif
