@@ -393,8 +393,8 @@ class Session CCAPI_FINAL {
   }
   void sendRequest(const Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    std::vector<Request> requestList;
-    requestList.push_back(request);
+    std::vector<Request> requestList({request});
+    // requestList.push_back(request);
     this->sendRequest(requestList, eventQueuePtr, delayMilliSeconds);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

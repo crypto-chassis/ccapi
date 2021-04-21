@@ -157,7 +157,7 @@ Best bid and ask at 2020-07-27T23:56:51.884855000Z are:
 Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
   ...
 ```
-* Subscription fields: `MARKET_DEPTH`, `TRADE`.
+* Subscription fields: `MARKET_DEPTH`, `TRADE`. (Note that binance-futures only has aggregated (instead of raw) trade streams: https://binance-docs.github.io/apidocs/futures/en/#aggregate-trade-streams)
 
 ### Advanced Market Data
 

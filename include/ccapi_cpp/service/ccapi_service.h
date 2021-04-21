@@ -8,12 +8,6 @@
     throw std::runtime_error("rapidjson internal assertion failure"); \
   }
 #endif
-// #ifndef RAPIDJSON_NOEXCEPT_ASSERT
-// #define RAPIDJSON_NOEXCEPT_ASSERT(x)                            \
-//   if (!(x)) {                                                   \
-//     CCAPI_LOGGER_ERROR("rapidjson internal assertion failure"); \
-//   }
-// #endif
 #ifndef RAPIDJSON_PARSE_ERROR_NORETURN
 #define RAPIDJSON_PARSE_ERROR_NORETURN(parseErrorCode, offset) throw std::runtime_error(#parseErrorCode)
 #endif
@@ -121,12 +115,6 @@ class Service : public std::enable_shared_from_this<Service> {
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
     }
   }
-  // virtual void stop() {
-  //   for (const auto& x : this->sendRequestDelayTimerByCorrelationIdMap) {
-  //     x.second->cancel();
-  //   }
-  //   sendRequestDelayTimerByCorrelationIdMap.clear();
-  // }
   virtual void subscribe(const std::vector<Subscription>& subscriptionList) = 0;
   virtual void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
                           const std::string& symbolId, const std::map<std::string, std::string>& credential) = 0;
@@ -170,23 +158,6 @@ class Service : public std::enable_shared_from_this<Service> {
     return futurePtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  // virtual std::shared_ptr<std::future<void> > sendRequestWithDelay(const Request& request, const bool useFuture, const TimePoint& then) {
-  //   auto now = UtilTime::now();
-  //   long delayMilliSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(then - now).count()
-  //   if (delayMilliSeconds > 0) {
-  //     this->serviceContextPtr->tlsClientPtr->set_timer(
-  //         delayMilliSeconds * 1000, [that = shared_from_this(), request, useFuture, then](ErrorCode const& ec) {
-  //             if (ec) {
-  //               CCAPI_LOGGER_ERROR("request = " + toString(request) + ", sendRequestWithDelay timer error: " + ec.message());
-  //               that->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
-  //             } else {
-  //               that->sendRequest(request, useFuture, then);
-  //             }
-  //         });
-  //   } else {
-  //     this->sendRequest(request, useFuture, now);
-  //   }
-  // }
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
                const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
@@ -581,6 +552,7 @@ class Service : public std::enable_shared_from_this<Service> {
           req.set(http::field::host, host);
           req.target(url.target);
           retry.numRedirect += 1;
+          CCAPI_LOGGER_WARN("redirect from request " + request.toString() + " to url " + url.toString());
           this->tryRequest(request, req, retry);
           return;
         } else {
@@ -674,7 +646,7 @@ class Service : public std::enable_shared_from_this<Service> {
         this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, e, {request.getCorrelationId()});
       }
     } else {
-      std::string errorMessage = this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded";
+      std::string errorMessage = retry.numRetry > this->sessionOptions.httpMaxNumRetry ? "max retry exceeded" : "max redirect exceeded";
       CCAPI_LOGGER_ERROR(errorMessage);
       CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, std::runtime_error(errorMessage), {request.getCorrelationId()});
