@@ -17,7 +17,6 @@ class Decimal CCAPI_FINAL {
       fixedPointValue.erase(0);
       this->sign = false;
     }
-    // std::string fixedPointValue = value;
     if (fixedPointValue.find("E") != std::string::npos || fixedPointValue.find("e") != std::string::npos) {
       std::vector<std::string> splitted = UtilString::split(fixedPointValue, fixedPointValue.find("E") != std::string::npos ? "E" : "e");
       fixedPointValue = splitted.at(0);

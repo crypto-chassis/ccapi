@@ -28,9 +28,9 @@ class SessionOptions CCAPI_FINAL {
   bool enableCheckOrderBookCrossed{true};                   // used to check order book cross, usually this should be set to true
   bool enableCheckPingPongWebsocketProtocolLevel{true};     // used to check ping-pong health for exchange connections on websocket protocol level
   bool enableCheckPingPongWebsocketApplicationLevel{true};  // used to check ping-pong health for exchange connections on websocket application level
-  long pingIntervalMilliSeconds{10000};
-  long pongTimeoutMilliSeconds{5000};
-  int maxEventQueueSize{0};  // if set to a positive integer, the event queue will throw an exception when overflown
+  long pingIntervalMilliSeconds{15000};
+  long pongTimeoutMilliSeconds{10000};  // should be less than pingIntervalMilliSeconds
+  int maxEventQueueSize{0};             // if set to a positive integer, the event queue will throw an exception when overflown
   bool enableOneHttpConnectionPerRequest{};
   int httpMaxNumRetry{0};
   int httpMaxNumRedirect{0};
