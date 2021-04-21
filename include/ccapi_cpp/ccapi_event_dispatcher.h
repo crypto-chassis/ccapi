@@ -57,13 +57,6 @@ class EventDispatcher CCAPI_FINAL {
   }
 
  private:
-  size_t numDispatcherThreads;
-  std::atomic<bool> shouldContinue{};
-  std::vector<std::thread> dispatcherThreads;
-  std::mutex lock;
-  std::queue<std::function<void()> > queue;
-  std::condition_variable cv;
-  bool quit{};
   void dispatch_thread_handler() {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::unique_lock<std::mutex> lock(this->lock);
@@ -82,6 +75,13 @@ class EventDispatcher CCAPI_FINAL {
     } while (!this->quit);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  size_t numDispatcherThreads;
+  std::atomic<bool> shouldContinue{};
+  std::vector<std::thread> dispatcherThreads;
+  std::mutex lock;
+  std::queue<std::function<void()> > queue;
+  std::condition_variable cv;
+  bool quit{};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_EVENT_DISPATCHER_H_
