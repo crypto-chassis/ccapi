@@ -36,9 +36,6 @@
   - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-**Small breaking change in v3.2.x**: `SessionOptions` `enableCheckPingPong`(default to false) has been replaced by `enableCheckPingPongWebsocketProtocolLevel`(default to true) and `enableCheckPingPongWebsocketApplicationLevel`(default to true).
-
 # ccapi
 * A header-only C++ library for streaming market data and executing trades directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
 * Bindings for other languages such as Python are provided.
