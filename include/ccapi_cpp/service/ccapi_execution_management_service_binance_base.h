@@ -128,6 +128,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     }
     return elementList;
   }
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
+    return elementList;
+  }
   bool isFutures{};
 };
 } /* namespace ccapi */

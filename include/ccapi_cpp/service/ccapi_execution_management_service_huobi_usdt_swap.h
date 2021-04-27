@@ -135,6 +135,10 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
     }
     return elementList;
   }
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
+    return elementList;
+  }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  public:

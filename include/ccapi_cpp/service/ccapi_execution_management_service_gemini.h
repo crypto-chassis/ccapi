@@ -155,6 +155,10 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
     }
     return elementList;
   }
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
+    return elementList;
+  }
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
