@@ -45,13 +45,6 @@ class Message CCAPI_FINAL {
     CANCEL_OPEN_ORDERS,
     GET_RECENT_TRADES,
     ORDER_MATCHED,
-    GET_ACCOUNT_POSITIONS,
-    GET_OTC_QUOTE,
-    GET_OTC_QUOTE_STATUS,
-    ACCEPT_OTC_QUOTE,
-    GET_ACCOUNT_BALANCES,
-    GET_ACCOUNT_INFORMATION,
-    GET_SINGLE_MARKET_INFORMATION,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR
@@ -103,27 +96,6 @@ class Message CCAPI_FINAL {
         break;
       case Type::ORDER_MATCHED:
         output = "ORDER_MATCHED";
-        break;
-      case Type::GET_ACCOUNT_POSITIONS:
-        output = "GET_ACCOUNT_POSITIONS";
-        break;
-      case Type::GET_OTC_QUOTE:
-        output = "GET_OTC_QUOTE";
-        break;
-      case Type::GET_OTC_QUOTE_STATUS:
-        output = "GET_OTC_QUOTE_STATUS";
-        break;
-      case Type::ACCEPT_OTC_QUOTE:
-        output = "ACCEPT_OTC_QUOTE";
-        break;
-      case Type::GET_ACCOUNT_BALANCES:
-        output = "GET_ACCOUNT_BALANCES";
-        break;
-      case Type::GET_ACCOUNT_INFORMATION:
-        output = "GET_ACCOUNT_INFORMATION";
-        break;
-      case Type::GET_SINGLE_MARKET_INFORMATION:
-        output = "GET_SINGLE_MARKET_INFORMATION";
         break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
