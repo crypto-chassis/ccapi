@@ -68,7 +68,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "id": "d0c5340b-6d6c-49d9-b567-48c4bfca13d2",
     "price": "0.10000000",
@@ -160,7 +160,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByClientOrd
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   {
     "id": "68e6a28f-ae28-4788-8d4f-5ab4e5e5ae08",
     "size": "1.00000000",
@@ -223,7 +223,7 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
   std::string symbol = isOneInstrument ? "BTC-USD" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, symbol, "", fixture->credential);
   std::string textMessage =
-  R"(
+      R"(
   [
     {
         "id": "d0c5340b-6d6c-49d9-b567-48c4bfca13d2",
@@ -303,7 +303,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOpenOrders) {
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
   [
     "144c6f8e-713f-4682-8435-5280fbe8b2b4",
     "debe4907-95dc-442f-af3b-cec12f42ebda",
@@ -331,7 +331,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccounts) {
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccounts) {
   Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
     [
         {
             "id": "71452118-efc7-4cc4-8780-a5e22d4baa53",
@@ -364,7 +364,6 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAcc
   EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "71452118-efc7-4cc4-8780-a5e22d4baa53");
 }
 
-
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances) {
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
   std::map<std::string, std::string> param{{CCAPI_EM_ACCOUNT_ID, "71452118-efc7-4cc4-8780-a5e22d4baa53"}};
@@ -379,7 +378,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances)
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccountBalances) {
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
   std::string textMessage =
-  R"(
+      R"(
     {
         "id": "a1b2c3d4",
         "balance": "1.100",

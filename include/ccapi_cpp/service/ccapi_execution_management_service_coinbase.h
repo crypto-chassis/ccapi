@@ -182,24 +182,22 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
     switch (operation) {
-      case Request::Operation::GET_ACCOUNTS:{
+      case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document.GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
           elementList.emplace_back(std::move(element));
         }
-      }
-      break;
-      case Request::Operation::GET_ACCOUNT_BALANCES:{
+      } break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
         Element element;
         element.insert(CCAPI_EM_ACCOUNT_ID, document["id"].GetString());
         element.insert(CCAPI_EM_ASSET, document["currency"].GetString());
         element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, document["available"].GetString());
         elementList.emplace_back(std::move(element));
-      }
-      break;
+      } break;
       default:
-      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return elementList;
   }

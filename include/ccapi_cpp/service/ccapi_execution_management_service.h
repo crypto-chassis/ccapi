@@ -18,16 +18,16 @@ class ExecutionManagementService : public Service {
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-        this->requestOperationToMessageTypeMap = {
-            {Request::Operation::CREATE_ORDER, Message::Type::CREATE_ORDER},
-            {Request::Operation::CANCEL_ORDER, Message::Type::CANCEL_ORDER},
-            {Request::Operation::GET_ORDER, Message::Type::GET_ORDER},
-            {Request::Operation::GET_OPEN_ORDERS, Message::Type::GET_OPEN_ORDERS},
-            {Request::Operation::CANCEL_OPEN_ORDERS, Message::Type::CANCEL_OPEN_ORDERS},
-            {Request::Operation::GET_ACCOUNTS, Message::Type::GET_ACCOUNTS},
-            {Request::Operation::GET_ACCOUNT_BALANCES, Message::Type::GET_ACCOUNT_BALANCES},
-        };
-      }
+    this->requestOperationToMessageTypeMap = {
+        {Request::Operation::CREATE_ORDER, Message::Type::CREATE_ORDER},
+        {Request::Operation::CANCEL_ORDER, Message::Type::CANCEL_ORDER},
+        {Request::Operation::GET_ORDER, Message::Type::GET_ORDER},
+        {Request::Operation::GET_OPEN_ORDERS, Message::Type::GET_OPEN_ORDERS},
+        {Request::Operation::CANCEL_OPEN_ORDERS, Message::Type::CANCEL_OPEN_ORDERS},
+        {Request::Operation::GET_ACCOUNTS, Message::Type::GET_ACCOUNTS},
+        {Request::Operation::GET_ACCOUNT_BALANCES, Message::Type::GET_ACCOUNT_BALANCES},
+    };
+  }
   virtual ~ExecutionManagementService() {}
   // void stop() override { Service::stop(); }
   void subscribe(const std::vector<Subscription>& subscriptionList) override {
