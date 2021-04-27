@@ -170,7 +170,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, document["result"].GetString());
-      elementList.emplace_back(element);
+      elementList.emplace_back(std::move(element));
     } else if (document["result"].IsArray()) {
       for (const auto& x : document["result"].GetArray()) {
         elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));

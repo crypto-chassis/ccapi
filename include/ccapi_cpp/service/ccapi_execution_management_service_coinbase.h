@@ -18,10 +18,12 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
     this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
     this->createOrderTarget = "/orders";
-    this->cancelOrderTarget = "/orders/{id}";
-    this->getOrderTarget = "/orders/{id}";
+    this->cancelOrderTarget = "/orders/<id>";
+    this->getOrderTarget = "/orders/<id>";
     this->getOpenOrdersTarget = "/orders";
     this->cancelOpenOrdersTarget = "/orders";
+    this->getAccountsTarget = "/accounts";
+    this->getAccountBalancesTarget = "/accounts/<account-id>";
     this->orderStatusOpenSet = {"open", "pending", "active"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -86,7 +88,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
         std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
                              ? param.at(CCAPI_EM_ORDER_ID)
                              : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
-        auto target = std::regex_replace(this->cancelOrderTarget, std::regex("\\{id\\}"), id);
+        auto target = std::regex_replace(this->cancelOrderTarget, std::regex("<id>"), id);
         if (!symbolId.empty()) {
           target += "?product_id=";
           target += symbolId;
@@ -100,7 +102,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
         std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
                              ? param.at(CCAPI_EM_ORDER_ID)
                              : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
-        auto target = std::regex_replace(this->getOrderTarget, std::regex("\\{id\\}"), id);
+        auto target = std::regex_replace(this->getOrderTarget, std::regex("<id>"), id);
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
@@ -124,6 +126,20 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
+      case Request::Operation::GET_ACCOUNTS: {
+        req.method(http::verb::get);
+        req.target(this->getAccountsTarget);
+        this->signRequest(req, "", credential);
+      } break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        req.method(http::verb::get);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        auto target = this->getAccountBalancesTarget;
+        auto accountId = param.find(CCAPI_EM_ACCOUNT_ID) != param.end() ? param.at(CCAPI_EM_ACCOUNT_ID) : "";
+        this->substituteParam(target, {{"<account-id>", accountId}});
+        req.target(target);
+        this->signRequest(req, "", credential);
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
@@ -143,21 +159,47 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
     if (operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, document.GetString());
-      elementList.emplace_back(element);
+      elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document.GetArray()) {
         Element element;
         element.insert(CCAPI_EM_ORDER_ID, x.GetString());
-        elementList.emplace_back(element);
+        elementList.emplace_back(std::move(element));
       }
     } else {
       if (document.IsObject()) {
-        elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
+        auto element = this->extractOrderInfo(document, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       } else {
         for (const auto& x : document.GetArray()) {
-          elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+          auto element = this->extractOrderInfo(x, extractionFieldNameMap);
+          elementList.emplace_back(std::move(element));
         }
       }
+    }
+    return elementList;
+  }
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
+    switch (operation) {
+      case Request::Operation::GET_ACCOUNTS:{
+        for (const auto& x : document.GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
+          elementList.emplace_back(std::move(element));
+        }
+      }
+      break;
+      case Request::Operation::GET_ACCOUNT_BALANCES:{
+        Element element;
+        element.insert(CCAPI_EM_ACCOUNT_ID, document["id"].GetString());
+        element.insert(CCAPI_EM_ASSET, document["currency"].GetString());
+        element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, document["available"].GetString());
+        elementList.emplace_back(std::move(element));
+      }
+      break;
+      default:
+      CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
     return elementList;
   }

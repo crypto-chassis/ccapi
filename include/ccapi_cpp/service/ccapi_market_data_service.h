@@ -1368,35 +1368,6 @@ class MarketDataService : public Service {
     messageList.push_back(std::move(message));
     event.addMessages(messageList);
   }
-  void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
-    for (const auto& kv : param) {
-      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
-      auto value = kv.second;
-      target = target.replace(target.find(key), key.length(), value);
-    }
-  }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> standardizationMap = {}) {
-    int i = 0;
-    for (const auto& kv : param) {
-      std::string key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
-      queryString += key;
-      queryString += "=";
-      queryString += Url::urlEncode(kv.second);
-      if (i < param.size() - 1) {
-        queryString += "&";
-      }
-      ++i;
-    }
-  }
-  void appendSymbolId(std::string& queryString, const std::string& symbolId, const std::string symbolIdCalled) {
-    if (!symbolId.empty()) {
-      queryString += symbolIdCalled;
-      queryString += "=";
-      queryString += Url::urlEncode(symbolId);
-      queryString += "&";
-    }
-  }
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                                const TimePoint& timeReceived) = 0;
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
@@ -1433,7 +1404,6 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::map<std::string, Decimal>>> lowByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> closeByConnectionIdChannelIdSymbolIdMap;
   std::string getRecentTradesTarget;
-  std::map<Request::Operation, Message::Type> requestOperationToMessageTypeMap;
 };
 } /* namespace ccapi */
 #endif

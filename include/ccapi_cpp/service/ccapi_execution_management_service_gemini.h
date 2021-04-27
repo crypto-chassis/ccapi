@@ -144,7 +144,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
       for (const auto& x : document["details"]["cancelledOrders"].GetArray()) {
         Element element;
         element.insert(CCAPI_EM_ORDER_ID, std::to_string(x.GetInt64()));
-        elementList.emplace_back(element);
+        elementList.emplace_back(std::move(element));
       }
     } else if (document.IsObject()) {
       elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));

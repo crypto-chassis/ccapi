@@ -17,7 +17,17 @@ class ExecutionManagementService : public Service {
   enum class JsonDataType { STRING, INTEGER, BOOLEAN, DOUBLE };
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              ServiceContextPtr serviceContextPtr)
-      : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+      : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+        this->requestOperationToMessageTypeMap = {
+            {Request::Operation::CREATE_ORDER, Message::Type::CREATE_ORDER},
+            {Request::Operation::CANCEL_ORDER, Message::Type::CANCEL_ORDER},
+            {Request::Operation::GET_ORDER, Message::Type::GET_ORDER},
+            {Request::Operation::GET_OPEN_ORDERS, Message::Type::GET_OPEN_ORDERS},
+            {Request::Operation::CANCEL_OPEN_ORDERS, Message::Type::CANCEL_OPEN_ORDERS},
+            {Request::Operation::GET_ACCOUNTS, Message::Type::GET_ACCOUNTS},
+            {Request::Operation::GET_ACCOUNT_BALANCES, Message::Type::GET_ACCOUNT_BALANCES},
+        };
+      }
   virtual ~ExecutionManagementService() {}
   // void stop() override { Service::stop(); }
   void subscribe(const std::vector<Subscription>& subscriptionList) override {
@@ -56,26 +66,13 @@ class ExecutionManagementService : public Service {
     message.setCorrelationIdList({request.getCorrelationId()});
     std::vector<Element> elementList;
     Request::Operation operation = request.getOperation();
-    switch (operation) {
-      case Request::Operation::CREATE_ORDER: {
-        message.setType(Message::Type::CREATE_ORDER);
-      } break;
-      case Request::Operation::CANCEL_ORDER: {
-        message.setType(Message::Type::CANCEL_ORDER);
-      } break;
-      case Request::Operation::GET_ORDER: {
-        message.setType(Message::Type::GET_ORDER);
-      } break;
-      case Request::Operation::GET_OPEN_ORDERS: {
-        message.setType(Message::Type::GET_OPEN_ORDERS);
-      } break;
-      case Request::Operation::CANCEL_OPEN_ORDERS: {
-        message.setType(Message::Type::CANCEL_OPEN_ORDERS);
-      } break;
-      default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    message.setType(this->requestOperationToMessageTypeMap.at(operation));
+    auto castedOperation = static_cast<int>(operation);
+    if (castedOperation >= Request::operationTypeExecutionManagementOrder && castedOperation < Request::operationTypeExecutionManagementAccount) {
+      message.setElementList(this->extractOrderInfoFromRequest(request, operation, document));
+    } else {
+      message.setElementList(this->extractAccountInfoFromRequest(request, operation, document));
     }
-    message.setElementList(this->extractOrderInfoFromRequest(request, operation, document));
     std::vector<Message> messageList;
     messageList.push_back(std::move(message));
     return messageList;
@@ -470,6 +467,7 @@ class ExecutionManagementService : public Service {
   virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {}
   virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& tp) {}
   virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
+  virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
   std::string apiKeyName;
   std::string apiSecretName;
   std::string createOrderTarget;
@@ -477,6 +475,8 @@ class ExecutionManagementService : public Service {
   std::string getOrderTarget;
   std::string getOpenOrdersTarget;
   std::string cancelOpenOrdersTarget;
+  std::string getAccountsTarget;
+  std::string getAccountBalancesTarget;
   std::set<std::string> orderStatusOpenSet;
 };
 } /* namespace ccapi */
