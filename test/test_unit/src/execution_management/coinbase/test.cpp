@@ -376,8 +376,8 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances)
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccounts) {
-  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
   std::string textMessage =
   R"(
     {
@@ -396,7 +396,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAcc
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "71452118-efc7-4cc4-8780-a5e22d4baa53");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "a1b2c3d4");
   EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USD");
   EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "1.00");
 }
