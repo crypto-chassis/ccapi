@@ -144,7 +144,7 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
       for (const auto& x : document["details"]["cancelledOrders"].GetArray()) {
         Element element;
         element.insert(CCAPI_EM_ORDER_ID, std::to_string(x.GetInt64()));
-        elementList.emplace_back(element);
+        elementList.emplace_back(std::move(element));
       }
     } else if (document.IsObject()) {
       elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
@@ -153,6 +153,10 @@ class ExecutionManagementServiceGemini CCAPI_FINAL : public ExecutionManagementS
         elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
       }
     }
+    return elementList;
+  }
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
     return elementList;
   }
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {

@@ -332,7 +332,8 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOrder)
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOpenOrders) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  request.appendParam({{CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}});
+  std::map<std::string, std::string> param{{CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
+  request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target().to_string(), "/rest-api/order-mass-status");
@@ -430,7 +431,8 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageGetOpenOr
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  request.appendParam({{"PARTY_ID", "ENRY34D6CVV"}});
+  std::map<std::string, std::string> param{{"PARTY_ID", "ENRY34D6CVV"}};
+  request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target().to_string(), "/rest-api/cancel-all");

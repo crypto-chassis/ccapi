@@ -170,7 +170,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, document["result"].GetString());
-      elementList.emplace_back(element);
+      elementList.emplace_back(std::move(element));
     } else if (document["result"].IsArray()) {
       for (const auto& x : document["result"].GetArray()) {
         elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
@@ -180,7 +180,10 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
     }
     return elementList;
   }
-
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
+    return elementList;
+  }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
   // TODO(cryptochassis): add more to ftx test.
  public:

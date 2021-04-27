@@ -11,13 +11,17 @@ class Request CCAPI_FINAL {
  public:
   static constexpr int operationTypeMarketData = 0x100;
   static constexpr int operationTypeExecutionManagement = 0x200;
+  static constexpr int operationTypeExecutionManagementOrder = operationTypeExecutionManagement;
+  static constexpr int operationTypeExecutionManagementAccount = 0x300;
   enum class Operation {
     GET_RECENT_TRADES = operationTypeMarketData,
-    CREATE_ORDER = operationTypeExecutionManagement,
+    CREATE_ORDER = operationTypeExecutionManagementOrder,
     CANCEL_ORDER,
     GET_ORDER,
     GET_OPEN_ORDERS,
-    CANCEL_OPEN_ORDERS
+    CANCEL_OPEN_ORDERS,
+    GET_ACCOUNTS = operationTypeExecutionManagementAccount,
+    GET_ACCOUNT_BALANCES
   };
   static std::string operationToString(Operation operation) {
     std::string output;
@@ -39,6 +43,12 @@ class Request CCAPI_FINAL {
         break;
       case Operation::CANCEL_OPEN_ORDERS:
         output = "CANCEL_OPEN_ORDERS";
+        break;
+      case Operation::GET_ACCOUNTS:
+        output = "GET_ACCOUNT_BALANCES";
+        break;
+      case Operation::GET_ACCOUNT_BALANCES:
+        output = "GET_ACCOUNTS";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

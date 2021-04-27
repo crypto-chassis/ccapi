@@ -125,7 +125,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
     } else if (operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, std::string(data["successes"].GetString()));
-      elementList.emplace_back(element);
+      elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_ORDER) {
       elementList.emplace_back(ExecutionManagementServiceHuobiUsdtSwap::extractOrderInfo(data[0], extractionFieldNameMap));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
@@ -133,6 +133,10 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         elementList.emplace_back(ExecutionManagementServiceHuobiUsdtSwap::extractOrderInfo(x, extractionFieldNameMap));
       }
     }
+    return elementList;
+  }
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
     return elementList;
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
