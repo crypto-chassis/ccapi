@@ -46,6 +46,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
 #include "ccapi_cpp/service/ccapi_market_data_service_kucoin.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX
+#include "ccapi_cpp/service/ccapi_market_data_service_ftx.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -194,6 +197,10 @@ class Session CCAPI_FINAL {
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KUCOIN] =
         std::make_shared<MarketDataServiceKucoin>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_FTX] =
+        std::make_shared<MarketDataServiceFtx>(eventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
