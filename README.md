@@ -42,7 +42,7 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin, ftx.
   * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
@@ -441,5 +441,5 @@ Logger* Logger::logger = &myLogger;
 
 ## Contributing
 * (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
-* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters.
+* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters. `clang-format -i -style="{BasedOnStyle: Google, ColumnLimit: 160}"`
 * (Optional) Commit message format: https://conventionalcommits.org.

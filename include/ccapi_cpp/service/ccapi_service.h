@@ -699,7 +699,10 @@ class Service : public std::enable_shared_from_this<Service> {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
-      target = target.replace(target.find(key), key.length(), value);
+      auto it = target.find(key);
+      if (it != std::string::npos) {
+        target = target.replace(it, key.length(), value);
+      }
     }
   }
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
