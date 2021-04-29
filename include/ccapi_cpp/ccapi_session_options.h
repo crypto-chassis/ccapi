@@ -31,11 +31,11 @@ class SessionOptions CCAPI_FINAL {
   long pingIntervalMilliSeconds{15000};
   long pongTimeoutMilliSeconds{10000};  // should be less than pingIntervalMilliSeconds
   int maxEventQueueSize{0};             // if set to a positive integer, the event queue will throw an exception when overflown
-  bool enableOneHttpConnectionPerRequest{};
   int httpMaxNumRetry{0};
   int httpMaxNumRedirect{0};
   long httpRequestTimeoutMilliSeconds{10000};
-  int httpConnectionPoolMaxSize{1};  // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
+  int httpConnectionPoolMaxSize{1};          // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
+  bool enableOneHttpConnectionPerRequest{};  // create a new http connection for each request
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_

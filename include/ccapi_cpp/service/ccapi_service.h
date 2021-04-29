@@ -695,7 +695,38 @@ class Service : public std::enable_shared_from_this<Service> {
     wsConnection.status = WsConnection::Status::CLOSING;
     this->serviceContextPtr->tlsClientPtr->close(hdl, code, reason, ec);
   }
-
+  void substituteParam(std::string& target, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
+    for (const auto& kv : param) {
+      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
+      auto value = kv.second;
+      auto it = target.find(key);
+      if (it != std::string::npos) {
+        target = target.replace(it, key.length(), value);
+      }
+    }
+  }
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> standardizationMap = {}) {
+    int i = 0;
+    for (const auto& kv : param) {
+      std::string key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
+      queryString += key;
+      queryString += "=";
+      queryString += Url::urlEncode(kv.second);
+      if (i < param.size() - 1) {
+        queryString += "&";
+      }
+      ++i;
+    }
+  }
+  void appendSymbolId(std::string& queryString, const std::string& symbolId, const std::string symbolIdCalled) {
+    if (!symbolId.empty()) {
+      queryString += symbolIdCalled;
+      queryString += "=";
+      queryString += Url::urlEncode(symbolId);
+      queryString += "&";
+    }
+  }
   std::string exchangeName;
   std::string baseUrl;
   std::string baseUrlRest;
@@ -724,6 +755,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::map<std::string, std::map<std::string, std::string>> extraPropertyByConnectionIdMap;
   bool enableCheckPingPongWebsocketProtocolLevel{};
   bool enableCheckPingPongWebsocketApplicationLevel{};
+  std::map<Request::Operation, Message::Type> requestOperationToMessageTypeMap;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_

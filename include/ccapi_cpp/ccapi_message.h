@@ -43,6 +43,8 @@ class Message CCAPI_FINAL {
     GET_ORDER,
     GET_OPEN_ORDERS,
     CANCEL_OPEN_ORDERS,
+    GET_ACCOUNTS,
+    GET_ACCOUNT_BALANCES,
     GET_RECENT_TRADES,
     ORDER_MATCHED,
     RESPONSE_ERROR,
@@ -90,6 +92,12 @@ class Message CCAPI_FINAL {
         break;
       case Type::CANCEL_OPEN_ORDERS:
         output = "CANCEL_OPEN_ORDERS";
+        break;
+      case Type::GET_ACCOUNTS:
+        output = "GET_ACCOUNTS";
+        break;
+      case Type::GET_ACCOUNT_BALANCES:
+        output = "GET_ACCOUNT_BALANCES";
         break;
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";

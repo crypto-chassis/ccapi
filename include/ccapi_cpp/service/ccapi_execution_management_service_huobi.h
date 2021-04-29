@@ -123,7 +123,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
     if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, std::string(data.GetString()));
-      elementList.emplace_back(element);
+      elementList.emplace_back(std::move(element));
     } else if (data.IsObject()) {
       elementList.emplace_back(this->extractOrderInfo(data, extractionFieldNameMap));
     } else {
@@ -131,6 +131,10 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
       }
     }
+    return elementList;
+  }
+  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+    std::vector<Element> elementList;
     return elementList;
   }
   std::string cancelOrderByClientOrderIdTarget;

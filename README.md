@@ -36,16 +36,13 @@
   - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-**Small breaking change in v3.2.x**: `SessionOptions` `enableCheckPingPong`(default to false) has been replaced by `enableCheckPingPongWebsocketProtocolLevel`(default to true) and `enableCheckPingPongWebsocketApplicationLevel`(default to true).
-
 # ccapi
 * A header-only C++ library for streaming market data and executing trades directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
 * Bindings for other languages such as Python are provided.
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin, ftx.
   * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
@@ -438,11 +435,11 @@ Logger* Logger::logger = &myLogger;
 
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
-* Enable link time optimization (e.g. in CMakeLists.txt `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)` before a target is created).
+* Enable link time optimization (e.g. in CMakeLists.txt `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)` before a target is created). Note that link time optimization is only applicable to static linking.
 * Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
 * Only enable the services and exchanges that you need.
 
 ## Contributing
 * (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
-* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters.
+* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html, maximum line length is 160 characters. `clang-format -i -style="{BasedOnStyle: Google, ColumnLimit: 160}"`
 * (Optional) Commit message format: https://conventionalcommits.org.

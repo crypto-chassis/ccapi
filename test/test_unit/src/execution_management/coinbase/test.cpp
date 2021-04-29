@@ -318,6 +318,87 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancel
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
 }
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
+  EXPECT_EQ(req.target().to_string(), "/accounts");
+  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+    [
+        {
+            "id": "71452118-efc7-4cc4-8780-a5e22d4baa53",
+            "currency": "BTC",
+            "balance": "0.0000000000000000",
+            "available": "0.0000000000000000",
+            "hold": "0.0000000000000000",
+            "profile_id": "75da88c5-05bf-4f54-bc85-5c775bd68254",
+            "trading_enabled": true
+        },
+        {
+            "id": "e316cb9a-0808-4fd7-8914-97829c1925de",
+            "currency": "USD",
+            "balance": "80.2301373066930000",
+            "available": "79.2266348066930000",
+            "hold": "1.0035025000000000",
+            "profile_id": "75da88c5-05bf-4f54-bc85-5c775bd68254",
+            "trading_enabled": true
+        }
+    ]
+  )";
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNTS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 2);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "71452118-efc7-4cc4-8780-a5e22d4baa53");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
+  std::map<std::string, std::string> param{{CCAPI_EM_ACCOUNT_ID, "71452118-efc7-4cc4-8780-a5e22d4baa53"}};
+  request.appendParam(param);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
+  EXPECT_EQ(req.target().to_string(), "/accounts/71452118-efc7-4cc4-8780-a5e22d4baa53");
+  verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+    {
+        "id": "a1b2c3d4",
+        "balance": "1.100",
+        "holds": "0.100",
+        "available": "1.00",
+        "currency": "USD"
+    }
+  )";
+  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "a1b2c3d4");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USD");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "1.00");
+}
 } /* namespace ccapi */
 #endif
 #endif

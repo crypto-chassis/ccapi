@@ -184,10 +184,10 @@ class UtilTime CCAPI_FINAL {
     auto now = std::chrono::system_clock::now();
     return TimePoint(now);
   }
-  static TimePoint parse(const std::string& s) {
+  static TimePoint parse(const std::string& s, const std::string& fmt = "%FT%TZ") {
     TimePoint tp;
     std::istringstream ss{s};
-    ss >> date::parse("%FT%TZ", tp);
+    ss >> date::parse(fmt, tp);
     if (ss.fail()) {
       CCAPI_LOGGER_FATAL("unable to parse time string");
     }
