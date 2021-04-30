@@ -69,8 +69,8 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId, const std::string symbolIdCalled) {
     queryParamMap.insert(std::make_pair(symbolIdCalled, Url::urlEncode(symbolId)));
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     std::map<std::string, std::string> queryParamMap;
@@ -79,11 +79,10 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryParamMap.insert(std::make_pair("SignatureVersion", "2"));
     std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
     queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
-    this->convertReqDetail(req, request, operation, now, symbolId, credential, queryParamMap);
+    this->convertReqDetail(req, request, now, symbolId, credential, queryParamMap);
   }
-  virtual void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                                const std::string& symbolId, const std::map<std::string, std::string>& credential,
-                                std::map<std::string, std::string>& queryParamMap) = 0;
+  virtual void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                                const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) {}
   bool isDerivatives{};
 };
 } /* namespace ccapi */

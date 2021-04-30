@@ -9,11 +9,13 @@
 namespace ccapi {
 class Request CCAPI_FINAL {
  public:
-  static constexpr int operationTypeMarketData = 0x100;
-  static constexpr int operationTypeExecutionManagement = 0x200;
+  static constexpr int operationTypeCustom = 0x100;
+  static constexpr int operationTypeMarketData = 0x200;
+  static constexpr int operationTypeExecutionManagement = 0x300;
   static constexpr int operationTypeExecutionManagementOrder = operationTypeExecutionManagement;
-  static constexpr int operationTypeExecutionManagementAccount = 0x300;
+  static constexpr int operationTypeExecutionManagementAccount = 0x400;
   enum class Operation {
+    CUSTOM = operationTypeCustom,
     GET_RECENT_TRADES = operationTypeMarketData,
     CREATE_ORDER = operationTypeExecutionManagementOrder,
     CANCEL_ORDER,
@@ -26,6 +28,9 @@ class Request CCAPI_FINAL {
   static std::string operationToString(Operation operation) {
     std::string output;
     switch (operation) {
+      case Operation::CUSTOM:
+        output = "CUSTOM";
+        break;
       case Operation::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
         break;
@@ -80,7 +85,11 @@ class Request CCAPI_FINAL {
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId = "",
           std::map<std::string, std::string> credential = {})
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
-    this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+    if (operation == Operation::CUSTOM) {
+      this->serviceName = CCAPI_UNKNOWN;
+    } else {
+      this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+    }
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
@@ -111,8 +120,10 @@ class Request CCAPI_FINAL {
       return this->paramList.front();
     }
   }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   std::string exchange;
   std::string instrument;
   std::string serviceName;

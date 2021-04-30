@@ -115,10 +115,15 @@ class Service : public std::enable_shared_from_this<Service> {
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
     }
   }
-  virtual void subscribe(const std::vector<Subscription>& subscriptionList) = 0;
-  virtual void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                          const std::string& symbolId, const std::map<std::string, std::string>& credential) = 0;
-  virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
+  virtual void convertReqCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                                const std::map<std::string, std::string>& credential) {
+    auto errorMessage = "unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
+    throw std::runtime_error(errorMessage);
+  }
+  virtual void subscribe(const std::vector<Subscription>& subscriptionList) {}
+  virtual void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                          const std::map<std::string, std::string>& credential) {}
+  virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
   std::shared_ptr<std::future<void>> sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
@@ -129,7 +134,24 @@ class Service : public std::enable_shared_from_this<Service> {
     } else {
       then = now;
     }
-    auto req = this->convertRequest(request, then);
+    http::request<http::string_body> req;
+    try {
+      req = this->convertRequest(request, then);
+    } catch (const std::runtime_error& e) {
+      CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, e, {request.getCorrelationId()});
+      std::promise<void>* promisePtrRaw = nullptr;
+      if (useFuture) {
+        promisePtrRaw = new std::promise<void>();
+      }
+      std::shared_ptr<std::promise<void>> promisePtr(promisePtrRaw);
+      std::shared_ptr<std::future<void>> futurePtr(nullptr);
+      if (useFuture) {
+        futurePtr = std::make_shared<std::future<void>>(std::move(promisePtr->get_future()));
+        promisePtr->set_value();
+      }
+      return futurePtr;
+    }
     std::promise<void>* promisePtrRaw = nullptr;
     if (useFuture) {
       promisePtrRaw = new std::promise<void>();
@@ -201,8 +223,10 @@ class Service : public std::enable_shared_from_this<Service> {
     event.setMessageList({message});
     this->eventHandler(event);
   }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   typedef ServiceContext::SslContextPtr SslContextPtr;
   typedef ServiceContext::TlsClient TlsClient;
   typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
@@ -665,7 +689,6 @@ class Service : public std::enable_shared_from_this<Service> {
     auto instrument = request.getInstrument();
     auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
-    auto operation = request.getOperation();
     http::request<http::string_body> req;
     if (this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
       req.set(http::field::host, this->hostRest);
@@ -673,7 +696,7 @@ class Service : public std::enable_shared_from_this<Service> {
       req.set(http::field::host, this->hostRest + ":" + this->portRest);
     }
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    this->convertReq(req, request, operation, now, symbolId, credential);
+    this->convertReq(req, request, now, symbolId, credential);
     CCAPI_LOGGER_FUNCTION_EXIT;
     return req;
   }

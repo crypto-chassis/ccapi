@@ -33,10 +33,9 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "contract_code");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                        const std::string& symbolId, const std::map<std::string, std::string>& credential,
-                        std::map<std::string, std::string>& queryParamMap) override {
-    switch (operation) {
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                        const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -105,7 +104,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {

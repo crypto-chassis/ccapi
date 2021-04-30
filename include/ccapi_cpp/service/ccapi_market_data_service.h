@@ -1369,10 +1369,14 @@ class MarketDataService : public Service {
     event.addMessages(messageList);
   }
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                               const TimePoint& timeReceived) = 0;
-  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
+                                                                               const TimePoint& timeReceived) {
+    return {};
+  }
+  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) { return {}; }
   virtual std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                            const TimePoint& timeReceived) = 0;
+                                                            const TimePoint& timeReceived) {
+    return {};
+  }
 
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
