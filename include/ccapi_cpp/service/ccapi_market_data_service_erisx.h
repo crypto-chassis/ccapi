@@ -5,7 +5,7 @@
 #include <regex>
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceErisx CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceErisx : public MarketDataService {
  public:
   MarketDataServiceErisx(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                          std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -13,6 +13,7 @@ class MarketDataServiceErisx CCAPI_FINAL : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
   }
+  virtual ~MarketDataServiceErisx() {}
 
  private:
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
@@ -152,8 +153,8 @@ class MarketDataServiceErisx CCAPI_FINAL : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return marketDataMessageList;
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     // TODO(cryptochassis): implement
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,

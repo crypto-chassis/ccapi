@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_base.h"
 namespace ccapi {
-class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementServiceHuobiBase {
+class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBase {
  public:
   ExecutionManagementServiceHuobi(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   ServiceContextPtr serviceContextPtr)
@@ -25,6 +25,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
     this->orderStatusOpenSet = {"created", "submitted", "partial-filled", "canceling"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceHuobi() {}
 
  private:
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }
@@ -34,10 +35,9 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "symbol");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                        const std::string& symbolId, const std::map<std::string, std::string>& credential,
-                        std::map<std::string, std::string>& queryParamMap) override {
-    switch (operation) {
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                        const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -104,7 +104,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {

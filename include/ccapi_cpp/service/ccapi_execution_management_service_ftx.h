@@ -15,7 +15,7 @@ std::string string_to_hex(unsigned char* data, std::size_t len) {
 }
 
 namespace ccapi {
-class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceFtx : public ExecutionManagementService {
  public:
   ExecutionManagementServiceFtx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                 ServiceContextPtr serviceContextPtr)
@@ -35,6 +35,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
     this->orderStatusOpenSet = {"new"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceFtx() {}
 
  protected:
   void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::string& body, const std::map<std::string, std::string>& credential) {
@@ -80,13 +81,13 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("FTX-KEY", apiKey);
 
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -146,7 +147,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
         this->signRequest(req, now, "", credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {

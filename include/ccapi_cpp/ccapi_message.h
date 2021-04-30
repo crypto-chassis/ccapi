@@ -49,7 +49,8 @@ class Message CCAPI_FINAL {
     ORDER_MATCHED,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
-    GENERIC_ERROR
+    GENERIC_ERROR,
+    CUSTOM
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -113,6 +114,9 @@ class Message CCAPI_FINAL {
         break;
       case Type::GENERIC_ERROR:
         output = "GENERIC_ERROR";
+        break;
+      case Type::CUSTOM:
+        output = "CUSTOM";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

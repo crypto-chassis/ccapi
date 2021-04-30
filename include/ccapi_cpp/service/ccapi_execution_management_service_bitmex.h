@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceBitmex : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitmex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
@@ -25,6 +25,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     this->orderStatusOpenSet = {"New"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceBitmex() {}
 
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
@@ -66,15 +67,15 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
                                               (now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch())
                                               .count()));
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("api-key", apiKey);
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -155,7 +156,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
         this->signRequest(req, "", credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {

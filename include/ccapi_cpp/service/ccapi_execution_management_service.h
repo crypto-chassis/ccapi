@@ -70,7 +70,7 @@ class ExecutionManagementService : public Service {
     auto castedOperation = static_cast<int>(operation);
     if (castedOperation >= Request::operationTypeExecutionManagementOrder && castedOperation < Request::operationTypeExecutionManagementAccount) {
       message.setElementList(this->extractOrderInfoFromRequest(request, operation, document));
-    } else {
+    } else if (castedOperation >= Request::operationTypeExecutionManagementAccount) {
       message.setElementList(this->extractAccountInfoFromRequest(request, operation, document));
     }
     std::vector<Message> messageList;
@@ -466,8 +466,12 @@ class ExecutionManagementService : public Service {
   }
   virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {}
   virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& tp) {}
-  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
-  virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
+  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
+    return {};
+  }
+  virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
+    return {};
+  }
   std::string apiKeyName;
   std::string apiSecretName;
   std::string createOrderTarget;

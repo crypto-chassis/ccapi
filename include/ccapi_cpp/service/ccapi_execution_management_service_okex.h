@@ -5,7 +5,7 @@
 #include <regex>
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceOkex : public ExecutionManagementService {
  public:
   ExecutionManagementServiceOkex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                  ServiceContextPtr serviceContextPtr)
@@ -25,6 +25,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     this->orderStatusOpenSet = {"live", "partially_filled"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceOkex() {}
 
  private:
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
@@ -69,8 +70,8 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("OK-ACCESS-KEY", apiKey);
@@ -78,7 +79,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     req.set("OK-ACCESS-TIMESTAMP", timeStr.substr(0, timeStr.length() - 7) + "Z");
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
     req.set("OK-ACCESS-PASSPHRASE", apiPassphrase);
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
@@ -149,7 +150,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         this->signRequest(req, "", credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -183,7 +184,6 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
  protected:
 #endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    CCAPI_LOGGER_TRACE("");
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("accFillSz");
@@ -193,7 +193,6 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
                        std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
-    CCAPI_LOGGER_TRACE("");
     return element;
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_

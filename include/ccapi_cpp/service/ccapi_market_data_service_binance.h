@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_base.h"
 namespace ccapi {
-class MarketDataServiceBinance CCAPI_FINAL : public MarketDataServiceBinanceBase {
+class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
  public:
   MarketDataServiceBinance(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                            std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -15,6 +15,7 @@ class MarketDataServiceBinance CCAPI_FINAL : public MarketDataServiceBinanceBase
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v3/trades";
   }
+  virtual ~MarketDataServiceBinance() {}
 };
 } /* namespace ccapi */
 #endif

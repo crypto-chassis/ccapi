@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBinanceUs CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
+class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinanceUs(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                       ServiceContextPtr serviceContextPtr)
@@ -23,6 +23,7 @@ class ExecutionManagementServiceBinanceUs CCAPI_FINAL : public ExecutionManageme
     this->cancelOpenOrdersTarget = "/api/v3/openOrders";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceBinanceUs() {}
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  public:

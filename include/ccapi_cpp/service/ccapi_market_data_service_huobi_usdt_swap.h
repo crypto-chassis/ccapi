@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi_base.h"
 namespace ccapi {
-class MarketDataServiceHuobiUsdtSwap CCAPI_FINAL : public MarketDataServiceHuobiBase {
+class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiBase {
  public:
   MarketDataServiceHuobiUsdtSwap(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                  std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -16,6 +16,7 @@ class MarketDataServiceHuobiUsdtSwap CCAPI_FINAL : public MarketDataServiceHuobi
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_TARGET;
   }
+  virtual ~MarketDataServiceHuobiUsdtSwap() {}
 };
 } /* namespace ccapi */
 #endif

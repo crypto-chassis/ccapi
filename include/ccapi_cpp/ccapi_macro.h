@@ -180,6 +180,9 @@
 #ifndef CCAPI_EXECUTION_MANAGEMENT
 #define CCAPI_EXECUTION_MANAGEMENT "execution_management"
 #endif
+#ifndef CCAPI_UNKNOWN
+#define CCAPI_UNKNOWN "unknown"
+#endif
 #define CCAPI_EM_ORDER "ORDER"
 #ifndef CCAPI_EM_ORDER_SIDE
 #define CCAPI_EM_ORDER_SIDE "SIDE"
