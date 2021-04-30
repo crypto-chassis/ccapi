@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceOkex : public MarketDataService {
  public:
   MarketDataServiceOkex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                         std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -19,6 +19,7 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v5/market/trades";
   }
+  virtual ~MarketDataServiceOkex() {}
 
  private:
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }

@@ -5,7 +5,7 @@
 #include <regex>
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceBitfinex : public MarketDataService {
  public:
   MarketDataServiceBitfinex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                             std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -16,6 +16,7 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
   }
+  virtual ~MarketDataServiceBitfinex() {}
 
  private:
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }

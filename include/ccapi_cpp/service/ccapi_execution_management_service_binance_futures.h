@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
+class ExecutionManagementServiceBinanceFutures : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinanceFutures(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                            ServiceContextPtr serviceContextPtr)
@@ -24,7 +24,9 @@ class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionMan
     this->isFutures = true;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceBinanceFutures() {}
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
  public:
   using ExecutionManagementService::convertTextMessageToMessage;
 #endif

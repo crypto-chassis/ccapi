@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceKraken : public MarketDataService {
  public:
   MarketDataServiceKraken(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -16,6 +16,7 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/0/public/Trades";
   }
+  virtual ~MarketDataServiceKraken() {}
 
  private:
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {

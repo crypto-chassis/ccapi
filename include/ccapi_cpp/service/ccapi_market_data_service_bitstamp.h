@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITSTAMP
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceBitstamp : public MarketDataService {
  public:
   MarketDataServiceBitstamp(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                             std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -16,6 +16,7 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}/";  // must have trailing slash
   }
+  virtual ~MarketDataServiceBitstamp() {}
 
  private:
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {

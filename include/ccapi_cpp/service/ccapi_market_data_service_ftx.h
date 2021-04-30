@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceFtx CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceFtx : public MarketDataService {
  public:
   MarketDataServiceFtx(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                        std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -15,6 +15,7 @@ class MarketDataServiceFtx CCAPI_FINAL : public MarketDataService {
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
   }
+  virtual ~MarketDataServiceFtx() {}
 
  private:
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }

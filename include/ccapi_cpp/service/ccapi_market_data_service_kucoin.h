@@ -4,7 +4,7 @@
 #if defined(CCAPI_ENABLE_EXCHANGE_KUCOIN)
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceKucoin CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceKucoin : public MarketDataService {
  public:
   MarketDataServiceKucoin(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)

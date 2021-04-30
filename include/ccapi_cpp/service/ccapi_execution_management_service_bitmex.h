@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceBitmex : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitmex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
@@ -25,6 +25,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     this->orderStatusOpenSet = {"New"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceBitmex() {}
 
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {

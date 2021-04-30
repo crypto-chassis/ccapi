@@ -5,7 +5,7 @@
 #include "ccapi_cpp/ccapi_jwt.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceErisx : public ExecutionManagementService {
  public:
   ExecutionManagementServiceErisx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   ServiceContextPtr serviceContextPtr)
@@ -26,6 +26,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
     this->orderStatusOpenSet = {"NEW", "PARTIAL FILLED"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceErisx() {}
 
  private:
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override {

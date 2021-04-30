@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_base.h"
 namespace ccapi {
-class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionManagementServiceHuobiBase {
+class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServiceHuobiBase {
  public:
   ExecutionManagementServiceHuobiUsdtSwap(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                           ServiceContextPtr serviceContextPtr)
@@ -24,6 +24,7 @@ class ExecutionManagementServiceHuobiUsdtSwap CCAPI_FINAL : public ExecutionMana
     this->isDerivatives = true;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceHuobiUsdtSwap() {}
 
  private:
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err_code") != std::string::npos; }

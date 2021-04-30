@@ -15,7 +15,7 @@ std::string string_to_hex(unsigned char* data, std::size_t len) {
 }
 
 namespace ccapi {
-class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceFtx : public ExecutionManagementService {
  public:
   ExecutionManagementServiceFtx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                 ServiceContextPtr serviceContextPtr)
@@ -35,6 +35,7 @@ class ExecutionManagementServiceFtx CCAPI_FINAL : public ExecutionManagementServ
     this->orderStatusOpenSet = {"new"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceFtx() {}
 
  protected:
   void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::string& body, const std::map<std::string, std::string>& credential) {
