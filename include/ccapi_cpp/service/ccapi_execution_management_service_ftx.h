@@ -188,7 +188,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     return elementList;
   }
 
-  std::vector<Element> extractExecutionInfoFromDocument(const Message::Type operation, const rj::Document& document) {
+  std::vector<Element> extractExecutionInfoFromDocument(const rj::Document& document) {
     rj::StringBuffer buffer;
     rj::Writer<rj::StringBuffer> writer(buffer);
     rj::Document d = rj::Document();
@@ -233,12 +233,11 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     if (type == "update") {
       if (channel == "fills") {
         message.setType(Message::Type::EXECUTION_FILL);
-        message.setElementList(this->extractExecutionInfoFromDocument(Message::Type::EXECUTION_FILL, document));
+        message.setElementList(this->extractExecutionInfoFromDocument(document));
         messageList.push_back(std::move(message));
       } else if (channel == "orders") {
         message.setType(Message::Type::EXECUTION_ORDER);
-        // Todo: Implement
-        // message.setElementList(this->extractExecutionInfoFromDocument(Message::Type::EXECUTION_FILL, document));
+        message.setElementList(this->extractExecutionInfoFromDocument(document));
         messageList.push_back(std::move(message));
       }
     }

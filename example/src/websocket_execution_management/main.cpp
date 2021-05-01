@@ -54,6 +54,7 @@ using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
+using ::ccapi::Request;
 
 int main(int argc, char** argv) {
   SessionOptions sessionOptions;
@@ -61,11 +62,15 @@ int main(int argc, char** argv) {
   MyEventHandler eventHandler;
   // Event queue for account information
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-
+  std::vector<Subscription> subscriptionList;
   //  Subscription subscription("coinbase", "BTC-USD", "ORDER");
-  Subscription subscription("ftx", "", CCAPI_TRADE);
-  session.subscribe(subscription);
-  std::this_thread::sleep_for(std::chrono::seconds(100000));
+  Subscription subscriptionTrade("ftx", "", CCAPI_EM_TRADE);
+  Subscription subscriptionOrder("ftx", "", CCAPI_EM_ORDER);
+  subscriptionList.push_back(subscriptionTrade);
+  subscriptionList.push_back(subscriptionOrder);
+  session.subscribe(subscriptionList);
+  
+  std::this_thread::sleep_for(std::chrono::seconds(10000));
   session.stop();
   return EXIT_SUCCESS;
 }
