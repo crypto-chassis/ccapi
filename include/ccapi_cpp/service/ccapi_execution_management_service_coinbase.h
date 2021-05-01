@@ -224,7 +224,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     auto fieldSet = subscription.getFieldSet();
     if (fieldSet.find(CCAPI_EM_ORDER) != fieldSet.end()) {
       channelId = "full";
-    } else if (fieldSet.find(CCAPI_EM_TRADE) != fieldSet.end()) {
+    } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
       channelId = "matches";
     }
     rj::Value channel(rj::kObjectType);

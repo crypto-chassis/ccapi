@@ -184,7 +184,7 @@
 #define CCAPI_UNKNOWN "unknown"
 #endif
 #define CCAPI_EM_ORDER "ORDER"
-#define CCAPI_EM_TRADE "TRADE"
+#define CCAPI_EM_PRIVATE_TRADE "PRIVATE_TRADE"
 #ifndef CCAPI_EM_ORDER_SIDE
 #define CCAPI_EM_ORDER_SIDE "SIDE"
 #endif
