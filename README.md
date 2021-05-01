@@ -3,6 +3,7 @@
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
 
 - [ccapi](#ccapi)
+  - [Branches](#branches)
   - [Build](#build)
     - [C++](#c)
     - [Python](#python)
@@ -48,6 +49,10 @@
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
 * Join us on Medium https://cryptochassis.medium.com and Telegram https://t.me/cryptochassis.
+
+## Branches
+* The `develop` branch may contain experimental features.
+* The `master` branch represents the most recent stable release.
 
 ## Build
 
