@@ -432,6 +432,9 @@
 #ifndef CCAPI_FTX_API_SECRET
 #define CCAPI_FTX_API_SECRET "FTX_API_SECRET"
 #endif
+#ifndef CCAPI_FTX_API_SUBACCOUNT
+#define CCAPI_FTX_API_SUBACCOUNT "FTX_API_SUBACCOUNT"
+#endif
 // end: exchange API credentials
 
 #define CCAPI_HTTP_PORT_DEFAULT "80"

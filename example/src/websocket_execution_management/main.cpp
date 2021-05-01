@@ -17,9 +17,10 @@ using ::ccapi::Session;
 using ::ccapi::Subscription;
 int main(int argc, char** argv) {
   Session session;
-  Subscription subscription("coinbase", "BTC-USD", "ORDER");
+//  Subscription subscription("coinbase", "BTC-USD", "ORDER");
+  Subscription subscription("ftx", "", CCAPI_TRADE);
   session.subscribe(subscription);
-  std::this_thread::sleep_for(std::chrono::seconds(10));
+  std::this_thread::sleep_for(std::chrono::seconds(10000));
   session.stop();
   return EXIT_SUCCESS;
 }

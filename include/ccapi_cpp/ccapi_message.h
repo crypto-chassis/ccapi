@@ -47,6 +47,8 @@ class Message CCAPI_FINAL {
     GET_ACCOUNT_BALANCES,
     GET_RECENT_TRADES,
     ORDER_MATCHED,
+    EXECUTION_FILL,
+    EXECUTION_ORDER,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
@@ -106,6 +108,12 @@ class Message CCAPI_FINAL {
       case Type::ORDER_MATCHED:
         output = "ORDER_MATCHED";
         break;
+        case Type::EXECUTION_FILL:
+            output = "EXECUTION_FILL";
+            break;
+        case Type::EXECUTION_ORDER:
+            output = "EXECUTION_ORDER";
+            break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
         break;

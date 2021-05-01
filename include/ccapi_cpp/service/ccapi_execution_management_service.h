@@ -507,6 +507,9 @@ class ExecutionManagementService : public Service {
   virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
   }
+    virtual std::vector<Element> extractExecutionInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
+        return {};
+    }
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,
                                                            const std::map<std::string, std::string>& credential) {
     return {};
