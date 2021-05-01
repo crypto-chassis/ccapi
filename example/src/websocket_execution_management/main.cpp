@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
   subscriptionList.push_back(subscriptionTrade);
   subscriptionList.push_back(subscriptionOrder);
   session.subscribe(subscriptionList);
-  
+
   std::this_thread::sleep_for(std::chrono::seconds(10000));
   session.stop();
   return EXIT_SUCCESS;
