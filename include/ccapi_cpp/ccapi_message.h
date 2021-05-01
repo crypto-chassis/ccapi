@@ -108,12 +108,12 @@ class Message CCAPI_FINAL {
       case Type::ORDER_MATCHED:
         output = "ORDER_MATCHED";
         break;
-        case Type::EXECUTION_FILL:
-            output = "EXECUTION_FILL";
-            break;
-        case Type::EXECUTION_ORDER:
-            output = "EXECUTION_ORDER";
-            break;
+      case Type::EXECUTION_FILL:
+        output = "EXECUTION_FILL";
+        break;
+      case Type::EXECUTION_ORDER:
+        output = "EXECUTION_ORDER";
+        break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
         break;

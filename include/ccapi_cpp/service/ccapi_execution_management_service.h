@@ -90,11 +90,13 @@ class ExecutionManagementService : public Service {
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
       if (it != x.MemberEnd() && !it->value.IsNull()) {
-        std::string value = y.second.second == JsonDataType::STRING    ? it->value.GetString()
-                            : y.second.second == JsonDataType::INTEGER ? std::to_string(it->value.GetInt64())
-                            : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool()))
-                            : y.second.second == JsonDataType::DOUBLE  ? std::to_string(it->value.GetDouble())
-                                                                       : "null";
+        std::string value = y.second.second == JsonDataType::STRING
+                                ? it->value.GetString()
+                                : y.second.second == JsonDataType::INTEGER
+                                      ? std::to_string(it->value.GetInt64())
+                                      : y.second.second == JsonDataType::BOOLEAN
+                                            ? std::to_string(static_cast<int>(it->value.GetBool()))
+                                            : y.second.second == JsonDataType::DOUBLE ? std::to_string(it->value.GetDouble()) : "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
         } else if (y.first == CCAPI_EM_ORDER_STATUS) {
@@ -112,11 +114,13 @@ class ExecutionManagementService : public Service {
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
       if (it != x.MemberEnd() && !it->value.IsNull()) {
-        std::string value = y.second.second == JsonDataType::STRING    ? it->value.GetString()
-                            : y.second.second == JsonDataType::INTEGER ? std::to_string(it->value.GetInt64())
-                            : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool()))
-                            : y.second.second == JsonDataType::DOUBLE  ? std::to_string(it->value.GetDouble())
-                                                                       : "null";
+        std::string value = y.second.second == JsonDataType::STRING
+                                ? it->value.GetString()
+                                : y.second.second == JsonDataType::INTEGER
+                                      ? std::to_string(it->value.GetInt64())
+                                      : y.second.second == JsonDataType::BOOLEAN
+                                            ? std::to_string(static_cast<int>(it->value.GetBool()))
+                                            : y.second.second == JsonDataType::DOUBLE ? std::to_string(it->value.GetDouble()) : "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
         } else if (y.first == CCAPI_EM_ORDER_STATUS) {

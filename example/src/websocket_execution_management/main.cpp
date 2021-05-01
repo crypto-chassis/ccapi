@@ -18,7 +18,7 @@ class MyEventHandler : public EventHandler {
   bool processEvent(const Event& event, Session* session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto& message : event.getMessageList()) {
-          std::vector<Message> messageList = event.getMessageList();
+        std::vector<Message> messageList = event.getMessageList();
         // Expecting a single element inside of the messageList
         //            std::string messageType =
         //            messageList.at(0).typeToString(messageList.at(0).getType());
@@ -50,11 +50,11 @@ class MyEventHandler : public EventHandler {
 
 } /* namespace ccapi */
 using ::ccapi::MyEventHandler;
+using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
-using ::ccapi::Request;
 
 int main(int argc, char** argv) {
   SessionOptions sessionOptions;
