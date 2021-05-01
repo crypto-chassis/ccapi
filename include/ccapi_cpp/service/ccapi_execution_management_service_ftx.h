@@ -165,7 +165,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::DOUBLE)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::DOUBLE)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("remainingSize", JsonDataType::DOUBLE)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filledSize", JsonDataType::DOUBLE)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
     };
@@ -188,116 +188,121 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     return elementList;
   }
 
+  std::vector<Element> extractExecutionInfoFromDocument(const Message::Type operation, const rj::Document& document) {
+    rj::StringBuffer buffer;
+    rj::Writer<rj::StringBuffer> writer(buffer);
+    rj::Document d = rj::Document();
+    d.CopyFrom(document, d.GetAllocator());
+    d.Accept(writer);
 
-  std::vector<Element> extractExecutionInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-      rj::StringBuffer buffer;
-      rj::Writer<rj::StringBuffer> writer(buffer);
-      rj::Document d = rj::Document();
-      d.CopyFrom(document, d.GetAllocator());
-      d.Accept(writer);
-
-      std::cout << "GOT RESPONSE " << buffer.GetString() << std::endl;
-      const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-              {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::INTEGER)},
-              {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-              {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::DOUBLE)},
-              {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::DOUBLE)},
-              {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("remainingSize", JsonDataType::DOUBLE)},
-              {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-              {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
-      };
-      std::vector<Element> elementList;
-      if (operation == Request::Operation::EXECUTION_FILL) {
-
-      } else if (operation == Request::Operation::EXECUTION_ORDER){
-
-      }
-      return elementList;
+    std::cout << "GOT RESPONSE " << buffer.GetString() << std::endl;
+    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+        {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
+        {CCAPI_TRADE_ID, std::make_pair("tradeId", JsonDataType::INTEGER)},
+        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::DOUBLE)},
+        {CCAPI_EM_EXECUTED_PRICE, std::make_pair("price", JsonDataType::DOUBLE)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filledSize", JsonDataType::DOUBLE)},
+        {CCAPI_EM_ORDER_CUMULATIVE_REMAINING_QUANTITY, std::make_pair("remainingSize", JsonDataType::DOUBLE)},
+        {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
+        {CCAPI_EM_EXECUTED_TIME, std::make_pair("time", JsonDataType::STRING)},
+        {CCAPI_EM_EXECUTED_FEE, std::make_pair("fee", JsonDataType::DOUBLE)}};
+    std::vector<Element> elementList;
+    if (document.IsObject()) {
+      elementList.emplace_back(this->extractExecutionInfo(document["data"], extractionFieldNameMap));
+    }
+    return elementList;
   }
 
-    std::vector<Message> convertTextMessageToMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-         CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
-         rj::Document document;
-         document.Parse(textMessage.c_str());
-         Message message;
-         message.setTimeReceived(timeReceived);
-         message.setCorrelationIdList({request.getCorrelationId()});
-         std::vector<Element> elementList;
-        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS);
-
-
-//        elementList.emplace_back(this->extractOrderInfo(document["result"], extractionFieldNameMap));
-        auto operation = hdl.getOperation();
-        message.setElementList(this->extractExecutionInfoFromRequest(hdl, operation, document));
-
-        std::vector<Message> messageList;
-         messageList.push_back(std::move(message));
-        return messageList
+  std::vector<Message> convertTextMessageToMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
+    Message message;
+    std::vector<Message> messageList;
+    message.setTimeReceived(timeReceived);
+    //    std::vector<Element> elementList;
+    message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS);
+    rj::Document document;
+    document.Parse(textMessage.c_str());
+    std::vector<MarketDataMessage> marketDataMessageList;
+    auto channel = std::string(document["channel"].GetString());
+    auto type = std::string(document["type"].GetString());
+    CCAPI_LOGGER_TRACE("type = " + type);
+    CCAPI_LOGGER_TRACE("channel = " + channel);
+    if (type == "update") {
+      if (channel == "fills") {
+        message.setType(Message::Type::EXECUTION_FILL);
+        message.setElementList(this->extractExecutionInfoFromDocument(Message::Type::EXECUTION_FILL, document));
+        messageList.push_back(std::move(message));
+      }
     }
+
+    return messageList;
+  }
 
   std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,
                                                    const std::map<std::string, std::string>& credential) override {
-     std::vector<std::string> requestStringList;
-     rj::Document document;
-     document.SetObject();
-     rj::Document::AllocatorType &allocator = document.GetAllocator();
-     document.AddMember("op", rj::Value("login").Move(), allocator);
-     // create the args document
-     rj::Document args;
-     args.SetObject();
-     rj::Document::AllocatorType &allocatorArgs = args.GetAllocator();
+    std::vector<std::string> requestStringList;
+    rj::Document document;
+    document.SetObject();
+    rj::Document::AllocatorType& allocator = document.GetAllocator();
+    document.AddMember("op", rj::Value("login").Move(), allocator);
+    // create the args document
+    rj::Document args;
+    args.SetObject();
+    rj::Document::AllocatorType& allocatorArgs = args.GetAllocator();
 
-     // Get the signed values
-     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-     auto subaccount = mapGetWithDefault(credential, this->apiSubaccount);
-     std::string ts = std::to_string(
-             std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
-     args.AddMember("key", rj::Value(apiKey.c_str(), allocatorArgs).Move(), allocatorArgs);
-     std::string signData = ts + "websocket_login";
-     std::string hmacced = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, signData);
-     std::string sign = string_to_hex((unsigned char *) hmacced.c_str(), 32);
-     args.AddMember("sign", rj::Value(sign.c_str(), allocatorArgs).Move(), allocatorArgs);
-     rj::Value timeRj;
-     timeRj.SetInt64(std::stol(ts));
-     args.AddMember("time", rj::Value(timeRj, allocatorArgs).Move(), allocatorArgs);
-     if (!subaccount.empty()){
-         args.AddMember("subaccount", rj::Value(subaccount.c_str(), allocatorArgs).Move(), allocatorArgs);
-     }
-     // Add the args object to the main document
-     document.AddMember("args", rj::Value(args, allocator).Move(), allocator);
-     // Turn the rapidjson document into a string
-     rj::StringBuffer stringBuffer;
-     rj::Writer<rj::StringBuffer> writer(stringBuffer);
-     document.Accept(writer);
-     std::string requestString = stringBuffer.GetString();
-     // First element should be the authentication string
-     requestStringList.push_back(requestString);
+    // Get the signed values
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto subaccount = mapGetWithDefault(credential, this->apiSubaccount);
+    std::string ts = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+    args.AddMember("key", rj::Value(apiKey.c_str(), allocatorArgs).Move(), allocatorArgs);
+    std::string signData = ts + "websocket_login";
+    std::string hmacced = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, signData);
+    std::string sign = string_to_hex((unsigned char*)hmacced.c_str(), 32);
+    args.AddMember("sign", rj::Value(sign.c_str(), allocatorArgs).Move(), allocatorArgs);
+    rj::Value timeRj;
+    timeRj.SetInt64(std::stol(ts));
+    args.AddMember("time", rj::Value(timeRj, allocatorArgs).Move(), allocatorArgs);
+    if (!subaccount.empty()) {
+      args.AddMember("subaccount", rj::Value(subaccount.c_str(), allocatorArgs).Move(), allocatorArgs);
+    }
+    // Add the args object to the main document
+    document.AddMember("args", rj::Value(args, allocator).Move(), allocator);
+    // Turn the rapidjson document into a string
+    rj::StringBuffer stringBuffer;
+    rj::Writer<rj::StringBuffer> writer(stringBuffer);
+    document.Accept(writer);
+    std::string requestString = stringBuffer.GetString();
+    // First element should be the authentication string
+    requestStringList.push_back(requestString);
 
-     // Second element should be the channel to subscribe to
-     auto subscription = wsConnection.subscriptionList.at(0);
-     std::string channelId;
-     auto fieldSet = subscription.getFieldSet();
-     if (fieldSet.find(CCAPI_EM_ORDER) != fieldSet.end()) {
-        channelId = "orders";
-     } else if (fieldSet.find(CCAPI_EM_TRADE) != fieldSet.end()) {
-         channelId = "fills";
-     }
+    // Second element should be the channel to subscribe to
+    auto subscription = wsConnection.subscriptionList.at(0);
+    std::string channelId;
+    auto fieldSet = subscription.getFieldSet();
+    if (fieldSet.find(CCAPI_EM_ORDER) != fieldSet.end()) {
+      channelId = "orders";
+    } else if (fieldSet.find(CCAPI_EM_TRADE) != fieldSet.end()) {
+      channelId = "fills";
+    }
 
-     rj::Document documentSubscribe;
-     documentSubscribe.SetObject();
-     rj::Document::AllocatorType &allocatorSubscribe = documentSubscribe.GetAllocator();
-     documentSubscribe.AddMember("op", rj::Value("subscribe").Move(), allocatorSubscribe);
-     documentSubscribe.AddMember("channel", rj::Value(channelId.c_str(), allocatorSubscribe).Move(), allocatorSubscribe);
-     // Turn the rapidjson document into a string
-     rj::StringBuffer stringBufferSubscribe;
-     rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
-     documentSubscribe.Accept(writerSubscribe);
-     std::string requestStringSubscribe = stringBufferSubscribe.GetString();
-     requestStringList.push_back(requestStringSubscribe);
-     return requestStringList;
+    rj::Document documentSubscribe;
+    documentSubscribe.SetObject();
+    rj::Document::AllocatorType& allocatorSubscribe = documentSubscribe.GetAllocator();
+    documentSubscribe.AddMember("op", rj::Value("subscribe").Move(), allocatorSubscribe);
+    documentSubscribe.AddMember("channel", rj::Value(channelId.c_str(), allocatorSubscribe).Move(), allocatorSubscribe);
+    // Turn the rapidjson document into a string
+    rj::StringBuffer stringBufferSubscribe;
+    rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
+    documentSubscribe.Accept(writerSubscribe);
+    std::string requestStringSubscribe = stringBufferSubscribe.GetString();
+    requestStringList.push_back(requestStringSubscribe);
+    return requestStringList;
   }
-    std::string apiSubaccount;
+  std::string apiSubaccount;
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
   // TODO(cryptochassis): add more to ftx test.
  public:
