@@ -357,6 +357,7 @@ class Session CCAPI_FINAL {
           auto exchange = subscription.getExchange();
           subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
+        CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = " + toString(subscriptionListByExchangeMap));
         for (auto& subscriptionListByExchange : subscriptionListByExchangeMap) {
           auto exchange = subscriptionListByExchange.first;
           auto subscriptionList = subscriptionListByExchange.second;

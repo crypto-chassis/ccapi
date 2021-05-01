@@ -182,7 +182,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   FRIEND_TEST(ExecutionManagementServiceGeminiTest, signRequest);
 #endif
 };

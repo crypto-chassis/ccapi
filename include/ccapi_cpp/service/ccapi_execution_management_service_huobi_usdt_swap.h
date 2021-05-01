@@ -143,10 +143,10 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
 
  public:
 #endif
-  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-    return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
+    return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   }
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);

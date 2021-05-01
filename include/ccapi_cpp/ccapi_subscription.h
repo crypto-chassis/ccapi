@@ -23,10 +23,12 @@ class Subscription CCAPI_FINAL {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
-    this->serviceName = field == CCAPI_EM_ORDER ? CCAPI_EM_ORDER : CCAPI_MARKET_DATA;
+    this->serviceName = field == CCAPI_EM_ORDER || CCAPI_EM_TRADE ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
+    this->instrumentSet = UtilString::splitToSet(instrument, ",");
+    this->fieldSet = UtilString::splitToSet(field, ",");
   }
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;
@@ -45,6 +47,8 @@ class Subscription CCAPI_FINAL {
   const std::map<std::string, std::string>& getOptionMap() const { return optionMap; }
   const std::map<std::string, std::string>& getCredential() const { return credential; }
   const std::string& getServiceName() const { return serviceName; }
+  const std::set<std::string>& getInstrumentSet() const { return instrumentSet; }
+  const std::set<std::string>& getFieldSet() const { return fieldSet; }
   const std::string getSerializedOptions() const {
     std::string output;
     int i = 0;
@@ -94,6 +98,8 @@ class Subscription CCAPI_FINAL {
   std::string correlationId;
   std::map<std::string, std::string> credential;
   std::string serviceName;
+  std::set<std::string> instrumentSet;
+  std::set<std::string> fieldSet;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_

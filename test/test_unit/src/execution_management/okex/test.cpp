@@ -73,7 +73,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -91,7 +91,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageCreateOrde
       ]
     }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -132,7 +132,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByClientOrde
   verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -149,7 +149,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageCancelOrde
         ]
     }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -186,7 +186,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByClientOrderId
   verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageGetOrder) {
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -231,7 +231,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageGetOrder) 
       ]
     }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -269,7 +269,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersAllInstrum
   verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
 }
 
-void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceOkexTest* fixture, bool isOneInstrument) {
+void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagementServiceOkexTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "BTC-USDT" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, symbol, "", fixture->credential);
   std::string textMessage =
@@ -315,7 +315,7 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
       ]
     }
   )";
-  auto messageList = fixture->service->convertTextMessageToMessage(request, textMessage, fixture->now);
+  auto messageList = fixture->service->convertTextMessageToMessageRest(request, textMessage, fixture->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -334,12 +334,12 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
   }
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
-  verifyconvertTextMessageToMessageGetOpenOrders(this, true);
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOpenOrdersOneInstrument) {
+  verifyconvertTextMessageToMessageRestGetOpenOrders(this, true);
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
-  verifyconvertTextMessageToMessageGetOpenOrders(this, false);
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOpenOrdersAllInstruments) {
+  verifyconvertTextMessageToMessageRestGetOpenOrders(this, false);
 }
 
 } /* namespace ccapi */

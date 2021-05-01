@@ -11,6 +11,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
@@ -202,12 +203,67 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     }
     return elementList;
   }
+  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,
+                                                   const std::map<std::string, std::string>& credential) override {
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
+    auto timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+    auto preSignedText = timestamp;
+    preSignedText += "GET";
+    preSignedText += "/users/self/verify";
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
+    std::vector<std::string> requestStringList;
+    rj::Document document;
+    document.SetObject();
+    rj::Document::AllocatorType& allocator = document.GetAllocator();
+    document.AddMember("type", rj::Value("subscribe").Move(), allocator);
+    rj::Value channels(rj::kArrayType);
+    auto subscription = wsConnection.subscriptionList.at(0);
+    std::string channelId;
+    auto fieldSet = subscription.getFieldSet();
+    if (fieldSet.find(CCAPI_EM_ORDER) != fieldSet.end()) {
+      channelId = "full";
+    } else if (fieldSet.find(CCAPI_EM_TRADE) != fieldSet.end()) {
+      channelId = "matches";
+    }
+    rj::Value channel(rj::kObjectType);
+    rj::Value symbolIds(rj::kArrayType);
+    auto instrumentSet = subscription.getInstrumentSet();
+    for (const auto& instrument : instrumentSet) {
+      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      symbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+    }
+    channel.AddMember("name", rj::Value(channelId.c_str(), allocator).Move(), allocator);
+    channel.AddMember("product_ids", symbolIds, allocator);
+    channels.PushBack(channel, allocator);
+    rj::Value heartbeatChannel(rj::kObjectType);
+    heartbeatChannel.AddMember("name", rj::Value("heartbeat").Move(), allocator);
+    rj::Value heartbeatSymbolIds(rj::kArrayType);
+    for (const auto& instrument : instrumentSet) {
+      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      heartbeatSymbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+    }
+    heartbeatChannel.AddMember("product_ids", heartbeatSymbolIds, allocator);
+    channels.PushBack(heartbeatChannel, allocator);
+    document.AddMember("channels", channels, allocator);
+    document.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
+    document.AddMember("key", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+    document.AddMember("passphrase", rj::Value(apiPassphrase.c_str(), allocator).Move(), allocator);
+    document.AddMember("timestamp", rj::Value(timestamp.c_str(), allocator).Move(), allocator);
+    rj::StringBuffer stringBuffer;
+    rj::Writer<rj::StringBuffer> writer(stringBuffer);
+    document.Accept(writer);
+    std::string requestString = stringBuffer.GetString();
+    requestStringList.push_back(requestString);
+    return requestStringList;
+  }
   std::string apiPassphraseName;
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   FRIEND_TEST(ExecutionManagementServiceCoinbaseTest, signRequest);
 #endif
 };
