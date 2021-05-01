@@ -235,6 +235,11 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
         message.setType(Message::Type::EXECUTION_FILL);
         message.setElementList(this->extractExecutionInfoFromDocument(Message::Type::EXECUTION_FILL, document));
         messageList.push_back(std::move(message));
+      } else if (channel == "orders") {
+        message.setType(Message::Type::EXECUTION_ORDER);
+        // Todo: Implement
+        // message.setElementList(this->extractExecutionInfoFromDocument(Message::Type::EXECUTION_FILL, document));
+        messageList.push_back(std::move(message));
       }
     }
 
