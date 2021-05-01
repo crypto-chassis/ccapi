@@ -48,6 +48,19 @@ class UtilString CCAPI_FINAL {
     output.push_back(std::move(s));
     return output;
   }
+  static std::set<std::string> splitToSet(const std::string& original, const std::string& delimiter) {
+    std::string s = original;
+    std::set<std::string> output;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = s.find(delimiter)) != std::string::npos) {
+      token = s.substr(0, pos);
+      output.insert(std::move(token));
+      s.erase(0, pos + delimiter.length());
+    }
+    output.insert(std::move(s));
+    return output;
+  }
   static std::string join(const std::vector<std::string>& strings, const std::string& delimiter) {
     switch (strings.size()) {
       case 0:

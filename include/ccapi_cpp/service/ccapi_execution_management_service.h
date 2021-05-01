@@ -57,7 +57,7 @@ class ExecutionManagementService : public Service {
   std::string convertOrderStatus(const std::string& status) {
     return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN : CCAPI_EM_ORDER_STATUS_CLOSED;
   }
-  virtual std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
+  virtual std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
@@ -78,7 +78,7 @@ class ExecutionManagementService : public Service {
     return messageList;
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::vector<Message>& messageList = this->convertTextMessageToMessage(request, textMessage, timeReceived);
+    const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
     Event event;
     event.setType(Event::Type::RESPONSE);
     event.addMessages(messageList);
@@ -188,7 +188,23 @@ class ExecutionManagementService : public Service {
     // CCAPI_LOGGER_INFO("about to subscribe to exchange");
     // this->subscribeToExchange(wsConnection);
     CCAPI_LOGGER_INFO("about to logon to exchange");
-    this->logonToExchange(wsConnection, now);
+    auto credential = wsConnection.subscriptionList.at(0).getCredential();
+    if (credential.empty()) {
+      credential = this->credentialDefault;
+    }
+    this->logonToExchange(wsConnection, now, credential);
+  }
+  virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
+    std::vector<std::string> requestStringList = this->createRequestStringList(wsConnection, now, credential);
+    for (const auto& requestString : requestStringList) {
+      CCAPI_LOGGER_INFO("requestString = " + requestString);
+      ErrorCode ec;
+      this->send(wsConnection.hdl, requestString, wspp::frame::opcode::text, ec);
+      if (ec) {
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+      }
+    }
   }
   void onFail_(WsConnection& wsConnection) {
     wsConnection.status = WsConnection::Status::FAILED;
@@ -464,12 +480,35 @@ class ExecutionManagementService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {}
-  virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& tp) {}
+  virtual std::vector<Message> convertTextMessageToMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
+    // CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
+    // rj::Document document;
+    // document.Parse(textMessage.c_str());
+    // Message message;
+    // message.setTimeReceived(timeReceived);
+    // message.setCorrelationIdList({request.getCorrelationId()});
+    // std::vector<Element> elementList;
+    // message.setType(EXECUTION_MANAGEMENT_EVENTS);
+    // message.setElementList(this->extractExecutionInfoFromRequest(hdl, operation, document));
+    std::vector<Message> messageList;
+    // messageList.push_back(std::move(message));
+    return messageList;
+  }
+  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
+    const std::vector<Message>& messageList = this->convertTextMessageToMessage(hdl, textMessage, timeReceived);
+    Event event;
+    event.setType(Event::Type::SUBSCRIPTION_DATA);
+    event.addMessages(messageList);
+    this->eventHandler(event);
+  }
   virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
   }
   virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
+    return {};
+  }
+  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,
+                                                           const std::map<std::string, std::string>& credential) {
     return {};
   }
   std::string apiKeyName;

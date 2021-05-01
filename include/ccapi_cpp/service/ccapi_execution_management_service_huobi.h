@@ -143,7 +143,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   FRIEND_TEST(ExecutionManagementServiceHuobiTest, signRequest);
 #endif
 };

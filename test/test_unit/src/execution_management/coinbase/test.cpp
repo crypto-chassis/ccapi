@@ -65,7 +65,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -87,7 +87,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCreate
     "settled": false
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -126,9 +126,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByClient
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  auto messageList = this->service->convertTextMessageToMessage(request, "\"415bbb90-b5a5-48cc-85b9-49589cc12626\"", this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, "\"415bbb90-b5a5-48cc-85b9-49589cc12626\"", this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -157,7 +157,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByClientOrd
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOrder) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -181,7 +181,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOrd
     "settled": true
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -219,7 +219,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOpenOrdersAllIns
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceCoinbaseTest* fixture, bool isOneInstrument) {
+void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagementServiceCoinbaseTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "BTC-USD" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, symbol, "", fixture->credential);
   std::string textMessage =
@@ -261,7 +261,7 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
     }
   ]
   )";
-  auto messageList = fixture->service->convertTextMessageToMessage(request, textMessage, fixture->now);
+  auto messageList = fixture->service->convertTextMessageToMessageRest(request, textMessage, fixture->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -280,12 +280,12 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
   }
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
-  verifyconvertTextMessageToMessageGetOpenOrders(this, true);
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGetOpenOrdersOneInstrument) {
+  verifyconvertTextMessageToMessageRestGetOpenOrders(this, true);
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
-  verifyconvertTextMessageToMessageGetOpenOrders(this, false);
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGetOpenOrdersAllInstruments) {
+  verifyconvertTextMessageToMessageRestGetOpenOrders(this, false);
 }
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOpenOrders) {
@@ -300,7 +300,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOpenOrders) {
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancelOpenOrders) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -312,7 +312,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageCancel
     "34fecfbf-de33-4273-b2c6-baf8e8948be4"
   ]
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -328,7 +328,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccounts) {
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccounts) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGetAccounts) {
   Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -353,7 +353,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAcc
         }
     ]
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -375,7 +375,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances)
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAccountBalances) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGetAccountBalances) {
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -387,7 +387,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageGetAcc
         "currency": "USD"
     }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

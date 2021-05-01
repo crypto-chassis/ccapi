@@ -28,7 +28,7 @@ class ExecutionManagementServiceBinanceFutures : public ExecutionManagementServi
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  public:
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
 #endif
 };
 } /* namespace ccapi */

@@ -199,7 +199,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   FRIEND_TEST(ExecutionManagementServiceOkexTest, signRequest);
 #endif
 };

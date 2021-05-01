@@ -28,7 +28,7 @@ class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBin
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   using ExecutionManagementServiceBinanceBase::signRequest;
 #endif
 };
