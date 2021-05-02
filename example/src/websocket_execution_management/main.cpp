@@ -24,18 +24,18 @@ class MyEventHandler : public EventHandler {
         //            messageList.at(0).typeToString(messageList.at(0).getType());
         Message::Type messageType = messageList.at(0).getType();
         switch (messageType) {
-          case Message::Type::EXECUTION_FILL: {
+          case Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE: {
             // Process the Futures positions and balances
             CCAPI_LOGGER_WARN("Got a response for EXECUTION_FILL");
           } break;
-          case Message::Type::EXECUTION_ORDER: {
+          case Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE: {
             // Process the USD and SPOT balances
             CCAPI_LOGGER_WARN("Got a response for EXECUTION_ORDER");
           } break;
-          case Message::Type::EXECUTION_MANAGEMENT_EVENTS: {
-            // Process the USD and SPOT balances
-            CCAPI_LOGGER_WARN("Got a response for EXECUTION_MANAGEMENT_EVENTS");
-          } break;
+          // case Message::Type::EXECUTION_MANAGEMENT_EVENTS: {
+          //   // Process the USD and SPOT balances
+          //   CCAPI_LOGGER_WARN("Got a response for EXECUTION_MANAGEMENT_EVENTS");
+          // } break;
           default:
             continue;
         }

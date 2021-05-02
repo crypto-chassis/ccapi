@@ -228,7 +228,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     CCAPI_LOGGER_TRACE("channel = " + channel);
     if (type == "update") {
       if (channel == "fills") {
-        message.tp = UtilTime::parse(std::string(document["data"]["time"].GetString()), "%FT%T%Ez");
+        message.setTime(UtilTime::parse(std::string(document["data"]["time"].GetString()), "%FT%T%Ez"));
         message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
         message.setElementList(this->extractExecutionInfoFromDocument(document));
         messageList.push_back(std::move(message));
