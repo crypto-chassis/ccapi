@@ -6,7 +6,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
 #include "boost/shared_ptr.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_hmac.h"
@@ -86,30 +85,6 @@ class ExecutionManagementService : public Service {
     this->eventHandler(event);
   }
   virtual Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
-    Element element;
-    for (const auto& y : extractionFieldNameMap) {
-      auto it = x.FindMember(y.second.first.c_str());
-      if (it != x.MemberEnd() && !it->value.IsNull()) {
-        std::string value = y.second.second == JsonDataType::STRING
-                                ? it->value.GetString()
-                                : y.second.second == JsonDataType::INTEGER
-                                      ? std::to_string(it->value.GetInt64())
-                                      : y.second.second == JsonDataType::BOOLEAN
-                                            ? std::to_string(static_cast<int>(it->value.GetBool()))
-                                            : y.second.second == JsonDataType::DOUBLE ? std::to_string(it->value.GetDouble()) : "null";
-        if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
-          value = this->convertRestSymbolIdToInstrument(value);
-        } else if (y.first == CCAPI_EM_ORDER_STATUS) {
-          value = this->convertOrderStatus(value);
-        } else if (y.first == CCAPI_EM_ORDER_SIDE) {
-          value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
-        }
-        element.insert(y.first, value);
-      }
-    }
-    return element;
-  }
-  virtual Element extractExecutionInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
     Element element;
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
@@ -532,9 +507,6 @@ class ExecutionManagementService : public Service {
     return {};
   }
   virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
-    return {};
-  }
-  virtual std::vector<Element> extractExecutionInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
   }
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,

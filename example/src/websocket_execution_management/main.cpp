@@ -64,8 +64,8 @@ int main(int argc, char** argv) {
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   std::vector<Subscription> subscriptionList;
   //  Subscription subscription("coinbase", "BTC-USD", "ORDER");
-  Subscription subscriptionTrade("ftx", "", CCAPI_EM_TRADE);
-  Subscription subscriptionOrder("ftx", "", CCAPI_EM_ORDER);
+  Subscription subscriptionTrade("ftx", "", CCAPI_EM_PRIVATE_TRADE);
+  Subscription subscriptionOrder("ftx", "", CCAPI_EM_ORDER_UPDATE);
   subscriptionList.push_back(subscriptionTrade);
   subscriptionList.push_back(subscriptionOrder);
   session.subscribe(subscriptionList);

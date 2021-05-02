@@ -32,7 +32,8 @@ class Message CCAPI_FINAL {
   enum class Type {
     UNKNOWN,
     MARKET_DATA_EVENTS,
-    EXECUTION_MANAGEMENT_EVENTS,
+    EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE,
+    EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE,
     SUBSCRIPTION_STARTED,
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
@@ -46,9 +47,6 @@ class Message CCAPI_FINAL {
     GET_ACCOUNTS,
     GET_ACCOUNT_BALANCES,
     GET_RECENT_TRADES,
-    ORDER_MATCHED,
-    EXECUTION_FILL,
-    EXECUTION_ORDER,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
@@ -63,8 +61,11 @@ class Message CCAPI_FINAL {
       case Type::MARKET_DATA_EVENTS:
         output = "MARKET_DATA_EVENTS";
         break;
-      case Type::EXECUTION_MANAGEMENT_EVENTS:
-        output = "EXECUTION_MANAGEMENT_EVENTS";
+      case Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE:
+        output = "EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE";
+        break;
+      case Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE:
+        output = "EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE";
         break;
       case Type::SUBSCRIPTION_STARTED:
         output = "SUBSCRIPTION_STARTED";
@@ -104,15 +105,6 @@ class Message CCAPI_FINAL {
         break;
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
-        break;
-      case Type::ORDER_MATCHED:
-        output = "ORDER_MATCHED";
-        break;
-      case Type::EXECUTION_FILL:
-        output = "EXECUTION_FILL";
-        break;
-      case Type::EXECUTION_ORDER:
-        output = "EXECUTION_ORDER";
         break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";

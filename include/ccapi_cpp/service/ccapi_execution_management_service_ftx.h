@@ -27,8 +27,8 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     this->setHostFromUrl(this->baseUrlRest);
     this->apiKeyName = CCAPI_FTX_API_KEY;
     this->apiSecretName = CCAPI_FTX_API_SECRET;
-    this->apiSubaccount = CCAPI_FTX_API_SUBACCOUNT;
-    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiSubaccount});
+    this->apiSubaccountName = CCAPI_FTX_API_SUBACCOUNT;
+    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiSubaccountName});
     this->createOrderTarget = "/api/orders";
     this->cancelOrderTarget = "/api/orders";
     this->getOrderTarget = "/api/orders";
@@ -201,16 +201,15 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
         {CCAPI_TRADE_ID, std::make_pair("tradeId", JsonDataType::INTEGER)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::DOUBLE)},
-        {CCAPI_EM_EXECUTED_PRICE, std::make_pair("price", JsonDataType::DOUBLE)},
+        {CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::make_pair("price", JsonDataType::DOUBLE)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filledSize", JsonDataType::DOUBLE)},
-        {CCAPI_EM_ORDER_CUMULATIVE_REMAINING_QUANTITY, std::make_pair("remainingSize", JsonDataType::DOUBLE)},
+        {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("remainingSize", JsonDataType::DOUBLE)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
-        {CCAPI_EM_EXECUTED_TIME, std::make_pair("time", JsonDataType::STRING)},
-        {CCAPI_EM_EXECUTED_FEE, std::make_pair("fee", JsonDataType::DOUBLE)}};
+        {CCAPI_EM_ORDER_FEE_QUANTITY, std::make_pair("fee", JsonDataType::DOUBLE)}};
     std::vector<Element> elementList;
     if (document.IsObject()) {
-      elementList.emplace_back(this->extractExecutionInfo(document["data"], extractionFieldNameMap));
+      elementList.emplace_back(this->extractOrderInfo(document["data"], extractionFieldNameMap));
     }
     return elementList;
   }
@@ -221,22 +220,20 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     Message message;
     std::vector<Message> messageList;
     message.setTimeReceived(timeReceived);
-    //    std::vector<Element> elementList;
-    message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS);
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     auto channel = std::string(document["channel"].GetString());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
     CCAPI_LOGGER_TRACE("channel = " + channel);
     if (type == "update") {
       if (channel == "fills") {
-        message.setType(Message::Type::EXECUTION_FILL);
+        message.tp = UtilTime::parse(std::string(document["data"]["time"].GetString()), "%FT%T%Ez");
+        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
         message.setElementList(this->extractExecutionInfoFromDocument(document));
         messageList.push_back(std::move(message));
       } else if (channel == "orders") {
-        message.setType(Message::Type::EXECUTION_ORDER);
+        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
         message.setElementList(this->extractExecutionInfoFromDocument(document));
         messageList.push_back(std::move(message));
       }
@@ -260,7 +257,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     // Get the signed values
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto subaccount = mapGetWithDefault(credential, this->apiSubaccount);
+    auto subaccount = mapGetWithDefault(credential, this->apiSubaccountName);
     std::string ts = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
     args.AddMember("key", rj::Value(apiKey.c_str(), allocatorArgs).Move(), allocatorArgs);
     std::string signData = ts + "websocket_login";
@@ -287,9 +284,9 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     auto subscription = wsConnection.subscriptionList.at(0);
     std::string channelId;
     auto fieldSet = subscription.getFieldSet();
-    if (fieldSet.find(CCAPI_EM_ORDER) != fieldSet.end()) {
+    if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
       channelId = "orders";
-    } else if (fieldSet.find(CCAPI_EM_TRADE) != fieldSet.end()) {
+    } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
       channelId = "fills";
     }
 
@@ -306,7 +303,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     requestStringList.push_back(requestStringSubscribe);
     return requestStringList;
   }
-  std::string apiSubaccount;
+  std::string apiSubaccountName;
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
   // TODO(cryptochassis): add more to ftx test.
  public:

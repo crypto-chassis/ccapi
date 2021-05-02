@@ -23,7 +23,7 @@ class Subscription CCAPI_FINAL {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
-    this->serviceName = field == CCAPI_EM_ORDER || CCAPI_EM_PRIVATE_TRADE ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+    this->serviceName = field == CCAPI_EM_ORDER_UPDATE || CCAPI_EM_PRIVATE_TRADE ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
