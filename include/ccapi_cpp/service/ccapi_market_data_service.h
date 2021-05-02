@@ -393,7 +393,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     std::vector<MarketDataMessage> marketDataMessageList = this->processTextMessage(wsConnection, hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_TRACE("websocketMprocessTextMessageessageList = " + toString(marketDataMessageList));
+    CCAPI_LOGGER_TRACE("marketDataMessageList = " + toString(marketDataMessageList));
     if (!marketDataMessageList.empty()) {
       for (auto& marketDataMessage : marketDataMessageList) {
         // TODO(cryptochassis): should make Event outside of this for-loop, but need to carefully study the implications

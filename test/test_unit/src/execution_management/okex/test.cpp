@@ -55,7 +55,6 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
                                            {CCAPI_EM_ORDER_QUANTITY, "2"},
                                            {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"},
-                                           {CCAPI_EM_ORDER_TYPE, CCAPI_EM_ORDER_TYPE_LIMIT},
                                            {"tdMode", "cash"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);

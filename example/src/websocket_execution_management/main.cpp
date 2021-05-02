@@ -18,24 +18,24 @@ class MyEventHandler : public EventHandler {
   bool processEvent(const Event& event, Session* session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto& message : event.getMessageList()) {
-          std::vector<Message> messageList = event.getMessageList();
+        std::vector<Message> messageList = event.getMessageList();
         // Expecting a single element inside of the messageList
         //            std::string messageType =
         //            messageList.at(0).typeToString(messageList.at(0).getType());
         Message::Type messageType = messageList.at(0).getType();
         switch (messageType) {
-          case Message::Type::EXECUTION_FILL: {
+          case Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE: {
             // Process the Futures positions and balances
             CCAPI_LOGGER_WARN("Got a response for EXECUTION_FILL");
           } break;
-          case Message::Type::EXECUTION_ORDER: {
+          case Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE: {
             // Process the USD and SPOT balances
             CCAPI_LOGGER_WARN("Got a response for EXECUTION_ORDER");
           } break;
-          case Message::Type::EXECUTION_MANAGEMENT_EVENTS: {
-            // Process the USD and SPOT balances
-            CCAPI_LOGGER_WARN("Got a response for EXECUTION_MANAGEMENT_EVENTS");
-          } break;
+          // case Message::Type::EXECUTION_MANAGEMENT_EVENTS: {
+          //   // Process the USD and SPOT balances
+          //   CCAPI_LOGGER_WARN("Got a response for EXECUTION_MANAGEMENT_EVENTS");
+          // } break;
           default:
             continue;
         }
@@ -50,11 +50,11 @@ class MyEventHandler : public EventHandler {
 
 } /* namespace ccapi */
 using ::ccapi::MyEventHandler;
+using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
-using ::ccapi::Request;
 
 int main(int argc, char** argv) {
   SessionOptions sessionOptions;
@@ -64,8 +64,8 @@ int main(int argc, char** argv) {
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   std::vector<Subscription> subscriptionList;
   //  Subscription subscription("coinbase", "BTC-USD", "ORDER");
-  Subscription subscriptionTrade("ftx", "", CCAPI_EM_TRADE);
-  Subscription subscriptionOrder("ftx", "", CCAPI_EM_ORDER);
+  Subscription subscriptionTrade("ftx", "", CCAPI_EM_PRIVATE_TRADE);
+  Subscription subscriptionOrder("ftx", "", CCAPI_EM_ORDER_UPDATE);
   subscriptionList.push_back(subscriptionTrade);
   subscriptionList.push_back(subscriptionOrder);
   session.subscribe(subscriptionList);

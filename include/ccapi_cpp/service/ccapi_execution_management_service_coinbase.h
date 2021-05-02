@@ -222,7 +222,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     auto subscription = wsConnection.subscriptionList.at(0);
     std::string channelId;
     auto fieldSet = subscription.getFieldSet();
-    if (fieldSet.find(CCAPI_EM_ORDER) != fieldSet.end()) {
+    if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
       channelId = "full";
     } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
       channelId = "matches";
@@ -250,7 +250,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     document.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
     document.AddMember("key", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
     document.AddMember("passphrase", rj::Value(apiPassphrase.c_str(), allocator).Move(), allocator);
-    document.AddMember("timestamp", rj::Value(timesconvertTextMessageToMessagetamp.c_str(), allocator).Move(), allocator);
+    document.AddMember("timestamp", rj::Value(timestamp.c_str(), allocator).Move(), allocator);
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);

@@ -88,14 +88,16 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_TYPE, "ordType"},
-                           {CCAPI_EM_ORDER_SIDE, "side"},
+                          {{CCAPI_EM_ORDER_SIDE, "side"},
                            {CCAPI_EM_ORDER_QUANTITY, "sz"},
                            {CCAPI_EM_ORDER_LIMIT_PRICE, "px"},
                            {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
                            {CCAPI_SYMBOL_ID, "instId"}});
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
+        }
+        if (param.find("ordType") == param.end()) {
+          document.AddMember("ordType", rj::Value("limit").Move(), allocator);
         }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
