@@ -407,6 +407,17 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return symbolId;
   }
+  std::string convertWebsocketSymbolIdToInstrument(std::string symbolId) {
+    std::string instrument = symbolId;
+    if (!symbolId.empty()) {
+      if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
+          this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
+              this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
+        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
+      }
+    }
+    return instrument;
+  }
   std::string convertInstrumentToRestSymbolId(std::string instrument) {
     std::string symbolId = instrument;
     CCAPI_LOGGER_DEBUG("instrument = " + instrument);
