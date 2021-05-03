@@ -214,12 +214,14 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     return elementList;
   }
 
-  std::vector<Message> convertTextMessageToMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<Message> convertTextMessageToMessage(const WsConnection& wsConnection, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     Message message;
     std::vector<Message> messageList;
     message.setTimeReceived(timeReceived);
+    auto subscription = wsConnection.subscriptionList.at(0);
+    message.setCorrelationIdList({subscription.getCorrelationId()});
     rj::Document document;
     document.Parse(textMessage.c_str());
     auto channel = std::string(document["channel"].GetString());

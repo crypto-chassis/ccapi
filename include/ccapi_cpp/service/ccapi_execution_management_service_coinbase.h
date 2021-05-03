@@ -258,7 +258,76 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     requestStringList.push_back(requestString);
     return requestStringList;
   }
+  std::vector<Message> convertTextMessageToMessage(const WsConnection& wsConnection, const std::string& textMessage, const TimePoint& timeReceived) override {
+    std::vector<Message> messageList;
+    Message message;
+    message.setTimeReceived(timeReceived);
+    auto subscription = wsConnection.subscriptionList.at(0);
+    auto fieldSet = subscription.getFieldSet();
+    auto instrumentSet = subscription.getInstrumentSet();
+    message.setCorrelationIdList({subscription.getCorrelationId()});
+    rj::Document document;
+    document.Parse(textMessage.c_str());
+    if (document.FindMember("user_id") != document.MemberEnd()) {
+      auto type = std::string(document["type"].GetString());
+      if (this->websocketFullChannelTypeSet.find(type) != websocketFullChannelTypeSet.end()) {
+        auto instrument = this->convertWebsocketSymbolIdToInstrument(document["product_id"].GetString());
+        if (instrumentSet.empty() || instrumentSet.find(instrument)!=instrumentSet.end()){
+          auto it = document.FindMember("time");
+          if (it != document.MemberEnd()) {
+            message.setTime(UtilTime::parse(std::string(it->value.GetString())));
+          } else {
+            auto it = document.FindMember("timestamp");
+            message.setTime(UtilTime::makeTimePoint(UtilTime::divide(std::string(it->value.GetString()))));
+          }
+          if (type == "match" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE)!=fieldSet.end()) {
+              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+              std::vector<Element> elementList;
+              Element element;
+              element.insert(CCAPI_TRADE_ID,document["trade_id"].GetString());
+              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE,document["price"].GetString());
+              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE,document["size"].GetString());
+              std::string takerSide = document["side"].GetString();
+              if (document.FindMember("taker_user_id")!=document.MemberEnd()) {
+                element.insert(CCAPI_EM_ORDER_SIDE,takerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                element.insert(CCAPI_IS_MAKER,"0");
+              } else if (document.FindMember("maker_user_id")!=document.MemberEnd()) {
+                element.insert(CCAPI_EM_ORDER_SIDE,takerSide == "sell" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                element.insert(CCAPI_IS_MAKER,"1");
+              }
+              element.insert(CCAPI_EM_ORDER_INSTRUMENT,document["product_id"].GetString());
+              elementList.emplace_back(std::move(element));
+              message.setElementList(elementList);
+              messageList.push_back(std::move(message));
+          } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE)!=fieldSet.end()){
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+            std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+              {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
+              {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("remaining_size", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_STATUS, std::make_pair("type", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("product_id", JsonDataType::STRING)},
+            };
+            if (type == "change") {
+              extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("new_size", JsonDataType::STRING)});
+            } else {
+              extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)});
+            }
+            auto info = this->extractOrderInfo(document, extractionFieldNameMap);
+            std::vector<Element> elementList;
+            elementList.emplace_back(std::move(info));
+            message.setElementList(elementList);
+            messageList.push_back(std::move(message));
+          }
+        }
+      }
+    }
+    return messageList;
+  }
   std::string apiPassphraseName;
+  std::set<std::string> websocketFullChannelTypeSet{"received","open","done","match","change","activate"};
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  public:

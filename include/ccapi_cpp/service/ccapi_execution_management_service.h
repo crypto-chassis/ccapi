@@ -482,26 +482,15 @@ class ExecutionManagementService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual std::vector<Message> convertTextMessageToMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
-    // CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
-    // rj::Document document;
-    // document.Parse(textMessage.c_str());
-    // Message message;
-    // message.setTimeReceived(timeReceived);
-    // message.setCorrelationIdList({request.getCorrelationId()});
-    // std::vector<Element> elementList;
-    // message.setType(EXECUTION_MANAGEMENT_EVENTS);
-    // message.setElementList(this->extractExecutionInfoFromRequest(hdl, operation, document));
-    std::vector<Message> messageList;
-    // messageList.push_back(std::move(message));
-    return messageList;
-  }
   virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
-    const std::vector<Message>& messageList = this->convertTextMessageToMessage(hdl, textMessage, timeReceived);
-    Event event;
-    event.setType(Event::Type::SUBSCRIPTION_DATA);
-    event.addMessages(messageList);
-    this->eventHandler(event);
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    const std::vector<Message>& messageList = this->convertTextMessageToMessage(wsConnection, textMessage, timeReceived);
+    if (!messageList.empty()) {
+      Event event;
+      event.setType(Event::Type::SUBSCRIPTION_DATA);
+      event.addMessages(messageList);
+      this->eventHandler(event);
+    }
   }
   virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
@@ -511,6 +500,9 @@ class ExecutionManagementService : public Service {
   }
   virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,
                                                            const std::map<std::string, std::string>& credential) {
+    return {};
+  }
+  virtual std::vector<Message> convertTextMessageToMessage(const WsConnection& wsConnection, const std::string& textMessage, const TimePoint& timeReceived) {
     return {};
   }
   std::string apiKeyName;
