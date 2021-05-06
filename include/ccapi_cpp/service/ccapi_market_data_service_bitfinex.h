@@ -31,10 +31,10 @@ class MarketDataServiceBitfinex : public MarketDataService {
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
-    std::string requestString = stringBuffer.GetString();
-    CCAPI_LOGGER_INFO("requestString = " + toString(requestString));
+    std::string sendString = stringBuffer.GetString();
+    CCAPI_LOGGER_INFO("sendString = " + toString(sendString));
     ErrorCode ec;
-    this->send(hdl, requestString, wspp::frame::opcode::text, ec);
+    this->send(hdl, sendString, wspp::frame::opcode::text, ec);
     if (ec) {
       this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
     }
@@ -233,7 +233,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
       }
     } else if (document.IsObject() && document.HasMember("event")) {
       if (std::string(document["event"].GetString()) == "conf") {
-        std::vector<std::string> requestStringList;
+        std::vector<std::string> sendStringList;
         CCAPI_LOGGER_TRACE("this->subscriptionListByConnectionIdChannelSymbolIdMap = " + toString(this->subscriptionListByConnectionIdChannelIdSymbolIdMap));
         for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
           auto channelId = subscriptionListByChannelIdSymbolId.first;
@@ -263,15 +263,15 @@ class MarketDataServiceBitfinex : public MarketDataService {
               rj::StringBuffer stringBuffer;
               rj::Writer<rj::StringBuffer> writer(stringBuffer);
               document.Accept(writer);
-              std::string requestString = stringBuffer.GetString();
-              requestStringList.push_back(std::move(requestString));
+              std::string sendString = stringBuffer.GetString();
+              sendStringList.push_back(std::move(sendString));
             }
           }
         }
-        for (const auto& requestString : requestStringList) {
-          CCAPI_LOGGER_INFO("requestString = " + requestString);
+        for (const auto& sendString : sendStringList) {
+          CCAPI_LOGGER_INFO("sendString = " + sendString);
           ErrorCode ec;
-          this->send(hdl, requestString, wspp::frame::opcode::text, ec);
+          this->send(hdl, sendString, wspp::frame::opcode::text, ec);
           if (ec) {
             this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
           }

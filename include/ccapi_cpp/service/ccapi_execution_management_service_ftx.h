@@ -242,7 +242,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
 
   std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-    std::vector<std::string> requestStringList;
+    std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -274,9 +274,9 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
-    std::string requestString = stringBuffer.GetString();
+    std::string sendString = stringBuffer.GetString();
     // First element should be the authentication string
-    requestStringList.push_back(requestString);
+    sendStringList.push_back(sendString);
 
     // Second element should be the channel to subscribe to
     std::string channelId;
@@ -296,9 +296,9 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     rj::StringBuffer stringBufferSubscribe;
     rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
     documentSubscribe.Accept(writerSubscribe);
-    std::string requestStringSubscribe = stringBufferSubscribe.GetString();
-    requestStringList.push_back(requestStringSubscribe);
-    return requestStringList;
+    std::string sendStringSubscribe = stringBufferSubscribe.GetString();
+    sendStringList.push_back(sendStringSubscribe);
+    return sendStringList;
   }
   std::string apiSubaccountName;
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_

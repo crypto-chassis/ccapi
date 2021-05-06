@@ -212,7 +212,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     preSignedText += "GET";
     preSignedText += "/users/self/verify";
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
-    std::vector<std::string> requestStringList;
+    std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -250,9 +250,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
-    std::string requestString = stringBuffer.GetString();
-    requestStringList.push_back(requestString);
-    return requestStringList;
+    std::string sendString = stringBuffer.GetString();
+    sendStringList.push_back(sendString);
+    return sendStringList;
   }
   Event::Type getEventType(const rj::Document& document) override {
     std::string type = document["type"].GetString();

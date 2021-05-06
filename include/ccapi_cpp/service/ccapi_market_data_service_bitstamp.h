@@ -20,7 +20,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
 
  private:
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+    std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
@@ -39,15 +39,15 @@ class MarketDataServiceBitstamp : public MarketDataService {
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
-        std::string requestString = stringBuffer.GetString();
-        requestStringList.push_back(std::move(requestString));
+        std::string sendString = stringBuffer.GetString();
+        sendStringList.push_back(std::move(sendString));
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
                            toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
-    return requestStringList;
+    return sendStringList;
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {

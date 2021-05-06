@@ -11,6 +11,7 @@ class MarketDataServiceFtx : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->shouldAlignSnapshot = true;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostFromUrl(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
@@ -20,7 +21,7 @@ class MarketDataServiceFtx : public MarketDataService {
  private:
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+    std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       rj::Value channel(rj::kObjectType);
@@ -42,11 +43,11 @@ class MarketDataServiceFtx : public MarketDataService {
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
-        std::string requestString = stringBuffer.GetString();
-        requestStringList.push_back(requestString);
+        std::string sendString = stringBuffer.GetString();
+        sendStringList.push_back(sendString);
       }
     }
-    return requestStringList;
+    return sendStringList;
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
@@ -93,16 +94,12 @@ class MarketDataServiceFtx : public MarketDataService {
       marketDataMessage.tp = UtilTime::parse(std::string(document["data"]["time"].GetString()));
       marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
       MarketDataMessage::TypeForDataPoint dataPoint;
-      dataPoint.insert(
-          {MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(document["data"]["price"].GetString()))});
-      dataPoint.insert(
-          {MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(document["data"]["size"].GetString()))});
+      dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(document["data"]["price"].GetString()))});
+      dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(document["data"]["size"].GetString()))});
       dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["data"]["tradeId"].GetInt64())});
       dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["data"]["side"].GetString()) == "sell" ? "1" : "0"});
       marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
       marketDataMessageList.push_back(std::move(marketDataMessage));
-    } else if (type == "heartbeat") {
-      // TODO(cryptochassis): implement
     } else if (type == "partial") {
       auto symbolId = std::string(document["market"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_FTX_CHANNEL_ORDERBOOKS) + "|" + symbolId;

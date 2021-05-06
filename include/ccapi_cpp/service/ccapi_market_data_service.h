@@ -187,6 +187,8 @@ class MarketDataService : public Service {
         } else {
           channelId = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH50;
         }
+      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_FTX) {
+        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = 100;
       }
     } else if (field == CCAPI_TRADE) {
       if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
@@ -1319,11 +1321,11 @@ class MarketDataService : public Service {
   }
   virtual void subscribeToExchange(const WsConnection& wsConnection) {
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-    std::vector<std::string> requestStringList = this->createSendStringList(wsConnection);
-    for (const auto& requestString : requestStringList) {
-      CCAPI_LOGGER_INFO("requestString = " + requestString);
+    std::vector<std::string> sendStringList = this->createSendStringList(wsConnection);
+    for (const auto& sendString : sendStringList) {
+      CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
-      this->send(wsConnection.hdl, requestString, wspp::frame::opcode::text, ec);
+      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
       }

@@ -20,7 +20,7 @@ class MarketDataServiceKraken : public MarketDataService {
 
  private:
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+    std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       if (channelId.rfind(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
@@ -54,8 +54,8 @@ class MarketDataServiceKraken : public MarketDataService {
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
           document.Accept(writer);
-          std::string requestString = stringBuffer.GetString();
-          requestStringList.push_back(requestString);
+          std::string sendString = stringBuffer.GetString();
+          sendStringList.push_back(sendString);
         }
       } else if (channelId == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
         rj::Document document;
@@ -77,11 +77,11 @@ class MarketDataServiceKraken : public MarketDataService {
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
-        std::string requestString = stringBuffer.GetString();
-        requestStringList.push_back(requestString);
+        std::string sendString = stringBuffer.GetString();
+        sendStringList.push_back(sendString);
       }
     }
-    return requestStringList;
+    return sendStringList;
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {

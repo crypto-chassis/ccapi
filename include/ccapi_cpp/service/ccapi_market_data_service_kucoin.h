@@ -33,7 +33,7 @@ class MarketDataServiceKucoin : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+    std::vector<std::string> sendStringList;
     std::map<std::string, std::vector<std::string>> symbolListByTopicMap;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
@@ -67,10 +67,10 @@ class MarketDataServiceKucoin : public MarketDataService {
       rj::StringBuffer stringBuffer;
       rj::Writer<rj::StringBuffer> writer(stringBuffer);
       document.Accept(writer);
-      std::string requestString = stringBuffer.GetString();
-      requestStringList.push_back(requestString);
+      std::string sendString = stringBuffer.GetString();
+      sendStringList.push_back(sendString);
     }
-    return requestStringList;
+    return sendStringList;
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
