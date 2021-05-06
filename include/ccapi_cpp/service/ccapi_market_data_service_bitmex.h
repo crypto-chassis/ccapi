@@ -20,7 +20,7 @@ class MarketDataServiceBitmex : public MarketDataService {
 
  private:
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     rj::Document document;
     document.SetObject();

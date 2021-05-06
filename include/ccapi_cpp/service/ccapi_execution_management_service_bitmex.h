@@ -22,7 +22,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     this->getOrderTarget = prefix + "/order";
     this->getOpenOrdersTarget = prefix + "/order";
     this->cancelOpenOrdersTarget = prefix + "/order/all";
-    this->orderStatusOpenSet = {"New"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBitmex() {}

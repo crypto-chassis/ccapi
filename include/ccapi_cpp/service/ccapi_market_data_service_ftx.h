@@ -19,7 +19,7 @@ class MarketDataServiceFtx : public MarketDataService {
 
  private:
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;

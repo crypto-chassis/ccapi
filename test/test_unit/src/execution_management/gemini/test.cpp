@@ -218,7 +218,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestGetO
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "3");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "3");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 1200);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_CLOSED);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "is_not_live");
 }
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOpenOrdersAllInstruments) {

@@ -20,7 +20,6 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
     this->cancelOrderTarget = CCAPI_HUOBI_USDT_SWAP_CANCEL_ORDER_TARGET;
     this->getOrderTarget = CCAPI_HUOBI_USDT_SWAP_GET_ORDER_TARGET;
     this->getOpenOrdersTarget = CCAPI_HUOBI_USDT_SWAP_GET_OPEN_ORDERS_TARGET;
-    this->orderStatusOpenSet = {"1", "2", "3", "4"};
     this->isDerivatives = true;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

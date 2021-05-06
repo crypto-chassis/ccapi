@@ -273,7 +273,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageRestGetO
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_OPEN);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "New");
 }
 
 TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOpenOrdersOneInstrument) {

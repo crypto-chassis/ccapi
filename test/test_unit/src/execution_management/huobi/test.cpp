@@ -224,7 +224,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOr
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "100.1000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "10.1000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "1011.0100000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_CLOSED);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "filled");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOpenOrdersOneInstrument) {

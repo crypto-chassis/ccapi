@@ -18,7 +18,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
   virtual ~MarketDataServiceCoinbase() {}
 
  private:
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     rj::Document document;
     document.SetObject();

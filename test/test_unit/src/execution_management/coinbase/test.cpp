@@ -194,7 +194,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGe
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.00000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.01291771");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "9.9750556620000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_CLOSED);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "done");
 }
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOpenOrdersOneInstrument) {
@@ -398,6 +398,282 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGe
   EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "a1b2c3d4");
   EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USD");
   EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "1.00");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchTaker) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_PRIVATE_TRADE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+    "type": "match",
+    "trade_id": 10,
+    "sequence": 50,
+    "maker_order_id": "ac928c66-ca53-498f-9c13-a110027a60e8",
+    "taker_order_id": "132fb6ae-456b-4654-b4e0-d681ac05cea1",
+    "time": "2014-11-07T08:19:27.028459Z",
+    "product_id": "BTC-USD",
+    "size": "5.23512",
+    "price": "400.23",
+    "side": "sell",
+    "taker_user_id": "5844eceecf7e803e259d0365",
+    "user_id": "5844eceecf7e803e259d0365",
+    "taker_profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+    "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+    "taker_fee_rate": "0.005"
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "10");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "400.23");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "5.23512");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchMaker) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_PRIVATE_TRADE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+    "type": "match",
+    "trade_id": 10,
+    "sequence": 50,
+    "maker_order_id": "ac928c66-ca53-498f-9c13-a110027a60e8",
+    "taker_order_id": "132fb6ae-456b-4654-b4e0-d681ac05cea1",
+    "time": "2014-11-07T08:19:27.028459Z",
+    "product_id": "BTC-USD",
+    "size": "5.23512",
+    "price": "400.23",
+    "side": "sell",
+    "maker_user_id": "5844eceecf7e803e259d0365",
+    "user_id": "5844eceecf7e803e259d0365",
+    "maker_profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+    "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+    "maker_fee_rate": "0.005"
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "10");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "400.23");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "5.23512");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceived) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+    "type": "received",
+    "user_id": "5844eceecf7e803e259d0365",
+    "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+    "time": "2014-11-07T08:19:27.028459Z",
+    "product_id": "BTC-USD",
+    "sequence": 10,
+    "order_id": "d50ec984-77a8-460a-b958-66f114b0de9b",
+    "size": "1.34",
+    "price": "502.1",
+    "side": "buy",
+    "order_type": "limit"
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "d50ec984-77a8-460a-b958-66f114b0de9b");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "502.1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.34");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "received");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceivedMarketOrder) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+      "type": "received",
+      "user_id": "5844eceecf7e803e259d0365",
+      "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+      "time": "2014-11-09T08:19:27.028459Z",
+      "product_id": "BTC-USD",
+      "sequence": 12,
+      "order_id": "dddec984-77a8-460a-b958-66f114b0de9b",
+      "funds": "3000.234",
+      "side": "buy",
+      "order_type": "market"
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "dddec984-77a8-460a-b958-66f114b0de9b");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "received");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageOpen) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+      "type": "open",
+      "user_id": "5844eceecf7e803e259d0365",
+      "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+      "time": "2014-11-07T08:19:27.028459Z",
+      "product_id": "BTC-USD",
+      "sequence": 10,
+      "order_id": "d50ec984-77a8-460a-b958-66f114b0de9b",
+      "price": "200.2",
+      "remaining_size": "1.00",
+      "side": "sell"
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "d50ec984-77a8-460a-b958-66f114b0de9b");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "200.2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "1.00");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "open");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageDoneFilled) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+      "type": "done",
+      "user_id": "5844eceecf7e803e259d0365",
+      "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+      "time": "2014-11-07T08:19:27.028459Z",
+      "product_id": "BTC-USD",
+      "sequence": 10,
+      "price": "200.2",
+      "order_id": "d50ec984-77a8-460a-b958-66f114b0de9b",
+      "reason": "filled",
+      "side": "sell",
+      "remaining_size": "0"
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "d50ec984-77a8-460a-b958-66f114b0de9b");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "200.2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "done");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageChange) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+      "type": "change",
+      "user_id": "5844eceecf7e803e259d0365",
+      "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
+      "time": "2014-11-07T08:19:27.028459Z",
+      "sequence": 80,
+      "order_id": "ac928c66-ca53-498f-9c13-a110027a60e8",
+      "product_id": "BTC-USD",
+      "new_size": "5.23512",
+      "old_size": "12.234412",
+      "price": "400.23",
+      "side": "sell"
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "ac928c66-ca53-498f-9c13-a110027a60e8");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "400.23");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "5.23512");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "change");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
+}
+
+TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageActivate) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "test-product", CCAPI_EM_ORDER_UPDATE);
+  rj::Document document;
+  document.Parse(R"(
+  {
+    "type": "activate",
+    "product_id": "test-product",
+    "timestamp": "1483736448.299000",
+    "user_id": "12",
+    "profile_id": "30000727-d308-cf50-7b1c-c06deb1934fc",
+    "order_id": "7b52009b-64fd-0a2a-49e6-d8a939753077",
+    "stop_type": "entry",
+    "side": "buy",
+    "stop_price": "80",
+    "size": "2",
+    "funds": "50",
+    "private": true
+  }
+  )");
+  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "7b52009b-64fd-0a2a-49e6-d8a939753077");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "activate");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "test-product");
 }
 } /* namespace ccapi */
 #endif

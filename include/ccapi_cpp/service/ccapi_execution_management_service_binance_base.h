@@ -8,9 +8,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
  public:
   ExecutionManagementServiceBinanceBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                         ServiceContextPtr serviceContextPtr)
-      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->orderStatusOpenSet = {"NEW", "PARTIALLY_FILLED"};
-  }
+      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~ExecutionManagementServiceBinanceBase() {}
 
  protected:

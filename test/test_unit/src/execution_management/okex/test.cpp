@@ -52,10 +52,8 @@ TEST_F(ExecutionManagementServiceOkexTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
-                                           {CCAPI_EM_ORDER_QUANTITY, "2"},
-                                           {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"},
-                                           {"tdMode", "cash"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "2"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"}, {"tdMode", "cash"}};
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -243,7 +241,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOrd
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "323");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "3");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 6);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_OPEN);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "live");
 }
 
 TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersOneInstrument) {
