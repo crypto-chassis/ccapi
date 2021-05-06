@@ -327,7 +327,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageRestGetOr
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "3.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_CLOSED);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "CANCELED");
 }
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOpenOrders) {

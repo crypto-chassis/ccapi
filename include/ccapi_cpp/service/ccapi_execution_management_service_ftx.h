@@ -34,7 +34,6 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     this->getOrderTarget = "/api/orders";
     this->getOpenOrdersTarget = "/api/orders";
     this->cancelOpenOrdersTarget = "/api/orders";
-    this->orderStatusOpenSet = {"new"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceFtx() {}
@@ -214,16 +213,13 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     return elementList;
   }
 
-  std::vector<Message> convertTextMessageToMessage(const WsConnection& wsConnection, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<Message> convertDocumentToMessage(const Subscription& subscription, const rj::Document& document, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     Message message;
     std::vector<Message> messageList;
     message.setTimeReceived(timeReceived);
-    auto subscription = wsConnection.subscriptionList.at(0);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    rj::Document document;
-    document.Parse(textMessage.c_str());
     auto channel = std::string(document["channel"].GetString());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
@@ -244,8 +240,8 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     return messageList;
   }
 
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,
-                                                   const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+                                                                const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> requestStringList;
     rj::Document document;
     document.SetObject();
@@ -283,7 +279,6 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     requestStringList.push_back(requestString);
 
     // Second element should be the channel to subscribe to
-    auto subscription = wsConnection.subscriptionList.at(0);
     std::string channelId;
     auto fieldSet = subscription.getFieldSet();
     if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {

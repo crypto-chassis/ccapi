@@ -54,9 +54,6 @@ class ExecutionManagementService : public Service {
       }
     }
   }
-  std::string convertOrderStatus(const std::string& status) {
-    return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN : CCAPI_EM_ORDER_STATUS_CLOSED;
-  }
   virtual std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
@@ -98,8 +95,6 @@ class ExecutionManagementService : public Service {
                                             : y.second.second == JsonDataType::DOUBLE ? std::to_string(it->value.GetDouble()) : "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
-        } else if (y.first == CCAPI_EM_ORDER_STATUS) {
-          value = this->convertOrderStatus(value);
         } else if (y.first == CCAPI_EM_ORDER_SIDE) {
           value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
         }
@@ -168,7 +163,7 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
     message.setCorrelationIdList(correlationIdList);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event);
@@ -198,7 +193,8 @@ class ExecutionManagementService : public Service {
   }
   virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-    std::vector<std::string> requestStringList = this->createRequestStringList(wsConnection, now, credential);
+    auto subscription = wsConnection.subscriptionList.at(0);
+    std::vector<std::string> requestStringList = this->createSendStringListFromSubscription(subscription, now, credential);
     for (const auto& requestString : requestStringList) {
       CCAPI_LOGGER_INFO("requestString = " + requestString);
       ErrorCode ec;
@@ -311,7 +307,7 @@ class ExecutionManagementService : public Service {
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
     event.setMessageList({message});
@@ -484,11 +480,23 @@ class ExecutionManagementService : public Service {
   }
   virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    const std::vector<Message>& messageList = this->convertTextMessageToMessage(wsConnection, textMessage, timeReceived);
-    if (!messageList.empty()) {
-      Event event;
-      event.setType(Event::Type::SUBSCRIPTION_DATA);
+    auto subscription = wsConnection.subscriptionList.at(0);
+    rj::Document document;
+    document.Parse(textMessage.c_str());
+    auto eventType = this->getEventType(document);
+    Event event;
+    event.setType(eventType);
+    if (eventType == Event::Type::SUBSCRIPTION_STATUS) {
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::SUBSCRIPTION_STARTED);
+      message.setCorrelationIdList({subscription.getCorrelationId()});
+      event.addMessages({message});
+    } else if (eventType == Event::Type::SUBSCRIPTION_DATA) {
+      const std::vector<Message>& messageList = this->convertDocumentToMessage(subscription, document, timeReceived);
       event.addMessages(messageList);
+    }
+    if (!event.getMessageList().empty()) {
       this->eventHandler(event);
     }
   }
@@ -498,11 +506,12 @@ class ExecutionManagementService : public Service {
   virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
   }
-  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection, const TimePoint& now,
-                                                           const std::map<std::string, std::string>& credential) {
+  virtual std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+                                                                        const std::map<std::string, std::string>& credential) {
     return {};
   }
-  virtual std::vector<Message> convertTextMessageToMessage(const WsConnection& wsConnection, const std::string& textMessage, const TimePoint& timeReceived) {
+  virtual Event::Type getEventType(const rj::Document& document) { return Event::Type::UNKNOWN; }
+  virtual std::vector<Message> convertDocumentToMessage(const Subscription& subscription, const rj::Document& document, const TimePoint& timeReceived) {
     return {};
   }
   std::string apiKeyName;
@@ -514,7 +523,6 @@ class ExecutionManagementService : public Service {
   std::string cancelOpenOrdersTarget;
   std::string getAccountsTarget;
   std::string getAccountBalancesTarget;
-  std::set<std::string> orderStatusOpenSet;
 };
 } /* namespace ccapi */
 #endif

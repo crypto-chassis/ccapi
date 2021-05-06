@@ -19,7 +19,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
   virtual ~MarketDataServiceBitstamp() {}
 
  private:
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;

@@ -18,7 +18,7 @@ class MarketDataServiceGemini : public MarketDataService {
   virtual ~MarketDataServiceGemini() {}
 
  private:
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);

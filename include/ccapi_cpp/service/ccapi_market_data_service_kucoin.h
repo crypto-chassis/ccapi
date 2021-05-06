@@ -32,7 +32,7 @@ class MarketDataServiceKucoin : public MarketDataService {
         std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> requestStringList;
     std::map<std::string, std::vector<std::string>> symbolListByTopicMap;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {

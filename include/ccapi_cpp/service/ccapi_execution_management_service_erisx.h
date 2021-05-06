@@ -23,7 +23,6 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     this->getOrderTarget = prefix + "/order/{partyID}/{orderID}";
     this->getOpenOrdersTarget = prefix + "/order-mass-status";
     this->cancelOpenOrdersTarget = prefix + "/cancel-all";
-    this->orderStatusOpenSet = {"NEW", "PARTIAL FILLED"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceErisx() {}

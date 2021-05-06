@@ -102,7 +102,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
     message.setCorrelationIdList(correlationIdList);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event);
@@ -306,7 +306,7 @@ class MarketDataService : public Service {
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
     event.setMessageList({message});
@@ -1319,7 +1319,7 @@ class MarketDataService : public Service {
   }
   virtual void subscribeToExchange(const WsConnection& wsConnection) {
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-    std::vector<std::string> requestStringList = this->createRequestStringList(wsConnection);
+    std::vector<std::string> requestStringList = this->createSendStringList(wsConnection);
     for (const auto& requestString : requestStringList) {
       CCAPI_LOGGER_INFO("requestString = " + requestString);
       ErrorCode ec;
@@ -1376,7 +1376,7 @@ class MarketDataService : public Service {
                                                             const TimePoint& timeReceived) {
     return {};
   }
-  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) { return {}; }
+  virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, int>>> marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap;

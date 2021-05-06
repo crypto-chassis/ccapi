@@ -22,7 +22,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     this->cancelOrderTarget = "/api/v5/trade/cancel-order";
     this->getOrderTarget = "/api/v5/trade/order";
     this->getOpenOrdersTarget = "/api/v5/trade/orders-pending";
-    this->orderStatusOpenSet = {"live", "partially_filled"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceOkex() {}

@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     if (argc != 6) {
       std::cerr << "Usage: <program name> create_order <symbol> <buy or sell> <order quantity> <limit price>\n"
                 << "Example:\n"
-                << "    main create_order BTCUSD buy 0.0005 20000" << std::endl;
+                << "    main create_order BTCUSD buy 0.001 20000" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
