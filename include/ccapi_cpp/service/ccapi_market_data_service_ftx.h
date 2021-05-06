@@ -52,7 +52,9 @@ class MarketDataServiceFtx : public MarketDataService {
                                                     const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+    document.Parse(quotedTextMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
@@ -62,7 +64,7 @@ class MarketDataServiceFtx : public MarketDataService {
       MarketDataMessage marketDataMessage;
       marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-      auto timePair = UtilTime::divide(std::string(std::to_string(document["data"]["time"].GetDouble())));
+      auto timePair = UtilTime::divide(document["data"]["time"].GetString());
       auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
       tp += std::chrono::nanoseconds(timePair.second);
       marketDataMessage.tp = tp;
@@ -71,14 +73,14 @@ class MarketDataServiceFtx : public MarketDataService {
       const rj::Value& bids = document["data"]["bids"];
       for (auto& ask : asks.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::to_string(ask[0].GetFloat()))});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::to_string(ask[1].GetFloat()))});
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(ask[0].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(ask[1].GetString())});
         marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
       }
       for (auto& bid : bids.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::to_string(bid[0].GetFloat()))});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::to_string(bid[1].GetFloat()))});
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(bid[0].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(bid[1].GetString())});
         marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
       }
       marketDataMessageList.push_back(std::move(marketDataMessage));
@@ -92,9 +94,9 @@ class MarketDataServiceFtx : public MarketDataService {
       marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
       MarketDataMessage::TypeForDataPoint dataPoint;
       dataPoint.insert(
-          {MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(std::to_string(document["data"]["price"].GetFloat())))});
+          {MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(document["data"]["price"].GetString()))});
       dataPoint.insert(
-          {MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(std::to_string(document["data"]["size"].GetFloat())))});
+          {MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(document["data"]["size"].GetString()))});
       dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["data"]["tradeId"].GetInt64())});
       dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["data"]["side"].GetString()) == "sell" ? "1" : "0"});
       marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
@@ -108,26 +110,26 @@ class MarketDataServiceFtx : public MarketDataService {
       marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
-      auto timePair = UtilTime::divide(std::string(std::to_string(document["data"]["time"].GetDouble())));
+      auto timePair = UtilTime::divide(std::string(document["data"]["time"].GetString()));
       auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
       tp += std::chrono::nanoseconds(timePair.second);
       marketDataMessage.tp = tp;
       const rj::Value& bids = document["data"]["bids"];
       for (auto& x : bids.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::to_string(x[0].GetFloat()))});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::to_string(x[1].GetFloat()))});
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
         marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
       }
       const rj::Value& asks = document["data"]["asks"];
       for (auto& x : asks.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::to_string(x[0].GetFloat()))});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::to_string(x[1].GetFloat()))});
+        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
         marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
       }
       marketDataMessageList.push_back(std::move(marketDataMessage));
-    } else if (type == "subscriptions") {
+    } else if (type == "subscribed") {
       // TODO(cryptochassis): implement
     } else if (type == "error") {
       // TODO(cryptochassis): implement
