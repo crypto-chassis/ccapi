@@ -49,6 +49,29 @@ class MarketDataServiceFtx : public MarketDataService {
     }
     return sendStringList;
   }
+  std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
+    auto i = 0;
+    auto i1 = snapshotBid.rbegin();
+    auto i2 = snapshotAsk.begin();
+    std::vector<std::string> csData;
+    while (i < 100 && (i1 != snapshotBid.rend() || i2 != snapshotAsk.end())) {
+      if (i1 != snapshotBid.rend()) {
+        csData.push_back(toString(i1->first));
+        csData.push_back(i1->second);
+        ++i1;
+      }
+      if (i2 != snapshotAsk.end()) {
+        csData.push_back(toString(i2->first));
+        csData.push_back(i2->second);
+        ++i2;
+      }
+      ++i;
+    }
+    std::string csStr = UtilString::join(csData, ":");
+    CCAPI_LOGGER_DEBUG("csStr = " + csStr);
+    uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
+    return intToHex(csCalc);
+  }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -62,6 +85,10 @@ class MarketDataServiceFtx : public MarketDataService {
     if (type == "update") {
       auto symbolId = std::string(document["market"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_FTX_CHANNEL_ORDERBOOKS) + "|" + symbolId;
+      if (this->sessionOptions.enableCheckOrderBookChecksum) {
+        this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
+            intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoul(document["data"]["checksum"].GetString()))));
+      }
       MarketDataMessage marketDataMessage;
       marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
@@ -74,14 +101,24 @@ class MarketDataServiceFtx : public MarketDataService {
       const rj::Value& bids = document["data"]["bids"];
       for (auto& ask : asks.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(ask[0].GetString())});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(ask[1].GetString())});
+        if (this->sessionOptions.enableCheckOrderBookChecksum) {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, ask[0].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, ask[1].GetString()});
+        } else {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(ask[0].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(ask[1].GetString())});
+        }
         marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
       }
       for (auto& bid : bids.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(bid[0].GetString())});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(bid[1].GetString())});
+        if (this->sessionOptions.enableCheckOrderBookChecksum) {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, bid[0].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, bid[1].GetString()});
+        } else {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(bid[0].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(bid[1].GetString())});
+        }
         marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
       }
       marketDataMessageList.push_back(std::move(marketDataMessage));
@@ -103,6 +140,10 @@ class MarketDataServiceFtx : public MarketDataService {
     } else if (type == "partial") {
       auto symbolId = std::string(document["market"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_FTX_CHANNEL_ORDERBOOKS) + "|" + symbolId;
+      if (this->sessionOptions.enableCheckOrderBookChecksum) {
+        this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
+            intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoul(document["data"]["checksum"].GetString()))));
+      }
       MarketDataMessage marketDataMessage;
       marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
@@ -114,15 +155,25 @@ class MarketDataServiceFtx : public MarketDataService {
       const rj::Value& bids = document["data"]["bids"];
       for (auto& x : bids.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+        if (this->sessionOptions.enableCheckOrderBookChecksum) {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
+        } else {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+        }
         marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
       }
       const rj::Value& asks = document["data"]["asks"];
       for (auto& x : asks.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
-        dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-        dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+        if (this->sessionOptions.enableCheckOrderBookChecksum) {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
+        } else {
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+        }
         marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
       }
       marketDataMessageList.push_back(std::move(marketDataMessage));
