@@ -485,14 +485,16 @@ class MarketDataService : public Service {
     this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void updateOrderBook(std::map<Decimal, std::string>& snapshot, Decimal& price, std::string& size) {
+  void updateOrderBook(std::map<Decimal, std::string>& snapshot, Decimal& price, std::string& size, bool sizeMayHaveTrailingZero = false) {
     auto it = snapshot.find(price);
     if (it == snapshot.end()) {
-      if (size != "0") {
+      if ((!sizeMayHaveTrailingZero && size != "0") ||
+          (sizeMayHaveTrailingZero && size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0")) {
         snapshot.emplace(std::move(price), std::move(size));
       }
     } else {
-      if (size != "0") {
+      if ((!sizeMayHaveTrailingZero && size != "0") ||
+          (sizeMayHaveTrailingZero && size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0")) {
         it->second = std::move(size);
       } else {
         snapshot.erase(price);
@@ -857,7 +859,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotBid.emplace(std::move(decimalPrice), std::move(size));
         }
         CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBid, maxMarketDepth));
@@ -865,7 +867,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotAsk.emplace(std::move(decimalPrice), std::move(size));
         }
         CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, " + toString(maxMarketDepth) + ") = " + firstNToString(snapshotAsk, maxMarketDepth));
@@ -945,15 +947,15 @@ class MarketDataService : public Service {
           for (auto& y : detail) {
             auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
             auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-            Decimal decimalPrice(price);
-            this->updateOrderBook(snapshotBid, decimalPrice, size);
+            Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
+            this->updateOrderBook(snapshotBid, decimalPrice, size, this->sessionOptions.enableCheckOrderBookChecksum);
           }
         } else if (type == MarketDataMessage::DataType::ASK) {
           for (auto& y : detail) {
             auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
             auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-            Decimal decimalPrice(price);
-            this->updateOrderBook(snapshotAsk, decimalPrice, size);
+            Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
+            this->updateOrderBook(snapshotAsk, decimalPrice, size, this->sessionOptions.enableCheckOrderBookChecksum);
           }
         } else {
           CCAPI_LOGGER_WARN("extra type " + MarketDataMessage::dataTypeToString(type));
@@ -1210,6 +1212,20 @@ class MarketDataService : public Service {
   }
   virtual bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk,
                                       const std::string& receivedOrderBookChecksumStr, bool& shouldProcessRemainingMessage) {
+    if (this->sessionOptions.enableCheckOrderBookChecksum) {
+      std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(snapshotBid, snapshotAsk);
+      if (calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
+        shouldProcessRemainingMessage = false;
+        CCAPI_LOGGER_ERROR("calculatedOrderBookChecksumStr = " + calculatedOrderBookChecksumStr);
+        CCAPI_LOGGER_ERROR("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
+        CCAPI_LOGGER_ERROR("snapshotBid = " + toString(snapshotBid));
+        CCAPI_LOGGER_ERROR("snapshotAsk = " + toString(snapshotAsk));
+        return false;
+      } else {
+        CCAPI_LOGGER_DEBUG("calculatedOrderBookChecksumStr = " + calculatedOrderBookChecksumStr);
+        CCAPI_LOGGER_DEBUG("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
+      }
+    }
     return true;
   }
   virtual bool checkOrderBookCrossed(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk,
@@ -1377,6 +1393,9 @@ class MarketDataService : public Service {
   virtual std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                             const TimePoint& timeReceived) {
     return {};
+  }
+  virtual std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
+    return "";
   }
   virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;

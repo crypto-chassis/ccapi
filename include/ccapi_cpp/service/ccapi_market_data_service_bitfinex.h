@@ -331,19 +331,19 @@ class MarketDataServiceBitfinex : public MarketDataService {
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
   }
-  std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
+  std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
     auto i = 0;
     auto i1 = snapshotBid.rbegin();
     auto i2 = snapshotAsk.begin();
     std::vector<std::string> csData;
     while (i < 25 && (i1 != snapshotBid.rend() || i2 != snapshotAsk.end())) {
       if (i1 != snapshotBid.rend()) {
-        csData.push_back(toString(i1->first));
+        csData.push_back(i1->first.toString());
         csData.push_back(i1->second);
         ++i1;
       }
       if (i2 != snapshotAsk.end()) {
-        csData.push_back(toString(i2->first));
+        csData.push_back(i2->first.toString());
         csData.push_back("-" + i2->second);
         ++i2;
       }
@@ -353,21 +353,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
     CCAPI_LOGGER_DEBUG("csStr = " + csStr);
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
-  }
-  bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk,
-                              const std::string& receivedOrderBookChecksumStr, bool& shouldProcessRemainingMessage) override {
-    if (this->sessionOptions.enableCheckOrderBookChecksum) {
-      std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(snapshotBid, snapshotAsk);
-      if (calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
-        shouldProcessRemainingMessage = false;
-        CCAPI_LOGGER_ERROR("calculatedOrderBookChecksumStr = " + toString(calculatedOrderBookChecksumStr));
-        CCAPI_LOGGER_ERROR("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
-        CCAPI_LOGGER_ERROR("snapshotBid = " + toString(snapshotBid));
-        CCAPI_LOGGER_ERROR("snapshotAsk = " + toString(snapshotAsk));
-        return false;
-      }
-    }
-    return true;
   }
   void onIncorrectStatesFound(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
                               const std::string& exchangeSubscriptionId, std::string const& reason) override {

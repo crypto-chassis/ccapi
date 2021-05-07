@@ -7,7 +7,7 @@ namespace ccapi {
 class Decimal CCAPI_FINAL {
  public:
   Decimal() {}
-  explicit Decimal(const std::string& originalValue) {
+  explicit Decimal(const std::string& originalValue, bool keepTrailingZero = false) {
     if (originalValue.empty()) {
       CCAPI_LOGGER_FATAL("Decimal constructor input value cannot be empty");
     }
@@ -51,7 +51,9 @@ class Decimal CCAPI_FINAL {
     this->before = std::stoul(splitted.at(0));
     if (splitted.size() > 1) {
       this->frac = splitted.at(1);
-      this->frac = UtilString::rtrim(this->frac, "0");
+      if (!keepTrailingZero) {
+        this->frac = UtilString::rtrim(this->frac, "0");
+      }
     }
   }
   std::string toString() const {
