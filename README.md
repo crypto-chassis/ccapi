@@ -1,3 +1,10 @@
+# Telegram Account Issue:
+We are experiencing an account issue on Telegram and have escalated it to their support team for resolution. Meanwhile, please join our Discord server for immediate discussions and urgent issues:
+
+https://discord.gg/b5EKcp9s8T
+
+We sincerely apologize for the inconvenience.
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
