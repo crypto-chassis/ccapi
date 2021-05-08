@@ -87,6 +87,10 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("FTX-KEY", apiKey);
+    auto apiSubaccountName = mapGetWithDefault(credential, this->apiSubaccountName);
+    if (!apiSubaccountName.empty()) {
+      req.set("FTX-SUBACCOUNT", apiSubaccountName);
+    }
 
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {

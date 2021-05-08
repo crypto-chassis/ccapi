@@ -207,7 +207,7 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   void onResponseError(const Request& request, int statusCode, const std::string& errorMessage) {
     std::string statusCodeStr = std::to_string(statusCode);
-    CCAPI_LOGGER_ERROR("statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
+    CCAPI_LOGGER_ERROR("request = "+toString(request) + ", statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
     Event event;
     event.setType(Event::Type::REQUEST_STATUS);
     Message message;
