@@ -12,7 +12,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_GEMINI_API_KEY;
     this->apiSecretName = CCAPI_GEMINI_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -78,10 +78,12 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "amount"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "amount"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         if (param.find("type") == param.end()) {
           document.AddMember("type", rj::Value("exchange limit").Move(), allocator);
@@ -95,7 +97,10 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "order_id"},
+                          });
         this->signRequest(req, document, allocator, param, now, credential);
       } break;
       case Request::Operation::GET_ORDER: {
@@ -106,7 +111,11 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}, {CCAPI_EM_ACCOUNT_ID, "account"}});
+                          {
+                              {CCAPI_EM_ORDER_ID, "order_id"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
+                              {CCAPI_EM_ACCOUNT_ID, "account"},
+                          });
         this->signRequest(req, document, allocator, param, now, credential);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
@@ -115,7 +124,10 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, {}, {{CCAPI_EM_ACCOUNT_ID, "account"}});
+        this->appendParam(document, allocator, {},
+                          {
+                              {CCAPI_EM_ACCOUNT_ID, "account"},
+                          });
         this->signRequest(req, document, allocator, {}, now, credential);
       } break;
       case Request::Operation::CANCEL_OPEN_ORDERS: {
@@ -124,7 +136,10 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, {}, {{CCAPI_EM_ACCOUNT_ID, "account"}});
+        this->appendParam(document, allocator, {},
+                          {
+                              {CCAPI_EM_ACCOUNT_ID, "account"},
+                          });
         this->signRequest(req, document, allocator, {}, now, credential);
       } break;
       default:

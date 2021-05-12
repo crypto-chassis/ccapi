@@ -30,8 +30,14 @@ int main(int argc, char** argv) {
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
-  request.appendParam(
-      {{"side", "SELL"}, {"type", "STOP_LOSS_LIMIT"}, {"quantity", "0.0005"}, {"stopPrice", "20001"}, {"price", "20000"}, {"timeInForce", "GTC"}});
+  request.appendParam({
+      {"side", "SELL"},
+      {"type", "STOP_LOSS_LIMIT"},
+      {"quantity", "0.0005"},
+      {"stopPrice", "20001"},
+      {"price", "20000"},
+      {"timeInForce", "GTC"},
+  });
   session.sendRequest(request);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();

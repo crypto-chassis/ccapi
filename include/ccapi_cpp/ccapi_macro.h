@@ -187,6 +187,9 @@
 #ifndef CCAPI_EXECUTION_MANAGEMENT
 #define CCAPI_EXECUTION_MANAGEMENT "execution_management"
 #endif
+#ifndef CCAPI_FIX
+#define CCAPI_FIX "fix"
+#endif
 #ifndef CCAPI_UNKNOWN
 #define CCAPI_UNKNOWN "unknown"
 #endif
@@ -366,6 +369,12 @@
 #endif
 // end: exchange REST urls
 
+// start: exchange FIX urls
+#ifndef CCAPI_COINBASE_URL_FIX_BASE
+#define CCAPI_COINBASE_URL_FIX_BASE "tcp+ssl://fix.pro.coinbase.com:4198"
+#endif
+// end: exchange REST urls
+
 // start: exchange API credentials
 #ifndef CCAPI_COINBASE_API_KEY
 #define CCAPI_COINBASE_API_KEY "COINBASE_API_KEY"
@@ -451,5 +460,9 @@
 #endif
 #ifndef CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE
 #define CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE "tu"
+#endif
+#define CCAPI_AUTHORIZATION "AUTHORIZATION"
+#ifndef CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE
+#define CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE 4096
 #endif
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_MACRO_H_

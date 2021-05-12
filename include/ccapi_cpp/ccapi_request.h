@@ -10,12 +10,14 @@ namespace ccapi {
 class Request CCAPI_FINAL {
  public:
   static constexpr int operationTypeCustom = 0x100;
-  static constexpr int operationTypeMarketData = 0x200;
-  static constexpr int operationTypeExecutionManagement = 0x300;
+  static constexpr int operationTypeFix = 0x200;
+  static constexpr int operationTypeMarketData = 0x300;
+  static constexpr int operationTypeExecutionManagement = 0x400;
   static constexpr int operationTypeExecutionManagementOrder = operationTypeExecutionManagement;
-  static constexpr int operationTypeExecutionManagementAccount = 0x400;
+  static constexpr int operationTypeExecutionManagementAccount = 0x500;
   enum class Operation {
     CUSTOM = operationTypeCustom,
+    FIX = operationTypeFix,
     GET_RECENT_TRADES = operationTypeMarketData,
     CREATE_ORDER = operationTypeExecutionManagementOrder,
     CANCEL_ORDER,
@@ -30,6 +32,9 @@ class Request CCAPI_FINAL {
     switch (operation) {
       case Operation::CUSTOM:
         output = "CUSTOM";
+        break;
+      case Operation::FIX:
+        output = "FIX";
         break;
       case Operation::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
@@ -60,33 +65,14 @@ class Request CCAPI_FINAL {
     }
     return output;
   }
-  // enum class ApiType { UNKNOWN, REST, WEBSOCKET, FIX };
-  // static std::string apiTypeToString(ApiType apiType) {
-  //   std::string output;
-  //   switch (apiType) {
-  //     case ApiType::UNKNOWN:
-  //       output = "UNKNOWN";
-  //       break;
-  //     case ApiType::REST:
-  //       output = "REST";
-  //       break;
-  //     case ApiType::WEBSOCKET:
-  //       output = "WEBSOCKET";
-  //       break;
-  //     case ApiType::FIX:
-  //       output = "FIX";
-  //       break;
-  //     default:
-  //       CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
-  //   }
-  //   return output;
-  // }
   Request() {}
   Request(Operation operation, std::string exchange, std::string instrument = "", std::string correlationId = "",
           std::map<std::string, std::string> credential = {})
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
     if (operation == Operation::CUSTOM) {
       this->serviceName = CCAPI_UNKNOWN;
+    } else if (operation == Operation::FIX) {
+      this->serviceName = CCAPI_FIX;
     } else {
       this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     }
@@ -110,8 +96,11 @@ class Request CCAPI_FINAL {
   const std::map<std::string, std::string>& getCredential() const { return credential; }
   const std::string& getServiceName() const { return serviceName; }
   void appendParam(const std::map<std::string, std::string>& param) { this->paramList.push_back(param); }
+  void appendParamFix(const std::vector<std::pair<int, std::string> >& param) { this->paramListFix.push_back(param); }
+  void setParamListFix(const std::vector<std::vector<std::pair<int, std::string> > >& paramListFix) { this->paramListFix = paramListFix; }
   Operation getOperation() const { return operation; }
   const std::vector<std::map<std::string, std::string> >& getParamList() const { return paramList; }
+  const std::vector<std::vector<std::pair<int, std::string> > >& getParamListFix() const { return paramListFix; }
   void setParamList(const std::vector<std::map<std::string, std::string> >& paramList) { this->paramList = paramList; }
   std::map<std::string, std::string> getFirstParamWithDefault(const std::map<std::string, std::string> defaultValue = {}) const {
     if (this->paramList.empty()) {
@@ -131,6 +120,7 @@ class Request CCAPI_FINAL {
   std::vector<std::map<std::string, std::string> > paramList;
   std::map<std::string, std::string> credential;
   Operation operation;
+  std::vector<std::vector<std::pair<int, std::string> > > paramListFix;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_

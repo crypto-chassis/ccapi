@@ -89,7 +89,9 @@ int main(int argc, char** argv) {
                                                                  session.serviceContextPtr);
   Request request(Request::Operation::CUSTOM, "coinbase");
   request.serviceName = CCAPI_EXECUTION_MANAGEMENT;
-  request.appendParam({{"CUSTOM_OPERATION", "LIST_PROFILES"}});
+  request.appendParam({
+      {"CUSTOM_OPERATION", "LIST_PROFILES"},
+  });
   session.sendRequest(request);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();

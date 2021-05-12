@@ -12,7 +12,7 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_HUOBI_USDT_SWAP_API_KEY;
     this->apiSecretName = CCAPI_HUOBI_USDT_SWAP_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -43,10 +43,12 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "direction"},
-                           {CCAPI_EM_ORDER_QUANTITY, "volume"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "direction"},
+                              {CCAPI_EM_ORDER_QUANTITY, "volume"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -62,7 +64,11 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "order_id"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -78,7 +84,11 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "order_id"}, {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "order_id"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);

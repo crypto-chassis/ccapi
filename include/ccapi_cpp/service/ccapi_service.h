@@ -32,6 +32,7 @@
 #include <sstream>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
 #endif
+#include "ccapi_cpp/ccapi_fix_connection.h"
 #include "ccapi_cpp/ccapi_http_connection.h"
 #include "ccapi_cpp/ccapi_http_retry.h"
 #include "ccapi_cpp/ccapi_queue.h"
@@ -78,10 +79,10 @@ class Service : public std::enable_shared_from_this<Service> {
         httpConnectionPool(sessionOptions.httpConnectionPoolMaxSize) {
     this->enableCheckPingPongWebsocketProtocolLevel = this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel;
     this->enableCheckPingPongWebsocketApplicationLevel = this->sessionOptions.enableCheckPingPongWebsocketApplicationLevel;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingWebsocketProtocolLevelIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongWebsocketProtocolLevelTimeoutMilliSeconds;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingWebsocketApplicationLevelIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongWebsocketApplicationLevelTimeoutMilliSeconds;
   }
   virtual ~Service() {
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
@@ -177,9 +178,10 @@ class Service : public std::enable_shared_from_this<Service> {
     if (useFuture) {
       futurePtr = std::make_shared<std::future<void>>(std::move(promisePtr->get_future()));
     }
-    return futurePtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
+    return futurePtr;
   }
+  virtual void sendRequestFix(const Request& request, const TimePoint& now) {}
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
                const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
@@ -207,7 +209,7 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   void onResponseError(const Request& request, int statusCode, const std::string& errorMessage) {
     std::string statusCodeStr = std::to_string(statusCode);
-    CCAPI_LOGGER_ERROR("request = "+toString(request) + ", statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
+    CCAPI_LOGGER_ERROR("request = " + toString(request) + ", statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
     Event event;
     event.setType(Event::Type::REQUEST_STATUS);
     Message message;
@@ -230,15 +232,15 @@ class Service : public std::enable_shared_from_this<Service> {
   typedef ServiceContext::SslContextPtr SslContextPtr;
   typedef ServiceContext::TlsClient TlsClient;
   typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
-  void setHostFromUrl(std::string baseUrlRest) {
+  void setHostRestFromUrlRest(std::string baseUrlRest) {
     auto hostPort = this->extractHostFromUrl(baseUrlRest);
     this->hostRest = hostPort.first;
     this->portRest = hostPort.second;
   }
-  std::pair<std::string, std::string> extractHostFromUrl(std::string baseUrlRest) {
+  std::pair<std::string, std::string> extractHostFromUrl(std::string baseUrl) {
     std::string host;
     std::string port;
-    auto splitted1 = UtilString::split(baseUrlRest, "://");
+    auto splitted1 = UtilString::split(baseUrl, "://");
     auto splitted2 = UtilString::split(UtilString::split(splitted1[1], "/")[0], ":");
     host = splitted2[0];
     if (splitted2.size() == 2) {
@@ -499,6 +501,9 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
+    this->startWrite_2(httpConnectionPtr, request, req, retry);
+  }
+  void startWrite_2(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, http::request<http::string_body> req, HttpRetry retry) {
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     if (this->sessionOptions.httpRequestTimeoutMilliSeconds > 0) {
       beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
@@ -658,7 +663,7 @@ class Service : public std::enable_shared_from_this<Service> {
           try {
             httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
             CCAPI_LOGGER_TRACE("about to perform request with existing httpConnectionPtr " + toString(*httpConnectionPtr));
-            this->onHandshake_2(httpConnectionPtr, request, req, retry, {});
+            this->startWrite_2(httpConnectionPtr, request, req, retry);
           } catch (const std::runtime_error& e) {
             if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());

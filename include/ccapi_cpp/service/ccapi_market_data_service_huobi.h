@@ -12,7 +12,7 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/market/history/trade";
   }
   virtual ~MarketDataServiceHuobi() {}

@@ -12,7 +12,7 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v3/trades";
   }
   virtual ~MarketDataServiceBinance() {}

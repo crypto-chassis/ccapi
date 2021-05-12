@@ -51,10 +51,12 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "quantity"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "quantity"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"},
+                          });
         this->appendSymbolId(queryString, symbolId);
         if (param.find("type") == param.end()) {
           queryString += "type=LIMIT&";
@@ -69,7 +71,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         req.method(http::verb::delete_);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "orderId"}, {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"},
+                          });
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
         req.target(this->cancelOrderTarget + "?" + queryString);
@@ -78,7 +84,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "orderId"}, {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"},
+                          });
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
         req.target(this->getOrderTarget + "?" + queryString);

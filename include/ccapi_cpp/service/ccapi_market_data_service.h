@@ -787,8 +787,10 @@ class MarketDataService : public Service {
                   auto instrument = subscription.getInstrument();
                   that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.group][instrument] = Subscription::Status::SUBSCRIBING;
                 }
-                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({{"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
-                                                                                  {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())}});
+                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
+                    {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
+                    {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
+                });
                 CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
                 return;
               } catch (const std::runtime_error& e) {

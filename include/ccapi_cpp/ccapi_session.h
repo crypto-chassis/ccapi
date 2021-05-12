@@ -93,6 +93,14 @@
 #endif
 // end: enable exchanges for execution management
 
+// start: enable exchanges for FIX
+#ifdef CCAPI_ENABLE_SERVICE_FIX
+#ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
+#include "ccapi_cpp/service/ccapi_fix_service_coinbase.h"
+#endif
+#endif
+// end: enable exchanges for FIX
+
 #include <map>
 #include <string>
 #include <utility>
@@ -108,6 +116,21 @@
 namespace ccapi {
 class Session CCAPI_FINAL {
  public:
+  enum class ApiType { WEBSOCKET, FIX };
+  static std::string apiTypeToString(ApiType apiType) {
+    std::string output;
+    switch (apiType) {
+      case ApiType::WEBSOCKET:
+        output = "WEBSOCKET";
+        break;
+      case ApiType::FIX:
+        output = "FIX";
+        break;
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
+    return output;
+  }
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
   Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
@@ -253,6 +276,12 @@ class Session CCAPI_FINAL {
         std::make_shared<ExecutionManagementServiceFtx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
+#ifdef CCAPI_ENABLE_SERVICE_FIX
+#ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
+    this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_COINBASE] =
+        std::make_shared<FixServiceCoinbase>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
       auto serviceName = x.first;
       for (const auto& y : x.second) {
@@ -351,7 +380,7 @@ class Session CCAPI_FINAL {
           }
           serviceByExchangeMap.at(exchange)->subscribe(subscriptionList);
         }
-      } else if (serviceName == CCAPI_EXECUTION_MANAGEMENT) {
+      } else if (serviceName == CCAPI_EXECUTION_MANAGEMENT || serviceName == CCAPI_FIX) {
         std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
         for (const auto& subscription : subscriptionList) {
           auto exchange = subscription.getExchange();
@@ -399,10 +428,29 @@ class Session CCAPI_FINAL {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  void sendRequestFix(const Request& request) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    std::vector<Request> requestList({request});
+    auto serviceName = request.getServiceName();
+    CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
+    if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "please enable service: " + serviceName + ", and the exchanges that you want");
+      return;
+    }
+    std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+    auto exchange = request.getExchange();
+    if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "please enable exchange: " + exchange);
+      return;
+    }
+    std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
+    auto now = UtilTime::now();
+    servicePtr->sendRequestFix(request, now);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
   void sendRequest(const Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList({request});
-    // requestList.push_back(request);
     this->sendRequest(requestList, eventQueuePtr, delayMilliSeconds);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
