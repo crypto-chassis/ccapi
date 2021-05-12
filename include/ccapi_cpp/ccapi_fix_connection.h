@@ -3,7 +3,7 @@
 #include <string>
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_subscription.h"
-namespace wspp = websocketpp;
+namespace beast = boost::beast;
 namespace ccapi {
 class FixConnection CCAPI_FINAL {
  public:
