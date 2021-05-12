@@ -38,7 +38,7 @@ class FixServiceCoinbase : public Service {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    hff::dictionary_init_field(this->field_dictionary);
+    // hff::dictionary_init_field(this->field_dictionary);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceCoinbase() {}
@@ -81,7 +81,7 @@ class FixServiceCoinbase : public Service {
       streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostFix);
     } catch (const beast::error_code& ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
+      this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
       return;
     }
     std::shared_ptr<FixConnection> fixConnectionPtr(new FixConnection(this->hostFix, this->portFix, subscription, streamPtr));
@@ -96,7 +96,7 @@ class FixServiceCoinbase : public Service {
     auto now = UtilTime::now();
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "connect", {fixConnectionPtr->subscription.getCorrelationId()});
+      this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "connect", {fixConnectionPtr->subscription.getCorrelationId()});
       return;
     }
     CCAPI_LOGGER_TRACE("fixConnectionPtr " + toString(*fixConnectionPtr));
@@ -114,8 +114,7 @@ class FixServiceCoinbase : public Service {
     auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "handshake",
-                    {fixConnectionPtr->subscription.getCorrelationId()});
+      this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "handshake", {fixConnectionPtr->subscription.getCorrelationId()});
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
@@ -200,8 +199,8 @@ class FixServiceCoinbase : public Service {
     CCAPI_LOGGER_TRACE("after async_read");
   }
   void onRead_3(std::shared_ptr<FixConnection> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
-    // std::map<int, std::string> field_dictionary;
-    // hff::dictionary_init_field(field_dictionary);
+    std::map<int, std::string> field_dictionary;
+    hff::dictionary_init_field(field_dictionary);
 
     if (!ec) {
       auto& connectionId = fixConnectionPtr->id;
@@ -396,7 +395,7 @@ class FixServiceCoinbase : public Service {
   // std::map<std::string, bool> isWritingMessageByConnectionIdMap;
   // std::map<std::string, std::queue> pendingWriteMessageListByConnectionIdMap;
 
-  std::map<int, std::string> field_dictionary;
+  // std::map<int, std::string> field_dictionary;
 
   std::string baseUrlFix;
   std::string apiKeyName;
@@ -407,7 +406,7 @@ class FixServiceCoinbase : public Service {
   // size_t fred; // Number of bytes read from fread().
   // void onFail_(WsConnection& wsConnection) {
   //   wsConnection.status = WsConnection::Status::FAILED;
-  //   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before
+  //   this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, "connection " + toString(wsConnection) + " has failed before
   //   opening"); WsConnection thisWsConnection = wsConnection; this->wsConnectionMap.erase(thisWsConnection.id);
   //   this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
   //   auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
@@ -421,7 +420,7 @@ class FixServiceCoinbase : public Service {
   //         if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
   //           if (ec) {
   //             CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
-  //             that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+  //             that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
   //           } else {
   //             CCAPI_LOGGER_INFO("about to retry");
   //             auto thatWsConnection = thisWsConnection;

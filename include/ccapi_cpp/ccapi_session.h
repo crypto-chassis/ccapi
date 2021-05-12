@@ -116,21 +116,6 @@
 namespace ccapi {
 class Session CCAPI_FINAL {
  public:
-  enum class ApiType { WEBSOCKET, FIX };
-  static std::string apiTypeToString(ApiType apiType) {
-    std::string output;
-    switch (apiType) {
-      case ApiType::WEBSOCKET:
-        output = "WEBSOCKET";
-        break;
-      case ApiType::FIX:
-        output = "FIX";
-        break;
-      default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
-    }
-    return output;
-  }
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
   Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
@@ -392,8 +377,13 @@ class Session CCAPI_FINAL {
           auto subscriptionList = subscriptionListByExchange.second;
           std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
           if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
-            this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "please enable exchange: " + exchange);
-            return;
+            if (serviceName == CCAPI_EXECUTION_MANAGEMENT) {
+              this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "please enable exchange: " + exchange);
+              return;
+            } else if (serviceName == CCAPI_FIX) {
+              this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, "please enable exchange: " + exchange);
+              return;
+            }
           }
           serviceByExchangeMap.at(exchange)->subscribe(subscriptionList);
         }

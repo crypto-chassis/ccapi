@@ -55,7 +55,10 @@ class Service : public std::enable_shared_from_this<Service> {
  public:
   typedef wspp::lib::shared_ptr<ServiceContext> ServiceContextPtr;
   typedef wspp::lib::error_code ErrorCode;
-  enum class PingPongMethod { WEBSOCKET_PROTOCOL_LEVEL, WEBSOCKET_APPLICATION_LEVEL };
+  enum class PingPongMethod {
+    WEBSOCKET_PROTOCOL_LEVEL,
+    WEBSOCKET_APPLICATION_LEVEL,
+  };
   static std::string pingPongMethodToString(PingPongMethod pingPongMethod) {
     std::string output;
     switch (pingPongMethod) {

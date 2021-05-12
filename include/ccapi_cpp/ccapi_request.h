@@ -25,7 +25,7 @@ class Request CCAPI_FINAL {
     GET_OPEN_ORDERS,
     CANCEL_OPEN_ORDERS,
     GET_ACCOUNTS = operationTypeExecutionManagementAccount,
-    GET_ACCOUNT_BALANCES
+    GET_ACCOUNT_BALANCES,
   };
   static std::string operationToString(Operation operation) {
     std::string output;
@@ -87,7 +87,8 @@ class Request CCAPI_FINAL {
     }
     std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName +
                          ", correlationId = " + correlationId + ", paramList = " + ccapi::toString(paramList) +
-                         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
+                         ", paramListFix = " + ccapi::toString(paramListFix) + ", credential = " + ccapi::toString(shortCredential) +
+                         ", operation = " + operationToString(operation) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }

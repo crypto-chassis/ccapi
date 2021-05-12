@@ -70,7 +70,13 @@ class Subscription CCAPI_FINAL {
     }
     return output;
   }
-  enum class Status { UNKNOWN, SUBSCRIBING, SUBSCRIBED, UNSUBSCRIBING, UNSUBSCRIBED };
+  enum class Status {
+    UNKNOWN,
+    SUBSCRIBING,
+    SUBSCRIBED,
+    UNSUBSCRIBING,
+    UNSUBSCRIBED,
+  };
   static std::string statusToString(Status status) {
     std::string output;
     switch (status) {
