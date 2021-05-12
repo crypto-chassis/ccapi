@@ -55,7 +55,7 @@ We sincerely apologize for the inconvenience.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
-* Join us on Medium https://cryptochassis.medium.com and Telegram https://t.me/cryptochassis.
+* Join us on Medium https://cryptochassis.medium.com and Discord https://discord.gg/b5EKcp9s8T.
 
 ## Branches
 * The `develop` branch may contain experimental features.
