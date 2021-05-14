@@ -24,7 +24,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_FTX_API_KEY;
     this->apiSecretName = CCAPI_FTX_API_SECRET;
     this->apiSubaccountName = CCAPI_FTX_API_SUBACCOUNT;
@@ -103,11 +103,13 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
         this->appendSymbolId(document, allocator, symbolId);
         // order type handling
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_ORDER_QUANTITY, "size"},
-                           {CCAPI_EM_ORDER_TYPE, "type"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clientId"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_ORDER_QUANTITY, "size"},
+                              {CCAPI_EM_ORDER_TYPE, "type"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clientId"},
+                          });
 
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);

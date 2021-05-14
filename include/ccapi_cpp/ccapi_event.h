@@ -21,7 +21,9 @@ class Event CCAPI_FINAL {
     RESOLUTION_STATUS,
     TOPIC_STATUS,
     TOKEN_STATUS,
-    REQUEST
+    REQUEST,
+    FIX,
+    FIX_STATUS,
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -70,6 +72,12 @@ class Event CCAPI_FINAL {
         break;
       case Type::REQUEST:
         output = "REQUEST";
+        break;
+      case Type::FIX:
+        output = "FIX";
+        break;
+      case Type::FIX_STATUS:
+        output = "FIX_STATUS";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

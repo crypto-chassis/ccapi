@@ -23,7 +23,14 @@ class Subscription CCAPI_FINAL {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
-    this->serviceName = (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+    if (field == CCAPI_AUTHORIZATION) {
+      this->serviceName = CCAPI_FIX;
+    } else if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
+      this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
+    } else if (field == CCAPI_MARKET_DEPTH || field == CCAPI_TRADE) {
+      this->serviceName = CCAPI_MARKET_DATA;
+    }
+    CCAPI_LOGGER_TRACE("this->serviceName = " + this->serviceName);
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
@@ -63,7 +70,13 @@ class Subscription CCAPI_FINAL {
     }
     return output;
   }
-  enum class Status { UNKNOWN, SUBSCRIBING, SUBSCRIBED, UNSUBSCRIBING, UNSUBSCRIBED };
+  enum class Status {
+    UNKNOWN,
+    SUBSCRIBING,
+    SUBSCRIBED,
+    UNSUBSCRIBING,
+    UNSUBSCRIBED,
+  };
   static std::string statusToString(Status status) {
     std::string output;
     switch (status) {

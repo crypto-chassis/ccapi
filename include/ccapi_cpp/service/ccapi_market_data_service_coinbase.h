@@ -12,7 +12,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/products/<product-id>/trades";
   }
   virtual ~MarketDataServiceCoinbase() {}
@@ -139,10 +139,15 @@ class MarketDataServiceCoinbase : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
-        this->substituteParam(target, {{"<product-id>", symbolId}});
+        this->substituteParam(target, {
+                                          {"<product-id>", symbolId},
+                                      });
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                          });
         req.target(target + "?" + queryString);
       } break;
       default:

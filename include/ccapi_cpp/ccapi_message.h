@@ -9,8 +9,8 @@ class Message CCAPI_FINAL {
  public:
   enum class RecapType {
     UNKNOWN,
-    NONE,      // normal data tick; not a recap
-    SOLICITED  // generated on request by subscriber
+    NONE,       // normal data tick; not a recap
+    SOLICITED,  // generated on request by subscriber
   };
   static std::string recapTypeToString(RecapType recapType) {
     std::string output;
@@ -31,6 +31,8 @@ class Message CCAPI_FINAL {
   }
   enum class Type {
     UNKNOWN,
+    AUTHORIZATION_SUCCESS,
+    AUTHORIZATION_FAILURE,
     MARKET_DATA_EVENTS,
     EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE,
     EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE,
@@ -50,7 +52,9 @@ class Message CCAPI_FINAL {
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
-    CUSTOM
+    CUSTOM,
+    FIX,
+    FIX_FAILURE,
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -60,6 +64,12 @@ class Message CCAPI_FINAL {
         break;
       case Type::MARKET_DATA_EVENTS:
         output = "MARKET_DATA_EVENTS";
+        break;
+      case Type::AUTHORIZATION_SUCCESS:
+        output = "AUTHORIZATION_SUCCESS";
+        break;
+      case Type::AUTHORIZATION_FAILURE:
+        output = "AUTHORIZATION_FAILURE";
         break;
       case Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE:
         output = "EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE";
@@ -117,6 +127,12 @@ class Message CCAPI_FINAL {
         break;
       case Type::CUSTOM:
         output = "CUSTOM";
+        break;
+      case Type::FIX:
+        output = "FIX";
+        break;
+      case Type::FIX_FAILURE:
+        output = "FIX_FAILURE";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

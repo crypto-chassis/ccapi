@@ -14,7 +14,12 @@
 namespace ccapi {
 class ExecutionManagementService : public Service {
  public:
-  enum class JsonDataType { STRING, INTEGER, BOOLEAN, DOUBLE };
+  enum class JsonDataType {
+    STRING,
+    INTEGER,
+    BOOLEAN,
+    DOUBLE,
+  };
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {

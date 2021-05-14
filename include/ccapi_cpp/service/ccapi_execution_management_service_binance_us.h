@@ -12,7 +12,7 @@ class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBin
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_US;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_BINANCE_US_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_US_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});

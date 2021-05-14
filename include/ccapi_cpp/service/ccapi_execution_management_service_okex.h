@@ -13,7 +13,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_OKEX_API_KEY;
     this->apiSecretName = CCAPI_OKEX_API_SECRET;
     this->apiPassphraseName = CCAPI_OKEX_API_PASSPHRASE;
@@ -87,11 +87,13 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "sz"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "px"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
-                           {CCAPI_SYMBOL_ID, "instId"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "sz"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "px"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
         }
@@ -111,7 +113,12 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "ordId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
         }
@@ -125,7 +132,12 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "ordId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
@@ -140,7 +152,12 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param,
-                          {{CCAPI_EM_ORDER_TYPE, "ordType"}, {CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+                          {
+                              {CCAPI_EM_ORDER_TYPE, "ordType"},
+                              {CCAPI_EM_ORDER_ID, "ordId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }

@@ -28,6 +28,7 @@ class Element CCAPI_FINAL {
 
  private:
   std::map<std::string, std::string> nameValueMap;
+  std::vector<std::pair<int, std::string> > tagValueList;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_ELEMENT_H_

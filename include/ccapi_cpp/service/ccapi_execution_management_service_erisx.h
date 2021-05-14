@@ -13,7 +13,7 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_ERISX_API_KEY;
     this->apiSecretName = CCAPI_ERISX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -90,11 +90,13 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
-                           {CCAPI_EM_PARTY_ID, "partyID"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         if (param.find("ordType") == param.end()) {
           document.AddMember("ordType", rj::Value("LIMIT").Move(), allocator);
@@ -115,11 +117,13 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_ID, "orderID"},
-                           {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "origClOrdID"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
-                           {CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_PARTY_ID, "partyID"}});
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderID"},
+                              {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "origClOrdID"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         if (param.find("ordType") == param.end()) {
           document.AddMember("ordType", rj::Value("LIMIT").Move(), allocator);
         }
@@ -131,7 +135,11 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string target = this->getOrderTarget;
-        this->substituteParam(target, param, {{CCAPI_EM_ORDER_ID, "{orderID}"}, {CCAPI_EM_PARTY_ID, "{partyID}"}});
+        this->substituteParam(target, param,
+                              {
+                                  {CCAPI_EM_ORDER_ID, "{orderID}"},
+                                  {CCAPI_EM_PARTY_ID, "{partyID}"},
+                              });
         req.target(target);
         this->signRequest(req, now, credential);
       } break;
@@ -142,7 +150,10 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_PARTY_ID, "partyID"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         this->setBody(req, document, allocator, param, now);
         this->signRequest(req, now, credential);
       } break;
@@ -153,7 +164,10 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_PARTY_ID, "partyID"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         this->setBody(req, document, allocator, param, now);
         this->signRequest(req, now, credential);
       } break;

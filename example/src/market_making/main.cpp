@@ -84,10 +84,18 @@ int main(int argc, char** argv) {
       std::string sellPrice = regularizePrice(midPrice * (1 + spreadPercentage / 100 / 2));
       std::vector<Request> requestList;
       Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
-      requestBuy.appendParam({{"SIDE", "BUY"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", buyPrice}});
+      requestBuy.appendParam({
+          {"SIDE", "BUY"},
+          {"QUANTITY", orderQuantity},
+          {"LIMIT_PRICE", buyPrice},
+      });
       requestList.push_back(requestBuy);
       Request requestSell(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
-      requestSell.appendParam({{"SIDE", "SELL"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", sellPrice}});
+      requestSell.appendParam({
+          {"SIDE", "SELL"},
+          {"QUANTITY", orderQuantity},
+          {"LIMIT_PRICE", sellPrice},
+      });
       requestList.push_back(requestSell);
       session.sendRequest(requestList);
       std::cout << "Buy " + orderQuantity + " BTC-USD at price " + buyPrice << std::endl;

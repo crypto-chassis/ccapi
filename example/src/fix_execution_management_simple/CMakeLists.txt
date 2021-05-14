@@ -1,0 +1,7 @@
+set(NAME fix_execution_management_simple)
+project(${NAME})
+add_compile_definitions(CCAPI_COINBASE_URL_FIX_BASE="tcp+ssl://fix-public.sandbox.pro.coinbase.com:4198")
+add_compile_definitions(CCAPI_ENABLE_LOG_TRACE)
+add_compile_definitions(CCAPI_ENABLE_SERVICE_FIX)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+add_executable(${NAME} main.cpp)

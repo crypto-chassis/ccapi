@@ -540,6 +540,15 @@ template <typename T>
 std::string toString(const std::vector<T>& c);
 template <typename T>
 std::string firstNToString(const std::vector<T>& c, const size_t n);
+template <typename U, typename V>
+std::string toString(const std::pair<U, V>& c) {
+  std::string output = "(";
+  output += toString(c.first);
+  output += ",";
+  output += toString(c.second);
+  output += ")";
+  return output;
+}
 template <typename T, typename... Args>
 std::string toString(const std::unordered_set<T, Args...>& c) {
   std::string output = "[";

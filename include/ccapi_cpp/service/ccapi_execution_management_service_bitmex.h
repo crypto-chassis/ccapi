@@ -12,7 +12,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_BITMEX_API_KEY;
     this->apiSecretName = CCAPI_BITMEX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -83,10 +83,12 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -98,7 +100,11 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         req.method(http::verb::delete_);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "orderID"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderID"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                          });
         if (!queryString.empty()) {
           queryString.pop_back();
         }
@@ -113,7 +119,11 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
           rj::Document document;
           document.SetObject();
           rj::Document::AllocatorType& allocator = document.GetAllocator();
-          this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "orderID"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
+          this->appendParam(document, allocator, param,
+                            {
+                                {CCAPI_EM_ORDER_ID, "orderID"},
+                                {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                            });
           queryString += "filter=";
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);

@@ -12,7 +12,7 @@ class MarketDataServiceGemini : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/v1/trades/:symbol";
   }
   virtual ~MarketDataServiceGemini() {}
@@ -188,10 +188,15 @@ class MarketDataServiceGemini : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
-        this->substituteParam(target, {{":symbol", symbolId}});
+        this->substituteParam(target, {
+                                          {":symbol", symbolId},
+                                      });
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit_trades"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit_trades"},
+                          });
         req.target(target + "?" + queryString);
       } break;
       default:

@@ -44,7 +44,11 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Request request(Request::Operation::CREATE_ORDER, "binance-us", argv[2]);
-    request.appendParam({{"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"}, {"QUANTITY", argv[4]}, {"LIMIT_PRICE", argv[5]}});
+    request.appendParam({
+        {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
+        {"QUANTITY", argv[4]},
+        {"LIMIT_PRICE", argv[5]},
+    });
     session.sendRequest(request);
   } else if (mode == "cancel_order") {
     if (argc != 4) {
@@ -55,7 +59,9 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Request request(Request::Operation::CANCEL_ORDER, "binance-us", argv[2]);
-    request.appendParam({{"ORDER_ID", argv[3]}});
+    request.appendParam({
+        {"ORDER_ID", argv[3]},
+    });
     session.sendRequest(request);
   } else if (mode == "get_order") {
     if (argc != 4) {
@@ -66,7 +72,9 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Request request(Request::Operation::GET_ORDER, "binance-us", argv[2]);
-    request.appendParam({{"ORDER_ID", argv[3]}});
+    request.appendParam({
+        {"ORDER_ID", argv[3]},
+    });
     session.sendRequest(request);
   } else if (mode == "get_open_orders") {
     if (argc != 3) {

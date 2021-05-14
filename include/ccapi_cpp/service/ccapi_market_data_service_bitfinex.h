@@ -13,7 +13,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITFINEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
   }
   virtual ~MarketDataServiceBitfinex() {}
@@ -367,10 +367,15 @@ class MarketDataServiceBitfinex : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
-        this->substituteParam(target, {{"{Symbol}", symbolId}});
+        this->substituteParam(target, {
+                                          {"{Symbol}", symbolId},
+                                      });
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                          });
         req.target(target + "?" + queryString);
       } break;
       default:

@@ -10,7 +10,7 @@
 namespace ccapi {
 class SessionConfigs CCAPI_FINAL {
  public:
-  SessionConfigs() : SessionConfigs({}, {}, {}) {}
+  SessionConfigs() : SessionConfigs({}, {}, {}) { this->initializUrlFixBase(); }
   explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap,
                           std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {},
                           std::map<std::string, std::string> credential = {})
@@ -19,6 +19,7 @@ class SessionConfigs CCAPI_FINAL {
     this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
     this->updateExchangeInstrumentMap();
     this->updateExchangeInstrumentMapRest();
+    this->initializUrlFixBase();
   }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const { return exchangeInstrumentSymbolMap; }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMapRest() const { return exchangeInstrumentSymbolMapRest; }
@@ -40,6 +41,7 @@ class SessionConfigs CCAPI_FINAL {
   const std::map<std::string, std::vector<int> >& getWebsocketAvailableMarketDepth() const { return websocketAvailableMarketDepth; }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const { return urlWebsocketBase; }
   const std::map<std::string, std::string>& getUrlRestBase() const { return urlRestBase; }
+  const std::map<std::string, std::string>& getUrlFixBase() const { return urlFixBase; }
   const std::map<std::string, int>& getInitialSequenceByExchangeMap() const { return initialSequenceByExchangeMap; }
   const std::map<std::string, std::string>& getCredential() const { return credential; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
@@ -239,6 +241,11 @@ class SessionConfigs CCAPI_FINAL {
     }
     return exchangeSymbolInstrumentMap;
   }
+  void initializUrlFixBase() {
+    this->urlFixBase = {
+        {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_FIX_BASE},
+    };
+  }
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest;
   std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMap;
@@ -251,6 +258,7 @@ class SessionConfigs CCAPI_FINAL {
   std::map<std::string, int> websocketMaxAvailableMarketDepth;
   std::map<std::string, std::string> urlWebsocketBase;
   std::map<std::string, std::string> urlRestBase;
+  std::map<std::string, std::string> urlFixBase;
   std::map<std::string, int> initialSequenceByExchangeMap;
   std::map<std::string, std::string> credential;
 };

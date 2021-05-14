@@ -43,10 +43,18 @@ class MyEventHandler : public EventHandler {
           std::string orderQuantity = std::min(Decimal(bestBidSizeCoinbase), Decimal(bestAskSizeGemini)).toString();
           std::vector<Request> requestList;
           Request requestBuy(Request::Operation::CREATE_ORDER, "gemini", "btcusd");
-          requestBuy.appendParam({{"SIDE", "BUY"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestAskPriceGemini}});
+          requestBuy.appendParam({
+              {"SIDE", "BUY"},
+              {"QUANTITY", orderQuantity},
+              {"LIMIT_PRICE", bestAskPriceGemini},
+          });
           requestList.push_back(requestBuy);
           Request requestSell(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
-          requestSell.appendParam({{"SIDE", "SELL"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestBidPriceCoinbase}});
+          requestSell.appendParam({
+              {"SIDE", "SELL"},
+              {"QUANTITY", orderQuantity},
+              {"LIMIT_PRICE", bestBidPriceCoinbase},
+          });
           requestList.push_back(requestSell);
           session->sendRequest(requestList);
         }
@@ -54,10 +62,18 @@ class MyEventHandler : public EventHandler {
           std::string orderQuantity = std::min(Decimal(bestBidSizeGemini), Decimal(bestAskSizeCoinbase)).toString();
           std::vector<Request> requestList;
           Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
-          requestBuy.appendParam({{"SIDE", "BUY"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestAskPriceCoinbase}});
+          requestBuy.appendParam({
+              {"SIDE", "BUY"},
+              {"QUANTITY", orderQuantity},
+              {"LIMIT_PRICE", bestAskPriceCoinbase},
+          });
           requestList.push_back(requestBuy);
           Request requestSell(Request::Operation::CREATE_ORDER, "gemini", "btcusd");
-          requestSell.appendParam({{"SIDE", "SELL"}, {"QUANTITY", orderQuantity}, {"LIMIT_PRICE", bestBidPriceGemini}});
+          requestSell.appendParam({
+              {"SIDE", "SELL"},
+              {"QUANTITY", orderQuantity},
+              {"LIMIT_PRICE", bestBidPriceGemini},
+          });
           requestList.push_back(requestSell);
           session->sendRequest(requestList);
         }

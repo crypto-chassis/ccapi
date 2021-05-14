@@ -9,8 +9,8 @@ class MarketDataMessage CCAPI_FINAL {
   enum class Type { UNKNOWN, MARKET_DATA_EVENTS };
   enum class RecapType {
     UNKNOWN,
-    NONE,      // normal data tick; not a recap
-    SOLICITED  // generated on request by subscriber
+    NONE,       // normal data tick; not a recap
+    SOLICITED,  // generated on request by subscriber
   };
   static std::string recapTypeToString(RecapType recapType) {
     std::string output;
@@ -29,7 +29,11 @@ class MarketDataMessage CCAPI_FINAL {
     }
     return output;
   }
-  enum class DataType { BID = 0, ASK = 1, TRADE = 2 };
+  enum class DataType {
+    BID = 0,
+    ASK = 1,
+    TRADE = 2,
+  };
   static std::string dataTypeToString(DataType dataType) {
     std::string output;
     switch (dataType) {
@@ -47,7 +51,12 @@ class MarketDataMessage CCAPI_FINAL {
     }
     return output;
   }
-  enum class DataFieldType { PRICE = 0, SIZE = 1, TRADE_ID = 2, IS_BUYER_MAKER = 3 };
+  enum class DataFieldType {
+    PRICE = 0,
+    SIZE = 1,
+    TRADE_ID = 2,
+    IS_BUYER_MAKER = 3,
+  };
   static std::string dataFieldTypeToString(DataFieldType dataFieldType) {
     std::string output;
     switch (dataFieldType) {

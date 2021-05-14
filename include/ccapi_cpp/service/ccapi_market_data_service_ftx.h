@@ -13,7 +13,7 @@ class MarketDataServiceFtx : public MarketDataService {
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->shouldAlignSnapshot = true;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
   }
   virtual ~MarketDataServiceFtx() {}
@@ -191,10 +191,15 @@ class MarketDataServiceFtx : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
-        this->substituteParam(target, {{"{market_name}", Url::urlEncode(symbolId)}});
+        this->substituteParam(target, {
+                                          {"{market_name}", Url::urlEncode(symbolId)},
+                                      });
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                          });
         req.target(target + "?" + queryString);
       } break;
       default:

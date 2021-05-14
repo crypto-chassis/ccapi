@@ -13,7 +13,7 @@ class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiBase {
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->isDerivatives = true;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_TARGET;
   }
   virtual ~MarketDataServiceHuobiUsdtSwap() {}
