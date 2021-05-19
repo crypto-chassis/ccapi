@@ -379,7 +379,7 @@ class FixServiceFtx : public Service {
     auto msgType = "A";
     param.push_back({hff::tag::MsgType, msgType});
     param.push_back({hff::tag::EncryptMethod, "0"});
-    param.push_back({hff::tag::HeartBtInt, "30"});
+    param.push_back({hff::tag::HeartBtInt, std::to_string(this->sessionOptions.heartbeatFixIntervalMilliSeconds / 1000)});
     auto msgSeqNum = std::to_string(this->sequenceSentByConnectionIdMap[connectionId] + 1);
     auto credential = this->credentialByConnectionIdMap[connectionId];
     auto senderCompID = mapGetWithDefault(credential, this->apiKeyName);

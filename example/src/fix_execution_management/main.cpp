@@ -60,6 +60,7 @@ int main(int argc, char** argv) {
   //   return EXIT_FAILURE;
   // }
   SessionOptions sessionOptions;
+  sessionOptions.heartbeatFixIntervalMilliSeconds = 30000;
   SessionConfigs sessionConfigs;
   CCAPI_LOGGER_INFO(ccapi::toString(sessionConfigs.getUrlFixBase()));
   MyEventHandler eventHandler;
