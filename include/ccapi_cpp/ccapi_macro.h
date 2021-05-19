@@ -188,7 +188,7 @@
 #define CCAPI_EXECUTION_MANAGEMENT "execution_management"
 #endif
 #ifndef CCAPI_FIX
-#define CCAPI_FIX "fix"
+#define CCAPI_FIX "FIX"
 #endif
 #ifndef CCAPI_UNKNOWN
 #define CCAPI_UNKNOWN "unknown"
@@ -373,6 +373,9 @@
 #ifndef CCAPI_COINBASE_URL_FIX_BASE
 #define CCAPI_COINBASE_URL_FIX_BASE "tcp+ssl://fix.pro.coinbase.com:4198"
 #endif
+#ifndef CCAPI_FTX_URL_FIX_BASE
+#define CCAPI_FTX_URL_FIX_BASE "tcp+ssl://fix.ftx.com:4363"
+#endif
 // end: exchange REST urls
 
 // start: exchange API credentials
@@ -464,5 +467,8 @@
 #define CCAPI_AUTHORIZATION "AUTHORIZATION"
 #ifndef CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE
 #define CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE 4096
+#endif
+#ifndef CCAPI_FIX_PROTOCOL_VERSION_COINBASE
+#define CCAPI_FIX_PROTOCOL_VERSION_COINBASE "FIX.4.2"
 #endif
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_MACRO_H_

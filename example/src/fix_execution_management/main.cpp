@@ -22,15 +22,17 @@ class MyEventHandler : public EventHandler {
         Request request(Request::Operation::FIX, "coinbase", "", "cool correlation id");
         request.appendParamFix({
             {35, "D"},
+            {11, "6d4eb0fb-2229-469f-873e-557dd78ac11e"},
             {55, "BTC-USD"},
+            {40, "2"},
             {54, "1"},
             {44, "20000"},
             {38, "0.001"},
         });
-        session->sendRequest(request);
+        session->sendRequestByFix(request);
       }
-    } else if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      std::cout << "Received an event of type SUBSCRIPTION_DATA:\n" + event.toStringPretty(2, 2) << std::endl;
+    } else if (event.getType() == Event::Type::FIX) {
+      std::cout << "Received an event of type FIX:\n" + event.toStringPretty(2, 2) << std::endl;
     }
     return true;
   }
@@ -43,27 +45,27 @@ using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
 using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
-  if (UtilSystem::getEnvAsString("COINBASE_API_KEY").empty()) {
-    std::cerr << "Please set environment variable COINBASE_API_KEY" << std::endl;
-    return EXIT_FAILURE;
-  }
-  if (UtilSystem::getEnvAsString("COINBASE_API_SECRET").empty()) {
-    std::cerr << "Please set environment variable COINBASE_API_SECRET" << std::endl;
-    return EXIT_FAILURE;
-  }
-  if (UtilSystem::getEnvAsString("COINBASE_API_PASSPHRASE").empty()) {
-    std::cerr << "Please set environment variable COINBASE_API_PASSPHRASE" << std::endl;
-    return EXIT_FAILURE;
-  }
+  // if (UtilSystem::getEnvAsString("COINBASE_API_KEY").empty()) {
+  //   std::cerr << "Please set environment variable COINBASE_API_KEY" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
+  // if (UtilSystem::getEnvAsString("COINBASE_API_SECRET").empty()) {
+  //   std::cerr << "Please set environment variable COINBASE_API_SECRET" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
+  // if (UtilSystem::getEnvAsString("COINBASE_API_PASSPHRASE").empty()) {
+  //   std::cerr << "Please set environment variable COINBASE_API_PASSPHRASE" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   CCAPI_LOGGER_INFO(ccapi::toString(sessionConfigs.getUrlFixBase()));
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   CCAPI_LOGGER_INFO("");
-  Subscription subscription("coinbase", "", "AUTHORIZATION", "", "cool correlation id");
+  Subscription subscription("coinbase", "", "FIX", "", "cool correlation id");
   CCAPI_LOGGER_INFO("");
-  session.subscribe(subscription);
+  session.subscribeByFix(subscription);
   CCAPI_LOGGER_INFO("");
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();

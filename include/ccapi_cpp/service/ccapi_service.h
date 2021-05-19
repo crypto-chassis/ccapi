@@ -58,6 +58,7 @@ class Service : public std::enable_shared_from_this<Service> {
   enum class PingPongMethod {
     WEBSOCKET_PROTOCOL_LEVEL,
     WEBSOCKET_APPLICATION_LEVEL,
+    FIX_PROTOCOL_LEVEL,
   };
   static std::string pingPongMethodToString(PingPongMethod pingPongMethod) {
     std::string output;
@@ -67,6 +68,9 @@ class Service : public std::enable_shared_from_this<Service> {
         break;
       case PingPongMethod::WEBSOCKET_APPLICATION_LEVEL:
         output = "WEBSOCKET_APPLICATION_LEVEL";
+        break;
+      case PingPongMethod::FIX_PROTOCOL_LEVEL:
+        output = "FIX_PROTOCOL_LEVEL";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
@@ -86,6 +90,8 @@ class Service : public std::enable_shared_from_this<Service> {
     this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongWebsocketProtocolLevelTimeoutMilliSeconds;
     this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingWebsocketApplicationLevelIntervalMilliSeconds;
     this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongWebsocketApplicationLevelTimeoutMilliSeconds;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixTimeoutMilliSeconds;
   }
   virtual ~Service() {
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
@@ -184,7 +190,8 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return futurePtr;
   }
-  virtual void sendRequestFix(const Request& request, const TimePoint& now) {}
+  virtual void sendRequestByFix(const Request& request, const TimePoint& now) {}
+  virtual void subscribeByFix(const Subscription& subscription) {}
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
                const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
@@ -194,7 +201,6 @@ class Service : public std::enable_shared_from_this<Service> {
     Message message;
     auto now = UtilTime::now();
     message.setTimeReceived(now);
-    message.setTime(now);
     message.setType(messageType);
     message.setCorrelationIdList(correlationIdList);
     Element element;
@@ -218,7 +224,6 @@ class Service : public std::enable_shared_from_this<Service> {
     Message message;
     auto now = UtilTime::now();
     message.setTimeReceived(now);
-    message.setTime(now);
     message.setType(Message::Type::RESPONSE_ERROR);
     message.setCorrelationIdList({request.getCorrelationId()});
     Element element;

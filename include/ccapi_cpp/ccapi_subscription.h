@@ -23,7 +23,7 @@ class Subscription CCAPI_FINAL {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
-    if (field == CCAPI_AUTHORIZATION) {
+    if (field == CCAPI_FIX) {
       this->serviceName = CCAPI_FIX;
     } else if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
       this->serviceName = CCAPI_EXECUTION_MANAGEMENT;

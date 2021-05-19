@@ -2,19 +2,8 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_COINBASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
-// #include "ccapi_cpp/service/ccapi_service.h"
-// #include <cstdlib>
-// #include <functional>
-// #include <iostream>
-// #include <memory>
-// #include <string>
-// #include "boost/shared_ptr.hpp"
-// #include "ccapi_cpp/ccapi_event.h"
-// #include "ccapi_cpp/ccapi_hmac.h"
-// #include "ccapi_cpp/ccapi_macro.h"
-#include "ccapi_cpp/service/ccapi_service.h"
-// #define HFFIX_NO_BOOST_DATETIME
 #include "ccapi_cpp/ccapi_hmac.h"
+#include "ccapi_cpp/service/ccapi_service.h"
 #include "hffix.hpp"
 namespace hff = hffix;
 namespace ccapi {
@@ -25,8 +14,6 @@ class FixServiceCoinbase : public Service {
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
-    // this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    CCAPI_LOGGER_INFO("this->sessionConfigs.getUrlFixBase()=" + toString(this->sessionConfigs.getUrlFixBase()));
     this->baseUrlFix = this->sessionConfigs.getUrlFixBase().at(this->exchangeName);
     this->setHostFixFromUrlFix(this->baseUrlFix);
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
@@ -38,42 +25,82 @@ class FixServiceCoinbase : public Service {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    // hff::dictionary_init_field(this->field_dictionary);
+    this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_COINBASE;
+    this->targetCompID = "Coinbase";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceCoinbase() {}
 
  protected:
+  static std::string printableString(const char* s, size_t n) {
+    std::string output(s, n);
+    std::replace(output.begin(), output.end(), '\x01', '^');
+    return output;
+  }
+  static std::string printableString(const std::string& s) {
+    std::string output(s);
+    std::replace(output.begin(), output.end(), '\x01', '^');
+    return output;
+  }
   void setHostFixFromUrlFix(std::string baseUrlFix) {
     auto hostPort = this->extractHostFromUrl(baseUrlFix);
     this->hostFix = hostPort.first;
     this->portFix = hostPort.second;
   }
-  void subscribe(const std::vector<Subscription>& subscriptionList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_DEBUG("this->baseUrlFix = " + this->baseUrlFix);
-    if (this->shouldContinue.load()) {
-      for (const auto& subscription : subscriptionList) {
-        wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceCoinbase>(), subscription]() {
-          // FixConnection fixConnection(that->baseUrlFix, subscription);
-          auto thatSubscription = subscription;
-          that->connect(thatSubscription);
-        });
-      }
-    }
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
-  void subscribe(const Subscription& subscription) {
+  void subscribeByFix(const Subscription& subscription) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrlFix = " + this->baseUrlFix);
     if (this->shouldContinue.load()) {
       wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceCoinbase>(), subscription]() {
-        // FixConnection fixConnection(that->baseUrlFix, subscription);
         auto thatSubscription = subscription;
         that->connect(thatSubscription);
       });
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  virtual void onFail(std::shared_ptr<FixConnection> fixConnectionPtr, const std::string& errorMessage) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    this->clearStates(fixConnectionPtr);
+    this->onFail_(fixConnectionPtr, errorMessage);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void clearStates(std::shared_ptr<FixConnection> fixConnectionPtr) {
+    CCAPI_LOGGER_INFO("clear states for fixConnectionPtr " + toString(*fixConnectionPtr));
+    auto& connectionId = fixConnectionPtr->id;
+    this->readMessageBufferByConnectionIdMap.erase(connectionId);
+    this->readMessageBufferReadLengthByConnectionIdMap.erase(connectionId);
+    this->writeMessageBufferByConnectionIdMap.erase(connectionId);
+    this->writeMessageBufferWrittenLengthByConnectionIdMap.erase(connectionId);
+    this->fixConnectionPtrByConnectionIdMap.erase(connectionId);
+    this->sequenceSentByConnectionIdMap.erase(connectionId);
+    this->credentialByConnectionIdMap.erase(connectionId);
+    auto urlBase = fixConnectionPtr->url;
+    this->connectNumRetryOnFailByConnectionUrlMap.erase(urlBase);
+  }
+  void onFail_(std::shared_ptr<FixConnection> fixConnectionPtr, const std::string& errorMessage) {
+    fixConnectionPtr->status = FixConnection::Status::FAILED;
+    this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, errorMessage, {fixConnectionPtr->subscription.getCorrelationId()});
+    auto urlBase = fixConnectionPtr->url;
+    CCAPI_LOGGER_TRACE("urlBase = "+urlBase);
+    CCAPI_LOGGER_TRACE("this->connectNumRetryOnFailByConnectionUrlMap = "+toString(this->connectNumRetryOnFailByConnectionUrlMap));
+    long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
+    CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
+    if (this->connectRetryOnFailTimerByConnectionIdMap.find(fixConnectionPtr->id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
+      this->connectRetryOnFailTimerByConnectionIdMap.at(fixConnectionPtr->id)->cancel();
+    }
+    this->connectRetryOnFailTimerByConnectionIdMap[fixConnectionPtr->id] = this->serviceContextPtr->tlsClientPtr->set_timer(
+        seconds * 1000, [fixConnectionPtr, that = shared_from_base<FixServiceCoinbase>(), urlBase](ErrorCode const& ec) {
+          if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) == that->fixConnectionPtrByConnectionIdMap.end()) {
+            if (ec) {
+              CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", connect retry on fail timer error: " + ec.message());
+              that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+            } else {
+              CCAPI_LOGGER_INFO("about to retry");
+              that->connect(fixConnectionPtr->subscription);
+              that->connectNumRetryOnFailByConnectionUrlMap[urlBase] += 1;
+            }
+          }
+        });
   }
   void connect(Subscription& subscription) {
     std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(nullptr);
@@ -85,6 +112,7 @@ class FixServiceCoinbase : public Service {
       return;
     }
     std::shared_ptr<FixConnection> fixConnectionPtr(new FixConnection(this->hostFix, this->portFix, subscription, streamPtr));
+    fixConnectionPtr->status = FixConnection::Status::CONNECTING;
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::ssl_stream<beast::tcp_stream>& stream = *streamPtr;
     beast::get_lowest_layer(stream).async_connect(
@@ -96,12 +124,11 @@ class FixServiceCoinbase : public Service {
     auto now = UtilTime::now();
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "connect", {fixConnectionPtr->subscription.getCorrelationId()});
+      this->onFail(fixConnectionPtr, "connect");
       return;
     }
-    CCAPI_LOGGER_TRACE("fixConnectionPtr " + toString(*fixConnectionPtr));
+    CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
     CCAPI_LOGGER_TRACE("connected");
-
     beast::ssl_stream<beast::tcp_stream>& stream = *fixConnectionPtr->streamPtr;
     CCAPI_LOGGER_TRACE("before async_handshake");
     stream.async_handshake(ssl::stream_base::client,
@@ -114,180 +141,268 @@ class FixServiceCoinbase : public Service {
     auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "handshake", {fixConnectionPtr->subscription.getCorrelationId()});
+      this->onFail(fixConnectionPtr, "handshake");
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
-    auto connectionId = fixConnectionPtr->id;
-    Event event;
-    event.setType(Event::Type::SESSION_STATUS);
-    Message message;
-    message.setTimeReceived(now);
-    message.setType(Message::Type::SESSION_CONNECTION_UP);
-    message.setCorrelationIdList({fixConnectionPtr->subscription.getCorrelationId()});
-    Element element;
-    element.insert(CCAPI_CONNECTION_ID, connectionId);
-    message.setElementList({element});
-    event.setMessageList({message});
-    this->eventHandler(event);
+    auto& connectionId = fixConnectionPtr->id;
+    fixConnectionPtr->status = FixConnection::Status::OPEN;
+    CCAPI_LOGGER_INFO("connection " + toString(*fixConnectionPtr) + " established");
+    this->connectNumRetryOnFailByConnectionUrlMap[fixConnectionPtr->url] = 0;
+    {
+      Event event;
+      event.setType(Event::Type::SESSION_STATUS);
+      Message message;
+      message.setTimeReceived(now);
+      message.setType(Message::Type::SESSION_CONNECTION_UP);
+      message.setCorrelationIdList({fixConnectionPtr->subscription.getCorrelationId()});
+      Element element(true);
+      element.insert(CCAPI_CONNECTION_ID, connectionId);
+      message.setElementList({element});
+      event.setMessageList({message});
+      this->eventHandler(event);
+    }
     this->fixConnectionPtrByConnectionIdMap.insert({connectionId, fixConnectionPtr});
-    auto& readMessageBuffer = this->readMessageBufferByConnectionIdMap[connectionId];
-    auto& readMessageBufferReadLength = this->readMessageBufferReadLengthByConnectionIdMap[connectionId];
-    this->startRead_3(fixConnectionPtr, readMessageBuffer.data() + readMessageBufferReadLength,
-                      std::min(readMessageBuffer.size() - readMessageBufferReadLength, this->readMessageChunkSize));
-    auto& writeMessageBuffer = writeMessageBufferByConnectionIdMap[connectionId];
-    hff::message_writer messageWriter(writeMessageBuffer.data(), writeMessageBuffer.data() + writeMessageBuffer.size());
-
-    messageWriter.push_back_header("FIX.4.2");  // Write BeginString and BodyLength.
-    auto msgType = "A";
-    messageWriter.push_back_string(hff::tag::MsgType, msgType);
     auto credential = fixConnectionPtr->subscription.getCredential();
     if (credential.empty()) {
       credential = this->credentialDefault;
     }
     this->credentialByConnectionIdMap[connectionId] = credential;
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    auto senderCompID = apiKey;
-    messageWriter.push_back_string(hff::tag::SenderCompID, apiKey);
-    auto targetCompID = "Coinbase";
-    messageWriter.push_back_string(hff::tag::TargetCompID, targetCompID);
-    auto msgSeqNum = std::to_string(++this->sequenceSentByConnectionIdMap[connectionId]);
-    messageWriter.push_back_string(hff::tag::MsgSeqNum, msgSeqNum);
-    messageWriter.push_back_string(hff::tag::SendingTime, nowFixTimeStr);
+    auto& readMessageBuffer = this->readMessageBufferByConnectionIdMap[connectionId];
+    auto& readMessageBufferReadLength = this->readMessageBufferReadLengthByConnectionIdMap[connectionId];
+    CCAPI_LOGGER_TRACE("about to start read");
+    CCAPI_LOGGER_TRACE("readMessageBufferReadLength = "+toString(readMessageBufferReadLength));
+    this->startRead_3(fixConnectionPtr, readMessageBuffer.data() + readMessageBufferReadLength,
+                      std::min(readMessageBuffer.size() - readMessageBufferReadLength, this->readMessageChunkSize));
+    std::map<int, std::string> logonOptionMap;
     for (const auto& x : fixConnectionPtr->subscription.getOptionMap()) {
-      messageWriter.push_back_string(std::stoi(x.first), x.second);
+      if (UtilString::isNumber(x.first)) {
+        logonOptionMap.insert({std::stoi(x.first), x.second});
+      }
     }
-    messageWriter.push_back_string(hff::tag::EncryptMethod, "0");
-    messageWriter.push_back_string(hff::tag::HeartBtInt, std::to_string(sessionOptions.heartbeatFixIntervalMilliSeconds / 1000));
-
-    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
-    messageWriter.push_back_string(hff::tag::Password, apiPassphrase);
-
-    // No encryption.
-
-    // 10 second heartbeat interval.
-    std::vector<std::string> prehashFieldList{nowFixTimeStr, msgType, msgSeqNum, senderCompID, targetCompID, apiPassphrase};
-    auto prehashStr = UtilString::join(prehashFieldList, "\x01");
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto rawData = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), prehashStr));
-    messageWriter.push_back_string(hff::tag::RawData, rawData);
-
-    messageWriter.push_back_trailer();  // write CheckSum.
-    this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), messageWriter.message_end() - writeMessageBuffer.data());
-
-    // CCAPI_LOGGER_TRACE("before async_write");
-    // auto numBytesToWrite = messageWriter.message_end() - writeMessageBuffer.data();
-    // CCAPI_LOGGER_TRACE("numBytesToWrite = " + toString(numBytesToWrite));
-    // boost::asio::async_write(stream, boost::asio::buffer(writeMessageBuffer.data(), numBytesToWrite),
-    //                         beast::bind_front_handler(&FixServiceCoinbase::onWrite_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
-    // this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId] += numBytesToWrite;
-    // CCAPI_LOGGER_TRACE("after async_write");
+    auto param = this->createLogonParam(connectionId, nowFixTimeStr, logonOptionMap);
+    this->writeMessage(fixConnectionPtr, nowFixTimeStr, {param});
   }
-  void startRead_3(std::shared_ptr<FixConnection> fixConnectionPtr, void* data, size_t numBytesToRead) {
+  void startRead_3(std::shared_ptr<FixConnection> fixConnectionPtr, void* data, size_t requestedNumBytesToRead) {
     beast::ssl_stream<beast::tcp_stream>& stream = *fixConnectionPtr->streamPtr;
-    // if (wsConnection.status == WsConnection::Status::CLOSING && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
-    //   CCAPI_LOGGER_WARN("should not process remaining message on closing");
-    //   return;
-    // }
     CCAPI_LOGGER_TRACE("before async_read");
-    // auto numBytesToRead = std::min(sizeof(readMessageBuffer) - readMessageBufferReadLength, readMessageChunkSize);
-    CCAPI_LOGGER_TRACE("numBytesToRead = " + toString(numBytesToRead));
-    // boost::asio::async_read(stream, boost::asio::buffer(readMessageBuffer + readMessageBufferReadLength, numBytesToRead),
-    //                         beast::bind_front_handler(&FixServiceCoinbase::onRead_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
-    boost::asio::async_read(stream, boost::asio::buffer(data, numBytesToRead),
-                            beast::bind_front_handler(&FixServiceCoinbase::onRead_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
+    CCAPI_LOGGER_TRACE("requestedNumBytesToRead = " + toString(requestedNumBytesToRead));
+    stream.async_read_some(boost::asio::buffer(data, requestedNumBytesToRead),
+                           beast::bind_front_handler(&FixServiceCoinbase::onRead_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_read");
   }
   void onRead_3(std::shared_ptr<FixConnection> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
-    std::map<int, std::string> field_dictionary;
-    hff::dictionary_init_field(field_dictionary);
-
-    if (!ec) {
-      auto& connectionId = fixConnectionPtr->id;
-      auto& readMessageBuffer = readMessageBufferByConnectionIdMap[connectionId];
-      auto& readMessageBufferReadLength = this->readMessageBufferReadLengthByConnectionIdMap[connectionId];
-      readMessageBufferReadLength += n;
-      hff::message_reader reader(readMessageBuffer.data(), readMessageBuffer.data() + readMessageBufferReadLength);
-
-      // Try to read as many complete messages as there are in the buffer.
-      for (; reader.is_complete(); reader = reader.next_message_reader()) {
-        if (reader.is_valid()) {
-          // Here is a complete message. Read fields out of the reader.
-          try {
-            if (reader.message_type()->value() == "A") {
-              std::cout << "Logon message\n";
-
-              hff::message_reader::const_iterator i = reader.begin();
-
-              if (reader.find_with_hint(hff::tag::SenderCompID, i)) std::cout << "SenderCompID = " << i++->value() << '\n';
-
-              if (reader.find_with_hint(hff::tag::MsgSeqNum, i)) std::cout << "MsgSeqNum    = " << i++->value().as_int<int>() << '\n';
-
-              // if (reader.find_with_hint(hff::tag::SendingTime, i))
-              //     std::cout
-              //         << "SendingTime  = "
-              //         << i++->value().as_timestamp() << '\n';
-
-              std::cout << "The next field is " << hff::field_name(i->tag(), field_dictionary) << " = " << i->value() << '\n';
-
-              std::cout << '\n';
-            } else if (reader.message_type()->value() == "D") {
-              std::cout << "New Order Single message\n";
-
-              hff::message_reader::const_iterator i = reader.begin();
-
-              if (reader.find_with_hint(hff::tag::Side, i)) std::cout << (i++->value().as_char() == '1' ? "Buy " : "Sell ");
-
-              if (reader.find_with_hint(hff::tag::Symbol, i)) std::cout << i++->value() << " ";
-
-              if (reader.find_with_hint(hff::tag::OrderQty, i)) std::cout << i++->value().as_int<int>();
-
-              if (reader.find_with_hint(hff::tag::Price, i)) {
-                int mantissa, exponent;
-                i->value().as_decimal(mantissa, exponent);
-                std::cout << " @ $" << mantissa << "E" << exponent;
-                ++i;
-              }
-
-              std::cout << "\n\n";
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_TRACE("n = "+toString(n));
+    auto now = UtilTime::now();
+    auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
+    if (ec) {
+      CCAPI_LOGGER_TRACE("fail");
+      this->onFail(fixConnectionPtr, "read");
+      return;
+    }
+    if (fixConnectionPtr->status != FixConnection::Status::OPEN) {
+      CCAPI_LOGGER_WARN("should not process remaining message on closing");
+      return;
+    }
+    auto& connectionId = fixConnectionPtr->id;
+    auto& readMessageBuffer = this->readMessageBufferByConnectionIdMap[connectionId];
+    auto previousReadMessageBufferReadLength = this->readMessageBufferReadLengthByConnectionIdMap[connectionId];
+    CCAPI_LOGGER_TRACE("previousReadMessageBufferReadLength = " + toString(previousReadMessageBufferReadLength));
+    this->readMessageBufferReadLengthByConnectionIdMap[connectionId]=previousReadMessageBufferReadLength+n;
+    auto& readMessageBufferReadLength=this->readMessageBufferReadLengthByConnectionIdMap[connectionId];
+    CCAPI_LOGGER_TRACE("readMessageBufferReadLength = " + toString(readMessageBufferReadLength));
+    hff::message_reader reader(readMessageBuffer.data()+previousReadMessageBufferReadLength, readMessageBuffer.data() + readMessageBufferReadLength);
+    std::vector<std::string> correlationIdList{fixConnectionPtr->subscription.getCorrelationId()};
+    for (; reader.is_complete(); reader = reader.next_message_reader()) {
+      Event event;
+      bool shouldEmitEvent = true;
+      Message message;
+      Element element(true);
+      message.setTimeReceived(now);
+      message.setCorrelationIdList(correlationIdList);
+      if (reader.is_valid()) {
+        try {
+          CCAPI_LOGGER_TRACE("recevied "+printableString(reader.message_begin(), reader.message_end() - reader.message_begin()));
+          auto it = reader.message_type();
+          auto messageType = it->value().as_string();
+          CCAPI_LOGGER_DEBUG("received a " + messageType + " message");
+          if (messageType == "0") {
+            shouldEmitEvent = false;
+            CCAPI_LOGGER_DEBUG("heartbeat: " + toString(*fixConnectionPtr));
+          } else if (messageType == "1") {
+            shouldEmitEvent = false;
+            if (reader.find_with_hint(hff::tag::TestReqID, it)) {
+              this->writeMessage(fixConnectionPtr, nowFixTimeStr,
+                                 {{
+                                     {hff::tag::MsgType, "0"},
+                                     {hff::tag::TestReqID, it->value().as_string()},
+                                 }});
             }
-
-          } catch (std::exception& ex) {
-            std::cerr << "Error reading fields: " << ex.what() << '\n';
+          } else {
+            it = it + 5;
+            while (it->tag() != hffix::tag::CheckSum) {
+              element.insert(it->tag(), it->value().as_string());
+              ++it;
+            }
+            if (reader.find_with_hint(hff::tag::MsgSeqNum, it) && it->value().as_string() == "1") {
+              if (messageType == "A") {
+                event.setType(Event::Type::AUTHORIZATION_STATUS);
+                message.setType(Message::Type::AUTHORIZATION_SUCCESS);
+                this->setPingPongTimer(
+                    PingPongMethod::FIX_PROTOCOL_LEVEL, fixConnectionPtr,
+                    [that = shared_from_base<FixServiceCoinbase>()](std::shared_ptr<FixConnection> fixConnectionPtr) {
+                      auto now = UtilTime::now();
+                      auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
+                      that->writeMessage(
+                          fixConnectionPtr, nowFixTimeStr,
+                          {{{hff::tag::MsgType, "0"}},
+                           {
+                               {hff::tag::MsgType, "1"},
+                               {hff::tag::TestReqID, std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count())},
+                           }});
+                    });
+              } else {
+                event.setType(Event::Type::AUTHORIZATION_STATUS);
+                message.setType(Message::Type::AUTHORIZATION_FAILURE);
+              }
+            } else {
+              event.setType(Event::Type::FIX);
+              message.setType(Message::Type::FIX);
+            }
           }
-
-        } else {
-          // An invalid, corrupted FIX message. Do not try to read fields
-          // out of this reader. The beginning of the invalid message is
-          // at location reader.message_begin() in the buffer, but the
-          // end of the invalid message is unknown (because it's invalid).
-          //
-          // Stay in this for loop, because the
-          // messager_reader::next_message_reader() function will see
-          // that this message is invalid and it will search the
-          // remainder of the buffer for the text "8=FIX", to see if
-          // there might be a complete or partial valid message anywhere
-          // else in the remainder of the buffer.
-          //
-          // Set the return code non-zero to indicate that there was
-          // an invalid message, and print the first 64 chars of the
-          // invalid message.
-          // return_code = 1;
-          std::cerr << "Error Invalid FIX message: ";
-          std::cerr.write(reader.message_begin(), std::min(ssize_t(64), readMessageBuffer.data() + readMessageBufferReadLength - reader.message_begin()));
-          std::cerr << "...\n";
+        } catch (const std::exception& e) {
+          std::string errorMessage(std::string("Error reading fields: ") + e.what());
+          element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
+          event.setType(Event::Type::FIX_STATUS);
+          message.setType(Message::Type::GENERIC_ERROR);
         }
+      } else {
+        std::string errorMessage("Error Invalid FIX message: ");
+        errorMessage.append(reader.message_begin(), std::min(ssize_t(64), readMessageBuffer.data() + readMessageBufferReadLength - reader.message_begin()));
+        errorMessage.append("...");
+        element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
+        event.setType(Event::Type::FIX_STATUS);
+        message.setType(Message::Type::GENERIC_ERROR);
       }
+      if (shouldEmitEvent) {
+        message.setElementList({element});
+        event.setMessageList({message});
+        this->eventHandler(event);
+      }
+    }
+    CCAPI_LOGGER_TRACE("readMessageBufferReadLength = "+toString(readMessageBufferReadLength));
+    // if (readMessageBufferReadLength >= this->readMessageChunkSize) {
       readMessageBufferReadLength = reader.buffer_end() - reader.buffer_begin();
-
-      if (readMessageBufferReadLength > 0) {  // Then there is an incomplete message at the end of the buffer.
-        // Move the partial portion of the incomplete message to buffer[0].
+      if (readMessageBufferReadLength > 0) {
         std::memmove(readMessageBuffer.data(), reader.buffer_begin(), readMessageBufferReadLength);
       }
-
+      CCAPI_LOGGER_TRACE("about to start read");
       this->startRead_3(fixConnectionPtr, readMessageBuffer.data() + readMessageBufferReadLength,
                         std::min(readMessageBuffer.size() - readMessageBufferReadLength, this->readMessageChunkSize));
+    // } else {
+    //   CCAPI_LOGGER_TRACE("about to start read");
+    //   this->startRead_3(fixConnectionPtr, readMessageBuffer.data() + readMessageBufferReadLength,
+    //                     std::min(readMessageBuffer.size() - readMessageBufferReadLength, this->readMessageChunkSize - readMessageBufferReadLength));
+    // }
+    this->onPongByMethod(PingPongMethod::FIX_PROTOCOL_LEVEL, fixConnectionPtr, now);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void startWrite_3(std::shared_ptr<FixConnection> fixConnectionPtr, void* data, size_t numBytesToWrite) {
+    beast::ssl_stream<beast::tcp_stream>& stream = *fixConnectionPtr->streamPtr;
+    CCAPI_LOGGER_TRACE("before async_write");
+    CCAPI_LOGGER_TRACE("numBytesToWrite = " + toString(numBytesToWrite));
+    boost::asio::async_write(stream, boost::asio::buffer(data, numBytesToWrite),
+                             beast::bind_front_handler(&FixServiceCoinbase::onWrite_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
+    CCAPI_LOGGER_TRACE("after async_write");
+  }
+  void onWrite_3(std::shared_ptr<FixConnection> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    auto& connectionId = fixConnectionPtr->id;
+    auto& writeMessageBuffer = this->writeMessageBufferByConnectionIdMap[connectionId];
+    auto& writeMessageBufferWrittenLength = this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
+    writeMessageBufferWrittenLength -= n;
+    CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
+    if (writeMessageBufferWrittenLength > 0) {
+      std::memmove(writeMessageBuffer.data(), writeMessageBuffer.data() + n, writeMessageBufferWrittenLength);
+      CCAPI_LOGGER_TRACE("about to start write");
+      this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), writeMessageBufferWrittenLength);
     }
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void writeMessage(std::shared_ptr<FixConnection> fixConnectionPtr, const std::string& nowFixTimeStr,
+                    const std::vector<std::vector<std::pair<int, std::string>>>& paramList) {
+    if (fixConnectionPtr->status != FixConnection::Status::OPEN) {
+      CCAPI_LOGGER_WARN("should write no more messages");
+      return;
+    }
+    auto& connectionId = fixConnectionPtr->id;
+    auto& writeMessageBuffer = this->writeMessageBufferByConnectionIdMap[connectionId];
+    auto& writeMessageBufferWrittenLength = this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
+    size_t n = 0;
+    for (const auto& param : paramList) {
+      auto commonParam = this->createCommonParam(connectionId, nowFixTimeStr);
+      hff::message_writer messageWriter(writeMessageBuffer.data() + n, writeMessageBuffer.data() + writeMessageBuffer.size());
+      messageWriter.push_back_header(this->protocolVersion.c_str());
+      auto it = param.begin();
+      if (it != param.end()) {
+        messageWriter.push_back_string(it->first, it->second);
+        for (const auto& x : commonParam) {
+          messageWriter.push_back_string(x.first, x.second);
+        }
+        ++it;
+        while (it != param.end()) {
+          messageWriter.push_back_string(it->first, it->second);
+          ++it;
+        }
+      }
+      messageWriter.push_back_trailer();
+      n += messageWriter.message_end() - messageWriter.message_begin();
+    }
+    CCAPI_LOGGER_TRACE("about to send "+printableString(writeMessageBuffer.data(), n));
+    if (writeMessageBufferWrittenLength == 0) {
+      CCAPI_LOGGER_TRACE("about to start write");
+      this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), n);
+    }
+    writeMessageBufferWrittenLength += n;
+  }
+  virtual std::vector<std::pair<int, std::string>> createCommonParam(const std::string& connectionId, const std::string& nowFixTimeStr) {
+    return {
+        {hff::tag::SenderCompID, mapGetWithDefault(this->credentialByConnectionIdMap[connectionId], this->apiKeyName)},
+        {hff::tag::TargetCompID, this->targetCompID},
+        {hff::tag::MsgSeqNum, std::to_string(++this->sequenceSentByConnectionIdMap[connectionId])},
+        {hff::tag::SendingTime, nowFixTimeStr},
+    };
+  }
+  virtual std::vector<std::pair<int, std::string>> createLogonParam(const std::string& connectionId, const std::string& nowFixTimeStr,
+                                                                    const std::map<int, std::string> logonOptionMap = {}) {
+    std::vector<std::pair<int, std::string>> param;
+    auto msgType = "A";
+    param.push_back({hff::tag::MsgType, msgType});
+    param.push_back({hff::tag::EncryptMethod, "0"});
+    param.push_back({hff::tag::HeartBtInt, std::to_string(this->sessionOptions.heartbeatFixIntervalMilliSeconds / 1000)});
+    auto credential = this->credentialByConnectionIdMap[connectionId];
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
+    param.push_back({hff::tag::Password, apiPassphrase});
+    auto msgSeqNum = std::to_string(this->sequenceSentByConnectionIdMap[connectionId]+1);
+    auto senderCompID = mapGetWithDefault(credential, this->apiKeyName);
+    auto targetCompID = this->targetCompID;
+    std::vector<std::string> prehashFieldList{nowFixTimeStr, msgType, msgSeqNum, senderCompID, targetCompID, apiPassphrase};
+    auto prehashStr = UtilString::join(prehashFieldList, "\x01");
+    CCAPI_LOGGER_TRACE("prehashStr = " + printableString(prehashStr));
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto rawData = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), prehashStr));
+    CCAPI_LOGGER_TRACE("rawData = " + rawData);
+    param.push_back({hff::tag::RawData, rawData});
+    for (const auto& x : logonOptionMap) {
+      param.push_back({x.first, x.second});
+    }
+    return param;
+  }
+  void onPongByMethod(PingPongMethod method, std::shared_ptr<FixConnection> fixConnectionPtr, const TimePoint& timeReceived) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    this->lastPongTpByMethodByConnectionIdMap[fixConnectionPtr->id][method] = timeReceived;
+    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void setupCredential(std::vector<std::string> nameList) {
     for (const auto& x : nameList) {
@@ -298,139 +413,127 @@ class FixServiceCoinbase : public Service {
       }
     }
   }
-  void sendRequestFix(const Request& request, const TimePoint& now) override {
+  void sendRequestByFix(const Request& request, const TimePoint& now) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceCoinbase>(), request, now]() {
+    CCAPI_LOGGER_TRACE("now = " + toString(now));
+    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceCoinbase>(), request]() {
+      auto now = UtilTime::now();
       CCAPI_LOGGER_DEBUG("request = " + toString(request));
+      CCAPI_LOGGER_TRACE("now = " + toString(now));
       auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
       auto& connectionId = request.getCorrelationId();
-      // std::shared_ptr<FixConnection> fixConnectionPtr;
-
       auto it = that->fixConnectionPtrByConnectionIdMap.find(connectionId);
       if (it == that->fixConnectionPtrByConnectionIdMap.end()) {
-        // error connection not found
+        Event event;
+        event.setType(Event::Type::FIX_STATUS);
+        Message message;
+        message.setTimeReceived(now);
+        message.setType(Message::Type::FIX_FAILURE);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        Element element(true);
+        element.insert(CCAPI_ERROR_MESSAGE, "FIX connection was not found");
+        message.setElementList({element});
+        event.setMessageList({message});
+        that->eventHandler(event);
         return;
       }
       auto& fixConnectionPtr = it->second;
-      auto& writeMessageBuffer = that->writeMessageBufferByConnectionIdMap[connectionId];
-      auto& writeMessageBufferWrittenLength = that->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
-      auto numBytesToWrite = 0;
-      for (const auto& param : request.getParamListFix()) {
-        hffix::message_writer messageWriter(writeMessageBuffer.data() + writeMessageBufferWrittenLength + numBytesToWrite,
-                                            writeMessageBuffer.data() + writeMessageBuffer.size());
-        messageWriter.push_back_header("FIX.4.2");  // Write BeginString and BodyLength.
-        auto it = param.begin();
-        if (it != param.end()) {
-          messageWriter.push_back_string(it->first, it->second);
-          messageWriter.push_back_string(hff::tag::SenderCompID, mapGetWithDefault(that->credentialByConnectionIdMap[connectionId], that->apiKeyName));
-          messageWriter.push_back_string(hff::tag::TargetCompID, "Coinbase");
-          auto msgSeqNum = std::to_string(++that->sequenceSentByConnectionIdMap[connectionId]);
-          messageWriter.push_back_string(hff::tag::MsgSeqNum, msgSeqNum);
-          messageWriter.push_back_string(hff::tag::SendingTime, nowFixTimeStr);
-          ++it;
-          while (it != param.end()) {
-            messageWriter.push_back_string(it->first, it->second);
-            ++it;
-          }
-        }
-        messageWriter.push_back_trailer();  // write CheckSum.
-        numBytesToWrite += messageWriter.message_end() - messageWriter.message_begin();
-      }
-
-      if (writeMessageBufferWrittenLength == 0) {
-        that->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), numBytesToWrite);
-      }
-      writeMessageBufferWrittenLength += numBytesToWrite;
-
-      // CCAPI_LOGGER_TRACE("before async_write");
-      // auto numBytesToWrite = new_order.message_end() - buffer;
-      // CCAPI_LOGGER_TRACE("numBytesToWrite = " + toString(numBytesToWrite));
-      // boost::asio::async_write(stream, boost::asio::buffer(writeMessageBuffer, numBytesToWrite),
-      //                         beast::bind_front_handler(&FixServiceCoinbase::onWrite_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
-      // CCAPI_LOGGER_TRACE("after async_write");
+      CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
+      that->writeMessage(fixConnectionPtr, nowFixTimeStr, request.getParamListFix());
     });
-
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void startWrite_3(std::shared_ptr<FixConnection> fixConnectionPtr, void* data, size_t numBytesToWrite) {
-    beast::ssl_stream<beast::tcp_stream>& stream = *fixConnectionPtr->streamPtr;
-    CCAPI_LOGGER_TRACE("before async_write");
-    // auto numBytesToWrite = messageWriter.message_end() - writeMessageBuffer.data();
-    CCAPI_LOGGER_TRACE("numBytesToWrite = " + toString(numBytesToWrite));
-    boost::asio::async_write(stream, boost::asio::buffer(data, numBytesToWrite),
-                             beast::bind_front_handler(&FixServiceCoinbase::onWrite_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
-
-    CCAPI_LOGGER_TRACE("after async_write");
-  }
-  void onWrite_3(std::shared_ptr<FixConnection> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
-    auto& connectionId = fixConnectionPtr->id;
-    auto& writeMessageBuffer = this->writeMessageBufferByConnectionIdMap[connectionId];
-    auto& writeMessageBufferWrittenLength = this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
-    writeMessageBufferWrittenLength -= n;
-    CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
-    if (writeMessageBufferWrittenLength > 0) {
-      std::memmove(writeMessageBuffer.data(), writeMessageBuffer.data() + n, writeMessageBufferWrittenLength);
-      this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), writeMessageBufferWrittenLength);
+  void setPingPongTimer(PingPongMethod method, std::shared_ptr<FixConnection> fixConnectionPtr,
+                        std::function<void(std::shared_ptr<FixConnection>)> pingMethod) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_TRACE("method = " + pingPongMethodToString(method));
+    auto pingIntervalMilliSeconds = this->pingIntervalMilliSecondsByMethodMap[method];
+    auto pongTimeoutMilliSeconds = this->pongTimeoutMilliSecondsByMethodMap[method];
+    CCAPI_LOGGER_TRACE("pingIntervalMilliSeconds = " + toString(pingIntervalMilliSeconds));
+    CCAPI_LOGGER_TRACE("pongTimeoutMilliSeconds = " + toString(pongTimeoutMilliSeconds));
+    if (pingIntervalMilliSeconds <= pongTimeoutMilliSeconds) {
+      return;
     }
+    if (fixConnectionPtr->status == FixConnection::Status::OPEN) {
+      if (this->pingTimerByMethodByConnectionIdMap.find(fixConnectionPtr->id) != this->pingTimerByMethodByConnectionIdMap.end() &&
+          this->pingTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).find(method) !=
+              this->pingTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).end()) {
+        this->pingTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method)->cancel();
+      }
+      this->pingTimerByMethodByConnectionIdMap[fixConnectionPtr->id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
+          pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
+          [fixConnectionPtr, that = shared_from_base<FixServiceCoinbase>(), pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+            if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByConnectionIdMap.end()) {
+              if (ec) {
+                CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", ping timer error: " + ec.message());
+                that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+              } else {
+                if (that->fixConnectionPtrByConnectionIdMap.at(fixConnectionPtr->id)->status == FixConnection::Status::OPEN) {
+                  ErrorCode ec;
+                  pingMethod(fixConnectionPtr);
+                  if (ec) {
+                    that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "ping");
+                  }
+                  if (pongTimeoutMilliSeconds <= 0) {
+                    return;
+                  }
+                  if (that->pongTimeOutTimerByMethodByConnectionIdMap.find(fixConnectionPtr->id) != that->pongTimeOutTimerByMethodByConnectionIdMap.end() &&
+                      that->pongTimeOutTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).find(method) !=
+                          that->pongTimeOutTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).end()) {
+                    that->pongTimeOutTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method)->cancel();
+                  }
+                  that->pongTimeOutTimerByMethodByConnectionIdMap[fixConnectionPtr->id][method] = that->serviceContextPtr->tlsClientPtr->set_timer(
+                      pongTimeoutMilliSeconds, [fixConnectionPtr, that, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+                        if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByConnectionIdMap.end()) {
+                          if (ec) {
+                            CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong time out timer error: " + ec.message());
+                            that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+                          } else {
+                            if (that->fixConnectionPtrByConnectionIdMap.at(fixConnectionPtr->id)->status == FixConnection::Status::OPEN) {
+                              auto now = UtilTime::now();
+                              if (that->lastPongTpByMethodByConnectionIdMap.find(fixConnectionPtr->id) != that->lastPongTpByMethodByConnectionIdMap.end() &&
+                                  that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).find(method) !=
+                                      that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).end() &&
+                                  std::chrono::duration_cast<std::chrono::milliseconds>(
+                                      now - that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method))
+                                          .count() >= pongTimeoutMilliSeconds) {
+                                auto thisFixConnectionPtr = fixConnectionPtr;
+                                ErrorCode ec;
+                                that->onFail(fixConnectionPtr, "pong timeout");
+                                if (ec) {
+                                  that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+                                }
+                              } else {
+                                auto thisFixConnectionPtr = fixConnectionPtr;
+                                that->setPingPongTimer(method, thisFixConnectionPtr, pingMethod);
+                              }
+                            }
+                          }
+                        }
+                      });
+                }
+              }
+            }
+          });
+    }
+    CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  // const size_t chunksize = 4096;
   const size_t readMessageChunkSize = CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE;
-
-  // char readMessageBuffer[1 << 20]; // depends on correlationId
-  // size_t readMessageBufferReadLength{};  // The number of bytes read in buffer[]. depends on correlationId
-  // char writeMessageBuffer[1 << 20]; // depends on correlationId
-  // size_t writeMessageBufferWrittenLength{};
-
   std::map<std::string, std::array<char, 1 << 20>> readMessageBufferByConnectionIdMap;
   std::map<std::string, size_t> readMessageBufferReadLengthByConnectionIdMap;
   std::map<std::string, std::array<char, 1 << 20>> writeMessageBufferByConnectionIdMap;
   std::map<std::string, size_t> writeMessageBufferWrittenLengthByConnectionIdMap;
-
   std::map<std::string, std::shared_ptr<FixConnection>> fixConnectionPtrByConnectionIdMap;
   std::map<std::string, int> sequenceSentByConnectionIdMap;
-  std::map<std::string, int> sequenceReceivedByConnectionIdMap;
-
   std::map<std::string, std::map<std::string, std::string>> credentialByConnectionIdMap;
-
-  // std::map<std::string, bool> isWritingMessageByConnectionIdMap;
-  // std::map<std::string, std::queue> pendingWriteMessageListByConnectionIdMap;
-
-  // std::map<int, std::string> field_dictionary;
-
   std::string baseUrlFix;
   std::string apiKeyName;
   std::string apiSecretName;
   std::string apiPassphraseName;
   std::string hostFix;
   std::string portFix;
-  // size_t fred; // Number of bytes read from fread().
-  // void onFail_(WsConnection& wsConnection) {
-  //   wsConnection.status = WsConnection::Status::FAILED;
-  //   this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, "connection " + toString(wsConnection) + " has failed before
-  //   opening"); WsConnection thisWsConnection = wsConnection; this->wsConnectionMap.erase(thisWsConnection.id);
-  //   this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
-  //   auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
-  //   long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[thisWsConnection.url], 6)));
-  //   CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
-  //   if (this->connectRetryOnFailTimerByConnectionIdMap.find(thisWsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
-  //     this->connectRetryOnFailTimerByConnectionIdMap.at(thisWsConnection.id)->cancel();
-  //   }
-  //   this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
-  //       seconds * 1000, [thisWsConnection, that = shared_from_base<MarketDataService>(), urlBase](ErrorCode const& ec) {
-  //         if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
-  //           if (ec) {
-  //             CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
-  //             that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
-  //           } else {
-  //             CCAPI_LOGGER_INFO("about to retry");
-  //             auto thatWsConnection = thisWsConnection;
-  //             thatWsConnection.assignDummyId();
-  //             that->prepareConnect(thatWsConnection);
-  //             that->connectNumRetryOnFailByConnectionUrlMap[urlBase] += 1;
-  //           }
-  //         }
-  //       });
-  // }
+  std::string protocolVersion;
+  std::string targetCompID;
 };
 } /* namespace ccapi */
 #endif
