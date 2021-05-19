@@ -19,15 +19,17 @@ class MyEventHandler : public EventHandler {
       std::cout << "Received an event of type AUTHORIZATION_STATUS:\n" + event.toStringPretty(2, 2) << std::endl;
       auto message = event.getMessageList().at(0);
       if (message.getType() == Message::Type::AUTHORIZATION_SUCCESS) {
-        Request request(Request::Operation::FIX, "coinbase", "", "cool correlation id");
+        Request request(Request::Operation::FIX, "ftx", "", "cool correlation id");
         request.appendParamFix({
             {35, "D"},
+            {21, "1"},
             {11, "6d4eb0fb-2229-469f-873e-557dd78ac11e"},
-            {55, "BTC-USD"},
+            {55, "BTC/USD"},
             {40, "2"},
-            {54, "1"},
-            {44, "20000"},
             {38, "0.001"},
+            {44, "20000"},
+            {54, "1"},
+            {59, "1"},
         });
         session->sendRequestByFix(request);
       }
@@ -63,7 +65,7 @@ int main(int argc, char** argv) {
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   CCAPI_LOGGER_INFO("");
-  Subscription subscription("coinbase", "", "FIX", "", "cool correlation id");
+  Subscription subscription("ftx", "", "FIX", "", "cool correlation id");
   CCAPI_LOGGER_INFO("");
   session.subscribeByFix(subscription);
   CCAPI_LOGGER_INFO("");
