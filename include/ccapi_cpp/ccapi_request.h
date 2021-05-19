@@ -85,10 +85,10 @@ class Request CCAPI_FINAL {
     for (const auto& x : credential) {
       shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
-    std::string output = "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName +
-                         ", correlationId = " + correlationId + ", paramList = " + ccapi::toString(paramList) +
-                         ", paramListFix = " + ccapi::toString(paramListFix) + ", credential = " + ccapi::toString(shortCredential) +
-                         ", operation = " + operationToString(operation) + "]";
+    std::string output =
+        "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName + ", correlationId = " + correlationId +
+        (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
+        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }

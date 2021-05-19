@@ -22,6 +22,9 @@
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
+  static bool isNumber(const std::string& s) {
+    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+  }
   static std::string generateRandomString(const size_t length) {
     auto randchar = []() -> char {
       const char charset[] =
@@ -603,9 +606,9 @@ std::string toStringPretty(const std::map<K, V>& c, const int space = 2, const i
   auto size = c.size();
   auto i = 0;
   for (const auto& elem : c) {
-    output += toStringPretty(elem.first, space, space + leftToIndent, true);
+    output += toStringPretty(toString(elem.first), space, space + leftToIndent, true);
     output += " = ";
-    output += toStringPretty(elem.second, space, space + leftToIndent, false);
+    output += toStringPretty(toString(elem.second), space, space + leftToIndent, false);
     if (i < size - 1) {
       output += ",\n";
     }
@@ -699,7 +702,7 @@ std::string toStringPretty(const std::vector<T>& c, const int space = 2, const i
   auto size = c.size();
   auto i = 0;
   for (const auto& elem : c) {
-    output += toStringPretty(elem, space, space + leftToIndent, true);
+    output += toStringPretty(toString(elem), space, space + leftToIndent, true);
     if (i < size - 1) {
       output += ",\n";
     }
@@ -739,7 +742,7 @@ std::string firstNToStringPretty(const std::vector<T>& c, const size_t n, const 
     if (i >= n) {
       break;
     }
-    output += toStringPretty(elem, space, space + leftToIndent, true);
+    output += toStringPretty(toString(elem), space, space + leftToIndent, true);
     if (i < size - 1) {
       output += ",\n";
     }

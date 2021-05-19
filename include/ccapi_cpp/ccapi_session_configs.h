@@ -244,6 +244,7 @@ class SessionConfigs CCAPI_FINAL {
   void initializUrlFixBase() {
     this->urlFixBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_FIX_BASE},
+        {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_FIX_BASE},
     };
   }
   std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;

@@ -1,35 +1,35 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_COINBASE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_COINBASE_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_FTX_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_FTX_H_
 #ifdef CCAPI_ENABLE_SERVICE_FIX
-#ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 #include "hffix.hpp"
 namespace hff = hffix;
 namespace ccapi {
-class FixServiceCoinbase : public Service {
+class FixServiceFtx : public Service {
  public:
-  FixServiceCoinbase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                     ServiceContextPtr serviceContextPtr)
+  FixServiceFtx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
+    this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrlFix = this->sessionConfigs.getUrlFixBase().at(this->exchangeName);
     this->setHostFixFromUrlFix(this->baseUrlFix);
-    this->apiKeyName = CCAPI_COINBASE_API_KEY;
-    this->apiSecretName = CCAPI_COINBASE_API_SECRET;
-    this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;
-    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
+    this->apiKeyName = CCAPI_FTX_API_KEY;
+    this->apiSecretName = CCAPI_FTX_API_SECRET;
+    this->apiSubaccountName = CCAPI_FTX_API_SUBACCOUNT;
+    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiSubaccountName});
     try {
       this->tcpResolverResults = this->resolver.resolve(this->hostFix, this->portFix);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_COINBASE;
-    this->targetCompID = "Coinbase";
+    this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_FTX;
+    this->targetCompID = "FTX";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual ~FixServiceCoinbase() {}
+  virtual ~FixServiceFtx() {}
 
  protected:
   static std::string printableString(const char* s, size_t n) {
@@ -51,7 +51,7 @@ class FixServiceCoinbase : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrlFix = " + this->baseUrlFix);
     if (this->shouldContinue.load()) {
-      wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceCoinbase>(), subscription]() {
+      wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceFtx>(), subscription]() {
         auto thatSubscription = subscription;
         that->connect(thatSubscription);
       });
@@ -89,7 +89,7 @@ class FixServiceCoinbase : public Service {
       this->connectRetryOnFailTimerByConnectionIdMap.at(fixConnectionPtr->id)->cancel();
     }
     this->connectRetryOnFailTimerByConnectionIdMap[fixConnectionPtr->id] = this->serviceContextPtr->tlsClientPtr->set_timer(
-        seconds * 1000, [fixConnectionPtr, that = shared_from_base<FixServiceCoinbase>(), urlBase](ErrorCode const& ec) {
+        seconds * 1000, [fixConnectionPtr, that = shared_from_base<FixServiceFtx>(), urlBase](ErrorCode const& ec) {
           if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) == that->fixConnectionPtrByConnectionIdMap.end()) {
             if (ec) {
               CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", connect retry on fail timer error: " + ec.message());
@@ -115,8 +115,8 @@ class FixServiceCoinbase : public Service {
     fixConnectionPtr->status = FixConnection::Status::CONNECTING;
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::ssl_stream<beast::tcp_stream>& stream = *streamPtr;
-    beast::get_lowest_layer(stream).async_connect(
-        this->tcpResolverResults, beast::bind_front_handler(&FixServiceCoinbase::onConnect_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
+    beast::get_lowest_layer(stream).async_connect(this->tcpResolverResults,
+                                                  beast::bind_front_handler(&FixServiceFtx::onConnect_3, shared_from_base<FixServiceFtx>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
   void onConnect_3(std::shared_ptr<FixConnection> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
@@ -132,7 +132,7 @@ class FixServiceCoinbase : public Service {
     beast::ssl_stream<beast::tcp_stream>& stream = *fixConnectionPtr->streamPtr;
     CCAPI_LOGGER_TRACE("before async_handshake");
     stream.async_handshake(ssl::stream_base::client,
-                           beast::bind_front_handler(&FixServiceCoinbase::onHandshake_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
+                           beast::bind_front_handler(&FixServiceFtx::onHandshake_3, shared_from_base<FixServiceFtx>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_handshake");
   }
   void onHandshake_3(std::shared_ptr<FixConnection> fixConnectionPtr, beast::error_code ec) {
@@ -188,7 +188,7 @@ class FixServiceCoinbase : public Service {
     CCAPI_LOGGER_TRACE("before async_read");
     CCAPI_LOGGER_TRACE("requestedNumBytesToRead = " + toString(requestedNumBytesToRead));
     stream.async_read_some(boost::asio::buffer(data, requestedNumBytesToRead),
-                           beast::bind_front_handler(&FixServiceCoinbase::onRead_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
+                           beast::bind_front_handler(&FixServiceFtx::onRead_3, shared_from_base<FixServiceFtx>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_read");
   }
   void onRead_3(std::shared_ptr<FixConnection> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
@@ -249,16 +249,20 @@ class FixServiceCoinbase : public Service {
                 message.setType(Message::Type::AUTHORIZATION_SUCCESS);
                 this->setPingPongTimer(
                     PingPongMethod::FIX_PROTOCOL_LEVEL, fixConnectionPtr,
-                    [that = shared_from_base<FixServiceCoinbase>()](std::shared_ptr<FixConnection> fixConnectionPtr) {
+                    [that = shared_from_base<FixServiceFtx>()](std::shared_ptr<FixConnection> fixConnectionPtr) {
                       auto now = UtilTime::now();
                       auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
                       that->writeMessage(
                           fixConnectionPtr, nowFixTimeStr,
-                          {{{hff::tag::MsgType, "0"}},
-                           {
-                               {hff::tag::MsgType, "1"},
-                               {hff::tag::TestReqID, std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count())},
-                           }});
+                          {
+                              {
+                                  {hff::tag::MsgType, "0"},
+                              },
+                              {
+                                  {hff::tag::MsgType, "1"},
+                                  {hff::tag::TestReqID, std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count())},
+                              },
+                          });
                     });
               } else {
                 event.setType(Event::Type::AUTHORIZATION_STATUS);
@@ -308,7 +312,7 @@ class FixServiceCoinbase : public Service {
     CCAPI_LOGGER_TRACE("before async_write");
     CCAPI_LOGGER_TRACE("numBytesToWrite = " + toString(numBytesToWrite));
     boost::asio::async_write(stream, boost::asio::buffer(data, numBytesToWrite),
-                             beast::bind_front_handler(&FixServiceCoinbase::onWrite_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
+                             beast::bind_front_handler(&FixServiceFtx::onWrite_3, shared_from_base<FixServiceFtx>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_write");
   }
   void onWrite_3(std::shared_ptr<FixConnection> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
@@ -376,21 +380,23 @@ class FixServiceCoinbase : public Service {
     param.push_back({hff::tag::MsgType, msgType});
     param.push_back({hff::tag::EncryptMethod, "0"});
     param.push_back({hff::tag::HeartBtInt, std::to_string(this->sessionOptions.heartbeatFixIntervalMilliSeconds / 1000)});
-    auto credential = this->credentialByConnectionIdMap[connectionId];
-    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
-    param.push_back({hff::tag::Password, apiPassphrase});
     auto msgSeqNum = std::to_string(this->sequenceSentByConnectionIdMap[connectionId] + 1);
+    auto credential = this->credentialByConnectionIdMap[connectionId];
     auto senderCompID = mapGetWithDefault(credential, this->apiKeyName);
     auto targetCompID = this->targetCompID;
-    std::vector<std::string> prehashFieldList{nowFixTimeStr, msgType, msgSeqNum, senderCompID, targetCompID, apiPassphrase};
+    std::vector<std::string> prehashFieldList{nowFixTimeStr, msgType, msgSeqNum, senderCompID, targetCompID};
     auto prehashStr = UtilString::join(prehashFieldList, "\x01");
     CCAPI_LOGGER_TRACE("prehashStr = " + printableString(prehashStr));
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto rawData = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), prehashStr));
+    std::string rawData = UtilString::toLower(UtilAlgorithm::stringToHex(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, prehashStr)));
     CCAPI_LOGGER_TRACE("rawData = " + rawData);
     param.push_back({hff::tag::RawData, rawData});
     for (const auto& x : logonOptionMap) {
       param.push_back({x.first, x.second});
+    }
+    auto apiSubaccountName = mapGetWithDefault(credential, this->apiSubaccountName);
+    if (!apiSubaccountName.empty()) {
+      param.push_back({hff::tag::Account, apiSubaccountName});
     }
     return param;
   }
@@ -411,7 +417,7 @@ class FixServiceCoinbase : public Service {
   void sendRequestByFix(const Request& request, const TimePoint& now) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("now = " + toString(now));
-    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceCoinbase>(), request]() {
+    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixServiceFtx>(), request]() {
       auto now = UtilTime::now();
       CCAPI_LOGGER_DEBUG("request = " + toString(request));
       CCAPI_LOGGER_TRACE("now = " + toString(now));
@@ -457,7 +463,7 @@ class FixServiceCoinbase : public Service {
       }
       this->pingTimerByMethodByConnectionIdMap[fixConnectionPtr->id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
           pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
-          [fixConnectionPtr, that = shared_from_base<FixServiceCoinbase>(), pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+          [fixConnectionPtr, that = shared_from_base<FixServiceFtx>(), pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
             if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByConnectionIdMap.end()) {
               if (ec) {
                 CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", ping timer error: " + ec.message());
@@ -529,9 +535,9 @@ class FixServiceCoinbase : public Service {
   std::string protocolVersion;
   std::string targetCompID;
 
-  std::string apiPassphraseName;
+  std::string apiSubaccountName;
 };
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_COINBASE_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_FTX_H_

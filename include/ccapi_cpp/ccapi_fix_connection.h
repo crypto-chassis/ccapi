@@ -10,6 +10,7 @@ class FixConnection CCAPI_FINAL {
   FixConnection(std::string host, std::string port, Subscription subscription, std::shared_ptr<beast::ssl_stream<beast::tcp_stream> > streamPtr)
       : host(host), port(port), subscription(subscription), streamPtr(streamPtr) {
     this->id = subscription.getCorrelationId();
+    this->url = host + ":" + port;
   }
   std::string toString() const {
     std::ostringstream oss;
@@ -55,6 +56,7 @@ class FixConnection CCAPI_FINAL {
   std::string id;
   std::string host;
   std::string port;
+  std::string url;
   Subscription subscription;
   Status status{Status::UNKNOWN};
   std::shared_ptr<beast::ssl_stream<beast::tcp_stream> > streamPtr;

@@ -155,7 +155,8 @@ class ExecutionManagementService : public Service {
     wsConnection.status = WsConnection::Status::OPEN;
     wsConnection.hdl = hdl;
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " established");
-    this->connectNumRetryOnFailByConnectionUrlMap[wsConnection.url] = 0;
+    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    this->connectNumRetryOnFailByConnectionUrlMap[urlBase] = 0;
     Event event;
     event.setType(Event::Type::SESSION_STATUS);
     Message message;
@@ -216,7 +217,7 @@ class ExecutionManagementService : public Service {
     this->wsConnectionMap.erase(thisWsConnection.id);
     // this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
     auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
-    long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[thisWsConnection.url], 6)));
+    long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
     CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(thisWsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(thisWsConnection.id)->cancel();
@@ -287,7 +288,8 @@ class ExecutionManagementService : public Service {
       }
       this->pongTimeOutTimerByMethodByConnectionIdMap.erase(wsConnection.id);
     }
-    this->connectNumRetryOnFailByConnectionUrlMap.erase(wsConnection.url);
+    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    this->connectNumRetryOnFailByConnectionUrlMap.erase(urlBase);
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(wsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
@@ -332,7 +334,7 @@ class ExecutionManagementService : public Service {
     auto now = UtilTime::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     CCAPI_LOGGER_DEBUG("received a message from connection " + toString(wsConnection));
-    if (wsConnection.status == WsConnection::Status::CLOSING && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
+    if (wsConnection.status != WsConnection::Status::OPEN && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
       CCAPI_LOGGER_WARN("should not process remaining message on closing");
       return;
     }
