@@ -40,8 +40,8 @@ class SessionOptions CCAPI_FINAL {
   long heartbeatFixIntervalMilliSeconds{15000};
   long heartbeatFixTimeoutMilliSeconds{10000};  // should be less than heartbeatFixIntervalMilliSeconds
   int maxEventQueueSize{0};                     // if set to a positive integer, the event queue will throw an exception when overflown
-  int httpMaxNumRetry{0};
-  int httpMaxNumRedirect{0};
+  int httpMaxNumRetry{1};
+  int httpMaxNumRedirect{1};
   long httpRequestTimeoutMilliSeconds{10000};
   int httpConnectionPoolMaxSize{1};          // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
   bool enableOneHttpConnectionPerRequest{};  // create a new http connection for each request
