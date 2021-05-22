@@ -43,7 +43,7 @@ class MarketDataService : public Service {
           if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end() &&
               that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()) {
             auto wsConnectionId = wsConnectionIdListByInstrumentGroupMap.at(instrumentGroup).at(0);
-            auto wsConnection = that->wsConnectionMap.at(wsConnectionId);
+            auto wsConnection = that->wsConnectionByIdMap.at(wsConnectionId);
             for (const auto& subscription : subscriptionListGivenInstrumentGroup) {
               auto instrument = subscription.getInstrument();
               if (that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].find(instrument) !=
@@ -210,7 +210,7 @@ class MarketDataService : public Service {
     wsConnection.status = WsConnection::Status::FAILED;
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(thisWsConnection.id);
+    this->wsConnectionByIdMap.erase(thisWsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
     auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
     long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
@@ -220,7 +220,7 @@ class MarketDataService : public Service {
     }
     this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         seconds * 1000, [thisWsConnection, that = shared_from_base<MarketDataService>(), urlBase](ErrorCode const& ec) {
-          if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
+          if (that->wsConnectionByIdMap.find(thisWsConnection.id) == that->wsConnectionByIdMap.end()) {
             if (ec) {
               CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
@@ -318,7 +318,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " is closed");
     this->clearStates(wsConnection);
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(wsConnection.id);
+    this->wsConnectionByIdMap.erase(wsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
@@ -821,8 +821,8 @@ class MarketDataService : public Service {
     if (ec) {
       CCAPI_LOGGER_FATAL("connection initialization error: " + ec.message());
     }
-    this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-    CCAPI_LOGGER_DEBUG("this->wsConnectionMap = " + toString(this->wsConnectionMap));
+    this->wsConnectionByIdMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+    CCAPI_LOGGER_DEBUG("this->wsConnectionByIdMap = " + toString(this->wsConnectionByIdMap));
     this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.group));
     CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = " + toString(this->instrumentGroupByWsConnectionIdMap));
     con->set_open_handler(std::bind(&MarketDataService::onOpen, shared_from_base<MarketDataService>(), std::placeholders::_1));
@@ -1158,12 +1158,12 @@ class MarketDataService : public Service {
       this->pingTimerByMethodByConnectionIdMap[wsConnection.id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
           pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
           [wsConnection, that = shared_from_base<MarketDataService>(), hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-            if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+            if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
               if (ec) {
                 CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", ping timer error: " + ec.message());
                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
               } else {
-                if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                   ErrorCode ec;
                   pingMethod(hdl, ec);
                   if (ec) {
@@ -1179,12 +1179,12 @@ class MarketDataService : public Service {
                   }
                   that->pongTimeOutTimerByMethodByConnectionIdMap[wsConnection.id][method] = that->serviceContextPtr->tlsClientPtr->set_timer(
                       pongTimeoutMilliSeconds, [wsConnection, that, hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-                        if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+                        if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
                           if (ec) {
                             CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", pong time out timer error: " + ec.message());
                             that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                           } else {
-                            if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                            if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                               auto now = UtilTime::now();
                               if (that->lastPongTpByMethodByConnectionIdMap.find(wsConnection.id) != that->lastPongTpByMethodByConnectionIdMap.end() &&
                                   that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(method) !=
@@ -1289,12 +1289,12 @@ class MarketDataService : public Service {
         this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = this->serviceContextPtr->tlsClientPtr->set_timer(
             waitMilliseconds,
             [wsConnection, channelId, symbolId, field, optionMap, correlationIdList, previousConflateTp, interval, gracePeriod, this](ErrorCode const& ec) {
-              if (this->wsConnectionMap.find(wsConnection.id) != this->wsConnectionMap.end()) {
+              if (this->wsConnectionByIdMap.find(wsConnection.id) != this->wsConnectionByIdMap.end()) {
                 if (ec) {
                   CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", conflate timer error: " + ec.message());
                   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                 } else {
-                  if (this->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                  if (this->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                     auto conflateTp = previousConflateTp + interval;
                     if (conflateTp > this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)) {
                       Event event;
