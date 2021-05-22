@@ -115,7 +115,7 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     sendRequestDelayTimerByCorrelationIdMap.clear();
     this->shouldContinue = false;
-    for (const auto& x : this->wsConnectionMap) {
+    for (const auto& x : this->wsConnectionByIdMap) {
       auto wsConnection = x.second;
       ErrorCode ec;
       this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
@@ -726,7 +726,7 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   SslContextPtr onTlsInit(wspp::connection_hdl hdl) { return this->serviceContextPtr->sslContextPtr; }
   WsConnection& getWsConnectionFromConnectionPtr(TlsClient::connection_ptr connectionPtr) {
-    return this->wsConnectionMap.at(this->connectionAddressToString(connectionPtr));
+    return this->wsConnectionByIdMap.at(this->connectionAddressToString(connectionPtr));
   }
   std::string connectionAddressToString(const TlsClient::connection_ptr con) {
     const void* address = static_cast<const void*>(con.get());
@@ -789,7 +789,7 @@ class Service : public std::enable_shared_from_this<Service> {
   Queue<std::shared_ptr<HttpConnection>> httpConnectionPool;
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
-  std::map<std::string, WsConnection> wsConnectionMap;
+  std::map<std::string, WsConnection> wsConnectionByIdMap;
   std::map<std::string, bool> shouldProcessRemainingMessageOnClosingByConnectionIdMap;
   std::map<std::string, int> connectNumRetryOnFailByConnectionUrlMap;
   std::map<std::string, TimerPtr> connectRetryOnFailTimerByConnectionIdMap;

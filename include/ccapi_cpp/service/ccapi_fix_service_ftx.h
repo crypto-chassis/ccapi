@@ -71,7 +71,7 @@ class FixServiceFtx : public Service {
     this->readMessageBufferReadLengthByConnectionIdMap.erase(connectionId);
     this->writeMessageBufferByConnectionIdMap.erase(connectionId);
     this->writeMessageBufferWrittenLengthByConnectionIdMap.erase(connectionId);
-    this->fixConnectionPtrByConnectionIdMap.erase(connectionId);
+    this->fixConnectionPtrByIdMap.erase(connectionId);
     this->sequenceSentByConnectionIdMap.erase(connectionId);
     this->credentialByConnectionIdMap.erase(connectionId);
     auto urlBase = fixConnectionPtr->url;
@@ -90,7 +90,7 @@ class FixServiceFtx : public Service {
     }
     this->connectRetryOnFailTimerByConnectionIdMap[fixConnectionPtr->id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         seconds * 1000, [fixConnectionPtr, that = shared_from_base<FixServiceFtx>(), urlBase](ErrorCode const& ec) {
-          if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) == that->fixConnectionPtrByConnectionIdMap.end()) {
+          if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) == that->fixConnectionPtrByIdMap.end()) {
             if (ec) {
               CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", connect retry on fail timer error: " + ec.message());
               that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
@@ -162,7 +162,7 @@ class FixServiceFtx : public Service {
       event.setMessageList({message});
       this->eventHandler(event);
     }
-    this->fixConnectionPtrByConnectionIdMap.insert({connectionId, fixConnectionPtr});
+    this->fixConnectionPtrByIdMap.insert({connectionId, fixConnectionPtr});
     auto credential = fixConnectionPtr->subscription.getCredential();
     if (credential.empty()) {
       credential = this->credentialDefault;
@@ -423,8 +423,8 @@ class FixServiceFtx : public Service {
       CCAPI_LOGGER_TRACE("now = " + toString(now));
       auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
       auto& connectionId = request.getCorrelationId();
-      auto it = that->fixConnectionPtrByConnectionIdMap.find(connectionId);
-      if (it == that->fixConnectionPtrByConnectionIdMap.end()) {
+      auto it = that->fixConnectionPtrByIdMap.find(connectionId);
+      if (it == that->fixConnectionPtrByIdMap.end()) {
         Event event;
         event.setType(Event::Type::FIX_STATUS);
         Message message;
@@ -464,12 +464,12 @@ class FixServiceFtx : public Service {
       this->pingTimerByMethodByConnectionIdMap[fixConnectionPtr->id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
           pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
           [fixConnectionPtr, that = shared_from_base<FixServiceFtx>(), pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-            if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByConnectionIdMap.end()) {
+            if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
               if (ec) {
                 CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", ping timer error: " + ec.message());
                 that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
               } else {
-                if (that->fixConnectionPtrByConnectionIdMap.at(fixConnectionPtr->id)->status == FixConnection::Status::OPEN) {
+                if (that->fixConnectionPtrByIdMap.at(fixConnectionPtr->id)->status == FixConnection::Status::OPEN) {
                   ErrorCode ec;
                   pingMethod(fixConnectionPtr);
                   if (ec) {
@@ -485,12 +485,12 @@ class FixServiceFtx : public Service {
                   }
                   that->pongTimeOutTimerByMethodByConnectionIdMap[fixConnectionPtr->id][method] = that->serviceContextPtr->tlsClientPtr->set_timer(
                       pongTimeoutMilliSeconds, [fixConnectionPtr, that, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-                        if (that->fixConnectionPtrByConnectionIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByConnectionIdMap.end()) {
+                        if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
                           if (ec) {
                             CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong time out timer error: " + ec.message());
                             that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                           } else {
-                            if (that->fixConnectionPtrByConnectionIdMap.at(fixConnectionPtr->id)->status == FixConnection::Status::OPEN) {
+                            if (that->fixConnectionPtrByIdMap.at(fixConnectionPtr->id)->status == FixConnection::Status::OPEN) {
                               auto now = UtilTime::now();
                               if (that->lastPongTpByMethodByConnectionIdMap.find(fixConnectionPtr->id) != that->lastPongTpByMethodByConnectionIdMap.end() &&
                                   that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).find(method) !=
@@ -524,7 +524,7 @@ class FixServiceFtx : public Service {
   std::map<std::string, size_t> readMessageBufferReadLengthByConnectionIdMap;
   std::map<std::string, std::array<char, 1 << 20>> writeMessageBufferByConnectionIdMap;
   std::map<std::string, size_t> writeMessageBufferWrittenLengthByConnectionIdMap;
-  std::map<std::string, std::shared_ptr<FixConnection>> fixConnectionPtrByConnectionIdMap;
+  std::map<std::string, std::shared_ptr<FixConnection>> fixConnectionPtrByIdMap;
   std::map<std::string, int> sequenceSentByConnectionIdMap;
   std::map<std::string, std::map<std::string, std::string>> credentialByConnectionIdMap;
   std::string baseUrlFix;

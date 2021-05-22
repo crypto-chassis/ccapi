@@ -130,8 +130,8 @@ class ExecutionManagementService : public Service {
     if (ec) {
       CCAPI_LOGGER_FATAL("connection initialization error: " + ec.message());
     }
-    this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-    CCAPI_LOGGER_DEBUG("this->wsConnectionMap = " + toString(this->wsConnectionMap));
+    this->wsConnectionByIdMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+    CCAPI_LOGGER_DEBUG("this->wsConnectionByIdMap = " + toString(this->wsConnectionByIdMap));
     // this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.instrumentGroup));
     // CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = " + toString(this->instrumentGroupByWsConnectionIdMap));
     con->set_open_handler(std::bind(&ExecutionManagementService::onOpen, shared_from_base<ExecutionManagementService>(), std::placeholders::_1));
@@ -214,7 +214,7 @@ class ExecutionManagementService : public Service {
     wsConnection.status = WsConnection::Status::FAILED;
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(thisWsConnection.id);
+    this->wsConnectionByIdMap.erase(thisWsConnection.id);
     // this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
     auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
     long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
@@ -224,7 +224,7 @@ class ExecutionManagementService : public Service {
     }
     this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         seconds * 1000, [thisWsConnection, that = shared_from_base<ExecutionManagementService>(), urlBase](ErrorCode const& ec) {
-          if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
+          if (that->wsConnectionByIdMap.find(thisWsConnection.id) == that->wsConnectionByIdMap.end()) {
             if (ec) {
               CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
@@ -322,7 +322,7 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " is closed");
     this->clearStates(wsConnection);
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(wsConnection.id);
+    this->wsConnectionByIdMap.erase(wsConnection.id);
     // this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
@@ -429,12 +429,12 @@ class ExecutionManagementService : public Service {
       this->pingTimerByMethodByConnectionIdMap[wsConnection.id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
           pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
           [wsConnection, that = shared_from_base<ExecutionManagementService>(), hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-            if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+            if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
               if (ec) {
                 CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", ping timer error: " + ec.message());
                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
               } else {
-                if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                   ErrorCode ec;
                   pingMethod(hdl, ec);
                   if (ec) {
@@ -450,12 +450,12 @@ class ExecutionManagementService : public Service {
                   }
                   that->pongTimeOutTimerByMethodByConnectionIdMap[wsConnection.id][method] = that->serviceContextPtr->tlsClientPtr->set_timer(
                       pongTimeoutMilliSeconds, [wsConnection, that, hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-                        if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+                        if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
                           if (ec) {
                             CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", pong time out timer error: " + ec.message());
                             that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                           } else {
-                            if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                            if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                               auto now = UtilTime::now();
                               if (that->lastPongTpByMethodByConnectionIdMap.find(wsConnection.id) != that->lastPongTpByMethodByConnectionIdMap.end() &&
                                   that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(method) !=

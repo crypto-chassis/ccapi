@@ -116,6 +116,7 @@
 #include "ccapi_cpp/ccapi_session_options.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 #include "ccapi_cpp/service/ccapi_service_context.h"
+using steady_timer = boost::asio::steady_timer;
 namespace ccapi {
 class Session CCAPI_FINAL {
  public:
@@ -525,6 +526,36 @@ class Session CCAPI_FINAL {
     event.setMessageList({message});
     this->onEvent(event, eventQueuePtr);
   }
+#ifndef SWIG
+  void setTimer(const std::string& id, long delayMilliSeconds, std::function<void(const boost::system::error_code&)> errorHandler,
+                std::function<void()> handler) {
+    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [this, id, delayMilliSeconds, errorHandler, handler]() {
+      std::shared_ptr<steady_timer> timerPtr(new steady_timer(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliSeconds)));
+      timerPtr->async_wait([this, id, errorHandler, handler](const boost::system::error_code& ec) {
+        CCAPI_LOGGER_TRACE("timer handler is called");
+        if (this->eventHandler) {
+          this->eventDispatcher->dispatch([ec, errorHandler, handler] {
+            if (ec) {
+              errorHandler(ec);
+            } else {
+              handler();
+            }
+          });
+        }
+        this->delayTimerByIdMap.erase(id);
+      });
+      this->delayTimerByIdMap[id] = timerPtr;
+    });
+  }
+  void cancelTimer(const std::string& id) {
+    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [this, id]() {
+      if (this->delayTimerByIdMap.find(id) != this->delayTimerByIdMap.end()) {
+        this->delayTimerByIdMap[id]->cancel();
+        this->delayTimerByIdMap.erase(id);
+      }
+    });
+  }
+#endif
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -539,6 +570,7 @@ class Session CCAPI_FINAL {
   std::thread t;
   Queue<Event> eventQueue;
   std::function<void(Event& event)> internalEventHandler;
+  std::map<std::string, std::shared_ptr<steady_timer> > delayTimerByIdMap;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
