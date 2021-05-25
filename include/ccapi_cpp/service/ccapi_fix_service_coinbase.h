@@ -60,8 +60,14 @@ class FixServiceCoinbase : public Service {
   }
   virtual void onFail(std::shared_ptr<FixConnection> fixConnectionPtr, const std::string& errorMessage) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
     this->clearStates(fixConnectionPtr);
     this->onFail_(fixConnectionPtr, errorMessage);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  virtual void onFail(std::shared_ptr<FixConnection> fixConnectionPtr, const ErrorCode& ec, const std::string& what) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    this->onFail(fixConnectionPtr, what + ": " + ec.message() + ", category: " + ec.category().name());
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void clearStates(std::shared_ptr<FixConnection> fixConnectionPtr) {
@@ -124,7 +130,7 @@ class FixServiceCoinbase : public Service {
     auto now = UtilTime::now();
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFail(fixConnectionPtr, "connect");
+      this->onFail(fixConnectionPtr, ec, "connect");
       return;
     }
     CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
@@ -141,7 +147,7 @@ class FixServiceCoinbase : public Service {
     auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFail(fixConnectionPtr, "handshake");
+      this->onFail(fixConnectionPtr, ec, "handshake");
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
@@ -198,7 +204,7 @@ class FixServiceCoinbase : public Service {
     auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
-      this->onFail(fixConnectionPtr, "read");
+      this->onFail(fixConnectionPtr, ec, "read");
       return;
     }
     if (fixConnectionPtr->status != FixConnection::Status::OPEN) {
@@ -493,11 +499,7 @@ class FixServiceCoinbase : public Service {
                                       now - that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method))
                                           .count() >= pongTimeoutMilliSeconds) {
                                 auto thisFixConnectionPtr = fixConnectionPtr;
-                                ErrorCode ec;
                                 that->onFail(fixConnectionPtr, "pong timeout");
-                                if (ec) {
-                                  that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
-                                }
                               } else {
                                 auto thisFixConnectionPtr = fixConnectionPtr;
                                 that->setPingPongTimer(method, thisFixConnectionPtr, pingMethod);

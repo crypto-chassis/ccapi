@@ -369,6 +369,48 @@
 #endif
 // end: exchange REST urls
 
+// start: exchange WS urls
+#ifndef CCAPI_COINBASE_URL_WS_BASE
+#define CCAPI_COINBASE_URL_WS_BASE "wss://ws-feed.pro.coinbase.com"
+#endif
+#ifndef CCAPI_GEMINI_URL_WS_BASE
+#define CCAPI_GEMINI_URL_WS_BASE "wss://api.gemini.com/v1/marketdata"
+#endif
+#ifndef CCAPI_KRAKEN_URL_WS_BASE
+#define CCAPI_KRAKEN_URL_WS_BASE "wss://ws.kraken.com"
+#endif
+#ifndef CCAPI_BITSTAMP_URL_WS_BASE
+#define CCAPI_BITSTAMP_URL_WS_BASE "wss://ws.bitstamp.net"
+#endif
+#ifndef CCAPI_BITFINEX_URL_WS_BASE
+#define CCAPI_BITFINEX_URL_WS_BASE "wss://api-pub.bitfinex.com/ws/2"
+#endif
+#ifndef CCAPI_BINANCE_US_URL_WS_BASE
+#define CCAPI_BINANCE_US_URL_WS_BASE "wss://stream.binance.us:9443/stream"
+#endif
+#ifndef CCAPI_BINANCE_URL_WS_BASE
+#define CCAPI_BINANCE_URL_WS_BASE "wss://stream.binance.com:9443/stream"
+#endif
+#ifndef CCAPI_BINANCE_FUTURES_URL_WS_BASE
+#define CCAPI_BINANCE_FUTURES_URL_WS_BASE "wss://fstream.binance.com/stream"
+#endif
+#ifndef CCAPI_HUOBI_URL_WS_BASE
+#define CCAPI_HUOBI_URL_WS_BASE "wss://api.huobi.pro"
+#endif
+#ifndef CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE
+#define CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE "wss://api.hbdm.com/linear-swap-ws"
+#endif
+#ifndef CCAPI_OKEX_URL_WS_BASE
+#define CCAPI_OKEX_URL_WS_BASE "wss://ws.okex.com:8443/ws/v5"
+#endif
+#ifndef CCAPI_ERISX_URL_WS_BASE
+#define CCAPI_ERISX_URL_WS_BASE "wss://publicmd-api.erisx.com"
+#endif
+#ifndef CCAPI_FTX_URL_WS_BASE
+#define CCAPI_FTX_URL_WS_BASE "wss://ftx.com/ws"
+#endif
+// end: exchange WS urls
+
 // start: exchange FIX urls
 #ifndef CCAPI_COINBASE_URL_FIX_BASE
 #define CCAPI_COINBASE_URL_FIX_BASE "tcp+ssl://fix.pro.coinbase.com:4198"
@@ -376,7 +418,7 @@
 #ifndef CCAPI_FTX_URL_FIX_BASE
 #define CCAPI_FTX_URL_FIX_BASE "tcp+ssl://fix.ftx.com:4363"
 #endif
-// end: exchange REST urls
+// end: exchange FIX urls
 
 // start: exchange API credentials
 #ifndef CCAPI_COINBASE_API_KEY

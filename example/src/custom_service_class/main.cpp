@@ -95,5 +95,6 @@ int main(int argc, char** argv) {
   session.sendRequest(request);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();
+  std::cout << "Bye" << std::endl;
   return EXIT_SUCCESS;
 }

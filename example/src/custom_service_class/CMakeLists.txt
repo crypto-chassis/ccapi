@@ -1,0 +1,6 @@
+set(NAME custom_service_class)
+project(${NAME})
+add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+add_compile_definitions(CCAPI_EXPOSE_INTERNAL)
+add_executable(${NAME} main.cpp)

@@ -4,32 +4,35 @@ Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session* session) override {
-    if (event.getType() == Event::Type::SUBSCRIPTION_STATUS) {
-      std::cout << "Received an event of type SUBSCRIPTION_STATUS:\n" + event.toStringPretty(2, 2) << std::endl;
+    if (event.getType() == Event::Type::AUTHORIZATION_STATUS) {
+      std::cout << "Received an event of type AUTHORIZATION_STATUS:\n" + event.toStringPretty(2, 2) << std::endl;
       auto message = event.getMessageList().at(0);
-      if (message.getType() == Message::Type::SUBSCRIPTION_STARTED) {
-        Request request(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD");
-        request.appendParam({
-            {"SIDE", "BUY"},
-            {"LIMIT_PRICE", "20000"},
-            {"QUANTITY", "0.001"},
+      if (message.getType() == Message::Type::AUTHORIZATION_SUCCESS) {
+        Request request(Request::Operation::FIX, "coinbase", "", "same correlation id for subscription and request");
+        request.appendParamFix({
+            {35, "D"},
+            {11, "6d4eb0fb-2229-469f-873e-557dd78ac11e"},
+            {55, "BTC-USD"},
+            {54, "1"},
+            {44, "20000"},
+            {38, "0.001"},
+            {40, "2"},
+            {59, "1"},
         });
-        session->sendRequest(request);
+        session->sendRequestByFix(request);
       }
-    } else if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      std::cout << "Received an event of type SUBSCRIPTION_DATA:\n" + event.toStringPretty(2, 2) << std::endl;
+    } else if (event.getType() == Event::Type::FIX) {
+      std::cout << "Received an event of type FIX:\n" + event.toStringPretty(2, 2) << std::endl;
     }
     return true;
   }
 };
 } /* namespace ccapi */
 using ::ccapi::MyEventHandler;
-using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
-using ::ccapi::toString;
 using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
   if (UtilSystem::getEnvAsString("COINBASE_API_KEY").empty()) {
@@ -45,11 +48,13 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   SessionOptions sessionOptions;
+  sessionOptions.heartbeatFixIntervalMilliSeconds = 30000;  // Note the unit is millisecond
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription("coinbase", "BTC-USD", "ORDER_UPDATE");
-  session.subscribe(subscription);
+  Subscription subscription("coinbase", "", "FIX", "8013=S&9406=Y",
+                            "same correlation id for subscription and request");  // https://docs.pro.coinbase.com/#logon-a
+  session.subscribeByFix(subscription);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();
   return EXIT_SUCCESS;

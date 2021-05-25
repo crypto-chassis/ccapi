@@ -4,33 +4,29 @@ Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session* session) override {
-    if (numEvent == 0) {
-      std::cout << std::string("Timer is set at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl;
-      session->setTimer(
-          "id", 1000,
-          [](const boost::system::error_code&) {
-            std::cout << std::string("Timer error handler is triggered at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl;
-          },
-          []() { std::cout << std::string("Timer success handler is triggered at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl; });
-    }
-    ++numEvent;
+    std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
     return true;
   }
-  int numEvent{};
 };
 } /* namespace ccapi */
 using ::ccapi::MyEventHandler;
+using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
-using ::ccapi::Subscription;
+using ::ccapi::toString;
 int main(int argc, char** argv) {
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
-  session.subscribe(subscription);
+  Request request(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD");
+  request.appendParam({
+      {"before", "1"},
+      {"after", "3"},
+      {"limit", "1"},
+  });
+  session.sendRequest(request);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();
   std::cout << "Bye" << std::endl;
