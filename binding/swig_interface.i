@@ -25,7 +25,6 @@
 %include "std_string.i"
 %include "std_map.i"
 %include "std_vector.i"
-%include "std_pair.i"
 %exception {
     try {
         $action
@@ -36,6 +35,8 @@
     }
 }
 %template(map_string_string) std::map<std::string, std::string>;
+%template(pair_int_string) std::pair<int, std::string>;
+%template(vector_pair_int_string) std::vector<std::pair<int, std::string> >;
 %template(vector_Element) std::vector<ccapi::Element>;
 %template(vector_string) std::vector<std::string>;
 %template(vector_Message) std::vector<ccapi::Message>;

@@ -22,10 +22,8 @@
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
-# find_package(ZLIB REQUIRED)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
-# find_package(ZLIB REQUIRED)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ERISX)
 #

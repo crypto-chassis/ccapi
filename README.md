@@ -9,30 +9,35 @@
     - [Python](#python)
   - [Constants](#constants)
   - [Examples](#examples)
+  - [Documentations](#documentations)
     - [Simple Market Data](#simple-market-data)
     - [Advanced Market Data](#advanced-market-data)
-      - [Specify market depth](#specify-market-depth)
+      - [Complex request parameters](#complex-request-parameters)
+      - [Specify subscription market depth](#specify-subscription-market-depth)
       - [Specify correlation id](#specify-correlation-id)
       - [Normalize instrument name](#normalize-instrument-name)
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments)
-      - [Receive events at periodic intervals](#receive-events-at-periodic-intervals)
-      - [Receive events at periodic intervals including when the market depth snapshot hasn't changed](#receive-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
-      - [Receive market depth updates](#receive-market-depth-updates)
-      - [Receive trade events](#receive-trade-events)
-      - [Receive OHLC events at periodic intervals](#receive-ohlc-events-at-periodic-intervals)
+      - [Receive subscription events at periodic intervals](#receive-subscription-events-at-periodic-intervals)
+      - [Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed](#receive-subscription-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
+      - [Receive subscription market depth updates](#receive-subscription-market-depth-updates)
+      - [Receive subscription trade events](#receive-subscription-trade-events)
+      - [Receive subscription OHLC events at periodic intervals](#receive-subscription-ohlc-events-at-periodic-intervals)
     - [Simple Execution Management](#simple-execution-management)
     - [Advanced Execution Management](#advanced-execution-management)
       - [Specify correlation id](#specify-correlation-id-1)
       - [Normalize instrument name](#normalize-instrument-name-1)
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments-1)
       - [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
-      - [Multiple sets of API credentials for the same exchange](#multiple-sets-of-api-credentials-for-the-same-exchange)
+      - [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
       - [Override exchange urls](#override-exchange-urls)
-      - [Complex request parameters](#complex-request-parameters)
+      - [Complex request parameters](#complex-request-parameters-1)
+    - [FIX API](#fix-api)
     - [More Advanced Topics](#more-advanced-topics)
       - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
       - [Thread safety](#thread-safety)
       - [Enable library logging](#enable-library-logging)
+      - [Set timer](#set-timer)
+      - [Custom service class](#custom-service-class)
   - [Performance Tuning](#performance-tuning)
   - [Contributing](#contributing)
 
@@ -89,7 +94,7 @@
 * Require Python 3, SWIG, and CMake.
   * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
   * CMake: https://cmake.org/download/.
-* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need huobi or okex, also uncomment the lines corresponding to finding ZLIB.
+* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need huobi or okex, also uncomment the lines corresponding to finding ZLIB.
 * Run the following commands.
 ```
 mkdir binding/build

@@ -2,12 +2,6 @@ import os
 import sys
 import time
 from ccapi import Event, SessionOptions, SessionConfigs, Session, EventHandler, Request
-if not os.environ.get('BINANCE_US_API_KEY'):
-  print('Please set environment variable BINANCE_US_API_KEY', file=sys.stderr)
-  sys.exit(1)
-if not os.environ.get('BINANCE_US_API_SECRET'):
-  print('Please set environment variable BINANCE_US_API_SECRET', file=sys.stderr)
-  sys.exit(1)
 class MyEventHandler(EventHandler):
     def __init__(self):
         super().__init__()
@@ -15,6 +9,12 @@ class MyEventHandler(EventHandler):
         print(f'Received an event:\n{event.toStringPretty(2, 2)}')
         return True  # This line is needed.
 if __name__ == '__main__':
+    if not os.environ.get('BINANCE_US_API_KEY'):
+        print('Please set environment variable BINANCE_US_API_KEY', file=sys.stderr)
+        sys.exit(1)
+    if not os.environ.get('BINANCE_US_API_SECRET'):
+        print('Please set environment variable BINANCE_US_API_SECRET', file=sys.stderr)
+        sys.exit(1)
     eventHandler = MyEventHandler()
     option = SessionOptions()
     config = SessionConfigs()
@@ -25,7 +25,7 @@ if __name__ == '__main__':
         'QUANTITY':'0.0005',
         'LIMIT_PRICE':'20000',
     })
-    session.sendRequest(request);
+    session.sendRequest(request)
     time.sleep(10)
     session.stop()
     print('Bye')
