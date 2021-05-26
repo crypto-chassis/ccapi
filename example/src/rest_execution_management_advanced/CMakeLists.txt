@@ -1,5 +1,0 @@
-set(NAME rest_execution_management_advanced)
-project(${NAME})
-add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
-add_executable(${NAME} main.cpp)

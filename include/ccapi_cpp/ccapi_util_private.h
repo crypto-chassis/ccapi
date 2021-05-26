@@ -512,6 +512,13 @@ typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())
   return std::to_string(t);
 }
 template <typename T>
+typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())), std::string>::value, std::string>::type toStringPretty(
+    const T& t, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
+  std::string sl(leftToIndent, ' ');
+  std::string output = (indentFirstLine ? sl : "") + std::to_string(t);
+  return output;
+}
+template <typename T>
 typename std::enable_if<std::is_same<T, std::string>::value, std::string>::type toString(const T& t) {
   return t;
 }
@@ -606,9 +613,9 @@ std::string toStringPretty(const std::map<K, V>& c, const int space = 2, const i
   auto size = c.size();
   auto i = 0;
   for (const auto& elem : c) {
-    output += toStringPretty(toString(elem.first), space, space + leftToIndent, true);
+    output += toStringPretty(elem.first, space, space + leftToIndent, true);
     output += " = ";
-    output += toStringPretty(toString(elem.second), space, space + leftToIndent, false);
+    output += toStringPretty(elem.second, space, space + leftToIndent, false);
     if (i < size - 1) {
       output += ",\n";
     }
@@ -702,7 +709,7 @@ std::string toStringPretty(const std::vector<T>& c, const int space = 2, const i
   auto size = c.size();
   auto i = 0;
   for (const auto& elem : c) {
-    output += toStringPretty(toString(elem), space, space + leftToIndent, true);
+    output += toStringPretty(elem, space, space + leftToIndent, true);
     if (i < size - 1) {
       output += ",\n";
     }
@@ -742,7 +749,7 @@ std::string firstNToStringPretty(const std::vector<T>& c, const size_t n, const 
     if (i >= n) {
       break;
     }
-    output += toStringPretty(toString(elem), space, space + leftToIndent, true);
+    output += toStringPretty(elem, space, space + leftToIndent, true);
     if (i < size - 1) {
       output += ",\n";
     }

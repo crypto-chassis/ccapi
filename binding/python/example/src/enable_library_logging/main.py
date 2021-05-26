@@ -17,4 +17,5 @@ if __name__ == '__main__':
     session.subscribe(subscription)
     time.sleep(10)
     session.stop()
+    print('Bye')
     Logger.logger = None

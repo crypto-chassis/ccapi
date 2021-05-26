@@ -258,15 +258,19 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  Event::Type getEventType(const rj::Document& document) override {
+  std::pair<Event::Type, std::vector<Message::Type> > getEventType(const rj::Document& document) override {
     std::string type = document["type"].GetString();
     if (type == "subscriptions") {
-      return Event::Type::SUBSCRIPTION_STATUS;
+      return {Event::Type::SUBSCRIPTION_STATUS, {Message::Type::SUBSCRIPTION_STARTED}};
+    } else if (type == "error") {
+      std::string message = UtilString::toLower(document["message"].GetString());
+      if (message.find("authentication") != std::string::npos) {
+        return {Event::Type::SUBSCRIPTION_STATUS, {Message::Type::SUBSCRIPTION_FAILURE}};
+      }
     } else if (this->websocketFullChannelTypeSet.find(type) != websocketFullChannelTypeSet.end()) {
-      return Event::Type::SUBSCRIPTION_DATA;
-    } else {
-      return Event::Type::UNKNOWN;
+      return {Event::Type::SUBSCRIPTION_DATA, {}};
     }
+    return ExecutionManagementService::getEventType(document);
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
@@ -309,7 +313,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
           messageList.push_back(std::move(message));
-        } else if (type != "match" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+        } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},

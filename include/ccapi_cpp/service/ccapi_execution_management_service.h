@@ -490,15 +490,22 @@ class ExecutionManagementService : public Service {
     auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
     document.Parse(textMessage.c_str());
-    auto eventType = this->getEventType(document);
+    auto eventTypePair = this->getEventType(document);
+    auto eventType = eventTypePair.first;
     Event event;
     event.setType(eventType);
     if (eventType == Event::Type::SUBSCRIPTION_STATUS) {
+      auto messageType = eventTypePair.second.at(0);
       Message message;
       message.setTimeReceived(timeReceived);
-      message.setType(Message::Type::SUBSCRIPTION_STARTED);
+      message.setType(messageType);
       message.setCorrelationIdList({subscription.getCorrelationId()});
-      event.addMessages({message});
+      if (messageType == Message::Type::SUBSCRIPTION_FAILURE) {
+        Element element;
+        element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+        message.setElementList({element});
+      }
+      event.addMessage(message);
     } else if (eventType == Event::Type::SUBSCRIPTION_DATA) {
       const std::vector<Message>& messageList = this->convertDocumentToMessage(subscription, document, timeReceived);
       event.addMessages(messageList);
@@ -517,7 +524,7 @@ class ExecutionManagementService : public Service {
                                                                         const std::map<std::string, std::string>& credential) {
     return {};
   }
-  virtual Event::Type getEventType(const rj::Document& document) { return Event::Type::UNKNOWN; }
+  virtual std::pair<Event::Type, std::vector<Message::Type> > getEventType(const rj::Document& document) { return {Event::Type::UNKNOWN, {}}; }
   virtual std::vector<Message> convertDocumentToMessage(const Subscription& subscription, const rj::Document& document, const TimePoint& timeReceived) {
     return {};
   }

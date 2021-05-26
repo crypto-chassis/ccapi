@@ -2,6 +2,8 @@
 #
 # add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
 #
+# add_compile_definitions(CCAPI_ENABLE_SERVICE_FIX)
+#
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GEMINI)
@@ -20,10 +22,12 @@
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
-# find_package(ZLIB REQUIRED)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
-# find_package(ZLIB REQUIRED)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ERISX)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX)
 #

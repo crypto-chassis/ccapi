@@ -1,0 +1,6 @@
+set(NAME market_data_advanced_subscription)
+project(${NAME})
+add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
+add_executable(${NAME} main.cpp)

@@ -528,17 +528,16 @@ class Session CCAPI_FINAL {
   }
 #ifndef SWIG
   void setTimer(const std::string& id, long delayMilliSeconds, std::function<void(const boost::system::error_code&)> errorHandler,
-                std::function<void()> handler) {
-    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [this, id, delayMilliSeconds, errorHandler, handler]() {
+                std::function<void()> successHandler) {
+    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [this, id, delayMilliSeconds, errorHandler, successHandler]() {
       std::shared_ptr<steady_timer> timerPtr(new steady_timer(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliSeconds)));
-      timerPtr->async_wait([this, id, errorHandler, handler](const boost::system::error_code& ec) {
-        CCAPI_LOGGER_TRACE("timer handler is called");
+      timerPtr->async_wait([this, id, errorHandler, successHandler](const boost::system::error_code& ec) {
         if (this->eventHandler) {
-          this->eventDispatcher->dispatch([ec, errorHandler, handler] {
+          this->eventDispatcher->dispatch([ec, errorHandler, successHandler] {
             if (ec) {
               errorHandler(ec);
             } else {
-              handler();
+              successHandler();
             }
           });
         }

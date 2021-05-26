@@ -190,22 +190,22 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
     };
     this->urlWebsocketBase = {
-        {CCAPI_EXCHANGE_NAME_COINBASE, "wss://ws-feed.pro.coinbase.com"},
-        {CCAPI_EXCHANGE_NAME_GEMINI, "wss://api.gemini.com/v1/marketdata"},
-        {CCAPI_EXCHANGE_NAME_KRAKEN, "wss://ws.kraken.com"},
-        {CCAPI_EXCHANGE_NAME_BITSTAMP, "wss://ws.bitstamp.net"},
-        {CCAPI_EXCHANGE_NAME_BITFINEX, "wss://api-pub.bitfinex.com/ws/2"},
-        {CCAPI_EXCHANGE_NAME_BITMEX, "wss://www.bitmex.com/realtime"},
-        {CCAPI_EXCHANGE_NAME_BINANCE_US, "wss://stream.binance.us:9443/stream"},
-        {CCAPI_EXCHANGE_NAME_BINANCE, "wss://stream.binance.com:9443/stream"},
-        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, "wss://fstream.binance.com/stream"},
-        {CCAPI_EXCHANGE_NAME_HUOBI, "wss://api.huobi.pro"},
-        {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "wss://api.hbdm.com/linear-swap-ws"},
-        {CCAPI_EXCHANGE_NAME_OKEX, "wss://ws.okex.com:8443/ws/v5"},
-        {CCAPI_EXCHANGE_NAME_ERISX, "wss://publicmd-api.erisx.com"},
+        {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_KRAKEN, CCAPI_KRAKEN_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITSTAMP, CCAPI_BITSTAMP_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITFINEX, CCAPI_BITFINEX_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BINANCE_US_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_OKEX, CCAPI_OKEX_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_WS_BASE},
         //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
         {CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"},
-        {CCAPI_EXCHANGE_NAME_FTX, "wss://ftx.com/ws"},
+        {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_WS_BASE},
     };
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
