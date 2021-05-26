@@ -92,7 +92,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "btc-usdt", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -105,7 +105,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageC
     "ts": 1606965863952
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -148,7 +148,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCancelOrderByC
   verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "btc-usdt", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -167,7 +167,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageC
       "ts": 1606974744952
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -210,7 +210,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOrderByClie
   verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageGetOrder) {
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "ETH-USDT", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -252,7 +252,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageG
       "ts": 1606975356655
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -267,7 +267,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageG
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "1");
   CCAPI_LOGGER_DEBUG(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY));
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 50);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_CLOSED);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "6");
 }
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOpenOrdersOneInstrument) {
@@ -284,7 +284,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOpenOrdersO
   verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestGetOpenOrdersOneInstrument) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "ETH-USDT", "", this->credential);
   std::string textMessage =
       R"(
@@ -332,7 +332,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageG
       "ts": 1606975988388
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

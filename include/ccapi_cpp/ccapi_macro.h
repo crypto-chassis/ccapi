@@ -86,6 +86,9 @@
 #ifndef CCAPI_IS_BUYER_MAKER
 #define CCAPI_IS_BUYER_MAKER "IS_BUYER_MAKER"
 #endif
+#ifndef CCAPI_IS_MAKER
+#define CCAPI_IS_MAKER "IS_MAKER"
+#endif
 #ifndef CCAPI_BEST_BID_N_PRICE
 #define CCAPI_BEST_BID_N_PRICE "BID_PRICE"
 #endif
@@ -172,15 +175,26 @@
 #ifndef CCAPI_SYMBOL_ID
 #define CCAPI_SYMBOL_ID "symbolId"
 #endif
-#define CCAPI_CONNECTION "CONNECTION"
+#ifndef CCAPI_CONNECTION_ID
+#define CCAPI_CONNECTION_ID "CONNECTION_ID"
+#endif
+#ifndef CCAPI_REASON
 #define CCAPI_REASON "REASON"
+#endif
 #ifndef CCAPI_MARKET_DATA
 #define CCAPI_MARKET_DATA "market_data"
 #endif
 #ifndef CCAPI_EXECUTION_MANAGEMENT
 #define CCAPI_EXECUTION_MANAGEMENT "execution_management"
 #endif
-#define CCAPI_EM_ORDER "ORDER"
+#ifndef CCAPI_FIX
+#define CCAPI_FIX "FIX"
+#endif
+#ifndef CCAPI_UNKNOWN
+#define CCAPI_UNKNOWN "unknown"
+#endif
+#define CCAPI_EM_ORDER_UPDATE "ORDER_UPDATE"
+#define CCAPI_EM_PRIVATE_TRADE "PRIVATE_TRADE"
 #ifndef CCAPI_EM_ORDER_SIDE
 #define CCAPI_EM_ORDER_SIDE "SIDE"
 #endif
@@ -191,19 +205,25 @@
 #define CCAPI_EM_ORDER_SIDE_SELL "SELL"
 #endif
 #ifndef CCAPI_EM_ORDER_TYPE
-#define CCAPI_EM_ORDER_TYPE "ORDER_TYPE"
-#endif
-#ifndef CCAPI_EM_ORDER_TYPE_MARKET
-#define CCAPI_EM_ORDER_TYPE_MARKET "MARKET"
-#endif
-#ifndef CCAPI_EM_ORDER_TYPE_LIMIT
-#define CCAPI_EM_ORDER_TYPE_LIMIT "LIMIT"
+#define CCAPI_EM_ORDER_TYPE "TYPE"
 #endif
 #ifndef CCAPI_EM_ORDER_QUANTITY
 #define CCAPI_EM_ORDER_QUANTITY "QUANTITY"
 #endif
 #ifndef CCAPI_EM_ORDER_LIMIT_PRICE
 #define CCAPI_EM_ORDER_LIMIT_PRICE "LIMIT_PRICE"
+#endif
+#ifndef CCAPI_EM_ORDER_LAST_EXECUTED_PRICE
+#define CCAPI_EM_ORDER_LAST_EXECUTED_PRICE "LAST_EXECUTED_PRICE"
+#endif
+#ifndef CCAPI_EM_ORDER_LAST_EXECUTED_SIZE
+#define CCAPI_EM_ORDER_LAST_EXECUTED_SIZE "LAST_EXECUTED_SIZE"
+#endif
+#ifndef CCAPI_EM_ORDER_FEE_QUANTITY
+#define CCAPI_EM_ORDER_FEE_QUANTITY "FEE_QUANTITY"
+#endif
+#ifndef CCAPI_EM_ORDER_FEE_ASSET
+#define CCAPI_EM_ORDER_FEE_ASSET "FEE_ASSET"
 #endif
 #ifndef CCAPI_EM_ACCOUNT_ID
 #define CCAPI_EM_ACCOUNT_ID "ACCOUNT_ID"
@@ -229,6 +249,9 @@
 #ifndef CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY
 #define CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY "CUMULATIVE_FILLED_QUANTITY"
 #endif
+#ifndef CCAPI_EM_ORDER_REMAINING_QUANTITY
+#define CCAPI_EM_ORDER_REMAINING_QUANTITY "REMAINING_QUANTITY"
+#endif
 #ifndef CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY
 #define CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY "CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY"
 #endif
@@ -237,15 +260,6 @@
 #endif
 #ifndef CCAPI_EM_ORDER_STATUS
 #define CCAPI_EM_ORDER_STATUS "STATUS"
-#endif
-#ifndef CCAPI_EM_ORDER_STATUS_UNKNOWN
-#define CCAPI_EM_ORDER_STATUS_UNKNOWN "UNKNOWN"
-#endif
-#ifndef CCAPI_EM_ORDER_STATUS_OPEN
-#define CCAPI_EM_ORDER_STATUS_OPEN "OPEN"
-#endif
-#ifndef CCAPI_EM_ORDER_STATUS_CLOSED
-#define CCAPI_EM_ORDER_STATUS_CLOSED "CLOSED"
 #endif
 #ifndef CCAPI_HTTP_STATUS_CODE
 #define CCAPI_HTTP_STATUS_CODE "HTTP_STATUS_CODE"
@@ -355,6 +369,57 @@
 #endif
 // end: exchange REST urls
 
+// start: exchange WS urls
+#ifndef CCAPI_COINBASE_URL_WS_BASE
+#define CCAPI_COINBASE_URL_WS_BASE "wss://ws-feed.pro.coinbase.com"
+#endif
+#ifndef CCAPI_GEMINI_URL_WS_BASE
+#define CCAPI_GEMINI_URL_WS_BASE "wss://api.gemini.com/v1/marketdata"
+#endif
+#ifndef CCAPI_KRAKEN_URL_WS_BASE
+#define CCAPI_KRAKEN_URL_WS_BASE "wss://ws.kraken.com"
+#endif
+#ifndef CCAPI_BITSTAMP_URL_WS_BASE
+#define CCAPI_BITSTAMP_URL_WS_BASE "wss://ws.bitstamp.net"
+#endif
+#ifndef CCAPI_BITFINEX_URL_WS_BASE
+#define CCAPI_BITFINEX_URL_WS_BASE "wss://api-pub.bitfinex.com/ws/2"
+#endif
+#ifndef CCAPI_BINANCE_US_URL_WS_BASE
+#define CCAPI_BINANCE_US_URL_WS_BASE "wss://stream.binance.us:9443/stream"
+#endif
+#ifndef CCAPI_BINANCE_URL_WS_BASE
+#define CCAPI_BINANCE_URL_WS_BASE "wss://stream.binance.com:9443/stream"
+#endif
+#ifndef CCAPI_BINANCE_FUTURES_URL_WS_BASE
+#define CCAPI_BINANCE_FUTURES_URL_WS_BASE "wss://fstream.binance.com/stream"
+#endif
+#ifndef CCAPI_HUOBI_URL_WS_BASE
+#define CCAPI_HUOBI_URL_WS_BASE "wss://api.huobi.pro"
+#endif
+#ifndef CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE
+#define CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE "wss://api.hbdm.com/linear-swap-ws"
+#endif
+#ifndef CCAPI_OKEX_URL_WS_BASE
+#define CCAPI_OKEX_URL_WS_BASE "wss://ws.okex.com:8443/ws/v5"
+#endif
+#ifndef CCAPI_ERISX_URL_WS_BASE
+#define CCAPI_ERISX_URL_WS_BASE "wss://publicmd-api.erisx.com"
+#endif
+#ifndef CCAPI_FTX_URL_WS_BASE
+#define CCAPI_FTX_URL_WS_BASE "wss://ftx.com/ws"
+#endif
+// end: exchange WS urls
+
+// start: exchange FIX urls
+#ifndef CCAPI_COINBASE_URL_FIX_BASE
+#define CCAPI_COINBASE_URL_FIX_BASE "tcp+ssl://fix.pro.coinbase.com:4198"
+#endif
+#ifndef CCAPI_FTX_URL_FIX_BASE
+#define CCAPI_FTX_URL_FIX_BASE "tcp+ssl://fix.ftx.com:4363"
+#endif
+// end: exchange FIX urls
+
 // start: exchange API credentials
 #ifndef CCAPI_COINBASE_API_KEY
 #define CCAPI_COINBASE_API_KEY "COINBASE_API_KEY"
@@ -428,6 +493,9 @@
 #ifndef CCAPI_FTX_API_SECRET
 #define CCAPI_FTX_API_SECRET "FTX_API_SECRET"
 #endif
+#ifndef CCAPI_FTX_API_SUBACCOUNT
+#define CCAPI_FTX_API_SUBACCOUNT "FTX_API_SUBACCOUNT"
+#endif
 // end: exchange API credentials
 
 #define CCAPI_HTTP_PORT_DEFAULT "80"
@@ -437,5 +505,15 @@
 #endif
 #ifndef CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE
 #define CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE "tu"
+#endif
+#define CCAPI_AUTHORIZATION "AUTHORIZATION"
+#ifndef CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE
+#define CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE 4096
+#endif
+#ifndef CCAPI_FIX_PROTOCOL_VERSION_COINBASE
+#define CCAPI_FIX_PROTOCOL_VERSION_COINBASE "FIX.4.2"
+#endif
+#ifndef CCAPI_FIX_PROTOCOL_VERSION_FTX
+#define CCAPI_FIX_PROTOCOL_VERSION_FTX "FIX.4.2"
 #endif
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_MACRO_H_

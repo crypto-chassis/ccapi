@@ -1,0 +1,2 @@
+test/data/* linguist-vendored
+spec/fix* linguist-vendored

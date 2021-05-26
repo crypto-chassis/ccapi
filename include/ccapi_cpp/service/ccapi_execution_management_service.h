@@ -14,7 +14,12 @@
 namespace ccapi {
 class ExecutionManagementService : public Service {
  public:
-  enum class JsonDataType { STRING, INTEGER, BOOLEAN, DOUBLE };
+  enum class JsonDataType {
+    STRING,
+    INTEGER,
+    BOOLEAN,
+    DOUBLE,
+  };
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
@@ -54,10 +59,7 @@ class ExecutionManagementService : public Service {
       }
     }
   }
-  std::string convertOrderStatus(const std::string& status) {
-    return this->orderStatusOpenSet.find(status) != this->orderStatusOpenSet.end() ? CCAPI_EM_ORDER_STATUS_OPEN : CCAPI_EM_ORDER_STATUS_CLOSED;
-  }
-  virtual std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
+  virtual std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
     document.Parse(textMessage.c_str());
@@ -70,7 +72,7 @@ class ExecutionManagementService : public Service {
     auto castedOperation = static_cast<int>(operation);
     if (castedOperation >= Request::operationTypeExecutionManagementOrder && castedOperation < Request::operationTypeExecutionManagementAccount) {
       message.setElementList(this->extractOrderInfoFromRequest(request, operation, document));
-    } else {
+    } else if (castedOperation >= Request::operationTypeExecutionManagementAccount) {
       message.setElementList(this->extractAccountInfoFromRequest(request, operation, document));
     }
     std::vector<Message> messageList;
@@ -78,7 +80,7 @@ class ExecutionManagementService : public Service {
     return messageList;
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::vector<Message>& messageList = this->convertTextMessageToMessage(request, textMessage, timeReceived);
+    const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
     Event event;
     event.setType(Event::Type::RESPONSE);
     event.addMessages(messageList);
@@ -93,11 +95,11 @@ class ExecutionManagementService : public Service {
                                 ? it->value.GetString()
                                 : y.second.second == JsonDataType::INTEGER
                                       ? std::to_string(it->value.GetInt64())
-                                      : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) : "null";
+                                      : y.second.second == JsonDataType::BOOLEAN
+                                            ? std::to_string(static_cast<int>(it->value.GetBool()))
+                                            : y.second.second == JsonDataType::DOUBLE ? std::to_string(it->value.GetDouble()) : "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
-        } else if (y.first == CCAPI_EM_ORDER_STATUS) {
-          value = this->convertOrderStatus(value);
         } else if (y.first == CCAPI_EM_ORDER_SIDE) {
           value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
         }
@@ -128,8 +130,8 @@ class ExecutionManagementService : public Service {
     if (ec) {
       CCAPI_LOGGER_FATAL("connection initialization error: " + ec.message());
     }
-    this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-    CCAPI_LOGGER_DEBUG("this->wsConnectionMap = " + toString(this->wsConnectionMap));
+    this->wsConnectionByIdMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+    CCAPI_LOGGER_DEBUG("this->wsConnectionByIdMap = " + toString(this->wsConnectionByIdMap));
     // this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.instrumentGroup));
     // CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = " + toString(this->instrumentGroupByWsConnectionIdMap));
     con->set_open_handler(std::bind(&ExecutionManagementService::onOpen, shared_from_base<ExecutionManagementService>(), std::placeholders::_1));
@@ -153,7 +155,8 @@ class ExecutionManagementService : public Service {
     wsConnection.status = WsConnection::Status::OPEN;
     wsConnection.hdl = hdl;
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " established");
-    this->connectNumRetryOnFailByConnectionUrlMap[wsConnection.url] = 0;
+    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    this->connectNumRetryOnFailByConnectionUrlMap[urlBase] = 0;
     Event event;
     event.setType(Event::Type::SESSION_STATUS);
     Message message;
@@ -166,7 +169,7 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
     message.setCorrelationIdList(correlationIdList);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event);
@@ -188,23 +191,40 @@ class ExecutionManagementService : public Service {
     // CCAPI_LOGGER_INFO("about to subscribe to exchange");
     // this->subscribeToExchange(wsConnection);
     CCAPI_LOGGER_INFO("about to logon to exchange");
-    this->logonToExchange(wsConnection, now);
+    auto credential = wsConnection.subscriptionList.at(0).getCredential();
+    if (credential.empty()) {
+      credential = this->credentialDefault;
+    }
+    this->logonToExchange(wsConnection, now, credential);
+  }
+  virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
+    auto subscription = wsConnection.subscriptionList.at(0);
+    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(subscription, now, credential);
+    for (const auto& sendString : sendStringList) {
+      CCAPI_LOGGER_INFO("sendString = " + sendString);
+      ErrorCode ec;
+      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+      if (ec) {
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+      }
+    }
   }
   void onFail_(WsConnection& wsConnection) {
     wsConnection.status = WsConnection::Status::FAILED;
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(thisWsConnection.id);
+    this->wsConnectionByIdMap.erase(thisWsConnection.id);
     // this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
     auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
-    long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[thisWsConnection.url], 6)));
+    long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
     CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(thisWsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(thisWsConnection.id)->cancel();
     }
     this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         seconds * 1000, [thisWsConnection, that = shared_from_base<ExecutionManagementService>(), urlBase](ErrorCode const& ec) {
-          if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
+          if (that->wsConnectionByIdMap.find(thisWsConnection.id) == that->wsConnectionByIdMap.end()) {
             if (ec) {
               CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
@@ -268,7 +288,8 @@ class ExecutionManagementService : public Service {
       }
       this->pongTimeOutTimerByMethodByConnectionIdMap.erase(wsConnection.id);
     }
-    this->connectNumRetryOnFailByConnectionUrlMap.erase(wsConnection.url);
+    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    this->connectNumRetryOnFailByConnectionUrlMap.erase(urlBase);
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(wsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
@@ -293,7 +314,7 @@ class ExecutionManagementService : public Service {
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
     event.setMessageList({message});
@@ -301,7 +322,7 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " is closed");
     this->clearStates(wsConnection);
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(wsConnection.id);
+    this->wsConnectionByIdMap.erase(wsConnection.id);
     // this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
@@ -313,7 +334,7 @@ class ExecutionManagementService : public Service {
     auto now = UtilTime::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     CCAPI_LOGGER_DEBUG("received a message from connection " + toString(wsConnection));
-    if (wsConnection.status == WsConnection::Status::CLOSING && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
+    if (wsConnection.status != WsConnection::Status::OPEN && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
       CCAPI_LOGGER_WARN("should not process remaining message on closing");
       return;
     }
@@ -408,12 +429,12 @@ class ExecutionManagementService : public Service {
       this->pingTimerByMethodByConnectionIdMap[wsConnection.id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
           pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
           [wsConnection, that = shared_from_base<ExecutionManagementService>(), hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-            if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+            if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
               if (ec) {
                 CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", ping timer error: " + ec.message());
                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
               } else {
-                if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                   ErrorCode ec;
                   pingMethod(hdl, ec);
                   if (ec) {
@@ -429,12 +450,12 @@ class ExecutionManagementService : public Service {
                   }
                   that->pongTimeOutTimerByMethodByConnectionIdMap[wsConnection.id][method] = that->serviceContextPtr->tlsClientPtr->set_timer(
                       pongTimeoutMilliSeconds, [wsConnection, that, hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-                        if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+                        if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
                           if (ec) {
                             CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", pong time out timer error: " + ec.message());
                             that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                           } else {
-                            if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                            if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                               auto now = UtilTime::now();
                               if (that->lastPongTpByMethodByConnectionIdMap.find(wsConnection.id) != that->lastPongTpByMethodByConnectionIdMap.end() &&
                                   that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(method) !=
@@ -464,10 +485,49 @@ class ExecutionManagementService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {}
-  virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& tp) {}
-  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
-  virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) = 0;
+  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    auto subscription = wsConnection.subscriptionList.at(0);
+    rj::Document document;
+    document.Parse(textMessage.c_str());
+    auto eventTypePair = this->getEventType(document);
+    auto eventType = eventTypePair.first;
+    Event event;
+    event.setType(eventType);
+    if (eventType == Event::Type::SUBSCRIPTION_STATUS) {
+      auto messageType = eventTypePair.second.at(0);
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(messageType);
+      message.setCorrelationIdList({subscription.getCorrelationId()});
+      if (messageType == Message::Type::SUBSCRIPTION_FAILURE) {
+        Element element;
+        element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+        message.setElementList({element});
+      }
+      event.addMessage(message);
+    } else if (eventType == Event::Type::SUBSCRIPTION_DATA) {
+      const std::vector<Message>& messageList = this->convertDocumentToMessage(subscription, document, timeReceived);
+      event.addMessages(messageList);
+    }
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event);
+    }
+  }
+  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
+    return {};
+  }
+  virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
+    return {};
+  }
+  virtual std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+                                                                        const std::map<std::string, std::string>& credential) {
+    return {};
+  }
+  virtual std::pair<Event::Type, std::vector<Message::Type> > getEventType(const rj::Document& document) { return {Event::Type::UNKNOWN, {}}; }
+  virtual std::vector<Message> convertDocumentToMessage(const Subscription& subscription, const rj::Document& document, const TimePoint& timeReceived) {
+    return {};
+  }
   std::string apiKeyName;
   std::string apiSecretName;
   std::string createOrderTarget;
@@ -477,7 +537,6 @@ class ExecutionManagementService : public Service {
   std::string cancelOpenOrdersTarget;
   std::string getAccountsTarget;
   std::string getAccountBalancesTarget;
-  std::set<std::string> orderStatusOpenSet;
 };
 } /* namespace ccapi */
 #endif

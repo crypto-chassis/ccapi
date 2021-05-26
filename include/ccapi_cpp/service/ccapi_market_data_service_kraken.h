@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceKraken : public MarketDataService {
  public:
   MarketDataServiceKraken(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -13,13 +13,14 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->shouldAlignSnapshot = true;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/0/public/Trades";
   }
+  virtual ~MarketDataServiceKraken() {}
 
  private:
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
+    std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       if (channelId.rfind(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
@@ -53,8 +54,8 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
           document.Accept(writer);
-          std::string requestString = stringBuffer.GetString();
-          requestStringList.push_back(requestString);
+          std::string sendString = stringBuffer.GetString();
+          sendStringList.push_back(sendString);
         }
       } else if (channelId == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
         rj::Document document;
@@ -76,11 +77,11 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
-        std::string requestString = stringBuffer.GetString();
-        requestStringList.push_back(requestString);
+        std::string sendString = stringBuffer.GetString();
+        sendStringList.push_back(sendString);
       }
     }
-    return requestStringList;
+    return sendStringList;
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
@@ -208,9 +209,9 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     return marketDataMessageList;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
-    switch (operation) {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
@@ -220,7 +221,7 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
         req.target(target + "?" + queryString);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
@@ -233,10 +234,9 @@ class MarketDataServiceKraken CCAPI_FINAL : public MarketDataService {
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
-    auto operation = request.getOperation();
     auto instrument = request.getInstrument();
     auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["result"][symbolId.c_str()].GetArray()) {
           MarketDataMessage marketDataMessage;

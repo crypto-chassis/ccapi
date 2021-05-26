@@ -1,0 +1,9 @@
+Logon message
+SenderCompID = AAAA
+MsgSeqNum    = 1
+SendingTime  = 2017-Aug-09 12:34:56
+The next field is EncryptMethod = 0
+
+New Order Single message
+Buy OIH 100 @ $50001E-2
+

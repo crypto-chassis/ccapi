@@ -7,7 +7,7 @@
 #endif
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBinance CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
+class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinance(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                     ServiceContextPtr serviceContextPtr)
@@ -15,7 +15,7 @@ class ExecutionManagementServiceBinance CCAPI_FINAL : public ExecutionManagement
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_BINANCE_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -26,6 +26,7 @@ class ExecutionManagementServiceBinance CCAPI_FINAL : public ExecutionManagement
     this->cancelOpenOrdersTarget = "/api/v3/openOrders";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceBinance() {}
 };
 } /* namespace ccapi */
 #endif

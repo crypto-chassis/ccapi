@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceBitmex : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitmex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
@@ -12,7 +12,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_BITMEX_API_KEY;
     this->apiSecretName = CCAPI_BITMEX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -22,9 +22,9 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     this->getOrderTarget = prefix + "/order";
     this->getOpenOrdersTarget = prefix + "/order";
     this->cancelOpenOrdersTarget = prefix + "/order/all";
-    this->orderStatusOpenSet = {"New"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceBitmex() {}
 
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
@@ -66,15 +66,15 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
                                               (now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch())
                                               .count()));
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("api-key", apiKey);
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -83,10 +83,12 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -98,7 +100,11 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
         req.method(http::verb::delete_);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "orderID"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderID"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                          });
         if (!queryString.empty()) {
           queryString.pop_back();
         }
@@ -113,7 +119,11 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
           rj::Document document;
           document.SetObject();
           rj::Document::AllocatorType& allocator = document.GetAllocator();
-          this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "orderID"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"}});
+          this->appendParam(document, allocator, param,
+                            {
+                                {CCAPI_EM_ORDER_ID, "orderID"},
+                                {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                            });
           queryString += "filter=";
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -155,7 +165,7 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
         this->signRequest(req, "", credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -186,10 +196,10 @@ class ExecutionManagementServiceBitmex CCAPI_FINAL : public ExecutionManagementS
 
  public:
 #endif
-  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
     CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-    return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
+    return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 

@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceOkex : public MarketDataService {
  public:
   MarketDataServiceOkex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                         std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -16,14 +16,15 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
       CCAPI_LOGGER_FATAL(ec.message());
     }
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v5/market/trades";
   }
+  virtual ~MarketDataServiceOkex() {}
 
  private:
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
+    std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -49,9 +50,9 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
-    std::string requestString = stringBuffer.GetString();
-    requestStringList.push_back(requestString);
-    return requestStringList;
+    std::string sendString = stringBuffer.GetString();
+    sendStringList.push_back(sendString);
+    return sendStringList;
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
@@ -120,20 +121,23 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
     }
     return marketDataMessageList;
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
-    switch (operation) {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                          });
         this->appendSymbolId(queryString, symbolId, "instId");
         req.target(target + "?" + queryString);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
@@ -141,8 +145,7 @@ class MarketDataServiceOkex CCAPI_FINAL : public MarketDataService {
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
-    auto operation = request.getOperation();
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {
           MarketDataMessage marketDataMessage;

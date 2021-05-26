@@ -19,7 +19,14 @@ class WsConnection CCAPI_FINAL {
                          ", status = " + statusToString(status) + "]";
     return output;
   }
-  enum class Status { UNKNOWN, CONNECTING, OPEN, FAILED, CLOSING, CLOSED };
+  enum class Status {
+    UNKNOWN,
+    CONNECTING,
+    OPEN,
+    FAILED,
+    CLOSING,
+    CLOSED,
+  };
   static std::string statusToString(Status status) {
     std::string output;
     switch (status) {

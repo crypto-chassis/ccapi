@@ -5,7 +5,7 @@
 #include <regex>
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceBitfinex : public MarketDataService {
  public:
   MarketDataServiceBitfinex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                             std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -13,12 +13,13 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITFINEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
   }
+  virtual ~MarketDataServiceBitfinex() {}
 
  private:
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
@@ -30,10 +31,10 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
-    std::string requestString = stringBuffer.GetString();
-    CCAPI_LOGGER_INFO("requestString = " + toString(requestString));
+    std::string sendString = stringBuffer.GetString();
+    CCAPI_LOGGER_INFO("sendString = " + toString(sendString));
     ErrorCode ec;
-    this->send(hdl, requestString, wspp::frame::opcode::text, ec);
+    this->send(hdl, sendString, wspp::frame::opcode::text, ec);
     if (ec) {
       this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
     }
@@ -232,7 +233,7 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
       }
     } else if (document.IsObject() && document.HasMember("event")) {
       if (std::string(document["event"].GetString()) == "conf") {
-        std::vector<std::string> requestStringList;
+        std::vector<std::string> sendStringList;
         CCAPI_LOGGER_TRACE("this->subscriptionListByConnectionIdChannelSymbolIdMap = " + toString(this->subscriptionListByConnectionIdChannelIdSymbolIdMap));
         for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
           auto channelId = subscriptionListByChannelIdSymbolId.first;
@@ -262,15 +263,15 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
               rj::StringBuffer stringBuffer;
               rj::Writer<rj::StringBuffer> writer(stringBuffer);
               document.Accept(writer);
-              std::string requestString = stringBuffer.GetString();
-              requestStringList.push_back(std::move(requestString));
+              std::string sendString = stringBuffer.GetString();
+              sendStringList.push_back(std::move(sendString));
             }
           }
         }
-        for (const auto& requestString : requestStringList) {
-          CCAPI_LOGGER_INFO("requestString = " + requestString);
+        for (const auto& sendString : sendStringList) {
+          CCAPI_LOGGER_INFO("sendString = " + sendString);
           ErrorCode ec;
-          this->send(hdl, requestString, wspp::frame::opcode::text, ec);
+          this->send(hdl, sendString, wspp::frame::opcode::text, ec);
           if (ec) {
             this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
           }
@@ -330,19 +331,19 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     }
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
   }
-  std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
+  std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
     auto i = 0;
     auto i1 = snapshotBid.rbegin();
     auto i2 = snapshotAsk.begin();
     std::vector<std::string> csData;
     while (i < 25 && (i1 != snapshotBid.rend() || i2 != snapshotAsk.end())) {
       if (i1 != snapshotBid.rend()) {
-        csData.push_back(toString(i1->first));
+        csData.push_back(i1->first.toString());
         csData.push_back(i1->second);
         ++i1;
       }
       if (i2 != snapshotAsk.end()) {
-        csData.push_back(toString(i2->first));
+        csData.push_back(i2->first.toString());
         csData.push_back("-" + i2->second);
         ++i2;
       }
@@ -353,21 +354,6 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
-  bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk,
-                              const std::string& receivedOrderBookChecksumStr, bool& shouldProcessRemainingMessage) override {
-    if (this->sessionOptions.enableCheckOrderBookChecksum) {
-      std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(snapshotBid, snapshotAsk);
-      if (calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
-        shouldProcessRemainingMessage = false;
-        CCAPI_LOGGER_ERROR("calculatedOrderBookChecksumStr = " + toString(calculatedOrderBookChecksumStr));
-        CCAPI_LOGGER_ERROR("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
-        CCAPI_LOGGER_ERROR("snapshotBid = " + toString(snapshotBid));
-        CCAPI_LOGGER_ERROR("snapshotAsk = " + toString(snapshotAsk));
-        return false;
-      }
-    }
-    return true;
-  }
   void onIncorrectStatesFound(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
                               const std::string& exchangeSubscriptionId, std::string const& reason) override {
     CCAPI_LOGGER_ERROR("incorrect states found: connection = " + toString(wsConnection) + ", textMessage = " + textMessage +
@@ -375,20 +361,25 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId].clear();
     MarketDataService::onIncorrectStatesFound(wsConnection, hdl, textMessage, timeReceived, exchangeSubscriptionId, reason);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
-    switch (operation) {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
-        this->substituteParam(target, {{"{Symbol}", symbolId}});
+        this->substituteParam(target, {
+                                          {"{Symbol}", symbolId},
+                                      });
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_LIMIT, "limit"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                          });
         req.target(target + "?" + queryString);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
@@ -401,8 +392,7 @@ class MarketDataServiceBitfinex CCAPI_FINAL : public MarketDataService {
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
-    auto operation = request.getOperation();
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;

@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_base.h"
 namespace ccapi {
-class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementServiceHuobiBase {
+class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBase {
  public:
   ExecutionManagementServiceHuobi(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   ServiceContextPtr serviceContextPtr)
@@ -12,7 +12,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_HUOBI_API_KEY;
     this->apiSecretName = CCAPI_HUOBI_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -22,9 +22,9 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
     this->getOrderTarget = "/v1/order/orders/{order-id}";
     this->getOrderByClientOrderIdTarget = "/v1/order/orders/getClientOrder";
     this->getOpenOrdersTarget = "/v1/order/openOrders";
-    this->orderStatusOpenSet = {"created", "submitted", "partial-filled", "canceling"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceHuobi() {}
 
  private:
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }
@@ -34,10 +34,9 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "symbol");
   }
-  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                        const std::string& symbolId, const std::map<std::string, std::string>& credential,
-                        std::map<std::string, std::string>& queryParamMap) override {
-    switch (operation) {
+  void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                        const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -45,11 +44,13 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "type"},
-                           {CCAPI_EM_ORDER_QUANTITY, "amount"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "client-order-id"},
-                           {CCAPI_EM_ACCOUNT_ID, "account-id"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "type"},
+                              {CCAPI_EM_ORDER_QUANTITY, "amount"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "client-order-id"},
+                              {CCAPI_EM_ACCOUNT_ID, "account-id"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -71,7 +72,10 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
           rj::Document document;
           document.SetObject();
           rj::Document::AllocatorType& allocator = document.GetAllocator();
-          this->appendParam(document, allocator, param, {{CCAPI_EM_CLIENT_ORDER_ID, "client-order-id"}});
+          this->appendParam(document, allocator, param,
+                            {
+                                {CCAPI_EM_CLIENT_ORDER_ID, "client-order-id"},
+                            });
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
           document.Accept(writer);
@@ -90,21 +94,27 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
         auto target = shouldUseOrderId ? std::regex_replace(this->getOrderTarget, std::regex("\\{order\\-id\\}"), id) : this->getOrderByClientOrderIdTarget;
         req.target(target);
         if (!shouldUseOrderId) {
-          ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, param, {{CCAPI_EM_ACCOUNT_ID, "account-id"}});
+          ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, param,
+                                                           {
+                                                               {CCAPI_EM_ACCOUNT_ID, "account-id"},
+                                                           });
           queryParamMap.insert(std::make_pair("clientOrderId", Url::urlEncode(id)));
         }
         this->signRequest(req, target, queryParamMap, credential);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::get);
-        ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, {}, {{CCAPI_EM_ACCOUNT_ID, "account-id"}});
+        ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, {},
+                                                         {
+                                                             {CCAPI_EM_ACCOUNT_ID, "account-id"},
+                                                         });
         if (!symbolId.empty()) {
           this->appendSymbolId(queryParamMap, symbolId);
         }
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -143,7 +153,7 @@ class ExecutionManagementServiceHuobi CCAPI_FINAL : public ExecutionManagementSe
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   FRIEND_TEST(ExecutionManagementServiceHuobiTest, signRequest);
 #endif
 };

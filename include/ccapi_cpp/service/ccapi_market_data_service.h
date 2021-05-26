@@ -43,7 +43,7 @@ class MarketDataService : public Service {
           if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end() &&
               that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()) {
             auto wsConnectionId = wsConnectionIdListByInstrumentGroupMap.at(instrumentGroup).at(0);
-            auto wsConnection = that->wsConnectionMap.at(wsConnectionId);
+            auto wsConnection = that->wsConnectionByIdMap.at(wsConnectionId);
             for (const auto& subscription : subscriptionListGivenInstrumentGroup) {
               auto instrument = subscription.getInstrument();
               if (that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].find(instrument) !=
@@ -89,7 +89,8 @@ class MarketDataService : public Service {
     wsConnection.status = WsConnection::Status::OPEN;
     wsConnection.hdl = hdl;
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " established");
-    this->connectNumRetryOnFailByConnectionUrlMap[wsConnection.url] = 0;
+    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    this->connectNumRetryOnFailByConnectionUrlMap[urlBase] = 0;
     Event event;
     event.setType(Event::Type::SESSION_STATUS);
     Message message;
@@ -102,7 +103,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
     message.setCorrelationIdList(correlationIdList);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event);
@@ -187,6 +188,8 @@ class MarketDataService : public Service {
         } else {
           channelId = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH50;
         }
+      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_FTX) {
+        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = 100;
       }
     } else if (field == CCAPI_TRADE) {
       if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
@@ -207,17 +210,17 @@ class MarketDataService : public Service {
     wsConnection.status = WsConnection::Status::FAILED;
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(thisWsConnection.id);
+    this->wsConnectionByIdMap.erase(thisWsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
     auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
-    long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[thisWsConnection.url], 6)));
+    long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
     CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(thisWsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(thisWsConnection.id)->cancel();
     }
     this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         seconds * 1000, [thisWsConnection, that = shared_from_base<MarketDataService>(), urlBase](ErrorCode const& ec) {
-          if (that->wsConnectionMap.find(thisWsConnection.id) == that->wsConnectionMap.end()) {
+          if (that->wsConnectionByIdMap.find(thisWsConnection.id) == that->wsConnectionByIdMap.end()) {
             if (ec) {
               CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
@@ -281,7 +284,8 @@ class MarketDataService : public Service {
       }
       this->pongTimeOutTimerByMethodByConnectionIdMap.erase(wsConnection.id);
     }
-    this->connectNumRetryOnFailByConnectionUrlMap.erase(wsConnection.url);
+    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    this->connectNumRetryOnFailByConnectionUrlMap.erase(urlBase);
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(wsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
@@ -306,7 +310,7 @@ class MarketDataService : public Service {
     message.setTimeReceived(now);
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
-    element.insert(CCAPI_CONNECTION, toString(wsConnection));
+    element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
     event.setMessageList({message});
@@ -314,7 +318,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " is closed");
     this->clearStates(wsConnection);
     WsConnection thisWsConnection = wsConnection;
-    this->wsConnectionMap.erase(wsConnection.id);
+    this->wsConnectionByIdMap.erase(wsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
@@ -326,7 +330,7 @@ class MarketDataService : public Service {
     auto now = UtilTime::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     CCAPI_LOGGER_DEBUG("received a message from connection " + toString(wsConnection));
-    if (wsConnection.status == WsConnection::Status::CLOSING && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
+    if (wsConnection.status != WsConnection::Status::OPEN && !this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id]) {
       CCAPI_LOGGER_WARN("should not process remaining message on closing");
       return;
     }
@@ -393,7 +397,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     std::vector<MarketDataMessage> marketDataMessageList = this->processTextMessage(wsConnection, hdl, textMessage, timeReceived);
-    CCAPI_LOGGER_TRACE("websocketMessageList = " + toString(marketDataMessageList));
+    CCAPI_LOGGER_TRACE("marketDataMessageList = " + toString(marketDataMessageList));
     if (!marketDataMessageList.empty()) {
       for (auto& marketDataMessage : marketDataMessageList) {
         // TODO(cryptochassis): should make Event outside of this for-loop, but need to carefully study the implications
@@ -483,14 +487,16 @@ class MarketDataService : public Service {
     this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void updateOrderBook(std::map<Decimal, std::string>& snapshot, Decimal& price, std::string& size) {
+  void updateOrderBook(std::map<Decimal, std::string>& snapshot, Decimal& price, std::string& size, bool sizeMayHaveTrailingZero = false) {
     auto it = snapshot.find(price);
     if (it == snapshot.end()) {
-      if (size != "0") {
+      if ((!sizeMayHaveTrailingZero && size != "0") ||
+          (sizeMayHaveTrailingZero && size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0")) {
         snapshot.emplace(std::move(price), std::move(size));
       }
     } else {
-      if (size != "0") {
+      if ((!sizeMayHaveTrailingZero && size != "0") ||
+          (sizeMayHaveTrailingZero && size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0")) {
         it->second = std::move(size);
       } else {
         snapshot.erase(price);
@@ -783,8 +789,10 @@ class MarketDataService : public Service {
                   auto instrument = subscription.getInstrument();
                   that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.group][instrument] = Subscription::Status::SUBSCRIBING;
                 }
-                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({{"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
-                                                                                  {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())}});
+                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
+                    {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
+                    {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
+                });
                 CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
                 return;
               } catch (const std::runtime_error& e) {
@@ -813,8 +821,8 @@ class MarketDataService : public Service {
     if (ec) {
       CCAPI_LOGGER_FATAL("connection initialization error: " + ec.message());
     }
-    this->wsConnectionMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-    CCAPI_LOGGER_DEBUG("this->wsConnectionMap = " + toString(this->wsConnectionMap));
+    this->wsConnectionByIdMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
+    CCAPI_LOGGER_DEBUG("this->wsConnectionByIdMap = " + toString(this->wsConnectionByIdMap));
     this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.group));
     CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = " + toString(this->instrumentGroupByWsConnectionIdMap));
     con->set_open_handler(std::bind(&MarketDataService::onOpen, shared_from_base<MarketDataService>(), std::placeholders::_1));
@@ -855,7 +863,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotBid.emplace(std::move(decimalPrice), std::move(size));
         }
         CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBid, maxMarketDepth));
@@ -863,7 +871,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotAsk.emplace(std::move(decimalPrice), std::move(size));
         }
         CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, " + toString(maxMarketDepth) + ") = " + firstNToString(snapshotAsk, maxMarketDepth));
@@ -943,15 +951,15 @@ class MarketDataService : public Service {
           for (auto& y : detail) {
             auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
             auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-            Decimal decimalPrice(price);
-            this->updateOrderBook(snapshotBid, decimalPrice, size);
+            Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
+            this->updateOrderBook(snapshotBid, decimalPrice, size, this->sessionOptions.enableCheckOrderBookChecksum);
           }
         } else if (type == MarketDataMessage::DataType::ASK) {
           for (auto& y : detail) {
             auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
             auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-            Decimal decimalPrice(price);
-            this->updateOrderBook(snapshotAsk, decimalPrice, size);
+            Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
+            this->updateOrderBook(snapshotAsk, decimalPrice, size, this->sessionOptions.enableCheckOrderBookChecksum);
           }
         } else {
           CCAPI_LOGGER_WARN("extra type " + MarketDataMessage::dataTypeToString(type));
@@ -1150,12 +1158,12 @@ class MarketDataService : public Service {
       this->pingTimerByMethodByConnectionIdMap[wsConnection.id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
           pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
           [wsConnection, that = shared_from_base<MarketDataService>(), hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-            if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+            if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
               if (ec) {
                 CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", ping timer error: " + ec.message());
                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
               } else {
-                if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                   ErrorCode ec;
                   pingMethod(hdl, ec);
                   if (ec) {
@@ -1171,12 +1179,12 @@ class MarketDataService : public Service {
                   }
                   that->pongTimeOutTimerByMethodByConnectionIdMap[wsConnection.id][method] = that->serviceContextPtr->tlsClientPtr->set_timer(
                       pongTimeoutMilliSeconds, [wsConnection, that, hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
-                        if (that->wsConnectionMap.find(wsConnection.id) != that->wsConnectionMap.end()) {
+                        if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
                           if (ec) {
                             CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", pong time out timer error: " + ec.message());
                             that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                           } else {
-                            if (that->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                            if (that->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                               auto now = UtilTime::now();
                               if (that->lastPongTpByMethodByConnectionIdMap.find(wsConnection.id) != that->lastPongTpByMethodByConnectionIdMap.end() &&
                                   that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(method) !=
@@ -1208,6 +1216,20 @@ class MarketDataService : public Service {
   }
   virtual bool checkOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk,
                                       const std::string& receivedOrderBookChecksumStr, bool& shouldProcessRemainingMessage) {
+    if (this->sessionOptions.enableCheckOrderBookChecksum) {
+      std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(snapshotBid, snapshotAsk);
+      if (calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
+        shouldProcessRemainingMessage = false;
+        CCAPI_LOGGER_ERROR("calculatedOrderBookChecksumStr = " + calculatedOrderBookChecksumStr);
+        CCAPI_LOGGER_ERROR("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
+        CCAPI_LOGGER_ERROR("snapshotBid = " + toString(snapshotBid));
+        CCAPI_LOGGER_ERROR("snapshotAsk = " + toString(snapshotAsk));
+        return false;
+      } else {
+        CCAPI_LOGGER_DEBUG("calculatedOrderBookChecksumStr = " + calculatedOrderBookChecksumStr);
+        CCAPI_LOGGER_DEBUG("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
+      }
+    }
     return true;
   }
   virtual bool checkOrderBookCrossed(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk,
@@ -1267,12 +1289,12 @@ class MarketDataService : public Service {
         this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = this->serviceContextPtr->tlsClientPtr->set_timer(
             waitMilliseconds,
             [wsConnection, channelId, symbolId, field, optionMap, correlationIdList, previousConflateTp, interval, gracePeriod, this](ErrorCode const& ec) {
-              if (this->wsConnectionMap.find(wsConnection.id) != this->wsConnectionMap.end()) {
+              if (this->wsConnectionByIdMap.find(wsConnection.id) != this->wsConnectionByIdMap.end()) {
                 if (ec) {
                   CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", conflate timer error: " + ec.message());
                   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                 } else {
-                  if (this->wsConnectionMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
+                  if (this->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN) {
                     auto conflateTp = previousConflateTp + interval;
                     if (conflateTp > this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)) {
                       Event event;
@@ -1319,11 +1341,11 @@ class MarketDataService : public Service {
   }
   virtual void subscribeToExchange(const WsConnection& wsConnection) {
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-    std::vector<std::string> requestStringList = this->createRequestStringList(wsConnection);
-    for (const auto& requestString : requestStringList) {
-      CCAPI_LOGGER_INFO("requestString = " + requestString);
+    std::vector<std::string> sendStringList = this->createSendStringList(wsConnection);
+    for (const auto& sendString : sendStringList) {
+      CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
-      this->send(wsConnection.hdl, requestString, wspp::frame::opcode::text, ec);
+      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
       }
@@ -1369,11 +1391,17 @@ class MarketDataService : public Service {
     event.addMessages(messageList);
   }
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                               const TimePoint& timeReceived) = 0;
-  virtual std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) = 0;
+                                                                               const TimePoint& timeReceived) {
+    return {};
+  }
   virtual std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                            const TimePoint& timeReceived) = 0;
-
+                                                            const TimePoint& timeReceived) {
+    return {};
+  }
+  virtual std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
+    return "";
+  }
+  virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, int>>> marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap;

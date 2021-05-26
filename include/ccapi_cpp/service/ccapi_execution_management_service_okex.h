@@ -5,7 +5,7 @@
 #include <regex>
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceOkex : public ExecutionManagementService {
  public:
   ExecutionManagementServiceOkex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                  ServiceContextPtr serviceContextPtr)
@@ -13,7 +13,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_OKEX_API_KEY;
     this->apiSecretName = CCAPI_OKEX_API_SECRET;
     this->apiPassphraseName = CCAPI_OKEX_API_PASSPHRASE;
@@ -22,9 +22,9 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     this->cancelOrderTarget = "/api/v5/trade/cancel-order";
     this->getOrderTarget = "/api/v5/trade/order";
     this->getOpenOrdersTarget = "/api/v5/trade/orders-pending";
-    this->orderStatusOpenSet = {"live", "partially_filled"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceOkex() {}
 
  private:
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
@@ -69,8 +69,8 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("OK-ACCESS-KEY", apiKey);
@@ -78,7 +78,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
     req.set("OK-ACCESS-TIMESTAMP", timeStr.substr(0, timeStr.length() - 7) + "Z");
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
     req.set("OK-ACCESS-PASSPHRASE", apiPassphrase);
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
@@ -87,14 +87,18 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_TYPE, "ordType"},
-                           {CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "sz"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "px"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
-                           {CCAPI_SYMBOL_ID, "instId"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "sz"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "px"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
+        }
+        if (param.find("ordType") == param.end()) {
+          document.AddMember("ordType", rj::Value("limit").Move(), allocator);
         }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -109,7 +113,12 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "ordId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
         }
@@ -123,7 +132,12 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "ordId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
@@ -138,7 +152,12 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param,
-                          {{CCAPI_EM_ORDER_TYPE, "ordType"}, {CCAPI_EM_ORDER_ID, "ordId"}, {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"}, {CCAPI_SYMBOL_ID, "instId"}});
+                          {
+                              {CCAPI_EM_ORDER_TYPE, "ordType"},
+                              {CCAPI_EM_ORDER_ID, "ordId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
@@ -149,7 +168,7 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
         this->signRequest(req, "", credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -183,7 +202,6 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
  protected:
 #endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    CCAPI_LOGGER_TRACE("");
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("accFillSz");
@@ -193,14 +211,13 @@ class ExecutionManagementServiceOkex CCAPI_FINAL : public ExecutionManagementSer
                        std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
-    CCAPI_LOGGER_TRACE("");
     return element;
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   FRIEND_TEST(ExecutionManagementServiceOkexTest, signRequest);
 #endif
 };

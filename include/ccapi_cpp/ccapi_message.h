@@ -9,8 +9,8 @@ class Message CCAPI_FINAL {
  public:
   enum class RecapType {
     UNKNOWN,
-    NONE,      // normal data tick; not a recap
-    SOLICITED  // generated on request by subscriber
+    NONE,       // normal data tick; not a recap
+    SOLICITED,  // generated on request by subscriber
   };
   static std::string recapTypeToString(RecapType recapType) {
     std::string output;
@@ -31,8 +31,11 @@ class Message CCAPI_FINAL {
   }
   enum class Type {
     UNKNOWN,
+    AUTHORIZATION_SUCCESS,
+    AUTHORIZATION_FAILURE,
     MARKET_DATA_EVENTS,
-    EXECUTION_MANAGEMENT_EVENTS,
+    EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE,
+    EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE,
     SUBSCRIPTION_STARTED,
     SUBSCRIPTION_FAILURE,
     SESSION_CONNECTION_UP,
@@ -46,10 +49,12 @@ class Message CCAPI_FINAL {
     GET_ACCOUNTS,
     GET_ACCOUNT_BALANCES,
     GET_RECENT_TRADES,
-    ORDER_MATCHED,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
-    GENERIC_ERROR
+    GENERIC_ERROR,
+    CUSTOM,
+    FIX,
+    FIX_FAILURE,
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -60,8 +65,17 @@ class Message CCAPI_FINAL {
       case Type::MARKET_DATA_EVENTS:
         output = "MARKET_DATA_EVENTS";
         break;
-      case Type::EXECUTION_MANAGEMENT_EVENTS:
-        output = "EXECUTION_MANAGEMENT_EVENTS";
+      case Type::AUTHORIZATION_SUCCESS:
+        output = "AUTHORIZATION_SUCCESS";
+        break;
+      case Type::AUTHORIZATION_FAILURE:
+        output = "AUTHORIZATION_FAILURE";
+        break;
+      case Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE:
+        output = "EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE";
+        break;
+      case Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE:
+        output = "EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE";
         break;
       case Type::SUBSCRIPTION_STARTED:
         output = "SUBSCRIPTION_STARTED";
@@ -102,9 +116,6 @@ class Message CCAPI_FINAL {
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
         break;
-      case Type::ORDER_MATCHED:
-        output = "ORDER_MATCHED";
-        break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
         break;
@@ -113,6 +124,15 @@ class Message CCAPI_FINAL {
         break;
       case Type::GENERIC_ERROR:
         output = "GENERIC_ERROR";
+        break;
+      case Type::CUSTOM:
+        output = "CUSTOM";
+        break;
+      case Type::FIX:
+        output = "FIX";
+        break;
+      case Type::FIX_FAILURE:
+        output = "FIX_FAILURE";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

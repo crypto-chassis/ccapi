@@ -22,8 +22,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     auto now = UtilTime::now();
     this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
   }
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
+    std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
@@ -47,15 +47,15 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
-        std::string requestString = stringBuffer.GetString();
-        requestStringList.push_back(std::move(requestString));
+        std::string sendString = stringBuffer.GetString();
+        sendStringList.push_back(std::move(sendString));
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
                            toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
-    return requestStringList;
+    return sendStringList;
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto url = this->baseUrl;
@@ -193,20 +193,23 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
     return marketDataMessageList;
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
-    switch (operation) {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param, {{CCAPI_LIMIT, "size"}});
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "size"},
+                          });
         this->appendSymbolId(queryString, symbolId, this->isDerivatives ? "contract_code" : "symbol");
         req.target(target + "?" + queryString);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
@@ -219,8 +222,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
-    auto operation = request.getOperation();
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {
           for (const auto& x : datum["data"].GetArray()) {

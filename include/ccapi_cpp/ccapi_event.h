@@ -21,7 +21,9 @@ class Event CCAPI_FINAL {
     RESOLUTION_STATUS,
     TOPIC_STATUS,
     TOKEN_STATUS,
-    REQUEST
+    REQUEST,
+    FIX,
+    FIX_STATUS,
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -71,6 +73,12 @@ class Event CCAPI_FINAL {
       case Type::REQUEST:
         output = "REQUEST";
         break;
+      case Type::FIX:
+        output = "FIX";
+        break;
+      case Type::FIX_STATUS:
+        output = "FIX_STATUS";
+        break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
@@ -97,9 +105,10 @@ class Event CCAPI_FINAL {
     } else {
       this->messageList.reserve(this->messageList.size() + newMessageList.size());
       std::move(std::begin(newMessageList), std::end(newMessageList), std::back_inserter(this->messageList));
-      // src.clear();
     }
   }
+  void addMessage(const Message& newMessage) { this->messageList.push_back(newMessage); }
+  void addMessage(Message& newMessage) { this->messageList.emplace_back(std::move(newMessage)); }
   void setMessageList(const std::vector<Message>& messageList) { this->messageList = messageList; }
   Type getType() const { return type; }
   void setType(Type type) { this->type = type; }

@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITSTAMP
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
+class MarketDataServiceBitstamp : public MarketDataService {
  public:
   MarketDataServiceBitstamp(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                             std::shared_ptr<ServiceContext> serviceContextPtr)
@@ -13,13 +13,14 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->enableCheckPingPongWebsocketApplicationLevel = false;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}/";  // must have trailing slash
   }
+  virtual ~MarketDataServiceBitstamp() {}
 
  private:
-  std::vector<std::string> createRequestStringList(const WsConnection& wsConnection) override {
-    std::vector<std::string> requestStringList;
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
+    std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
@@ -38,15 +39,15 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
-        std::string requestString = stringBuffer.GetString();
-        requestStringList.push_back(std::move(requestString));
+        std::string sendString = stringBuffer.GetString();
+        sendStringList.push_back(std::move(sendString));
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
                            toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
-    return requestStringList;
+    return sendStringList;
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
@@ -116,20 +117,22 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     }
     return marketDataMessageList;
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
-    switch (operation) {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
-        this->substituteParam(target, {{"{currency_pair}", symbolId}});
+        this->substituteParam(target, {
+                                          {"{currency_pair}", symbolId},
+                                      });
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param, {});
         req.target(target + "?" + queryString);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
@@ -137,8 +140,7 @@ class MarketDataServiceBitstamp CCAPI_FINAL : public MarketDataService {
     rj::Document document;
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
-    auto operation = request.getOperation();
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;

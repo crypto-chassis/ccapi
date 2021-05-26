@@ -2497,7 +2497,14 @@ namespace ccapi {
 class Hmac CCAPI_FINAL {
   // https://github.com/Yubico/yubico-c-client/blob/ykclient-2.15/sha384-512.c
  public:
-  enum class ShaVersion { UNKNOWN, SHA1, SHA224, SHA256, SHA384, SHA512 };
+  enum class ShaVersion {
+    UNKNOWN,
+    SHA1,
+    SHA224,
+    SHA256,
+    SHA384,
+    SHA512,
+  };
   static std::string hmac(const ShaVersion shaVersion, const std::string &key, const std::string &msg, bool returnHex = false) {
     yubico::SHAversion whichSha{};
     int shaHashSize{};

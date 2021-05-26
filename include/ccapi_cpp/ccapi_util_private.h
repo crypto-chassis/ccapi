@@ -22,6 +22,9 @@
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
+  static bool isNumber(const std::string& s) {
+    return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+  }
   static std::string generateRandomString(const size_t length) {
     auto randchar = []() -> char {
       const char charset[] =
@@ -46,6 +49,19 @@ class UtilString CCAPI_FINAL {
       s.erase(0, pos + delimiter.length());
     }
     output.push_back(std::move(s));
+    return output;
+  }
+  static std::set<std::string> splitToSet(const std::string& original, const std::string& delimiter) {
+    std::string s = original;
+    std::set<std::string> output;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = s.find(delimiter)) != std::string::npos) {
+      token = s.substr(0, pos);
+      output.insert(std::move(token));
+      s.erase(0, pos + delimiter.length());
+    }
+    output.insert(std::move(s));
     return output;
   }
   static std::string join(const std::vector<std::string>& strings, const std::string& delimiter) {
@@ -496,6 +512,13 @@ typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())
   return std::to_string(t);
 }
 template <typename T>
+typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())), std::string>::value, std::string>::type toStringPretty(
+    const T& t, const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) {
+  std::string sl(leftToIndent, ' ');
+  std::string output = (indentFirstLine ? sl : "") + std::to_string(t);
+  return output;
+}
+template <typename T>
 typename std::enable_if<std::is_same<T, std::string>::value, std::string>::type toString(const T& t) {
   return t;
 }
@@ -527,6 +550,15 @@ template <typename T>
 std::string toString(const std::vector<T>& c);
 template <typename T>
 std::string firstNToString(const std::vector<T>& c, const size_t n);
+template <typename U, typename V>
+std::string toString(const std::pair<U, V>& c) {
+  std::string output = "(";
+  output += toString(c.first);
+  output += ",";
+  output += toString(c.second);
+  output += ")";
+  return output;
+}
 template <typename T, typename... Args>
 std::string toString(const std::unordered_set<T, Args...>& c) {
   std::string output = "[";

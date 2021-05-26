@@ -56,7 +56,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSDT", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -68,7 +68,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageCreat
     "transactTime": 1507725176595
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -112,9 +112,9 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClien
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
-  auto messageList = this->service->convertTextMessageToMessage(request, "{}", this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, "{}", this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -153,7 +153,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOr
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageGetOrder) {
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_US, "LTCBTC", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -178,7 +178,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageGetOr
     "origQuoteOrderQty": "0.000000"
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -193,7 +193,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageGetOr
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.01");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_OPEN);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "NEW");
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersOneInstrument) {
@@ -221,7 +221,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllIn
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
-void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementServiceBinanceUsTest* fixture, bool isOneInstrument) {
+void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagementServiceBinanceUsTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "LTCBTC" : "";
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, symbol, "", fixture->credential);
   std::string textMessage =
@@ -249,7 +249,7 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
     }
   ]
   )";
-  auto messageList = fixture->service->convertTextMessageToMessage(request, textMessage, fixture->now);
+  auto messageList = fixture->service->convertTextMessageToMessageRest(request, textMessage, fixture->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -269,12 +269,12 @@ void verifyconvertTextMessageToMessageGetOpenOrders(const ExecutionManagementSer
   }
 }
 
-TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageGetOpenOrdersOneInstrument) {
-  verifyconvertTextMessageToMessageGetOpenOrders(this, true);
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestGetOpenOrdersOneInstrument) {
+  verifyconvertTextMessageToMessageRestGetOpenOrders(this, true);
 }
 
-TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
-  verifyconvertTextMessageToMessageGetOpenOrders(this, false);
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestGetOpenOrdersAllInstruments) {
+  verifyconvertTextMessageToMessageRestGetOpenOrders(this, false);
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) {
@@ -289,9 +289,9 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) 
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageCancelOpenOrders) {
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_BINANCE_US, "BTCUSD", "foo", this->credential);
-  auto messageList = this->service->convertTextMessageToMessage(request, "[]", this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, "[]", this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);

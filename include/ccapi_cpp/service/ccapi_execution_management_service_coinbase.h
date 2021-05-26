@@ -4,15 +4,16 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
  public:
   ExecutionManagementServiceCoinbase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
     this->apiSecretName = CCAPI_COINBASE_API_SECRET;
     this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;
@@ -24,9 +25,9 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
     this->cancelOpenOrdersTarget = "/orders";
     this->getAccountsTarget = "/accounts";
     this->getAccountBalancesTarget = "/accounts/<account-id>";
-    this->orderStatusOpenSet = {"open", "pending", "active"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceCoinbase() {}
 
  protected:
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
@@ -54,15 +55,15 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("product_id", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("CB-ACCESS-KEY", apiKey);
     req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
     req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -71,10 +72,12 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "size"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "client_oid"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "size"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "client_oid"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -136,12 +139,14 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         auto target = this->getAccountBalancesTarget;
         auto accountId = param.find(CCAPI_EM_ACCOUNT_ID) != param.end() ? param.at(CCAPI_EM_ACCOUNT_ID) : "";
-        this->substituteParam(target, {{"<account-id>", accountId}});
+        this->substituteParam(target, {
+                                          {"<account-id>", accountId},
+                                      });
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -181,7 +186,7 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document.GetArray()) {
           Element element;
@@ -201,12 +206,150 @@ class ExecutionManagementServiceCoinbase CCAPI_FINAL : public ExecutionManagemen
     }
     return elementList;
   }
+  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+                                                                const std::map<std::string, std::string>& credential) override {
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
+    auto timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+    auto preSignedText = timestamp;
+    preSignedText += "GET";
+    preSignedText += "/users/self/verify";
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
+    std::vector<std::string> sendStringList;
+    rj::Document document;
+    document.SetObject();
+    rj::Document::AllocatorType& allocator = document.GetAllocator();
+    document.AddMember("type", rj::Value("subscribe").Move(), allocator);
+    rj::Value channels(rj::kArrayType);
+    std::string channelId;
+    auto fieldSet = subscription.getFieldSet();
+    if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+      channelId = "full";
+    }
+    rj::Value channel(rj::kObjectType);
+    rj::Value symbolIds(rj::kArrayType);
+    auto instrumentSet = subscription.getInstrumentSet();
+    for (const auto& instrument : instrumentSet) {
+      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      symbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+    }
+    channel.AddMember("name", rj::Value(channelId.c_str(), allocator).Move(), allocator);
+    channel.AddMember("product_ids", symbolIds, allocator);
+    channels.PushBack(channel, allocator);
+    rj::Value heartbeatChannel(rj::kObjectType);
+    heartbeatChannel.AddMember("name", rj::Value("heartbeat").Move(), allocator);
+    rj::Value heartbeatSymbolIds(rj::kArrayType);
+    for (const auto& instrument : instrumentSet) {
+      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      heartbeatSymbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+    }
+    heartbeatChannel.AddMember("product_ids", heartbeatSymbolIds, allocator);
+    channels.PushBack(heartbeatChannel, allocator);
+    document.AddMember("channels", channels, allocator);
+    document.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
+    document.AddMember("key", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+    document.AddMember("passphrase", rj::Value(apiPassphrase.c_str(), allocator).Move(), allocator);
+    document.AddMember("timestamp", rj::Value(timestamp.c_str(), allocator).Move(), allocator);
+    rj::StringBuffer stringBuffer;
+    rj::Writer<rj::StringBuffer> writer(stringBuffer);
+    document.Accept(writer);
+    std::string sendString = stringBuffer.GetString();
+    sendStringList.push_back(sendString);
+    return sendStringList;
+  }
+  std::pair<Event::Type, std::vector<Message::Type> > getEventType(const rj::Document& document) override {
+    std::string type = document["type"].GetString();
+    if (type == "subscriptions") {
+      return {Event::Type::SUBSCRIPTION_STATUS, {Message::Type::SUBSCRIPTION_STARTED}};
+    } else if (type == "error") {
+      std::string message = UtilString::toLower(document["message"].GetString());
+      if (message.find("authentication") != std::string::npos) {
+        return {Event::Type::SUBSCRIPTION_STATUS, {Message::Type::SUBSCRIPTION_FAILURE}};
+      }
+    } else if (this->websocketFullChannelTypeSet.find(type) != websocketFullChannelTypeSet.end()) {
+      return {Event::Type::SUBSCRIPTION_DATA, {}};
+    }
+    return ExecutionManagementService::getEventType(document);
+  }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
+ public:
+#endif
+  std::vector<Message> convertDocumentToMessage(const Subscription& subscription, const rj::Document& document, const TimePoint& timeReceived) override {
+    std::vector<Message> messageList;
+    Message message;
+    message.setTimeReceived(timeReceived);
+    auto fieldSet = subscription.getFieldSet();
+    auto instrumentSet = subscription.getInstrumentSet();
+    message.setCorrelationIdList({subscription.getCorrelationId()});
+    auto type = std::string(document["type"].GetString());
+    if (document.FindMember("user_id") != document.MemberEnd()) {
+      auto instrument = this->convertWebsocketSymbolIdToInstrument(document["product_id"].GetString());
+      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+        auto it = document.FindMember("time");
+        if (it != document.MemberEnd()) {
+          message.setTime(UtilTime::parse(std::string(it->value.GetString())));
+        } else {
+          auto it = document.FindMember("timestamp");
+          message.setTime(UtilTime::makeTimePoint(UtilTime::divide(std::string(it->value.GetString()))));
+        }
+        if (type == "match" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+          std::vector<Element> elementList;
+          Element element;
+          element.insert(CCAPI_TRADE_ID, std::to_string(document["trade_id"].GetInt64()));
+          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, document["price"].GetString());
+          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, document["size"].GetString());
+          std::string takerSide = document["side"].GetString();
+          if (document.FindMember("taker_user_id") != document.MemberEnd()) {
+            element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+            element.insert(CCAPI_IS_MAKER, "0");
+          } else if (document.FindMember("maker_user_id") != document.MemberEnd()) {
+            element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "sell" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+            element.insert(CCAPI_IS_MAKER, "1");
+          }
+          element.insert(CCAPI_EM_ORDER_INSTRUMENT, document["product_id"].GetString());
+          elementList.emplace_back(std::move(element));
+          message.setElementList(elementList);
+          messageList.push_back(std::move(message));
+        } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+          std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+              {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
+              {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("remaining_size", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_STATUS, std::make_pair("type", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("product_id", JsonDataType::STRING)},
+          };
+          if (type == "change") {
+            extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("new_size", JsonDataType::STRING)});
+          } else {
+            extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)});
+          }
+          auto info = this->extractOrderInfo(document, extractionFieldNameMap);
+          std::vector<Element> elementList;
+          elementList.emplace_back(std::move(info));
+          message.setElementList(elementList);
+          messageList.push_back(std::move(message));
+        }
+      }
+    }
+    return messageList;
+  }
+#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
+ protected:
+#endif
   std::string apiPassphraseName;
+  std::set<std::string> websocketFullChannelTypeSet{"received", "open", "done", "match", "change", "activate"};
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 
  public:
   using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
   FRIEND_TEST(ExecutionManagementServiceCoinbaseTest, signRequest);
 #endif
 };

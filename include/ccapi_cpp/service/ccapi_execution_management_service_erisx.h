@@ -5,7 +5,7 @@
 #include "ccapi_cpp/ccapi_jwt.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementService {
+class ExecutionManagementServiceErisx : public ExecutionManagementService {
  public:
   ExecutionManagementServiceErisx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   ServiceContextPtr serviceContextPtr)
@@ -13,7 +13,7 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_ERISX_API_KEY;
     this->apiSecretName = CCAPI_ERISX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -23,9 +23,9 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
     this->getOrderTarget = prefix + "/order/{partyID}/{orderID}";
     this->getOpenOrdersTarget = prefix + "/order-mass-status";
     this->cancelOpenOrdersTarget = prefix + "/cancel-all";
-    this->orderStatusOpenSet = {"NEW", "PARTIAL FILLED"};
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceErisx() {}
 
  private:
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
@@ -78,10 +78,10 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
       target = target.replace(target.find(key), key.length(), value);
     }
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                  const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
-    switch (operation) {
+    switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -90,11 +90,13 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
-                           {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
-                           {CCAPI_EM_PARTY_ID, "partyID"}});
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "orderQty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         this->appendSymbolId(document, allocator, symbolId);
         if (param.find("ordType") == param.end()) {
           document.AddMember("ordType", rj::Value("LIMIT").Move(), allocator);
@@ -115,11 +117,13 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param,
-                          {{CCAPI_EM_ORDER_ID, "orderID"},
-                           {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "origClOrdID"},
-                           {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
-                           {CCAPI_EM_ORDER_SIDE, "side"},
-                           {CCAPI_EM_PARTY_ID, "partyID"}});
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderID"},
+                              {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "origClOrdID"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdID"},
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         if (param.find("ordType") == param.end()) {
           document.AddMember("ordType", rj::Value("LIMIT").Move(), allocator);
         }
@@ -131,7 +135,11 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string target = this->getOrderTarget;
-        this->substituteParam(target, param, {{CCAPI_EM_ORDER_ID, "{orderID}"}, {CCAPI_EM_PARTY_ID, "{partyID}"}});
+        this->substituteParam(target, param,
+                              {
+                                  {CCAPI_EM_ORDER_ID, "{orderID}"},
+                                  {CCAPI_EM_PARTY_ID, "{partyID}"},
+                              });
         req.target(target);
         this->signRequest(req, now, credential);
       } break;
@@ -142,7 +150,10 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_PARTY_ID, "partyID"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         this->setBody(req, document, allocator, param, now);
         this->signRequest(req, now, credential);
       } break;
@@ -153,12 +164,15 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param, {{CCAPI_EM_PARTY_ID, "partyID"}});
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_PARTY_ID, "partyID"},
+                          });
         this->setBody(req, document, allocator, param, now);
         this->signRequest(req, now, credential);
       } break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        this->convertReqCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -193,9 +207,9 @@ class ExecutionManagementServiceErisx CCAPI_FINAL : public ExecutionManagementSe
 
  public:
 #endif
-  std::vector<Message> convertTextMessageToMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
-    return ExecutionManagementService::convertTextMessageToMessage(request, quotedTextMessage, timeReceived);
+    return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   }
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
 

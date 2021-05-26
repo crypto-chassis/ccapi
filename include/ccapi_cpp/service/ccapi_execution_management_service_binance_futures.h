@@ -4,7 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionManagementServiceBinanceBase {
+class ExecutionManagementServiceBinanceFutures : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinanceFutures(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                            ServiceContextPtr serviceContextPtr)
@@ -12,7 +12,7 @@ class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionMan
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostFromUrl(this->baseUrlRest);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_BINANCE_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_FUTURES_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -24,9 +24,11 @@ class ExecutionManagementServiceBinanceFutures CCAPI_FINAL : public ExecutionMan
     this->isFutures = true;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual ~ExecutionManagementServiceBinanceFutures() {}
 #ifdef GTEST_INCLUDE_GTEST_GTEST_H_
+
  public:
-  using ExecutionManagementService::convertTextMessageToMessage;
+  using ExecutionManagementService::convertTextMessageToMessageRest;
 #endif
 };
 } /* namespace ccapi */

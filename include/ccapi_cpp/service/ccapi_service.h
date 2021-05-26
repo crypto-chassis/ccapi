@@ -32,6 +32,7 @@
 #include <sstream>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
 #endif
+#include "ccapi_cpp/ccapi_fix_connection.h"
 #include "ccapi_cpp/ccapi_http_connection.h"
 #include "ccapi_cpp/ccapi_http_retry.h"
 #include "ccapi_cpp/ccapi_queue.h"
@@ -54,7 +55,11 @@ class Service : public std::enable_shared_from_this<Service> {
  public:
   typedef wspp::lib::shared_ptr<ServiceContext> ServiceContextPtr;
   typedef wspp::lib::error_code ErrorCode;
-  enum class PingPongMethod { WEBSOCKET_PROTOCOL_LEVEL, WEBSOCKET_APPLICATION_LEVEL };
+  enum class PingPongMethod {
+    WEBSOCKET_PROTOCOL_LEVEL,
+    WEBSOCKET_APPLICATION_LEVEL,
+    FIX_PROTOCOL_LEVEL,
+  };
   static std::string pingPongMethodToString(PingPongMethod pingPongMethod) {
     std::string output;
     switch (pingPongMethod) {
@@ -63,6 +68,9 @@ class Service : public std::enable_shared_from_this<Service> {
         break;
       case PingPongMethod::WEBSOCKET_APPLICATION_LEVEL:
         output = "WEBSOCKET_APPLICATION_LEVEL";
+        break;
+      case PingPongMethod::FIX_PROTOCOL_LEVEL:
+        output = "FIX_PROTOCOL_LEVEL";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
@@ -78,10 +86,12 @@ class Service : public std::enable_shared_from_this<Service> {
         httpConnectionPool(sessionOptions.httpConnectionPoolMaxSize) {
     this->enableCheckPingPongWebsocketProtocolLevel = this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel;
     this->enableCheckPingPongWebsocketApplicationLevel = this->sessionOptions.enableCheckPingPongWebsocketApplicationLevel;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongTimeoutMilliSeconds;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingWebsocketProtocolLevelIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongWebsocketProtocolLevelTimeoutMilliSeconds;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingWebsocketApplicationLevelIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongWebsocketApplicationLevelTimeoutMilliSeconds;
+    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixIntervalMilliSeconds;
+    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixTimeoutMilliSeconds;
   }
   virtual ~Service() {
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
@@ -105,7 +115,7 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     sendRequestDelayTimerByCorrelationIdMap.clear();
     this->shouldContinue = false;
-    for (const auto& x : this->wsConnectionMap) {
+    for (const auto& x : this->wsConnectionByIdMap) {
       auto wsConnection = x.second;
       ErrorCode ec;
       this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
@@ -115,10 +125,15 @@ class Service : public std::enable_shared_from_this<Service> {
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
     }
   }
-  virtual void subscribe(const std::vector<Subscription>& subscriptionList) = 0;
-  virtual void convertReq(http::request<http::string_body>& req, const Request& request, const Request::Operation operation, const TimePoint& now,
-                          const std::string& symbolId, const std::map<std::string, std::string>& credential) = 0;
-  virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) = 0;
+  virtual void convertReqCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                                const std::map<std::string, std::string>& credential) {
+    auto errorMessage = "unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
+    throw std::runtime_error(errorMessage);
+  }
+  virtual void subscribe(const std::vector<Subscription>& subscriptionList) {}
+  virtual void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                          const std::map<std::string, std::string>& credential) {}
+  virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
   std::shared_ptr<std::future<void>> sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
@@ -129,7 +144,24 @@ class Service : public std::enable_shared_from_this<Service> {
     } else {
       then = now;
     }
-    auto req = this->convertRequest(request, then);
+    http::request<http::string_body> req;
+    try {
+      req = this->convertRequest(request, then);
+    } catch (const std::runtime_error& e) {
+      CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, e, {request.getCorrelationId()});
+      std::promise<void>* promisePtrRaw = nullptr;
+      if (useFuture) {
+        promisePtrRaw = new std::promise<void>();
+      }
+      std::shared_ptr<std::promise<void>> promisePtr(promisePtrRaw);
+      std::shared_ptr<std::future<void>> futurePtr(nullptr);
+      if (useFuture) {
+        futurePtr = std::make_shared<std::future<void>>(std::move(promisePtr->get_future()));
+        promisePtr->set_value();
+      }
+      return futurePtr;
+    }
     std::promise<void>* promisePtrRaw = nullptr;
     if (useFuture) {
       promisePtrRaw = new std::promise<void>();
@@ -155,9 +187,11 @@ class Service : public std::enable_shared_from_this<Service> {
     if (useFuture) {
       futurePtr = std::make_shared<std::future<void>>(std::move(promisePtr->get_future()));
     }
-    return futurePtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
+    return futurePtr;
   }
+  virtual void sendRequestByFix(const Request& request, const TimePoint& now) {}
+  virtual void subscribeByFix(const Subscription& subscription) {}
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
                const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
@@ -167,7 +201,6 @@ class Service : public std::enable_shared_from_this<Service> {
     Message message;
     auto now = UtilTime::now();
     message.setTimeReceived(now);
-    message.setTime(now);
     message.setType(messageType);
     message.setCorrelationIdList(correlationIdList);
     Element element;
@@ -185,13 +218,12 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   void onResponseError(const Request& request, int statusCode, const std::string& errorMessage) {
     std::string statusCodeStr = std::to_string(statusCode);
-    CCAPI_LOGGER_ERROR("statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
+    CCAPI_LOGGER_ERROR("request = " + toString(request) + ", statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
     Event event;
     event.setType(Event::Type::REQUEST_STATUS);
     Message message;
     auto now = UtilTime::now();
     message.setTimeReceived(now);
-    message.setTime(now);
     message.setType(Message::Type::RESPONSE_ERROR);
     message.setCorrelationIdList({request.getCorrelationId()});
     Element element;
@@ -201,20 +233,22 @@ class Service : public std::enable_shared_from_this<Service> {
     event.setMessageList({message});
     this->eventHandler(event);
   }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   typedef ServiceContext::SslContextPtr SslContextPtr;
   typedef ServiceContext::TlsClient TlsClient;
   typedef wspp::lib::shared_ptr<wspp::lib::asio::steady_timer> TimerPtr;
-  void setHostFromUrl(std::string baseUrlRest) {
+  void setHostRestFromUrlRest(std::string baseUrlRest) {
     auto hostPort = this->extractHostFromUrl(baseUrlRest);
     this->hostRest = hostPort.first;
     this->portRest = hostPort.second;
   }
-  std::pair<std::string, std::string> extractHostFromUrl(std::string baseUrlRest) {
+  std::pair<std::string, std::string> extractHostFromUrl(std::string baseUrl) {
     std::string host;
     std::string port;
-    auto splitted1 = UtilString::split(baseUrlRest, "://");
+    auto splitted1 = UtilString::split(baseUrl, "://");
     auto splitted2 = UtilString::split(UtilString::split(splitted1[1], "/")[0], ":");
     host = splitted2[0];
     if (splitted2.size() == 2) {
@@ -383,6 +417,17 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return symbolId;
   }
+  std::string convertWebsocketSymbolIdToInstrument(std::string symbolId) {
+    std::string instrument = symbolId;
+    if (!symbolId.empty()) {
+      if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
+          this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
+              this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
+        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
+      }
+    }
+    return instrument;
+  }
   std::string convertInstrumentToRestSymbolId(std::string instrument) {
     std::string symbolId = instrument;
     CCAPI_LOGGER_DEBUG("instrument = " + instrument);
@@ -464,6 +509,9 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     CCAPI_LOGGER_TRACE("handshaked");
+    this->startWrite_2(httpConnectionPtr, request, req, retry);
+  }
+  void startWrite_2(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, http::request<http::string_body> req, HttpRetry retry) {
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     if (this->sessionOptions.httpRequestTimeoutMilliSeconds > 0) {
       beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
@@ -623,7 +671,7 @@ class Service : public std::enable_shared_from_this<Service> {
           try {
             httpConnectionPtr = std::move(this->httpConnectionPool.popBack());
             CCAPI_LOGGER_TRACE("about to perform request with existing httpConnectionPtr " + toString(*httpConnectionPtr));
-            this->onHandshake_2(httpConnectionPtr, request, req, retry, {});
+            this->startWrite_2(httpConnectionPtr, request, req, retry);
           } catch (const std::runtime_error& e) {
             if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_EMPTY) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -665,7 +713,6 @@ class Service : public std::enable_shared_from_this<Service> {
     auto instrument = request.getInstrument();
     auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
-    auto operation = request.getOperation();
     http::request<http::string_body> req;
     if (this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
       req.set(http::field::host, this->hostRest);
@@ -673,13 +720,13 @@ class Service : public std::enable_shared_from_this<Service> {
       req.set(http::field::host, this->hostRest + ":" + this->portRest);
     }
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    this->convertReq(req, request, operation, now, symbolId, credential);
+    this->convertReq(req, request, now, symbolId, credential);
     CCAPI_LOGGER_FUNCTION_EXIT;
     return req;
   }
   SslContextPtr onTlsInit(wspp::connection_hdl hdl) { return this->serviceContextPtr->sslContextPtr; }
   WsConnection& getWsConnectionFromConnectionPtr(TlsClient::connection_ptr connectionPtr) {
-    return this->wsConnectionMap.at(this->connectionAddressToString(connectionPtr));
+    return this->wsConnectionByIdMap.at(this->connectionAddressToString(connectionPtr));
   }
   std::string connectionAddressToString(const TlsClient::connection_ptr con) {
     const void* address = static_cast<const void*>(con.get());
@@ -742,7 +789,7 @@ class Service : public std::enable_shared_from_this<Service> {
   Queue<std::shared_ptr<HttpConnection>> httpConnectionPool;
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
-  std::map<std::string, WsConnection> wsConnectionMap;
+  std::map<std::string, WsConnection> wsConnectionByIdMap;
   std::map<std::string, bool> shouldProcessRemainingMessageOnClosingByConnectionIdMap;
   std::map<std::string, int> connectNumRetryOnFailByConnectionUrlMap;
   std::map<std::string, TimerPtr> connectRetryOnFailTimerByConnectionIdMap;

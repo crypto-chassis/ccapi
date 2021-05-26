@@ -13,7 +13,7 @@ message(STATUS "Python_EXECUTABLE: ${Python_EXECUTABLE}")
    message(FATAL_ERROR "Require Python 3")
  endif()
 list(APPEND CMAKE_SWIG_FLAGS "-py3")
-set(SWIG_INTERFACE ${CCAPI_CPP_PROJECT_DIR}/binding/swig_interface.i)
+set(SWIG_INTERFACE ${CCAPI_PROJECT_DIR}/binding/swig_interface.i)
 set_property(SOURCE ${SWIG_INTERFACE} PROPERTY CPLUSPLUS ON)
 set_property(SOURCE ${SWIG_INTERFACE} PROPERTY COMPILE_OPTIONS "-builtin;-threads")
 swig_add_library(${SWIG_TARGET_NAME}

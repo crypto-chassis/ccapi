@@ -62,7 +62,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCreateOrder) {
+TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "btcusd", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -88,7 +88,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCreateOr
     "original_amount": "5"
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -115,7 +115,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOrderByOrderId)
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCancelOrder) {
+TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -141,7 +141,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCancelOr
     "original_amount":"5"
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -180,7 +180,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByClientOrder
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageGetOrder) {
+TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -205,7 +205,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageGetOrder
     "original_amount" : "3"
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -218,7 +218,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageGetOrder
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "3");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "3");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 1200);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), CCAPI_EM_ORDER_STATUS_CLOSED);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "is_not_live");
 }
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOpenOrdersAllInstruments) {
@@ -233,7 +233,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOpenOrdersAllInstr
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageGetOpenOrdersAllInstruments) {
+TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestGetOpenOrdersAllInstruments) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_GEMINI, "", "", this->credential);
   std::string textMessage =
       R"(
@@ -278,7 +278,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageGetOpenO
     "original_amount": "1"
   } ]
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
@@ -308,7 +308,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOpenOrders) {
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCancelOpenOrders) {
+TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
   std::string textMessage =
       R"(
@@ -321,7 +321,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageCancelOp
         }
   }
   )";
-  auto messageList = this->service->convertTextMessageToMessage(request, textMessage, this->now);
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
