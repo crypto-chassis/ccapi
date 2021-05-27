@@ -11,7 +11,7 @@ class MarketDataServiceErisx : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->convertNumberToStringInJsonRegex=std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
+    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceErisx() {}
 

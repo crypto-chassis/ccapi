@@ -313,6 +313,12 @@ class MarketDataService : public Service {
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
+    std::vector<std::string> correlationIdList;
+    for (const auto& subscription : wsConnection.subscriptionList) {
+      correlationIdList.push_back(subscription.getCorrelationId());
+    }
+    CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
+    message.setCorrelationIdList(correlationIdList);
     event.setMessageList({message});
     this->eventHandler(event);
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " is closed");
@@ -1218,7 +1224,7 @@ class MarketDataService : public Service {
                                       const std::string& receivedOrderBookChecksumStr, bool& shouldProcessRemainingMessage) {
     if (this->sessionOptions.enableCheckOrderBookChecksum) {
       std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(snapshotBid, snapshotAsk);
-      if (calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
+      if (!calculatedOrderBookChecksumStr.empty() && calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
         shouldProcessRemainingMessage = false;
         CCAPI_LOGGER_ERROR("calculatedOrderBookChecksumStr = " + calculatedOrderBookChecksumStr);
         CCAPI_LOGGER_ERROR("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
@@ -1399,7 +1405,7 @@ class MarketDataService : public Service {
     return {};
   }
   virtual std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
-    return "";
+    return {};
   }
   virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;

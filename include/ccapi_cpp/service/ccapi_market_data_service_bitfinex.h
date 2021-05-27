@@ -14,7 +14,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
-    this->convertNumberToStringInJsonRegex=std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceBitfinex() {}
 

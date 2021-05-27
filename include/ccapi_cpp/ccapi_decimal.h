@@ -13,8 +13,8 @@ class Decimal CCAPI_FINAL {
     }
     std::string fixedPointValue = originalValue;
     this->sign = true;
-    if (originalValue.at(0) == '-') {
-      fixedPointValue.erase(0);
+    if (fixedPointValue.at(0) == '-') {
+      fixedPointValue.erase(0, 1);
       this->sign = false;
     }
     if (fixedPointValue.find("E") != std::string::npos || fixedPointValue.find("e") != std::string::npos) {

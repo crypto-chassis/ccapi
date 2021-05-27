@@ -15,7 +15,7 @@ class MarketDataServiceKraken : public MarketDataService {
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/0/public/Trades";
-    this->convertNumberToStringInJsonRegex=std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceKraken() {}
 

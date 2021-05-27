@@ -15,7 +15,7 @@ class MarketDataServiceFtx : public MarketDataService {
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
-    this->convertNumberToStringInJsonRegex=std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
+    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceFtx() {}
 
