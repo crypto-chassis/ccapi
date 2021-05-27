@@ -27,7 +27,7 @@
       - [Specify correlation id](#specify-correlation-id-1)
       - [Normalize instrument name](#normalize-instrument-name-1)
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments-1)
-      - [Multiple subscription topics](#multiple-subscription-topics)
+      - [Multiple subscription fields](#multiple-subscription-fields)
       - [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
       - [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
       - [Override exchange urls](#override-exchange-urls)
@@ -613,9 +613,9 @@ Subscribe one `Subscription` per exchange with a comma separated string of instr
 Subscription subscription("coinbase", "BTC-USD,ETH-USD", "ORDER_UPDATE");
 ```
 
-#### Multiple subscription topics
+#### Multiple subscription fields
 
-Subscribe one `Subscription` with a comma separated string of topics.
+Subscribe one `Subscription` with a comma separated string of fields.
 ```
 Subscription subscription("coinbase", "BTC-USD", "ORDER_UPDATE,PRIVATE_TRADE");
 ```
