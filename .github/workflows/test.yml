@@ -4,9 +4,13 @@ on:
   pull_request:
     branches:
       - develop
+    paths-ignore:
+      - '**/README.md'
   push:
     branches:
       - develop
+    paths-ignore:
+      - '**/README.md'
 
 env:
   CMAKE_VERSION: 3.17.5

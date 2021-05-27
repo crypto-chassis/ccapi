@@ -317,6 +317,12 @@ class ExecutionManagementService : public Service {
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
+    std::vector<std::string> correlationIdList;
+    for (const auto& subscription : wsConnection.subscriptionList) {
+      correlationIdList.push_back(subscription.getCorrelationId());
+    }
+    CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
+    message.setCorrelationIdList(correlationIdList);
     event.setMessageList({message});
     this->eventHandler(event);
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " is closed");
