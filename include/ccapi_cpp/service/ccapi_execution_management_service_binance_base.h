@@ -11,7 +11,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~ExecutionManagementServiceBinanceBase() {}
 
- protected:
+#ifndef CCAPI_EXPOSE_INTERNAL
+ private:
+#endif
   void signRequest(std::string& queryString, const std::map<std::string, std::string>& param, const TimePoint& now,
                    const std::map<std::string, std::string>& credential) {
     if (param.find("timestamp") == param.end()) {

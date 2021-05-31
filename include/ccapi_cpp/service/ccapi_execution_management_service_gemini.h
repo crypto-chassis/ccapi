@@ -25,7 +25,9 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
   }
   virtual ~ExecutionManagementServiceGemini() {}
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  protected:
+#endif
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,
                    const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     document.AddMember("request", rj::Value(req.target().to_string().c_str(), allocator).Move(), allocator);
@@ -193,13 +195,6 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     }
     return element;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessageRest;
-  FRIEND_TEST(ExecutionManagementServiceGeminiTest, signRequest);
-#endif
 };
 } /* namespace ccapi */
 #endif

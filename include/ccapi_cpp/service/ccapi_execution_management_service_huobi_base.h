@@ -11,7 +11,9 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~ExecutionManagementServiceHuobiBase() {}
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  protected:
+#endif
   void signRequest(http::request<http::string_body>& req, const std::string& path, const std::map<std::string, std::string>& queryParamMap,
                    const std::map<std::string, std::string>& credential) {
     std::string preSignedText;

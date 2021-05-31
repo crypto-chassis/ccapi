@@ -31,6 +31,7 @@ class ExecutionManagementService : public Service {
         {Request::Operation::CANCEL_OPEN_ORDERS, Message::Type::CANCEL_OPEN_ORDERS},
         {Request::Operation::GET_ACCOUNTS, Message::Type::GET_ACCOUNTS},
         {Request::Operation::GET_ACCOUNT_BALANCES, Message::Type::GET_ACCOUNT_BALANCES},
+        {Request::Operation::GET_ACCOUNT_POSITIONS, Message::Type::GET_ACCOUNT_POSITIONS},
     };
   }
   virtual ~ExecutionManagementService() {}
@@ -49,7 +50,9 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  protected:
+#endif
   void setupCredential(std::vector<std::string> nameList) {
     for (const auto& x : nameList) {
       if (this->sessionConfigs.getCredential().find(x) != this->sessionConfigs.getCredential().end()) {
@@ -496,29 +499,13 @@ class ExecutionManagementService : public Service {
     auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
     document.Parse(textMessage.c_str());
-    auto eventTypePair = this->getEventType(document);
-    auto eventType = eventTypePair.first;
-    Event event;
-    event.setType(eventType);
-    if (eventType == Event::Type::SUBSCRIPTION_STATUS) {
-      auto messageType = eventTypePair.second.at(0);
-      Message message;
-      message.setTimeReceived(timeReceived);
-      message.setType(messageType);
-      message.setCorrelationIdList({subscription.getCorrelationId()});
-      if (messageType == Message::Type::SUBSCRIPTION_FAILURE) {
-        Element element;
-        element.insert(CCAPI_ERROR_MESSAGE, textMessage);
-        message.setElementList({element});
-      }
-      event.addMessage(message);
-    } else if (eventType == Event::Type::SUBSCRIPTION_DATA) {
-      const std::vector<Message>& messageList = this->convertDocumentToMessage(subscription, document, timeReceived);
-      event.addMessages(messageList);
-    }
+    auto event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event);
     }
+  }
+  virtual Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
+    return {};
   }
   virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
@@ -530,10 +517,6 @@ class ExecutionManagementService : public Service {
                                                                         const std::map<std::string, std::string>& credential) {
     return {};
   }
-  virtual std::pair<Event::Type, std::vector<Message::Type> > getEventType(const rj::Document& document) { return {Event::Type::UNKNOWN, {}}; }
-  virtual std::vector<Message> convertDocumentToMessage(const Subscription& subscription, const rj::Document& document, const TimePoint& timeReceived) {
-    return {};
-  }
   std::string apiKeyName;
   std::string apiSecretName;
   std::string createOrderTarget;
@@ -543,6 +526,7 @@ class ExecutionManagementService : public Service {
   std::string cancelOpenOrdersTarget;
   std::string getAccountsTarget;
   std::string getAccountBalancesTarget;
+  std::string getAccountPositionsTarget;
 };
 } /* namespace ccapi */
 #endif

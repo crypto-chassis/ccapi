@@ -113,7 +113,9 @@ class Event CCAPI_FINAL {
   Type getType() const { return type; }
   void setType(Type type) { this->type = type; }
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  private:
+#endif
   Type type{Type::UNKNOWN};
   std::vector<Message> messageList;
 };

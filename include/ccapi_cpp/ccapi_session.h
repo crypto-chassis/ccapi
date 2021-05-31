@@ -555,8 +555,8 @@ class Session CCAPI_FINAL {
     });
   }
 #endif
-#ifndef CCAPI_EXPOSE_INTERNAL
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  private:
 #endif
   SessionOptions sessionOptions;

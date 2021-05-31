@@ -68,7 +68,9 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  protected:
+#endif
   typedef wspp::lib::error_code ErrorCode;
   typedef wspp::lib::function<void(ErrorCode const&)> TimerHandler;
   std::map<std::string, std::vector<Subscription>> groupSubscriptionListByInstrumentGroup(const std::vector<Subscription>& subscriptionList) {
@@ -343,7 +345,7 @@ class MarketDataService : public Service {
     auto opcode = msg->get_opcode();
     CCAPI_LOGGER_DEBUG("opcode = " + toString(opcode));
     if (msg->get_opcode() == websocketpp::frame::opcode::text) {
-      std::string textMessage = msg->get_payload();
+      const std::string& textMessage = msg->get_payload();
       CCAPI_LOGGER_DEBUG("received a text message: " + textMessage);
       try {
         this->onTextMessage(hdl, textMessage, now);
@@ -356,7 +358,7 @@ class MarketDataService : public Service {
       if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI || this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP ||
           this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
-        std::string payload = msg->get_payload();
+        const std::string& payload = msg->get_payload();
         try {
           ErrorCode ec = this->inflater.decompress(reinterpret_cast<const uint8_t*>(&payload[0]), payload.size(), decompressed);
           if (ec) {

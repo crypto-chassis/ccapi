@@ -24,13 +24,6 @@ class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBin
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinanceUs() {}
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessageRest;
-  using ExecutionManagementServiceBinanceBase::signRequest;
-#endif
 };
 } /* namespace ccapi */
 #endif

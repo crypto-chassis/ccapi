@@ -21,7 +21,9 @@ class MarketDataServiceOkex : public MarketDataService {
   }
   virtual ~MarketDataServiceOkex() {}
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  private:
+#endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;

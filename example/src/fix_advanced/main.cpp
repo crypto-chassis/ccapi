@@ -49,6 +49,7 @@ int main(int argc, char** argv) {
   }
   SessionOptions sessionOptions;
   sessionOptions.heartbeatFixIntervalMilliSeconds = 30000;  // Note the unit is millisecond
+  sessionOptions.heartbeatFixTimeoutMilliSeconds = 5000;    // Note the unit is millisecond, should be less than heartbeatFixIntervalMilliSeconds
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);

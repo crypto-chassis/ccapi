@@ -27,7 +27,9 @@ TEST_F(MarketDataServiceTest, updateOrderBookInsert) {
   EXPECT_THAT(snapshot, ElementsAre(Pair(pc, sc)));
 }
 TEST_F(MarketDataServiceTest, updateOrderBookUpdate) {
-  std::map<Decimal, std::string> snapshot{{Decimal("1"), std::string("2")}};
+  std::map<Decimal, std::string> snapshot{
+      {Decimal("1"), std::string("2")},
+  };
   Decimal p("1");
   auto pc = p;
   std::string s("3");
@@ -36,7 +38,9 @@ TEST_F(MarketDataServiceTest, updateOrderBookUpdate) {
   EXPECT_THAT(snapshot, ElementsAre(Pair(pc, sc)));
 }
 TEST_F(MarketDataServiceTest, updateOrderBookDelete) {
-  std::map<Decimal, std::string> snapshot{{Decimal("1"), std::string("2")}};
+  std::map<Decimal, std::string> snapshot{
+      {Decimal("1"), std::string("2")},
+  };
   Decimal price("1");
   std::string size("0");
   this->service->updateOrderBook(snapshot, price, size);

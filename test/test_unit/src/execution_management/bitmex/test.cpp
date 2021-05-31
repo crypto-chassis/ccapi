@@ -11,7 +11,10 @@ class ExecutionManagementServiceBitmexTest : public ::testing::Test {
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceBitmex>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_BITMEX_API_KEY, "LAqUlngMIQkIUjXMUreyu3qn"}, {CCAPI_BITMEX_API_SECRET, "chNOOS4KvNXR_Xq4k4c9qsfoKWvnDecLATCRlcBwyKDYnWgO"}};
+    this->credential = {
+        {CCAPI_BITMEX_API_KEY, "LAqUlngMIQkIUjXMUreyu3qn"},
+        {CCAPI_BITMEX_API_SECRET, "chNOOS4KvNXR_Xq4k4c9qsfoKWvnDecLATCRlcBwyKDYnWgO"},
+    };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -47,7 +50,11 @@ TEST_F(ExecutionManagementServiceBitmexTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+      {CCAPI_EM_ORDER_QUANTITY, "1"},
+      {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -115,7 +122,9 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageRestCrea
 
 TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "string"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "string"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
@@ -129,7 +138,9 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCancelOrderByOrderId)
 
 TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCancelOrderByClientOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "string"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "string"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
@@ -192,7 +203,9 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageRestCanc
 
 TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "string"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "string"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -206,7 +219,9 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOrderByOrderId) {
 
 TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "string"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "string"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);

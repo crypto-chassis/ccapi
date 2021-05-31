@@ -45,7 +45,9 @@ class Queue {
     return this->queue.empty();
   }
 
+#ifndef CCAPI_EXPOSE_INTERNAL
  private:
+#endif
   std::vector<T> queue;
   mutable std::mutex m;
   size_t maxSize{};
