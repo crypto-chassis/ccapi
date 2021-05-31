@@ -335,8 +335,9 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     auto fieldSet = subscription.getFieldSet();
     auto instrumentSet = subscription.getInstrumentSet();
     std::string type = document["type"].GetString();
-    std::string channel = std::string(document["channel"].GetString());
     if (type == "update") {
+      std::string channel = std::string(document["channel"].GetString());
+      event.setType(Event::Type::SUBSCRIPTION_DATA);
       const rj::Value& data = document["data"];
       auto instrument = this->convertWebsocketSymbolIdToInstrument(data["market"].GetString());
       if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {

@@ -510,7 +510,7 @@ TEST_F(ExecutionManagementServiceFtxTest, convertTextMessageToMessageRestGetAcco
 }
 
 TEST_F(ExecutionManagementServiceFtxTest, createEventFills) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_FTX, "BTC/USD", CCAPI_EM_PRIVATE_TRADE);
+  Subscription subscription(CCAPI_EXCHANGE_NAME_FTX, "BTC-PERP", CCAPI_EM_PRIVATE_TRADE);
   std::string textMessage = this->service->convertNumberToStringInJson(R"(
     {
       "channel": "fills",
@@ -542,13 +542,13 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventFills) {
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "7828307");
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "19129310");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "3723.75");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "14.973");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "38065410");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC/USD");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-PERP");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY), "78.05799225");
 }
 
@@ -582,7 +582,7 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventOrders) {
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
-  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
@@ -594,7 +594,7 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventOrders) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "closed");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "XRP-PERP");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "38065410");
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
 }
 } /* namespace ccapi */
 #endif
