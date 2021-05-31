@@ -129,8 +129,8 @@ class MarketDataServiceFtx : public MarketDataService {
           this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
               intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoul(data["checksum"].GetString()))));
         }
-      } else if (channel == CCAPI_WEBSOCKET_FTX_CHANNEL_TRADES){
-        for (const auto& x: data.GetArray()){
+      } else if (channel == CCAPI_WEBSOCKET_FTX_CHANNEL_TRADES) {
+        for (const auto& x : data.GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
