@@ -48,6 +48,7 @@ class Message CCAPI_FINAL {
     CANCEL_OPEN_ORDERS,
     GET_ACCOUNTS,
     GET_ACCOUNT_BALANCES,
+    GET_ACCOUNT_POSITIONS,
     GET_RECENT_TRADES,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
@@ -113,6 +114,9 @@ class Message CCAPI_FINAL {
       case Type::GET_ACCOUNT_BALANCES:
         output = "GET_ACCOUNT_BALANCES";
         break;
+      case Type::GET_ACCOUNT_POSITIONS:
+        output = "GET_ACCOUNT_POSITIONS";
+        break;
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
         break;
@@ -172,8 +176,10 @@ class Message CCAPI_FINAL {
   std::string getTimeReceivedISO() const { return UtilTime::getISOTimestamp(timeReceived); }
   std::pair<long long, long long> getTimeReceivedPair() const { return UtilTime::divide(timeReceived); }
   void setTimeReceived(TimePoint timeReceived) { this->timeReceived = timeReceived; }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   TimePoint time{std::chrono::seconds{0}};
   TimePoint timeReceived{std::chrono::seconds{0}};
   std::vector<Element> elementList;

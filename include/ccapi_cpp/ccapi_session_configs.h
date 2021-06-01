@@ -47,8 +47,10 @@ class SessionConfigs CCAPI_FINAL {
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMap() const { return exchangeSymbolInstrumentMap; }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMapRest() const { return exchangeSymbolInstrumentMapRest; }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   void updateExchangeInstrumentMap() {
     for (const auto& x : exchangeInstrumentSymbolMap) {
       for (const auto& y : x.second) {

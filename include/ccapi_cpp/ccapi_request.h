@@ -26,6 +26,7 @@ class Request CCAPI_FINAL {
     CANCEL_OPEN_ORDERS,
     GET_ACCOUNTS = operationTypeExecutionManagementAccount,
     GET_ACCOUNT_BALANCES,
+    GET_ACCOUNT_POSITIONS,
   };
   static std::string operationToString(Operation operation) {
     std::string output;
@@ -59,6 +60,9 @@ class Request CCAPI_FINAL {
         break;
       case Operation::GET_ACCOUNT_BALANCES:
         output = "GET_ACCOUNTS";
+        break;
+      case Operation::GET_ACCOUNT_POSITIONS:
+        output = "GET_ACCOUNT_POSITIONS";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

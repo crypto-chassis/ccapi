@@ -10,8 +10,10 @@ class ExecutionManagementServiceBinanceFuturesTest : public ::testing::Test {
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceBinanceFutures>([](Event& event) {}, SessionOptions(), SessionConfigs(),
                                                                                wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_BINANCE_FUTURES_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"},
-                        {CCAPI_BINANCE_FUTURES_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"}};
+    this->credential = {
+        {CCAPI_BINANCE_FUTURES_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"},
+        {CCAPI_BINANCE_FUTURES_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"},
+    };
     this->timestamp = 1499827319559;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp);
   }

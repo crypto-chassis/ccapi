@@ -14,8 +14,10 @@ class MarketDataServiceErisx : public MarketDataService {
     this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceErisx() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {

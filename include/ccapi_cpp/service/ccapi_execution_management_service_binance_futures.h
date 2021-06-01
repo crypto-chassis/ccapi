@@ -25,11 +25,6 @@ class ExecutionManagementServiceBinanceFutures : public ExecutionManagementServi
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinanceFutures() {}
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertTextMessageToMessageRest;
-#endif
 };
 } /* namespace ccapi */
 #endif

@@ -94,8 +94,10 @@ class Decimal CCAPI_FINAL {
   friend bool operator>=(const Decimal& l, const Decimal& r) { return !(l < r); }
   friend bool operator==(const Decimal& l, const Decimal& r) { return !(l > r) && !(l < r); }
   friend bool operator!=(const Decimal& l, const Decimal& r) { return !(l == r); }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   // {-}bbbb.aaaa
   unsigned long before{};
   std::string frac;

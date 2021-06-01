@@ -30,8 +30,10 @@ class FixServiceFtx : public Service {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceFtx() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   static std::string printableString(const char* s, size_t n) {
     std::string output(s, n);
     std::replace(output.begin(), output.end(), '\x01', '^');
@@ -388,7 +390,7 @@ class FixServiceFtx : public Service {
     auto prehashStr = UtilString::join(prehashFieldList, "\x01");
     CCAPI_LOGGER_TRACE("prehashStr = " + printableString(prehashStr));
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    std::string rawData = UtilString::toLower(UtilAlgorithm::stringToHex(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, prehashStr)));
+    std::string rawData = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, prehashStr, true);
     CCAPI_LOGGER_TRACE("rawData = " + rawData);
     param.push_back({hff::tag::RawData, rawData});
     for (const auto& x : logonOptionMap) {

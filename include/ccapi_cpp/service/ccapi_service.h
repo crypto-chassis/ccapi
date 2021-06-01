@@ -229,7 +229,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setCorrelationIdList({request.getCorrelationId()});
     Element element;
     element.insert(CCAPI_HTTP_STATUS_CODE, statusCodeStr);
-    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
+    element.insert(CCAPI_ERROR_MESSAGE, UtilString::trim(errorMessage));
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event);

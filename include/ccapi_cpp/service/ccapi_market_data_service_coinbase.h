@@ -16,8 +16,10 @@ class MarketDataServiceCoinbase : public MarketDataService {
     this->getRecentTradesTarget = "/products/<product-id>/trades";
   }
   virtual ~MarketDataServiceCoinbase() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;

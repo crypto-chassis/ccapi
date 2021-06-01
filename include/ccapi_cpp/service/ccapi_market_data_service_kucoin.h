@@ -16,8 +16,10 @@ class MarketDataServiceKucoin : public MarketDataService {
     this->getRecentTradesTarget = "/api/v1/market/histories";
   }
   virtual ~MarketDataServiceKucoin() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);

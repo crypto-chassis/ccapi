@@ -16,8 +16,10 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceHuobiBase() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);

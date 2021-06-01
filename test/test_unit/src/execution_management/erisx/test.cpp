@@ -11,8 +11,10 @@ class ExecutionManagementServiceErisxTest : public ::testing::Test {
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceErisx>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4"},
-                        {CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"}};
+    this->credential = {
+        {CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4"},
+        {CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},
+    };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -48,11 +50,10 @@ TEST_F(ExecutionManagementServiceErisxTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
-                                           {CCAPI_EM_ORDER_QUANTITY, "1"},
-                                           {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
-                                           {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},
-                                           {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"},     {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
+      {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},    {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -148,11 +149,11 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageRestCreat
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "BTC/USD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "281474982380221"},
-                                           {CCAPI_EM_ORDER_SIDE, "BUY"},
-                                           {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-b"},
-                                           {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},
-                                           {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "281474982380221"},      {CCAPI_EM_ORDER_SIDE, "BUY"},
+      {CCAPI_EM_CLIENT_ORDER_ID, "ENRY34D6CVV-b"}, {CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, "ENRY34D6CVV-a"},
+      {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -243,7 +244,10 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageRestCance
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "281474982380221"}, {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "281474982380221"},
+      {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -332,7 +336,9 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageRestGetOr
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOpenOrders) {
   Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_PARTY_ID, "ENRY34D6CVV"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_PARTY_ID, "ENRY34D6CVV"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -431,7 +437,9 @@ TEST_F(ExecutionManagementServiceErisxTest, convertTextMessageToMessageRestGetOp
 
 TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_ERISX, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{"PARTY_ID", "ENRY34D6CVV"}};
+  std::map<std::string, std::string> param{
+      {"PARTY_ID", "ENRY34D6CVV"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
