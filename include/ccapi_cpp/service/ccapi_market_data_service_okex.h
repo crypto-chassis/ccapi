@@ -18,6 +18,7 @@ class MarketDataServiceOkex : public MarketDataService {
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v5/market/trades";
+    this->needDecompressWebsocketMessage=true;
   }
   virtual ~MarketDataServiceOkex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
