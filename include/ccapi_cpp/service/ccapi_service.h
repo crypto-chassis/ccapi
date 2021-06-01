@@ -11,11 +11,12 @@
 #ifndef RAPIDJSON_PARSE_ERROR_NORETURN
 #define RAPIDJSON_PARSE_ERROR_NORETURN(parseErrorCode, offset) throw std::runtime_error(#parseErrorCode)
 #endif
-#include <boost/asio/strand.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/ssl.hpp>
-#include <boost/beast/version.hpp>
+#include <regex>
+#include "boost/asio/strand.hpp"
+#include "boost/beast/core.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/ssl.hpp"
+#include "boost/beast/version.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_market_data_message.h"
@@ -228,7 +229,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setCorrelationIdList({request.getCorrelationId()});
     Element element;
     element.insert(CCAPI_HTTP_STATUS_CODE, statusCodeStr);
-    element.insert(CCAPI_ERROR_MESSAGE, errorMessage);
+    element.insert(CCAPI_ERROR_MESSAGE, UtilString::trim(errorMessage));
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event);
@@ -774,6 +775,10 @@ class Service : public std::enable_shared_from_this<Service> {
       queryString += "&";
     }
   }
+  virtual std::string convertNumberToStringInJson(const std::string& jsonString) {
+    auto quotedTextMessage = std::regex_replace(jsonString, this->convertNumberToStringInJsonRegex, this->convertNumberToStringInJsonRewrite);
+    return quotedTextMessage;
+  }
   std::string exchangeName;
   std::string baseUrl;
   std::string baseUrlRest;
@@ -803,6 +808,8 @@ class Service : public std::enable_shared_from_this<Service> {
   bool enableCheckPingPongWebsocketProtocolLevel{};
   bool enableCheckPingPongWebsocketApplicationLevel{};
   std::map<Request::Operation, Message::Type> requestOperationToMessageTypeMap;
+  std::regex convertNumberToStringInJsonRegex{"(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"};
+  std::string convertNumberToStringInJsonRewrite{"$1\"$2\""};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_

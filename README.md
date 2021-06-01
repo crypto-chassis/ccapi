@@ -27,6 +27,7 @@
       - [Specify correlation id](#specify-correlation-id-1)
       - [Normalize instrument name](#normalize-instrument-name-1)
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments-1)
+      - [Multiple subscription fields](#multiple-subscription-fields)
       - [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
       - [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
       - [Override exchange urls](#override-exchange-urls)
@@ -293,23 +294,17 @@ Session session(sessionOptions, sessionConfigs, &eventHandler);
 
 Send a `std::vector<Request>`.
 ```
-std::vector<Request> requestList;
 Request request_1(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD");
 request_1.appendParam(...);
-requestList.push_back(request_1);
 Request request_2(Request::Operation::GET_RECENT_TRADES, "coinbase", "ETH-USD");
 request_2.appendParam(...);
-requestList.push_back(request_2);
-session.sendRequest(requestList);
+session.sendRequest({request_1, request_2});
 ```
 Subscribe a `std::vector<Subscription>`.
 ```
-std::vector<Subscription> subscriptionList;
 Subscription subscription_1("coinbase", "BTC-USD", "MARKET_DEPTH");
-subscriptionList.push_back(subscription_1);
 Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH");
-subscriptionList.push_back(subscription_2);
-session.subscribe(subscriptionList);
+session.subscribe({subscription_1, subscription_2});
 ```
 
 #### Receive subscription events at periodic intervals
@@ -607,18 +602,22 @@ Session session(sessionOptions, sessionConfigs, &eventHandler);
 
 Send a `std::vector<Request>`.
 ```
-std::vector<Request> requestList;
 Request request_1(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
 request_1.appendParam(...);
-requestList.push_back(request_1);
 Request request_2(Request::Operation::CREATE_ORDER, "binance-us", "ETHUSD");
 request_2.appendParam(...);
-requestList.push_back(request_2);
-session.sendRequest(requestList);
+session.sendRequest({request_1, request_2});
 ```
 Subscribe one `Subscription` per exchange with a comma separated string of instruments.
 ```
 Subscription subscription("coinbase", "BTC-USD,ETH-USD", "ORDER_UPDATE");
+```
+
+#### Multiple subscription fields
+
+Subscribe one `Subscription` with a comma separated string of fields.
+```
+Subscription subscription("coinbase", "BTC-USD", "ORDER_UPDATE,PRIVATE_TRADE");
 ```
 
 #### Make Session::sendRequest blocking

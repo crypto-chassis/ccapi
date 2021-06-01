@@ -55,8 +55,10 @@ class EventDispatcher CCAPI_FINAL {
       dispatcherThread.join();
     }
   }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   void dispatch_thread_handler() {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::unique_lock<std::mutex> lock(this->lock);

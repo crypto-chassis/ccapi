@@ -16,8 +16,10 @@ class MarketDataServiceKucoin : public MarketDataService {
     this->getRecentTradesTarget = "/api/v1/market/histories";
   }
   virtual ~MarketDataServiceKucoin() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
@@ -180,7 +182,7 @@ class MarketDataServiceKucoin : public MarketDataService {
     }
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     MarketDataService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
   }

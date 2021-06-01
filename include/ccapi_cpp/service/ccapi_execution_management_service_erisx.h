@@ -26,8 +26,10 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceErisx() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
     return body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos ||
            body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos;
@@ -203,18 +205,10 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     std::vector<Element> elementList;
     return elementList;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-#endif
   std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- protected:
-#endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
@@ -227,12 +221,6 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     }
     return element;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertRequest;
-  FRIEND_TEST(ExecutionManagementServiceErisxTest, signRequest);
-#endif
 };
 } /* namespace ccapi */
 #endif

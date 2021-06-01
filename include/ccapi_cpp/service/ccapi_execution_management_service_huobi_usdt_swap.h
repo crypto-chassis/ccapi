@@ -24,8 +24,10 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobiUsdtSwap() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err_code") != std::string::npos; }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "contract_code");
@@ -148,12 +150,8 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
     std::vector<Element> elementList;
     return elementList;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-#endif
   std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
     return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   }
@@ -169,12 +167,6 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
     }
     return element;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertRequest;
-  FRIEND_TEST(ExecutionManagementServiceHuobiUsdtSwapTest, signRequest);
-#endif
 };
 } /* namespace ccapi */
 #endif

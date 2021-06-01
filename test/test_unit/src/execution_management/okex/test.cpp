@@ -11,9 +11,11 @@ class ExecutionManagementServiceOkexTest : public ::testing::Test {
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceOkex>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_OKEX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
-                        {CCAPI_OKEX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
-                        {CCAPI_OKEX_API_PASSPHRASE, "0x1a5y8koaa9"}};
+    this->credential = {
+        {CCAPI_OKEX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
+        {CCAPI_OKEX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
+        {CCAPI_OKEX_API_PASSPHRASE, "0x1a5y8koaa9"},
+    };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
     this->timestampStr = "2017-07-12T02:41:59.000Z";
@@ -53,7 +55,11 @@ TEST_F(ExecutionManagementServiceOkexTest, signRequest) {
 TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
-      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "2"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"}, {"tdMode", "cash"}};
+      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+      {CCAPI_EM_ORDER_QUANTITY, "2"},
+      {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"},
+      {"tdMode", "cash"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -101,7 +107,9 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCreate
 
 TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "2510789768709120"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "2510789768709120"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -116,7 +124,9 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByOrderId) {
 
 TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByClientOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "oktswap6"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "oktswap6"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -155,7 +165,9 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCancel
 
 TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "2510789768709120"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "2510789768709120"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -170,7 +182,9 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByOrderId) {
 
 TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "b1"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "b1"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);

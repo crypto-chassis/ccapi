@@ -25,8 +25,10 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobi() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "symbol");
@@ -149,13 +151,6 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
   }
   std::string cancelOrderByClientOrderIdTarget;
   std::string getOrderByClientOrderIdTarget;
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessageRest;
-  FRIEND_TEST(ExecutionManagementServiceHuobiTest, signRequest);
-#endif
 };
 } /* namespace ccapi */
 #endif

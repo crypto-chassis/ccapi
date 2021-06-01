@@ -11,7 +11,10 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceGemini>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"}, {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"}};
+    this->credential = {
+        {CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"},
+        {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},
+    };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -45,7 +48,11 @@ TEST_F(ExecutionManagementServiceGeminiTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "btcusd", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+      {CCAPI_EM_ORDER_QUANTITY, "1"},
+      {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -101,7 +108,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestCrea
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "19492382044"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "19492382044"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -150,7 +159,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestCanc
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "19492382044"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "19492382044"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -166,7 +177,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByOrderId) {
 
 TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "20190110-4738721"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "20190110-4738721"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);

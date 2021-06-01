@@ -2,7 +2,6 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_ERISX_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
-#include <regex>
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
 class MarketDataServiceErisx : public MarketDataService {
@@ -12,10 +11,13 @@ class MarketDataServiceErisx : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceErisx() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -64,7 +66,7 @@ class MarketDataServiceErisx : public MarketDataService {
                                                     const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;

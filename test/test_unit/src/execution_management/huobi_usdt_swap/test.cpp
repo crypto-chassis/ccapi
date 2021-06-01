@@ -11,8 +11,10 @@ class ExecutionManagementServiceHuobiUsdtSwapTest : public ::testing::Test {
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceHuobiUsdtSwap>([](Event& event) {}, SessionOptions(), SessionConfigs(),
                                                                               wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_HUOBI_USDT_SWAP_API_KEY, "b33ff154-e02e01af-mjlpdje3ld-87508"},
-                        {CCAPI_HUOBI_USDT_SWAP_API_SECRET, "968df5e1-790fa852-ce124901-9ccc5"}};
+    this->credential = {
+        {CCAPI_HUOBI_USDT_SWAP_API_KEY, "b33ff154-e02e01af-mjlpdje3ld-87508"},
+        {CCAPI_HUOBI_USDT_SWAP_API_SECRET, "968df5e1-790fa852-ce124901-9ccc5"},
+    };
     this->timestamp = "2017-05-11T15:19:30";
     this->now = UtilTime::parse(this->timestamp + "Z");
   }
@@ -61,10 +63,12 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, signRequest) {
   req.method(http::verb::post);
   req.set(http::field::host, "api.hbdm.com");
   std::string path = "/linear-swap-api/v1/swap_cross_order";
-  std::map<std::string, std::string> queryParamMap = {{"AccessKeyId", this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_KEY)},
-                                                      {"SignatureMethod", "HmacSHA256"},
-                                                      {"SignatureVersion", "2"},
-                                                      {"Timestamp", "2021-03-30T04%3A01%3A16"}};
+  std::map<std::string, std::string> queryParamMap = {
+      {"AccessKeyId", this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_KEY)},
+      {"SignatureMethod", "HmacSHA256"},
+      {"SignatureVersion", "2"},
+      {"Timestamp", "2021-03-30T04%3A01%3A16"},
+  };
   this->service->signRequest(req, path, queryParamMap, this->credential);
   EXPECT_EQ(Url::urlDecode(Url::convertQueryStringToMap(UtilString::split(req.target().to_string(), "?").at(1)).at("Signature")),
             "XgdueCZTpDpC1oKDvYwbWRIF39v9jjmK+hajlttv7M4=");
@@ -72,8 +76,9 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "btc-usdt", "foo", this->credential);
-  std::map<std::string, std::string> param{{"price", "29999"}, {"volume", "1"},     {"direction", "buy"},
-                                           {"offset", "open"}, {"lever_rate", "5"}, {"order_price_type", "opponent"}};
+  std::map<std::string, std::string> param{
+      {"price", "29999"}, {"volume", "1"}, {"direction", "buy"}, {"offset", "open"}, {"lever_rate", "5"}, {"order_price_type", "opponent"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -118,7 +123,9 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "btc-usdt", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "59378"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "59378"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -134,7 +141,9 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCancelOrderByO
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCancelOrderByClientOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "btc-usdt", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "a0001"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "a0001"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -180,7 +189,9 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "btc-usdt", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "59378"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "59378"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -196,7 +207,9 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOrderByOrde
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "btc-usdt", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "a0001"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "a0001"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);

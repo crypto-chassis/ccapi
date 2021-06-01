@@ -2,7 +2,6 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
-#include <regex>
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
 class ExecutionManagementServiceOkex : public ExecutionManagementService {
@@ -25,8 +24,10 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceOkex() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
@@ -197,10 +198,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     return elementList;
   }
   std::string apiPassphraseName;
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- protected:
-#endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
@@ -213,13 +210,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     }
     return element;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertRequest;
-  using ExecutionManagementService::convertTextMessageToMessageRest;
-  FRIEND_TEST(ExecutionManagementServiceOkexTest, signRequest);
-#endif
 };
 } /* namespace ccapi */
 #endif

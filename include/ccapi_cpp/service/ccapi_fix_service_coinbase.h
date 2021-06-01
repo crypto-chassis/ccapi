@@ -30,8 +30,10 @@ class FixServiceCoinbase : public Service {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceCoinbase() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   static std::string printableString(const char* s, size_t n) {
     std::string output(s, n);
     std::replace(output.begin(), output.end(), '\x01', '^');

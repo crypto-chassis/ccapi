@@ -67,8 +67,10 @@ class MarketDataService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   typedef wspp::lib::error_code ErrorCode;
   typedef wspp::lib::function<void(ErrorCode const&)> TimerHandler;
   std::map<std::string, std::vector<Subscription>> groupSubscriptionListByInstrumentGroup(const std::vector<Subscription>& subscriptionList) {
@@ -313,6 +315,12 @@ class MarketDataService : public Service {
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
+    std::vector<std::string> correlationIdList;
+    for (const auto& subscription : wsConnection.subscriptionList) {
+      correlationIdList.push_back(subscription.getCorrelationId());
+    }
+    CCAPI_LOGGER_DEBUG("correlationIdList = " + toString(correlationIdList));
+    message.setCorrelationIdList(correlationIdList);
     event.setMessageList({message});
     this->eventHandler(event);
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " is closed");
@@ -337,7 +345,7 @@ class MarketDataService : public Service {
     auto opcode = msg->get_opcode();
     CCAPI_LOGGER_DEBUG("opcode = " + toString(opcode));
     if (msg->get_opcode() == websocketpp::frame::opcode::text) {
-      std::string textMessage = msg->get_payload();
+      const std::string& textMessage = msg->get_payload();
       CCAPI_LOGGER_DEBUG("received a text message: " + textMessage);
       try {
         this->onTextMessage(hdl, textMessage, now);
@@ -350,7 +358,7 @@ class MarketDataService : public Service {
       if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI || this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP ||
           this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
         std::string decompressed;
-        std::string payload = msg->get_payload();
+        const std::string& payload = msg->get_payload();
         try {
           ErrorCode ec = this->inflater.decompress(reinterpret_cast<const uint8_t*>(&payload[0]), payload.size(), decompressed);
           if (ec) {
@@ -1218,7 +1226,7 @@ class MarketDataService : public Service {
                                       const std::string& receivedOrderBookChecksumStr, bool& shouldProcessRemainingMessage) {
     if (this->sessionOptions.enableCheckOrderBookChecksum) {
       std::string calculatedOrderBookChecksumStr = this->calculateOrderBookChecksum(snapshotBid, snapshotAsk);
-      if (calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
+      if (!calculatedOrderBookChecksumStr.empty() && calculatedOrderBookChecksumStr != receivedOrderBookChecksumStr) {
         shouldProcessRemainingMessage = false;
         CCAPI_LOGGER_ERROR("calculatedOrderBookChecksumStr = " + calculatedOrderBookChecksumStr);
         CCAPI_LOGGER_ERROR("receivedOrderBookChecksumStr = " + receivedOrderBookChecksumStr);
@@ -1399,7 +1407,7 @@ class MarketDataService : public Service {
     return {};
   }
   virtual std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
-    return "";
+    return {};
   }
   virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;

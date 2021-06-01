@@ -101,8 +101,10 @@ class Logger {
     this->logMessagePrivate(LOG_SEVERITY_TRACE, threadId, time, fileName, lineNumber, message);
   }
   static Logger* logger;
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   virtual void logMessage(std::string severity, std::string threadId, std::string timeISO, std::string fileName, std::string lineNumber, std::string message) {}
   void logMessagePrivate(std::string severity, std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
                          std::string message) {

@@ -2,7 +2,6 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITMEX_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
-#include <regex>
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
 class MarketDataServiceBitmex : public MarketDataService {
@@ -15,10 +14,13 @@ class MarketDataServiceBitmex : public MarketDataService {
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->getRecentTradesTarget = "/api/v1/trade";
+    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceBitmex() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
@@ -63,7 +65,7 @@ class MarketDataServiceBitmex : public MarketDataService {
     std::vector<MarketDataMessage> marketDataMessageList;
     if (textMessage != "pong") {
       rj::Document document;
-      std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+      std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
       CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
       document.Parse(quotedTextMessage.c_str());
       if (document.IsObject() && document.HasMember("table")) {
@@ -208,7 +210,7 @@ class MarketDataServiceBitmex : public MarketDataService {
     }
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    std::string quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     MarketDataService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
   }

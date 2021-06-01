@@ -67,7 +67,7 @@ class Url CCAPI_FINAL {
   std::string protocol;
   std::string host;
   std::string port;
-  std::string target;  // should be percent-encoded
+  std::string target;  // should be url-encoded
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_URL_H_

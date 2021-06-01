@@ -37,8 +37,10 @@ class Element CCAPI_FINAL {
   }
   const std::map<std::string, std::string>& getNameValueMap() const { return nameValueMap; }
   const std::map<int, std::string>& getTagValueMap() const { return tagValueMap; }
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
+#endif
   bool isFix;
   std::map<std::string, std::string> nameValueMap;
   std::map<int, std::string> tagValueMap;

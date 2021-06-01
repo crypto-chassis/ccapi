@@ -11,9 +11,11 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceCoinbase>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
-    this->credential = {{CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
-                        {CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
-                        {CCAPI_COINBASE_API_PASSPHRASE, "0x1a5y8koaa9"}};
+    this->credential = {
+        {CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
+        {CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
+        {CCAPI_COINBASE_API_PASSPHRASE, "0x1a5y8koaa9"},
+    };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
@@ -50,7 +52,11 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY}, {CCAPI_EM_ORDER_QUANTITY, "1"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+      {CCAPI_EM_ORDER_QUANTITY, "1"},
+      {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
@@ -100,7 +106,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestCr
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
@@ -114,7 +122,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByOrderI
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByClientOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
@@ -137,7 +147,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestCa
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -148,7 +160,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByOrderId) 
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByClientOrderId) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_CLIENT_ORDER_ID, "d0c5340b-6d6c-49d9-b567-48c4bfca13d2"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -366,7 +380,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGe
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances) {
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_COINBASE, "", "foo", this->credential);
-  std::map<std::string, std::string> param{{CCAPI_EM_ACCOUNT_ID, "71452118-efc7-4cc4-8780-a5e22d4baa53"}};
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ACCOUNT_ID, "71452118-efc7-4cc4-8780-a5e22d4baa53"},
+  };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
@@ -395,15 +411,13 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGe
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "a1b2c3d4");
   EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USD");
   EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "1.00");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchTaker) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchTaker) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_PRIVATE_TRADE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
     "type": "match",
     "trade_id": 10,
@@ -421,8 +435,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchT
     "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
     "taker_fee_rate": "0.005"
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -435,13 +451,13 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchT
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "5.23512");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
   EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "132fb6ae-456b-4654-b4e0-d681ac05cea1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchMaker) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchMaker) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_PRIVATE_TRADE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
     "type": "match",
     "trade_id": 10,
@@ -459,8 +475,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchM
     "profile_id": "765d1549-9660-4be2-97d4-fa2d65fa3352",
     "maker_fee_rate": "0.005"
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -473,13 +491,13 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageMatchM
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "5.23512");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "ac928c66-ca53-498f-9c13-a110027a60e8");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceived) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventReceived) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
     "type": "received",
     "user_id": "5844eceecf7e803e259d0365",
@@ -493,8 +511,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceiv
     "side": "buy",
     "order_type": "limit"
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -510,10 +530,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceiv
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceivedMarketOrder) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventReceivedMarketOrder) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
       "type": "received",
       "user_id": "5844eceecf7e803e259d0365",
@@ -526,8 +545,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceiv
       "side": "buy",
       "order_type": "market"
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -541,10 +562,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageReceiv
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageOpen) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventOpen) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
       "type": "open",
       "user_id": "5844eceecf7e803e259d0365",
@@ -557,8 +577,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageOpen) 
       "remaining_size": "1.00",
       "side": "sell"
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -574,10 +596,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageOpen) 
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageDoneFilled) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventDoneFilled) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
       "type": "done",
       "user_id": "5844eceecf7e803e259d0365",
@@ -591,8 +612,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageDoneFi
       "side": "sell",
       "remaining_size": "0"
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -608,10 +631,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageDoneFi
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageChange) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventChange) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "BTC-USD", CCAPI_EM_ORDER_UPDATE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
       "type": "change",
       "user_id": "5844eceecf7e803e259d0365",
@@ -625,8 +647,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageChange
       "price": "400.23",
       "side": "sell"
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -642,10 +666,9 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageChange
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
 }
 
-TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageActivate) {
+TEST_F(ExecutionManagementServiceCoinbaseTest, createEventActivate) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_COINBASE, "test-product", CCAPI_EM_ORDER_UPDATE);
-  rj::Document document;
-  document.Parse(R"(
+  std::string textMessage = R"(
   {
     "type": "activate",
     "product_id": "test-product",
@@ -660,8 +683,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageActiva
     "funds": "50",
     "private": true
   }
-  )");
-  auto messageList = this->service->convertDocumentToMessage(subscription, document, this->now);
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);

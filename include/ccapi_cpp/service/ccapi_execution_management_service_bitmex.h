@@ -25,8 +25,10 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBitmex() {}
+#ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
+#endif
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = std::string(req.method_string());
@@ -192,19 +194,11 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     std::vector<Element> elementList;
     return elementList;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-#endif
   std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = std::regex_replace(textMessage, std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"), "$1\"$2\"");
+    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
     return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- protected:
-#endif
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
@@ -217,12 +211,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     }
     return element;
   }
-#ifdef GTEST_INCLUDE_GTEST_GTEST_H_
-
- public:
-  using ExecutionManagementService::convertRequest;
-  FRIEND_TEST(ExecutionManagementServiceBitmexTest, signRequest);
-#endif
 };
 } /* namespace ccapi */
 #endif
