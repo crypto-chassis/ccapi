@@ -176,8 +176,8 @@ class Message CCAPI_FINAL {
   std::string getTimeReceivedISO() const { return UtilTime::getISOTimestamp(timeReceived); }
   std::pair<long long, long long> getTimeReceivedPair() const { return UtilTime::divide(timeReceived); }
   void setTimeReceived(TimePoint timeReceived) { this->timeReceived = timeReceived; }
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   TimePoint time{std::chrono::seconds{0}};

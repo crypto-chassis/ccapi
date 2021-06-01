@@ -17,8 +17,8 @@ class MarketDataServiceBitstamp : public MarketDataService {
     this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}/";  // must have trailing slash
   }
   virtual ~MarketDataServiceBitstamp() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {

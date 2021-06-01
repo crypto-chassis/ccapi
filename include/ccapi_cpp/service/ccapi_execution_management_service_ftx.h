@@ -30,8 +30,8 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceFtx() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  protected:
 #endif
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {

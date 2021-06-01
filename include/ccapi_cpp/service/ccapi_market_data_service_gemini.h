@@ -16,8 +16,8 @@ class MarketDataServiceGemini : public MarketDataService {
     this->getRecentTradesTarget = "/v1/trades/:symbol";
   }
   virtual ~MarketDataServiceGemini() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }

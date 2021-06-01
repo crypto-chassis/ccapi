@@ -25,8 +25,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobi() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }

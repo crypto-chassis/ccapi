@@ -30,8 +30,8 @@ class FixServiceFtx : public Service {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceFtx() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  protected:
 #endif
   static std::string printableString(const char* s, size_t n) {

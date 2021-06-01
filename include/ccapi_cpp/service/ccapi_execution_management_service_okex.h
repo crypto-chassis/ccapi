@@ -24,8 +24,8 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceOkex() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }

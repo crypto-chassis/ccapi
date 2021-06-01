@@ -18,8 +18,8 @@ class MarketDataServiceKraken : public MarketDataService {
     this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceKraken() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {

@@ -12,8 +12,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     this->enableCheckPingPongWebsocketApplicationLevel = false;
   }
   virtual ~MarketDataServiceBinanceBase() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  protected:
 #endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {

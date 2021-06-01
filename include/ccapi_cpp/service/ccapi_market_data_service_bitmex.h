@@ -17,8 +17,8 @@ class MarketDataServiceBitmex : public MarketDataService {
     this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceBitmex() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }

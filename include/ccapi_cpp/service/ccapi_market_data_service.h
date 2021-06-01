@@ -67,8 +67,8 @@ class MarketDataService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  protected:
 #endif
   typedef wspp::lib::error_code ErrorCode;

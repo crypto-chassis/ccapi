@@ -10,9 +10,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                                         ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~ExecutionManagementServiceBinanceBase() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
- private:
+
+ protected:
 #endif
   void signRequest(std::string& queryString, const std::map<std::string, std::string>& param, const TimePoint& now,
                    const std::map<std::string, std::string>& credential) {

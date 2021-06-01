@@ -16,8 +16,8 @@ class MarketDataServiceKucoin : public MarketDataService {
     this->getRecentTradesTarget = "/api/v1/market/histories";
   }
   virtual ~MarketDataServiceKucoin() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {

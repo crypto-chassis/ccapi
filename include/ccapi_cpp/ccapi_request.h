@@ -114,8 +114,8 @@ class Request CCAPI_FINAL {
       return this->paramList.front();
     }
   }
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   std::string exchange;

@@ -49,8 +49,8 @@ class ExecutionManagementService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  protected:
 #endif
   void setupCredential(std::vector<std::string> nameList) {

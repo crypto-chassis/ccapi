@@ -24,8 +24,8 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceGemini() {}
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  protected:
 #endif
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,

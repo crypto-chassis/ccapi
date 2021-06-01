@@ -234,8 +234,8 @@ class Service : public std::enable_shared_from_this<Service> {
     event.setMessageList({message});
     this->eventHandler(event);
   }
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  protected:
 #endif
   typedef ServiceContext::SslContextPtr SslContextPtr;

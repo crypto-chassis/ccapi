@@ -100,8 +100,8 @@ class Subscription CCAPI_FINAL {
     }
     return output;
   }
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   std::string exchange;

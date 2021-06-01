@@ -44,8 +44,8 @@ class Queue {
     std::lock_guard<std::mutex> lock(this->m);
     return this->queue.empty();
   }
-
 #ifndef CCAPI_EXPOSE_INTERNAL
+
  private:
 #endif
   std::vector<T> queue;
