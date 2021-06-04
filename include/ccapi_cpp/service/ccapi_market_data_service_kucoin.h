@@ -20,6 +20,55 @@ class MarketDataServiceKucoin : public MarketDataService {
 
  private:
 #endif
+  void prepareConnect(WsConnection& wsConnection) override {
+    auto hostPort = this->extractHostFromUrl(CCAPI_KUCOIN_URL_REST_BASE);
+    std::string host = hostPort.first;
+    std::string port = hostPort.second;
+    http::request<http::string_body> req;
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.set(beast::http::field::content_type, "application/json");
+    req.method(http::verb::post);
+    req.target("/api/v1/bullet-public");
+    this->sendRequest(
+        req,
+        [wsConnection, that = shared_from_base<MarketDataServiceKucoin>()](const beast::error_code& ec) {
+          WsConnection thisWsConnection = wsConnection;
+          that->onFail_(thisWsConnection);
+        },
+        [wsConnection, that = shared_from_base<MarketDataServiceKucoin>()](const http::response<http::string_body>& res) {
+          WsConnection thisWsConnection = wsConnection;
+          int statusCode = res.result_int();
+          std::string body = res.body();
+          if (statusCode / 100 == 2) {
+            std::string urlWebsocketBase;
+            try {
+              rj::Document document;
+              document.Parse(body.c_str());
+              const rj::Value& instanceServer = document["data"]["instanceServers"][0];
+              urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
+              urlWebsocketBase += "?token=";
+              urlWebsocketBase += std::string(document["data"]["token"].GetString());
+              thisWsConnection.url = urlWebsocketBase;
+              that->connect(thisWsConnection);
+              for (const auto& subscription : thisWsConnection.subscriptionList) {
+                auto instrument = subscription.getInstrument();
+                that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.group][instrument] = Subscription::Status::SUBSCRIBING;
+              }
+              that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
+                  {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
+                  {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
+              });
+              CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
+              return;
+            } catch (const std::runtime_error& e) {
+              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+            }
+          }
+          that->onFail_(thisWsConnection);
+        },
+        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+  }
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
@@ -59,8 +108,9 @@ class MarketDataServiceKucoin : public MarketDataService {
       rj::Document document;
       document.SetObject();
       rj::Document::AllocatorType& allocator = document.GetAllocator();
-      std::string requestId = std::to_string(this->nextRequestIdByConnectionIdMap[wsConnection.id]);
-      this->nextRequestIdByConnectionIdMap[wsConnection.id] += 1;
+      static int nextRequestId = 1;
+      std::string requestId = std::to_string(nextRequestId);
+      nextRequestId += 1;
       document.AddMember("id", rj::Value(requestId.c_str(), allocator).Move(), allocator);
       document.AddMember("type", rj::Value("subscribe").Move(), allocator);
       document.AddMember("privateChannel", false, allocator);
@@ -73,13 +123,6 @@ class MarketDataServiceKucoin : public MarketDataService {
       sendStringList.push_back(sendString);
     }
     return sendStringList;
-  }
-  void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->nextRequestIdByConnectionIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
@@ -213,7 +256,6 @@ class MarketDataServiceKucoin : public MarketDataService {
     }
     return marketDataMessageList;
   }
-  std::map<std::string, int> nextRequestIdByConnectionIdMap;
 };
 } /* namespace ccapi */
 #endif

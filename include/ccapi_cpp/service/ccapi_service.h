@@ -93,6 +93,11 @@ class Service : public std::enable_shared_from_this<Service> {
     this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongWebsocketApplicationLevelTimeoutMilliSeconds;
     this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixIntervalMilliSeconds;
     this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixTimeoutMilliSeconds;
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
   }
   virtual ~Service() {
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
@@ -267,6 +272,25 @@ class Service : public std::enable_shared_from_this<Service> {
   std::shared_ptr<Derived> shared_from_base() {
     return std::static_pointer_cast<Derived>(shared_from_this());
   }
+  void sendRequest(const http::request<http::string_body>& req, std::function<void(const beast::error_code&)> errorHandler,
+                   std::function<void(const http::response<http::string_body>&)> responseHandler, long timeoutMilliSeconds) {
+#if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
+    std::ostringstream oss;
+    oss << req;
+    CCAPI_LOGGER_DEBUG("req = \n" + oss.str());
+#endif
+    std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(nullptr);
+    try {
+      streamPtr = this->createStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostRest);
+    } catch (const beast::error_code& ec) {
+      CCAPI_LOGGER_TRACE("fail");
+      errorHandler(ec);
+      return;
+    }
+    std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->hostRest, this->portRest, streamPtr));
+    CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
+    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds, this->tcpResolverResultsRest);
+  }
   void sendRequest(const std::string& host, const std::string& port, const http::request<http::string_body>& req,
                    std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
                    long timeoutMilliSeconds) {
@@ -285,7 +309,8 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(host, port, streamPtr));
     CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
-    this->resolver.async_resolve(
+    tcp::resolver newResolver(*this->serviceContextPtr->ioContextPtr);
+    newResolver.async_resolve(
         host, port,
         beast::bind_front_handler(&Service::onResolve, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds));
   }
@@ -297,6 +322,11 @@ class Service : public std::enable_shared_from_this<Service> {
       errorHandler(ec);
       return;
     }
+    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds, tcpResolverResultsRest);
+  }
+  void startConnect(std::shared_ptr<HttpConnection> httpConnectionPtr, http::request<http::string_body> req,
+                    std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
+                    long timeoutMilliSeconds, tcp::resolver::results_type tcpResolverResults) {
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     if (timeoutMilliSeconds > 0) {
       beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliSeconds));
@@ -305,7 +335,6 @@ class Service : public std::enable_shared_from_this<Service> {
     beast::get_lowest_layer(stream).async_connect(
         tcpResolverResults, beast::bind_front_handler(&Service::onConnect, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler));
     CCAPI_LOGGER_TRACE("after async_connect");
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onConnect(std::shared_ptr<HttpConnection> httpConnectionPtr, http::request<http::string_body> req,
                  std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
@@ -469,19 +498,13 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
-    try {
-      std::call_once(this->tcpResolverResultsFlag,
-                     [that = shared_from_this()]() { that->tcpResolverResults = that->resolver.resolve(that->hostRest, that->portRest); });
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliSeconds = " + toString(this->sessionOptions.httpRequestTimeoutMilliSeconds));
     if (this->sessionOptions.httpRequestTimeoutMilliSeconds > 0) {
       beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
     }
     CCAPI_LOGGER_TRACE("before async_connect");
-    beast::get_lowest_layer(stream).async_connect(this->tcpResolverResults,
+    beast::get_lowest_layer(stream).async_connect(this->tcpResolverResultsRest,
                                                   beast::bind_front_handler(&Service::onConnect_2, shared_from_this(), httpConnectionPtr, request, req, retry));
     CCAPI_LOGGER_TRACE("after async_connect");
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -788,66 +811,13 @@ class Service : public std::enable_shared_from_this<Service> {
       }
     }
   }
-  void prepareConnect(WsConnection& wsConnection) {
-    if (this->exchangeName == CCAPI_EXCHANGE_NAME_KUCOIN) {
-      auto hostPort = this->extractHostFromUrl(CCAPI_KUCOIN_URL_REST_BASE);
-      std::string host = hostPort.first;
-      std::string port = hostPort.second;
-      http::request<http::string_body> req;
-      req.set(http::field::host, host + ":" + port);
-      req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-      req.set(beast::http::field::content_type, "application/json");
-      req.method(http::verb::post);
-      req.target("/api/v1/bullet-public");
-      this->sendRequest(
-          host, port, req,
-          [wsConnection, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
-            WsConnection thisWsConnection = wsConnection;
-            that->onFail_(thisWsConnection);
-          },
-          [wsConnection, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
-            WsConnection thisWsConnection = wsConnection;
-            int statusCode = res.result_int();
-            std::string body = res.body();
-            if (statusCode / 100 == 2) {
-              std::string urlWebsocketBase;
-              try {
-                rj::Document document;
-                document.Parse(body.c_str());
-                const rj::Value& instanceServer = document["data"]["instanceServers"][0];
-                urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
-                urlWebsocketBase += "?token=";
-                urlWebsocketBase += std::string(document["data"]["token"].GetString());
-                thisWsConnection.url = urlWebsocketBase;
-                that->connect(thisWsConnection);
-                for (const auto& subscription : thisWsConnection.subscriptionList) {
-                  auto instrument = subscription.getInstrument();
-                  that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.group][instrument] = Subscription::Status::SUBSCRIBING;
-                }
-                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                    {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
-                    {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
-                });
-                CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
-                return;
-              } catch (const std::runtime_error& e) {
-                CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-              }
-            }
-            that->onFail_(thisWsConnection);
-          },
-          this->sessionOptions.httpRequestTimeoutMilliSeconds);
-    } else {
-      this->connect(wsConnection);
-    }
-  }
-  void connect(WsConnection& wsConnection) {
+  virtual void prepareConnect(WsConnection& wsConnection) { this->connect(wsConnection); }
+  virtual void connect(WsConnection& wsConnection) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     wsConnection.status = WsConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on dummy id " + wsConnection.id);
     std::string url = wsConnection.url;
-    this->serviceContextPtr->tlsClientPtr->set_tls_init_handler(
-        std::bind(&MarketDataService::onTlsInit, shared_from_base<MarketDataService>(), std::placeholders::_1));
+    this->serviceContextPtr->tlsClientPtr->set_tls_init_handler(std::bind(&Service::onTlsInit, shared_from_this(), std::placeholders::_1));
     CCAPI_LOGGER_DEBUG("endpoint tls init handler set");
     ErrorCode ec;
     TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_connection(url, ec);
@@ -858,18 +828,14 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     this->wsConnectionByIdMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
     CCAPI_LOGGER_DEBUG("this->wsConnectionByIdMap = " + toString(this->wsConnectionByIdMap));
-    if (this->serviceName == CCAPI_MARKET_DATA)
-    {this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.group));
-    CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = " + toString(this->instrumentGroupByWsConnectionIdMap));
-  }
-  con->set_open_handler(std::bind(&MarketDataService::onOpen, shared_from_base<MarketDataService>(), std::placeholders::_1));
-    con->set_fail_handler(std::bind(&MarketDataService::onFail, shared_from_base<MarketDataService>(), std::placeholders::_1));
-    con->set_close_handler(std::bind(&MarketDataService::onClose, shared_from_base<MarketDataService>(), std::placeholders::_1));
-    con->set_message_handler(std::bind(&MarketDataService::onMessage, shared_from_base<MarketDataService>(), std::placeholders::_1, std::placeholders::_2));
+    con->set_open_handler(std::bind(&Service::onOpen, shared_from_this(), std::placeholders::_1));
+    con->set_fail_handler(std::bind(&Service::onFail, shared_from_this(), std::placeholders::_1));
+    con->set_close_handler(std::bind(&Service::onClose, shared_from_this(), std::placeholders::_1));
+    con->set_message_handler(std::bind(&Service::onMessage, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
     if (this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel) {
-      con->set_pong_handler(std::bind(&MarketDataService::onPong, shared_from_base<MarketDataService>(), std::placeholders::_1, std::placeholders::_2));
+      con->set_pong_handler(std::bind(&Service::onPong, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
     }
-    con->set_ping_handler(std::bind(&MarketDataService::onPing, shared_from_base<MarketDataService>(), std::placeholders::_1, std::placeholders::_2));
+    con->set_ping_handler(std::bind(&Service::onPing, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
     this->serviceContextPtr->tlsClientPtr->connect(con);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -900,39 +866,26 @@ class Service : public std::enable_shared_from_this<Service> {
     this->eventHandler(event);
     if (this->enableCheckPingPongWebsocketProtocolLevel) {
       this->setPingPongTimer(PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL, wsConnection, hdl,
-                             [that = shared_from_base<MarketDataService>()](wspp::connection_hdl hdl, ErrorCode& ec) { that->ping(hdl, "", ec); });
+                             [that = shared_from_this()](wspp::connection_hdl hdl, ErrorCode& ec) { that->ping(hdl, "", ec); });
     }
     if (this->enableCheckPingPongWebsocketApplicationLevel) {
-      this->setPingPongTimer(
-          PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnection, hdl,
-          [that = shared_from_base<MarketDataService>()](wspp::connection_hdl hdl, ErrorCode& ec) { that->pingOnApplicationLevel(hdl, ec); });
+      this->setPingPongTimer(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnection, hdl,
+                             [that = shared_from_this()](wspp::connection_hdl hdl, ErrorCode& ec) { that->pingOnApplicationLevel(hdl, ec); });
     }
-    if (this->serviceName==CCAPI_MARKET_DATA)
-    {auto instrumentGroup = wsConnection.group;
-    for (const auto& subscription : wsConnection.subscriptionList) {
-      auto instrument = subscription.getInstrument();
-      this->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
-      this->prepareSubscription(wsConnection, subscription);
-    }
-    CCAPI_LOGGER_INFO("about to subscribe to exchange");
-    this->subscribeToExchange(wsConnection);}
   }
-  void onFail_(WsConnection& wsConnection) {
+  virtual void onFail_(WsConnection& wsConnection) {
     wsConnection.status = WsConnection::Status::FAILED;
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionByIdMap.erase(thisWsConnection.id);
-    if (this->serviceName == CCAPI_MARKET_DATA){
-    this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
-  }
     auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
     long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
     CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(thisWsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(thisWsConnection.id)->cancel();
     }
-    this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
-        seconds * 1000, [thisWsConnection, that = shared_from_base<MarketDataService>(), urlBase](ErrorCode const& ec) {
+    this->connectRetryOnFailTimerByConnectionIdMap[thisWsConnection.id] =
+        this->serviceContextPtr->tlsClientPtr->set_timer(seconds * 1000, [thisWsConnection, that = shared_from_this(), urlBase](ErrorCode const& ec) {
           if (that->wsConnectionByIdMap.find(thisWsConnection.id) == that->wsConnectionByIdMap.end()) {
             if (ec) {
               CCAPI_LOGGER_ERROR("wsConnection = " + toString(thisWsConnection) + ", connect retry on fail timer error: " + ec.message());
@@ -954,7 +907,7 @@ class Service : public std::enable_shared_from_this<Service> {
     this->onFail_(wsConnection);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void clearStates(WsConnection& wsConnection) {
+  virtual void clearStates(WsConnection& wsConnection) {
     CCAPI_LOGGER_INFO("clear states for wsConnection " + toString(wsConnection));
     this->shouldProcessRemainingMessageOnClosingByConnectionIdMap.erase(wsConnection.id);
     this->lastPongTpByMethodByConnectionIdMap.erase(wsConnection.id);
@@ -976,35 +929,6 @@ class Service : public std::enable_shared_from_this<Service> {
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(wsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
-    }
-    if (this->serviceName==CCAPI_MARKET_DATA){
-      this->fieldByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->optionMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->subscriptionListByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
-      this->snapshotBidByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->snapshotAskByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->processedInitialTradeByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      if (this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.end()) {
-        for (const auto& x : this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
-          for (const auto& y : x.second) {
-            y.second->cancel();
-          }
-        }
-        this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      }
-      this->openByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->highByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->lowByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->closeByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-      this->orderBookChecksumByConnectionIdSymbolIdMap.erase(wsConnection.id);
     }
   }
   virtual void onClose(wspp::connection_hdl hdl) {
@@ -1040,9 +964,6 @@ class Service : public std::enable_shared_from_this<Service> {
     this->clearStates(wsConnection);
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionByIdMap.erase(wsConnection.id);
-    if (this->serviceName==CCAPI_MARKET_DATA){
-      this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
-    }
     if (this->shouldContinue.load()) {
       thisWsConnection.assignDummyId();
       this->prepareConnect(thisWsConnection);
@@ -1138,7 +1059,7 @@ class Service : public std::enable_shared_from_this<Service> {
       }
       this->pingTimerByMethodByConnectionIdMap[wsConnection.id][method] = this->serviceContextPtr->tlsClientPtr->set_timer(
           pingIntervalMilliSeconds - pongTimeoutMilliSeconds,
-          [wsConnection, that = shared_from_base<MarketDataService>(), hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+          [wsConnection, that = shared_from_this(), hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
             if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
               if (ec) {
                 CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", ping timer error: " + ec.message());
@@ -1195,6 +1116,7 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {}
   std::string exchangeName;
   std::string baseUrl;
   std::string baseUrlRest;
@@ -1205,8 +1127,7 @@ class Service : public std::enable_shared_from_this<Service> {
   tcp::resolver resolver;
   std::string hostRest;
   std::string portRest;
-  tcp::resolver::results_type tcpResolverResults;
-  std::once_flag tcpResolverResultsFlag;
+  tcp::resolver::results_type tcpResolverResultsRest;
   Queue<std::shared_ptr<HttpConnection>> httpConnectionPool;
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
@@ -1226,7 +1147,6 @@ class Service : public std::enable_shared_from_this<Service> {
   std::map<Request::Operation, Message::Type> requestOperationToMessageTypeMap;
   std::regex convertNumberToStringInJsonRegex{"(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"};
   std::string convertNumberToStringInJsonRewrite{"$1\"$2\""};
-  std::string serviceName;
   bool needDecompressWebsocketMessage{};
 };
 } /* namespace ccapi */

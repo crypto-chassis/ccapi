@@ -16,7 +16,6 @@ class MarketDataService : public Service {
                     std::shared_ptr<ServiceContext> serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    this->serviceName=CCAPI_MARKET_DATA;
     this->requestOperationToMessageTypeMap = {
         {Request::Operation::GET_RECENT_TRADES, Message::Type::GET_RECENT_TRADES},
     };
@@ -167,7 +166,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_TRACE("this->correlationIdListByConnectionIdChannelSymbolIdMap = " + toString(this->correlationIdListByConnectionIdChannelIdSymbolIdMap));
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
+  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     std::vector<MarketDataMessage> marketDataMessageList = this->processTextMessage(wsConnection, hdl, textMessage, timeReceived);
@@ -1000,6 +999,67 @@ class MarketDataService : public Service {
     message.setCorrelationIdList(correlationIdList);
     messageList.push_back(std::move(message));
     event.addMessages(messageList);
+  }
+  void connect(WsConnection& wsConnection) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    Service::connect(wsConnection);
+    this->instrumentGroupByWsConnectionIdMap.insert(std::pair<std::string, std::string>(wsConnection.id, wsConnection.group));
+    CCAPI_LOGGER_DEBUG("this->instrumentGroupByWsConnectionIdMap = " + toString(this->instrumentGroupByWsConnectionIdMap));
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void onOpen(wspp::connection_hdl hdl) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    Service::onOpen(hdl);
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    auto instrumentGroup = wsConnection.group;
+    for (const auto& subscription : wsConnection.subscriptionList) {
+      auto instrument = subscription.getInstrument();
+      this->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
+      this->prepareSubscription(wsConnection, subscription);
+    }
+    CCAPI_LOGGER_INFO("about to subscribe to exchange");
+    this->subscribeToExchange(wsConnection);
+  }
+  void onFail_(WsConnection& wsConnection) override {
+    WsConnection thisWsConnection = wsConnection;
+    Service::onFail_(wsConnection);
+    this->instrumentGroupByWsConnectionIdMap.erase(thisWsConnection.id);
+  }
+  void clearStates(WsConnection& wsConnection) override {
+    Service::clearStates(wsConnection);
+    this->fieldByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->optionMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->subscriptionListByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
+    this->snapshotBidByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->snapshotAskByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->previousConflateSnapshotBidByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->previousConflateSnapshotAskByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->processedInitialTradeByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    if (this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.end()) {
+      for (const auto& x : this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+        for (const auto& y : x.second) {
+          y.second->cancel();
+        }
+      }
+      this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    }
+    this->openByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->highByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->lowByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->closeByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    this->orderBookChecksumByConnectionIdSymbolIdMap.erase(wsConnection.id);
+  }
+  void onClose(wspp::connection_hdl hdl) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
+    Service::onClose(hdl);
   }
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                                const TimePoint& timeReceived) {

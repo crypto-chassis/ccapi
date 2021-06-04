@@ -23,7 +23,6 @@ class ExecutionManagementService : public Service {
   ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->serviceName=CCAPI_EXECUTION_MANAGEMENT;
     this->requestOperationToMessageTypeMap = {
         {Request::Operation::CREATE_ORDER, Message::Type::CREATE_ORDER},
         {Request::Operation::CANCEL_ORDER, Message::Type::CANCEL_ORDER},
@@ -90,9 +89,7 @@ class ExecutionManagementService : public Service {
                                 ? it->value.GetString()
                                 : y.second.second == JsonDataType::INTEGER
                                       ? std::to_string(it->value.GetInt64())
-                                      : y.second.second == JsonDataType::BOOLEAN
-                                            ? std::to_string(static_cast<int>(it->value.GetBool()))
-                                            : y.second.second == JsonDataType::DOUBLE ? std::to_string(it->value.GetDouble()) : "null";
+                                      : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) : "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
         } else if (y.first == CCAPI_EM_ORDER_SIDE) {
@@ -116,7 +113,7 @@ class ExecutionManagementService : public Service {
       }
     }
   }
-  virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {
+  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
@@ -125,6 +122,18 @@ class ExecutionManagementService : public Service {
     if (!event.getMessageList().empty()) {
       this->eventHandler(event);
     }
+  }
+  void onOpen(wspp::connection_hdl hdl) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    Service::onOpen(hdl);
+    auto now = UtilTime::now();
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    CCAPI_LOGGER_INFO("about to logon to exchange");
+    auto credential = wsConnection.subscriptionList.at(0).getCredential();
+    if (credential.empty()) {
+      credential = this->credentialDefault;
+    }
+    this->logonToExchange(wsConnection, now, credential);
   }
   virtual Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     return {};

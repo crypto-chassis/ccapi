@@ -271,7 +271,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       auto fieldSet = subscription.getFieldSet();
       auto instrumentSet = subscription.getInstrumentSet();
-      auto type = std::string(document["type"].GetString());
       if (document.FindMember("user_id") != document.MemberEnd()) {
         auto instrument = this->convertWebsocketSymbolIdToInstrument(document["product_id"].GetString());
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
@@ -282,7 +281,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             auto it = document.FindMember("timestamp");
             message.setTime(UtilTime::makeTimePoint(UtilTime::divide(std::string(it->value.GetString()))));
           }
-          if (type == "match" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+          if (type == "match" && (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end())) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             std::vector<Element> elementList;
             Element element;

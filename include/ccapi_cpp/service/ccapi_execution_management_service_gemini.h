@@ -190,7 +190,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     {
       auto it = x.FindMember("is_live");
       if (it != x.MemberEnd()) {
-        element.insert(CCAPI_EM_ORDER_STATUS, it->value.GetBool() ? "is_live" : "is_not_live");
+        element.insert("is_live", it->value.GetBool() ? "true" : "false");
       }
     }
     return element;
