@@ -25,18 +25,19 @@ class UtilString CCAPI_FINAL {
   static bool isNumber(const std::string& s) {
     return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
   }
-  static std::string generateRandomString(const size_t length) {
-    auto randchar = []() -> char {
-      const char charset[] =
-          "0123456789"
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-          "abcdefghijklmnopqrstuvwxyz";
-      const size_t max_index = (sizeof(charset) - 1);
-      return charset[rand() % max_index];
-    };
-    std::string str(length, 0);
-    std::generate_n(str.begin(), length, randchar);
-    return str;
+  // https://stackoverflow.com/questions/440133/how-do-i-create-a-random-alpha-numeric-string-in-c
+  static std::string generateRandomString(const size_t len) {
+    std::string tmp_s;
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    std::srand( (unsigned) std::time(NULL) * getpid());
+    tmp_s.reserve(len);
+    for (int i = 0; i < len; ++i) {
+      tmp_s += alphanum[std::rand() % (sizeof(alphanum) - 1)];
+    }
+    return tmp_s;
   }
   static std::vector<std::string> split(const std::string& original, const std::string& delimiter) {
     std::string s = original;

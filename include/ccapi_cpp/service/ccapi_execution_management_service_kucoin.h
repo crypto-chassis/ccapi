@@ -342,13 +342,13 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             std::vector<Element> elementList;
             Element element;
-            element.insert(CCAPI_TRADE_ID, std::to_string(data["tradeId"].GetInt64()));
+            element.insert(CCAPI_TRADE_ID, data["tradeId"].GetString());
             element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["matchPrice"].GetString());
             element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["matchSize"].GetString());
             element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
             element.insert(CCAPI_IS_MAKER, std::string(data["liquidity"].GetString()) == "taker" ? "0" : "1");
-            element.insert(CCAPI_EM_ORDER_ID, document["orderId"].GetString());
-            element.insert(CCAPI_EM_ORDER_INSTRUMENT, document["symbol"].GetString());
+            element.insert(CCAPI_EM_ORDER_ID, data["orderId"].GetString());
+            element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
             messageList.push_back(std::move(message));
@@ -364,7 +364,7 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
                 {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
             };
             extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)});
-            auto info = this->extractOrderInfo(document, extractionFieldNameMap);
+            auto info = this->extractOrderInfo(data, extractionFieldNameMap);
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);

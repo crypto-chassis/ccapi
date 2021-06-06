@@ -357,7 +357,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
           element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
           element.insert(CCAPI_IS_MAKER, std::string(data["liquidity"].GetString()) == "maker" ? "1" : "0");
           element.insert(CCAPI_EM_ORDER_ID, std::string(data["orderId"].GetString()));
-          element.insert(CCAPI_EM_ORDER_INSTRUMENT, std::string(data["market"].GetString()));
+          element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
           element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(data["fee"].GetString()));
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
@@ -404,24 +404,6 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     }
     event.setMessageList(messageList);
     return event;
-  }
-  std::vector<Element> extractExecutionInfoFromDocument(const rj::Document& document) {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-        {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
-        {CCAPI_TRADE_ID, std::make_pair("tradeId", JsonDataType::INTEGER)},
-        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::DOUBLE)},
-        {CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::make_pair("price", JsonDataType::DOUBLE)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filledSize", JsonDataType::DOUBLE)},
-        {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("remainingSize", JsonDataType::DOUBLE)},
-        {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_FEE_QUANTITY, std::make_pair("fee", JsonDataType::DOUBLE)}};
-    std::vector<Element> elementList;
-    if (document.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(document["data"], extractionFieldNameMap));
-    }
-    return elementList;
   }
   void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);

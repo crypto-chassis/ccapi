@@ -303,7 +303,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
               element.insert(CCAPI_IS_MAKER, "1");
               element.insert(CCAPI_EM_ORDER_ID, document["maker_order_id"].GetString());
             }
-            element.insert(CCAPI_EM_ORDER_INSTRUMENT, document["product_id"].GetString());
+            element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
             messageList.push_back(std::move(message));
