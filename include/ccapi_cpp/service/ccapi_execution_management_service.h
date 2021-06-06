@@ -74,10 +74,23 @@ class ExecutionManagementService : public Service {
     return messageList;
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
     Event event;
-    event.setType(Event::Type::RESPONSE);
-    event.addMessages(messageList);
+    if (this->doesHttpBodyContainError(request,textMessage)) {
+      event.setType(Event::Type::REQUEST_STATUS);
+      Message message;
+      message.setType(Message::Type::RESPONSE_ERROR);
+      message.setTimeReceived(timeReceived);
+      message.setCorrelationIdList({request.getCorrelationId()});
+      Element element;
+      element.insert(CCAPI_HTTP_STATUS_CODE, "200");
+      element.insert(CCAPI_ERROR_MESSAGE, UtilString::trim(textMessage));
+      message.setElementList({element});
+      event.setMessageList({message});
+    } else {
+      event.setType(Event::Type::RESPONSE);
+      const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
+      event.addMessages(messageList);
+    }
     this->eventHandler(event);
   }
   virtual Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {

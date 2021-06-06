@@ -14,6 +14,11 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_KUCOIN_API_KEY;
     this->apiSecretName = CCAPI_KUCOIN_API_SECRET;
     this->apiPassphraseName = CCAPI_KUCOIN_API_PASSPHRASE;
@@ -33,6 +38,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
 
  protected:
 #endif
+bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\"")); }
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     auto hostPort = this->extractHostFromUrl(CCAPI_KUCOIN_URL_REST_BASE);
@@ -120,11 +126,16 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("KC-API-KEY", apiKey);
     req.set("KC-API-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
-    auto apiKeyVersion = mapGetWithDefault(credential, this->apiKeyVersionName, {});
+    auto apiKeyVersion = mapGetWithDefault(credential, this->apiKeyVersionName);
     req.set("KC-API-KEY-VERSION", apiKeyVersion);
-    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     if (apiKeyVersion == "2") {
+      CCAPI_LOGGER_TRACE("credential = "+toString(credential));
+      CCAPI_LOGGER_TRACE("apiSecret = "+apiSecret);
+      CCAPI_LOGGER_TRACE("apiPassphrase = "+apiPassphrase);
+      CCAPI_LOGGER_TRACE(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase, true));
+      CCAPI_LOGGER_TRACE(UtilString::toLower(UtilAlgorithm::stringToHex(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase))));
       req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
     } else {
       req.set("KC-API-PASSPHRASE", apiPassphrase);
@@ -207,7 +218,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         auto target = this->getAccountBalancesTarget;
         auto accountId = param.find(CCAPI_EM_ACCOUNT_ID) != param.end() ? param.at(CCAPI_EM_ACCOUNT_ID) : "";
         this->substituteParam(target, {
-                                          {"<account-id>", accountId},
+                                          {"<accountId>", accountId},
                                       });
         req.target(target);
         this->signRequest(req, "", credential);
@@ -225,22 +236,23 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     std::vector<Element> elementList;
+    const rj::Value& data = document["data"];
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
-      for (const auto& x : document["cancelledOrderIds"].GetArray()) {
+      for (const auto& x : data["cancelledOrderIds"].GetArray()) {
         Element element;
         element.insert(CCAPI_EM_ORDER_ID, x.GetString());
         elementList.emplace_back(std::move(element));
       }
     } else if (operation == Request::Operation::CREATE_ORDER) {
       Element element;
-      element.insert(CCAPI_EM_ORDER_ID, document["orderId"].GetString());
+      element.insert(CCAPI_EM_ORDER_ID, data["orderId"].GetString());
       elementList.emplace_back(std::move(element));
     } else {
       if (document.IsObject()) {
-        auto element = this->extractOrderInfo(document, extractionFieldNameMap);
+        auto element = this->extractOrderInfo(data, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       } else {
-        for (const auto& x : document["items"].GetArray()) {
+        for (const auto& x : data["items"].GetArray()) {
           auto element = this->extractOrderInfo(x, extractionFieldNameMap);
           elementList.emplace_back(std::move(element));
         }
@@ -260,9 +272,10 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
+    const auto& data = document["data"];
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
-        for (const auto& x : document.GetArray()) {
+        for (const auto& x : data.GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
           elementList.emplace_back(std::move(element));
@@ -270,8 +283,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         Element element;
-        element.insert(CCAPI_EM_ASSET, document["currency"].GetString());
-        element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, document["available"].GetString());
+        element.insert(CCAPI_EM_ASSET, data["currency"].GetString());
+        element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, data["available"].GetString());
         elementList.emplace_back(std::move(element));
       } break;
       default:

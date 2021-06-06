@@ -16,15 +16,15 @@ class FixServiceCoinbase : public Service {
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrlFix = this->sessionConfigs.getUrlFixBase().at(this->exchangeName);
     this->setHostFixFromUrlFix(this->baseUrlFix);
+    try {
+      this->tcpResolverResultsFix = this->resolver.resolve(this->hostFix, this->portFix);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
     this->apiSecretName = CCAPI_COINBASE_API_SECRET;
     this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
-    try {
-      this->tcpResolverResults = this->resolver.resolve(this->hostFix, this->portFix);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_COINBASE;
     this->targetCompID = "Coinbase";
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -124,7 +124,7 @@ class FixServiceCoinbase : public Service {
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::ssl_stream<beast::tcp_stream>& stream = *streamPtr;
     beast::get_lowest_layer(stream).async_connect(
-        this->tcpResolverResults, beast::bind_front_handler(&FixServiceCoinbase::onConnect_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
+        this->tcpResolverResultsFix, beast::bind_front_handler(&FixServiceCoinbase::onConnect_3, shared_from_base<FixServiceCoinbase>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
   void onConnect_3(std::shared_ptr<FixConnection> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {

@@ -93,11 +93,6 @@ class Service : public std::enable_shared_from_this<Service> {
     this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongWebsocketApplicationLevelTimeoutMilliSeconds;
     this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixIntervalMilliSeconds;
     this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixTimeoutMilliSeconds;
-    try {
-      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
   }
   virtual ~Service() {
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
@@ -606,11 +601,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string body = resPtr->body();
     try {
       if (statusCode / 100 == 2) {
-        if (this->doesHttpBodyContainError(request, body)) {
-          this->onResponseError(request, 400, body);
-        } else {
           this->processSuccessfulTextMessage(request, body, now);
-        }
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base().at("Location").to_string());
@@ -1128,6 +1119,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::string hostRest;
   std::string portRest;
   tcp::resolver::results_type tcpResolverResultsRest;
+  tcp::resolver::results_type tcpResolverResultsFix;
   Queue<std::shared_ptr<HttpConnection>> httpConnectionPool;
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;

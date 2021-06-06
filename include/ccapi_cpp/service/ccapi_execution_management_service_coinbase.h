@@ -14,6 +14,11 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
     this->apiSecretName = CCAPI_COINBASE_API_SECRET;
     this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;
@@ -63,7 +68,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("CB-ACCESS-KEY", apiKey);
     req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
-    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {

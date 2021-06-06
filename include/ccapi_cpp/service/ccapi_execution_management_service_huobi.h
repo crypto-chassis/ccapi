@@ -13,6 +13,11 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_HUOBI_API_KEY;
     this->apiSecretName = CCAPI_HUOBI_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});

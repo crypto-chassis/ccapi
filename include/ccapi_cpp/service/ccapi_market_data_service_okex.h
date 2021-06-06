@@ -17,6 +17,11 @@ class MarketDataServiceOkex : public MarketDataService {
     }
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->getRecentTradesTarget = "/api/v5/market/trades";
     this->needDecompressWebsocketMessage = true;
   }

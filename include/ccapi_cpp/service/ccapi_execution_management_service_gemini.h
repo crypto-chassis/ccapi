@@ -13,6 +13,11 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_GEMINI_API_KEY;
     this->apiSecretName = CCAPI_GEMINI_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -43,7 +48,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     auto base64Payload = UtilAlgorithm::base64Encode(body);
     req.set("X-GEMINI-PAYLOAD", base64Payload);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto signature = UtilString::toLower(Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true));
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true);
     req.set("X-GEMINI-SIGNATURE", signature);
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
