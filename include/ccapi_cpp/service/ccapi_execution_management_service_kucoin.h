@@ -119,7 +119,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
       }
       if (key == "cancelAfter") {
-        document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(std::stoll(value)), allocator);
+        document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(static_cast<int64_t>(std::stoll(value))), allocator);
       } else if (value == "true" || value == "false") {
         document.AddMember(rj::Value(key.c_str(), allocator).Move(), value == "true", allocator);
       } else {
