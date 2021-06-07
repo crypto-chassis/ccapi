@@ -14,6 +14,11 @@ class MarketDataServiceBitstamp : public MarketDataService {
     this->enableCheckPingPongWebsocketApplicationLevel = false;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}/";  // must have trailing slash
   }
   virtual ~MarketDataServiceBitstamp() {}

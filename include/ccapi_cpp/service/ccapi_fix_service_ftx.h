@@ -21,7 +21,7 @@ class FixServiceFtx : public Service {
     this->apiSubaccountName = CCAPI_FTX_API_SUBACCOUNT;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiSubaccountName});
     try {
-      this->tcpResolverResults = this->resolver.resolve(this->hostFix, this->portFix);
+      this->tcpResolverResultsFix = this->resolver.resolve(this->hostFix, this->portFix);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
@@ -117,7 +117,7 @@ class FixServiceFtx : public Service {
     fixConnectionPtr->status = FixConnection::Status::CONNECTING;
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::ssl_stream<beast::tcp_stream>& stream = *streamPtr;
-    beast::get_lowest_layer(stream).async_connect(this->tcpResolverResults,
+    beast::get_lowest_layer(stream).async_connect(this->tcpResolverResultsFix,
                                                   beast::bind_front_handler(&FixServiceFtx::onConnect_3, shared_from_base<FixServiceFtx>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
