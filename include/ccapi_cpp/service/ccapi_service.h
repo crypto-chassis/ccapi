@@ -601,7 +601,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string body = resPtr->body();
     try {
       if (statusCode / 100 == 2) {
-          this->processSuccessfulTextMessage(request, body, now);
+        this->processSuccessfulTextMessage(request, body, now);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base().at("Location").to_string());
@@ -981,7 +981,8 @@ class Service : public std::enable_shared_from_this<Service> {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, e);
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
-#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
+#if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) && \
+    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX))
       if (this->needDecompressWebsocketMessage) {
         std::string decompressed;
         const std::string& payload = msg->get_payload();
@@ -1140,6 +1141,11 @@ class Service : public std::enable_shared_from_this<Service> {
   std::regex convertNumberToStringInJsonRegex{"(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"};
   std::string convertNumberToStringInJsonRewrite{"$1\"$2\""};
   bool needDecompressWebsocketMessage{};
+#if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) && \
+    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX))
+  struct monostate {};
+  websocketpp::extensions_workaround::permessage_deflate::enabled<monostate> inflater;
+#endif
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_

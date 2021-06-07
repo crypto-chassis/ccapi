@@ -38,7 +38,9 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
 
  protected:
 #endif
-bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\"")); }
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+    return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
+  }
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     auto hostPort = this->extractHostFromUrl(CCAPI_KUCOIN_URL_REST_BASE);
@@ -80,7 +82,6 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
                   {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
                   {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
               });
-              CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
               return;
             } catch (const std::runtime_error& e) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -100,6 +101,14 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
     req.set("KC-API-SIGN", signature);
     req.body() = body;
     req.prepare_payload();
+  }
+  void signApiPassphrase(http::request<http::string_body>& req, const std::string& apiKeyVersion, const std::string& apiPassphrase,
+                         const std::string& apiSecret) {
+    if (apiKeyVersion == "2") {
+      req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
+    } else {
+      req.set("KC-API-PASSPHRASE", apiPassphrase);
+    }
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
@@ -130,16 +139,7 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
     req.set("KC-API-KEY-VERSION", apiKeyVersion);
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    if (apiKeyVersion == "2") {
-      CCAPI_LOGGER_TRACE("credential = "+toString(credential));
-      CCAPI_LOGGER_TRACE("apiSecret = "+apiSecret);
-      CCAPI_LOGGER_TRACE("apiPassphrase = "+apiPassphrase);
-      CCAPI_LOGGER_TRACE(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase, true));
-      CCAPI_LOGGER_TRACE(UtilString::toLower(UtilAlgorithm::stringToHex(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase))));
-      req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
-    } else {
-      req.set("KC-API-PASSPHRASE", apiPassphrase);
-    }
+    this->signApiPassphrase(req, apiKeyVersion, apiPassphrase, apiSecret);
   }
   void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential) override {
@@ -169,20 +169,22 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
-                             ? param.at(CCAPI_EM_ORDER_ID)
-                             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
-        auto target = std::regex_replace(this->cancelOrderTarget, std::regex("<id>"), id);
+        bool useOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
+        std::string id = useOrderId ? param.at(CCAPI_EM_ORDER_ID)
+                                    : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        auto target =
+            useOrderId ? std::regex_replace(this->cancelOrderTarget, std::regex("<id>"), id) : std::regex_replace("/api/v1/order/<id>", std::regex("<id>"), id);
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
-                             ? param.at(CCAPI_EM_ORDER_ID)
-                             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
-        auto target = std::regex_replace(this->getOrderTarget, std::regex("<id>"), id);
+        bool useOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
+        std::string id = useOrderId ? param.at(CCAPI_EM_ORDER_ID)
+                                    : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        auto target =
+            useOrderId ? std::regex_replace(this->getOrderTarget, std::regex("<id>"), id) : std::regex_replace("/api/v1/order/<id>", std::regex("<id>"), id);
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
@@ -238,25 +240,30 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
     std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
-      for (const auto& x : data["cancelledOrderIds"].GetArray()) {
+      if (data.FindMember("cancelledOrderIds") != data.MemberEnd()) {
+        for (const auto& x : data["cancelledOrderIds"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ORDER_ID, x.GetString());
+          elementList.emplace_back(std::move(element));
+        }
+      } else {
         Element element;
-        element.insert(CCAPI_EM_ORDER_ID, x.GetString());
+        element.insert(CCAPI_EM_ORDER_ID, data["cancelledOrderId"].GetString());
+        element.insert(CCAPI_EM_CLIENT_ORDER_ID, data["clientOid"].GetString());
         elementList.emplace_back(std::move(element));
       }
     } else if (operation == Request::Operation::CREATE_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, data["orderId"].GetString());
       elementList.emplace_back(std::move(element));
-    } else {
-      if (document.IsObject()) {
-        auto element = this->extractOrderInfo(data, extractionFieldNameMap);
+    } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
+      for (const auto& x : data["items"].GetArray()) {
+        auto element = this->extractOrderInfo(x, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
-      } else {
-        for (const auto& x : data["items"].GetArray()) {
-          auto element = this->extractOrderInfo(x, extractionFieldNameMap);
-          elementList.emplace_back(std::move(element));
-        }
       }
+    } else if (operation == Request::Operation::GET_ORDER) {
+      auto element = this->extractOrderInfo(data, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     }
     return elementList;
   }
@@ -359,6 +366,8 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
                 {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+                {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
+                {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filledSize", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("remainSize", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
