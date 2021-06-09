@@ -39,6 +39,8 @@
 
 #include <stdint.h>
 #include <iomanip>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
 /*
  * If you do not have the ISO standard stdint.h header file, then you
  * must typedef the following:
@@ -2506,6 +2508,30 @@ class Hmac CCAPI_FINAL {
     SHA512,
   };
   static std::string hmac(const ShaVersion shaVersion, const std::string &key, const std::string &msg, bool returnHex = false) {
+    #ifdef CCAPI_SHA_USE_OPENSSL
+    unsigned char hash[32];
+#if defined(OPENSSL_VERSION_MAJOR) && defined(OPENSSL_VERSION_MINOR) && OPENSSL_VERSION_MAJOR <= 1 && (OPENSSL_VERSION_MAJOR != 1 || OPENSSL_VERSION_MINOR < 1)
+    HMAC_CTX hmac;
+    HMAC_CTX_init(&hmac);
+    HMAC_Init_ex(&hmac, &key[0], key.length(), EVP_sha256(), NULL);
+    HMAC_Update(&hmac, (unsigned char*)&msg[0], msg.length());
+    unsigned int len = 32;
+    HMAC_Final(&hmac, hash, &len);
+    HMAC_CTX_cleanup(&hmac);
+#else
+    HMAC_CTX *hmac = HMAC_CTX_new();
+    HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
+    HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
+    unsigned int len = 32;
+    HMAC_Final(hmac, hash, &len);
+    HMAC_CTX_free(hmac);
+#endif
+    std::stringstream ss;
+    for (int i = 0; i < len; i++) {
+        ss << (char)hash[i];
+    }
+    return (ss.str());
+    #else
     yubico::SHAversion whichSha{};
     int shaHashSize{};
     switch (shaVersion) {
@@ -2551,6 +2577,7 @@ class Hmac CCAPI_FINAL {
       }
       return ss.str();
     }
+    #endif
   }
 };
 } /* namespace ccapi */
