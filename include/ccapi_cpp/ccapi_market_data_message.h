@@ -76,6 +76,9 @@ class MarketDataMessage CCAPI_FINAL {
       case DataFieldType::IS_BUYER_MAKER:
         output = "IS_BUYER_MAKER";
         break;
+      case DataFieldType::SEQUENCE_NUMBER:
+        output = "SEQUENCE_NUMBER";
+        break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
