@@ -2507,31 +2507,7 @@ class Hmac CCAPI_FINAL {
     SHA384,
     SHA512,
   };
-  static std::string hmac(const ShaVersion shaVersion, const std::string &key, const std::string &msg, bool returnHex = false) {
-    #ifdef CCAPI_SHA_USE_OPENSSL
-    unsigned char hash[32];
-#if defined(OPENSSL_VERSION_MAJOR) && defined(OPENSSL_VERSION_MINOR) && OPENSSL_VERSION_MAJOR <= 1 && (OPENSSL_VERSION_MAJOR != 1 || OPENSSL_VERSION_MINOR < 1)
-    HMAC_CTX hmac;
-    HMAC_CTX_init(&hmac);
-    HMAC_Init_ex(&hmac, &key[0], key.length(), EVP_sha256(), NULL);
-    HMAC_Update(&hmac, (unsigned char*)&msg[0], msg.length());
-    unsigned int len = 32;
-    HMAC_Final(&hmac, hash, &len);
-    HMAC_CTX_cleanup(&hmac);
-#else
-    HMAC_CTX *hmac = HMAC_CTX_new();
-    HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
-    HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
-    unsigned int len = 32;
-    HMAC_Final(hmac, hash, &len);
-    HMAC_CTX_free(hmac);
-#endif
-    std::stringstream ss;
-    for (int i = 0; i < len; i++) {
-        ss << (char)hash[i];
-    }
-    return (ss.str());
-    #else
+  static std::string hmacYubico(const ShaVersion shaVersion, const std::string &key, const std::string &msg, bool returnHex = false) {
     yubico::SHAversion whichSha{};
     int shaHashSize{};
     switch (shaVersion) {
@@ -2570,13 +2546,40 @@ class Hmac CCAPI_FINAL {
       for (int i = 0; i < shaHashSize; i++) {
         ss << std::hex << std::setw(2) << (unsigned int)digest[i];
       }
-      return ss.str();
     } else {
       for (int i = 0; i < shaHashSize; i++) {
         ss << (char)digest[i];
       }
-      return ss.str();
     }
+          return ss.str();
+  }
+  static std::string hmac(const ShaVersion shaVersion, const std::string &key, const std::string &msg, bool returnHex = false) {
+    #ifdef CCAPI_SHA_USE_OPENSSL
+    if (shaVersion==ShaVersion::SHA256){
+      unsigned char hash[32];
+      HMAC_CTX *hmac = HMAC_CTX_new();
+      HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
+      HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
+      unsigned int len = 32;
+      HMAC_Final(hmac, hash, &len);
+      HMAC_CTX_free(hmac);
+      std::stringstream ss;
+      if (returnHex) {
+        ss << std::hex << std::setfill('0');
+        for (int i = 0; i < len; i++) {
+          ss << std::hex << std::setw(2) << (unsigned int)hash[i];
+        }
+      } else {
+        for (int i = 0; i < len; i++) {
+            ss << (char)hash[i];
+        }
+      }
+      return (ss.str());
+    } else {
+return hmacYubico(shaVersion,key,msg,returnHex);
+    }
+    #else
+    return hmacYubico(shaVersion,key,msg,returnHex);
     #endif
   }
 };

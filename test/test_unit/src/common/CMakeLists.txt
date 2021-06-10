@@ -1,5 +1,7 @@
 set(NAME common)
 project(${NAME})
 add_executable(${NAME} ${SOURCE_LOGGER} ccapi_subscription_test.cpp ccapi_event_test.cpp ccapi_jwt_test.cpp ccapi_decimal_test.cpp ccapi_hmac_test.cpp ccapi_util_test.cpp ccapi_url_test.cpp)
-target_link_libraries(${NAME})
+add_executable(${NAME}_hmac_openssl ${SOURCE_LOGGER} ccapi_hmac_test.cpp)
+target_compile_definitions(${NAME}_hmac_openssl PRIVATE CCAPI_SHA_USE_OPENSSL)
 gtest_discover_tests(${NAME})
+gtest_discover_tests(${NAME}_hmac_openssl)
