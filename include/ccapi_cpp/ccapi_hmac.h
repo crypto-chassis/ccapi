@@ -37,10 +37,10 @@
  *              SHA-512         64 byte / 512 bit
  */
 
-#include <stdint.h>
-#include <iomanip>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <stdint.h>
+#include <iomanip>
 /*
  * If you do not have the ISO standard stdint.h header file, then you
  * must typedef the following:
@@ -2551,15 +2551,15 @@ class Hmac CCAPI_FINAL {
         ss << (char)digest[i];
       }
     }
-          return ss.str();
+    return ss.str();
   }
   static std::string hmac(const ShaVersion shaVersion, const std::string &key, const std::string &msg, bool returnHex = false) {
-    #ifdef CCAPI_SHA_USE_OPENSSL
-    if (shaVersion==ShaVersion::SHA256){
+#ifdef CCAPI_SHA_USE_OPENSSL
+    if (shaVersion == ShaVersion::SHA256) {
       unsigned char hash[32];
       HMAC_CTX *hmac = HMAC_CTX_new();
       HMAC_Init_ex(hmac, &key[0], key.length(), EVP_sha256(), NULL);
-      HMAC_Update(hmac, (unsigned char*)&msg[0], msg.length());
+      HMAC_Update(hmac, (unsigned char *)&msg[0], msg.length());
       unsigned int len = 32;
       HMAC_Final(hmac, hash, &len);
       HMAC_CTX_free(hmac);
@@ -2571,16 +2571,16 @@ class Hmac CCAPI_FINAL {
         }
       } else {
         for (int i = 0; i < len; i++) {
-            ss << (char)hash[i];
+          ss << (char)hash[i];
         }
       }
       return (ss.str());
     } else {
-return hmacYubico(shaVersion,key,msg,returnHex);
+      return hmacYubico(shaVersion, key, msg, returnHex);
     }
-    #else
-    return hmacYubico(shaVersion,key,msg,returnHex);
-    #endif
+#else
+    return hmacYubico(shaVersion, key, msg, returnHex);
+#endif
   }
 };
 } /* namespace ccapi */

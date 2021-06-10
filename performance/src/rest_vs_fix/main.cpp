@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     auto end = UtilTime::now();
     // skip the first one because REST API needs to create a tcp connection for the first time
     if (i > 0) {
-      std::cout << "Sent "+std::to_string(i)+"th request at time " + UtilTime::getISOTimestamp(end) << std::endl;
+      std::cout << "Sent " + std::to_string(i) + "th request at time " + UtilTime::getISOTimestamp(end) << std::endl;
       cumulativeRequestTimeMicroSeconds += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(timeSleepMilliSeconds));

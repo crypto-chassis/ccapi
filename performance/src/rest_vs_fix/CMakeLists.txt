@@ -7,7 +7,4 @@ add_compile_definitions(CCAPI_COINBASE_URL_REST_BASE="https://api-public.sandbox
 add_compile_definitions(CCAPI_COINBASE_URL_FIX_BASE="tcp+ssl://fix-public.sandbox.pro.coinbase.com:4198")
 set(HFFIX_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/hffix/include)
 add_executable(${NAME} main.cpp)
-# add_executable(${NAME}_openssl main.cpp)
-target_compile_definitions(${NAME} PRIVATE CCAPI_SHA_USE_OPENSSL)
 target_include_directories(${NAME} PRIVATE ${HFFIX_INCLUDE_DIR})
-# target_include_directories(${NAME}_openssl PRIVATE ${HFFIX_INCLUDE_DIR})
