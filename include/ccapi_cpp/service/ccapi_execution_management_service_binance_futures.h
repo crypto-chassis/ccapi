@@ -13,6 +13,11 @@ class ExecutionManagementServiceBinanceFutures : public ExecutionManagementServi
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_FUTURES;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_BINANCE_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_FUTURES_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});

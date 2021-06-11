@@ -25,7 +25,9 @@ int main(int argc, char** argv) {
     std::cerr << "Please set environment variable BINANCE_US_API_SECRET" << std::endl;
     return EXIT_FAILURE;
   }
-  std::vector<std::string> modeList = {"create_order", "cancel_order", "get_order", "get_open_orders", "cancel_open_orders"};
+  std::vector<std::string> modeList = {
+      "create_order", "cancel_order", "get_order", "get_open_orders", "cancel_open_orders",
+  };
   if (argc < 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
     std::cerr << "Please provide the first command line argument from this list: " + toString(modeList) << std::endl;
     return EXIT_FAILURE;

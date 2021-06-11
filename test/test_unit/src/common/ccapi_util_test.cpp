@@ -7,8 +7,13 @@ TEST(UtilAlgorithmTest, base64) {
   auto result = UtilAlgorithm::base64Encode(UtilAlgorithm::base64Decode(original));
   EXPECT_EQ(result, original);
 }
+TEST(UtilAlgorithmTest, base64Encode) {
+  std::string hex("7e3d3679f4a5677689eb2b15d7a726f3a69045f98051fcfd8b1af1ab8c168aef");
+  auto result = UtilAlgorithm::base64Encode(UtilAlgorithm::hexToString(hex));
+  EXPECT_EQ(result, "fj02efSlZ3aJ6ysV16cm86aQRfmAUfz9ixrxq4wWiu8=");
+}
 TEST(UtilAlgorithmTest, hexStringConversion) {
-  std::string original("D8E30E653FF472796722CBAA816E6AE4E3B0D0EC530F857E41002B0A9F5B7F00A32BC60017E82EFB2E7A43C3049D16A0");
+  std::string original("d8e30e653ff472796722cbaa816e6ae4e3b0d0ec530f857e41002b0a9f5b7f00a32bc60017e82efb2e7a43c3049d16a0");
   auto result = UtilAlgorithm::stringToHex(UtilAlgorithm::hexToString(original));
   EXPECT_EQ(result, original);
 }

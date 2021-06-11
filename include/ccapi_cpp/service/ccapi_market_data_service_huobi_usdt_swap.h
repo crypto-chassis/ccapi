@@ -14,6 +14,11 @@ class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiBase {
     this->isDerivatives = true;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->getRecentTradesTarget = CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_TARGET;
   }
   virtual ~MarketDataServiceHuobiUsdtSwap() {}

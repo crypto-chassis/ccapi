@@ -6,7 +6,10 @@
 namespace ccapi {
 class MarketDataMessage CCAPI_FINAL {
  public:
-  enum class Type { UNKNOWN, MARKET_DATA_EVENTS };
+  enum class Type {
+    UNKNOWN,
+    MARKET_DATA_EVENTS,
+  };
   enum class RecapType {
     UNKNOWN,
     NONE,       // normal data tick; not a recap
@@ -56,6 +59,7 @@ class MarketDataMessage CCAPI_FINAL {
     SIZE = 1,
     TRADE_ID = 2,
     IS_BUYER_MAKER = 3,
+    SEQUENCE_NUMBER = 4,
   };
   static std::string dataFieldTypeToString(DataFieldType dataFieldType) {
     std::string output;
@@ -71,6 +75,9 @@ class MarketDataMessage CCAPI_FINAL {
         break;
       case DataFieldType::IS_BUYER_MAKER:
         output = "IS_BUYER_MAKER";
+        break;
+      case DataFieldType::SEQUENCE_NUMBER:
+        output = "SEQUENCE_NUMBER";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

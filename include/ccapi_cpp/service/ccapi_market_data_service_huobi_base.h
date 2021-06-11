@@ -14,6 +14,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       CCAPI_LOGGER_FATAL(ec.message());
     }
     this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    this->needDecompressWebsocketMessage = true;
   }
   virtual ~MarketDataServiceHuobiBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

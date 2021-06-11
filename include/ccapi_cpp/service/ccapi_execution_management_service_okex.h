@@ -13,6 +13,11 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_OKEX_API_KEY;
     this->apiSecretName = CCAPI_OKEX_API_SECRET;
     this->apiPassphraseName = CCAPI_OKEX_API_PASSPHRASE;
@@ -77,7 +82,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     req.set("OK-ACCESS-KEY", apiKey);
     std::string timeStr = UtilTime::getISOTimestamp(now);
     req.set("OK-ACCESS-TIMESTAMP", timeStr.substr(0, timeStr.length() - 7) + "Z");
-    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     req.set("OK-ACCESS-PASSPHRASE", apiPassphrase);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {

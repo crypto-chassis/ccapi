@@ -14,6 +14,11 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
     this->apiSecretName = CCAPI_COINBASE_API_SECRET;
     this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;
@@ -63,7 +68,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("CB-ACCESS-KEY", apiKey);
     req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
-    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName, {});
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
@@ -271,7 +276,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       auto fieldSet = subscription.getFieldSet();
       auto instrumentSet = subscription.getInstrumentSet();
-      auto type = std::string(document["type"].GetString());
       if (document.FindMember("user_id") != document.MemberEnd()) {
         auto instrument = this->convertWebsocketSymbolIdToInstrument(document["product_id"].GetString());
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
@@ -282,7 +286,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             auto it = document.FindMember("timestamp");
             message.setTime(UtilTime::makeTimePoint(UtilTime::divide(std::string(it->value.GetString()))));
           }
-          if (type == "match" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+          if (type == "match" && (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end())) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             std::vector<Element> elementList;
             Element element;
@@ -299,7 +303,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
               element.insert(CCAPI_IS_MAKER, "1");
               element.insert(CCAPI_EM_ORDER_ID, document["maker_order_id"].GetString());
             }
-            element.insert(CCAPI_EM_ORDER_INSTRUMENT, document["product_id"].GetString());
+            element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
             messageList.push_back(std::move(message));
