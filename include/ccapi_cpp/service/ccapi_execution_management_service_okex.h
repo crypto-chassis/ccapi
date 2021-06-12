@@ -52,10 +52,14 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       auto value = kv.second;
       if (key == "side") {
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
-      } else if (key == "ordType") {
-        value = UtilString::toLower(value);
       }
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+    }
+    if (param.find("tdMode") == param.end()){
+      document.AddMember("tdMode", rj::Value("cash").Move(), allocator);
+    }
+    if (param.find("ordType") == param.end()){
+      document.AddMember("ordType", , rj::Value("limit").Move(), allocator);
     }
   }
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
