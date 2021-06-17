@@ -86,7 +86,7 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     }
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+                             const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {

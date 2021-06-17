@@ -127,13 +127,13 @@ class Service : public std::enable_shared_from_this<Service> {
     }
   }
   virtual void convertRequestForRestCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                                const std::map<std::string, std::string>& credential) {
+                                           const std::map<std::string, std::string>& credential) {
     auto errorMessage = "REST unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
     throw std::runtime_error(errorMessage);
   }
   virtual void subscribe(const std::vector<Subscription>& subscriptionList) {}
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                          const std::map<std::string, std::string>& credential) {}
+                                     const std::map<std::string, std::string>& credential) {}
   virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
   std::shared_ptr<std::future<void>> sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;

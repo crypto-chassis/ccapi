@@ -70,7 +70,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+                             const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("Content-Length", "0");
     req.set("Content-Type", "text/plain");

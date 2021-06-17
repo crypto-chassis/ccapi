@@ -68,7 +68,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     document.AddMember("product_id", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+                             const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("CB-ACCESS-KEY", apiKey);
@@ -264,12 +264,15 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     return sendStringList;
   }
 
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) override {
-    Event event = this->createEvent(subscription,textMessage,document,timeReceived);
-    if (!event.getMessageList().empty()){this->eventHandler(event);}
+  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
+                     const TimePoint& timeReceived) override {
+    Event event = this->createEvent(subscription, textMessage, document, timeReceived);
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event);
+    }
   }
 
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived)  {
+  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
     Message message;

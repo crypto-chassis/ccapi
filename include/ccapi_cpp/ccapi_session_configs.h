@@ -179,16 +179,11 @@ class SessionConfigs CCAPI_FINAL {
                                               {CCAPI_EXCHANGE_NAME_KUCOIN, fieldWebsocketChannelMapKucoin},
                                               {CCAPI_EXCHANGE_NAME_FTX, fieldWebsocketChannelMapFtx}};
     this->websocketAvailableMarketDepth = {
-        {CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})},
-        {CCAPI_EXCHANGE_NAME_BITSTAMP, std::vector<int>({100})},
-        {CCAPI_EXCHANGE_NAME_BITFINEX, std::vector<int>({1, 25, 100})},
-        {CCAPI_EXCHANGE_NAME_BITMEX, std::vector<int>({1, 10, 25})},
-        {CCAPI_EXCHANGE_NAME_BINANCE_US, std::vector<int>({5, 10, 20})},
-        {CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
-        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},
-        {CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})},
-        {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, std::vector<int>({150})},
-        {CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
+        {CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})}, {CCAPI_EXCHANGE_NAME_BITSTAMP, std::vector<int>({100})},
+        {CCAPI_EXCHANGE_NAME_BITFINEX, std::vector<int>({1, 25, 100})},           {CCAPI_EXCHANGE_NAME_BITMEX, std::vector<int>({1, 10, 25})},
+        {CCAPI_EXCHANGE_NAME_BINANCE_US, std::vector<int>({5, 10, 20})},          {CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
+        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},     {CCAPI_EXCHANGE_NAME_HUOBI, std::vector<int>({150})},
+        {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, std::vector<int>({150})},           {CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},

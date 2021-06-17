@@ -74,7 +74,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     queryString += "&";
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+                             const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
                                               (now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch())

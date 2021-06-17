@@ -85,7 +85,8 @@ class MarketDataService : public Service {
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
     return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
   }
-  virtual void prepareSubscriptionDetail(std::string &channelId, const std::string &field, const WsConnection& wsConnection, const std::string & symbolId, const std::map<std::string,std::string> optionMap) {
+  virtual void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                         const std::map<std::string, std::string> optionMap) {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     if (field == CCAPI_MARKET_DEPTH) {
@@ -115,7 +116,7 @@ class MarketDataService : public Service {
         if (marketDepthRequested == 1) {
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
         }
-      }  else if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
+      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
         if (marketDepthRequested <= 20) {
           channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
                       std::to_string(marketDepthRequested);
@@ -203,8 +204,10 @@ class MarketDataService : public Service {
                 marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
               this->processOrderBookUpdate(wsConnection, channelId, symbolId, event, shouldEmitEvent, marketDataMessage.tp, timeReceived,
                                            marketDataMessage.data, field, optionMap, correlationIdList, snapshotBid, snapshotAsk);
-              if (this->sessionOptions.enableCheckOrderBookChecksum && this->orderBookChecksumByConnectionIdSymbolIdMap.find(wsConnection.id)!=this->orderBookChecksumByConnectionIdSymbolIdMap.end()&&
-            this->orderBookChecksumByConnectionIdSymbolIdMap.at(wsConnection.id).find(symbolId)!=this->orderBookChecksumByConnectionIdSymbolIdMap.at(wsConnection.id).end()) {
+              if (this->sessionOptions.enableCheckOrderBookChecksum &&
+                  this->orderBookChecksumByConnectionIdSymbolIdMap.find(wsConnection.id) != this->orderBookChecksumByConnectionIdSymbolIdMap.end() &&
+                  this->orderBookChecksumByConnectionIdSymbolIdMap.at(wsConnection.id).find(symbolId) !=
+                      this->orderBookChecksumByConnectionIdSymbolIdMap.at(wsConnection.id).end()) {
                 bool shouldProcessRemainingMessage = true;
                 std::string receivedOrderBookChecksumStr = this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId];
                 if (!this->checkOrderBookChecksum(snapshotBid, snapshotAsk, receivedOrderBookChecksumStr, shouldProcessRemainingMessage)) {

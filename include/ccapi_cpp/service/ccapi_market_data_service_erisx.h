@@ -156,7 +156,7 @@ class MarketDataServiceErisx : public MarketDataService {
     return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+                             const std::map<std::string, std::string>& credential) override {
     // TODO(cryptochassis): implement
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,

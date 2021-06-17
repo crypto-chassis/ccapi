@@ -72,7 +72,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryParamMap.insert(std::make_pair(symbolIdCalled, Url::urlEncode(symbolId)));
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+                             const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     std::map<std::string, std::string> queryParamMap;

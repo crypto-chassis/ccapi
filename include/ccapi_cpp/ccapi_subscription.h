@@ -9,7 +9,8 @@ class Subscription CCAPI_FINAL {
  public:
   Subscription() {}
   // breaking change to be added for next major version
-  // Subscription(std::string exchange, std::string instrument, std::string field, std::map<std::string, std::string> optionMap = {}, std::string correlationId = "",
+  // Subscription(std::string exchange, std::string instrument, std::string field, std::map<std::string, std::string> optionMap = {}, std::string correlationId
+  // = "",
   //              std::map<std::string, std::string> credential = {})
   //     : exchange(exchange), instrument(instrument), field(field), optionMap(optionMap),correlationId(correlationId), credential(credential) {
   //       std::map<std::string, std::string> optionMapDefault = {

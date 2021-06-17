@@ -140,7 +140,7 @@ class ExecutionManagementService : public Service {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto correlationId = wsConnection.subscriptionList.at(0).getCorrelationId();
     this->wsConnectionByCorrelationIdMap.insert({correlationId, wsConnection});
-    this->correlationIdByConnectionIdMap.insert({wsConnection.id,correlationId});
+    this->correlationIdByConnectionIdMap.insert({wsConnection.id, correlationId});
     CCAPI_LOGGER_INFO("about to logon to exchange");
     auto credential = wsConnection.subscriptionList.at(0).getCredential();
     if (credential.empty()) {
@@ -151,7 +151,7 @@ class ExecutionManagementService : public Service {
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    if (this->correlationIdByConnectionIdMap.find(wsConnection.id)!=this->correlationIdByConnectionIdMap.end()){
+    if (this->correlationIdByConnectionIdMap.find(wsConnection.id) != this->correlationIdByConnectionIdMap.end()) {
       this->wsConnectionByCorrelationIdMap.erase(this->correlationIdByConnectionIdMap.at(wsConnection.id));
       this->correlationIdByConnectionIdMap.erase(wsConnection.id);
     }
@@ -169,7 +169,7 @@ class ExecutionManagementService : public Service {
       auto& correlationId = request.getCorrelationId();
       auto it = that->wsConnectionByCorrelationIdMap.find(correlationId);
       if (it == that->wsConnectionByCorrelationIdMap.end()) {
-        that->onError(Event::Type::REQUEST_STATUS,Message::Type::REQUEST_FAILURE,"Websocket connection was not found",{correlationId});
+        that->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "Websocket connection was not found", {correlationId});
         return;
       }
       auto& wsConnection = it->second;
@@ -185,13 +185,13 @@ class ExecutionManagementService : public Service {
       if (credential.empty()) {
         credential = that->credentialDefault;
       }
-      that->convertRequestForWebsocket(document,allocator,wsConnection, request,++that->wsRequestIdByConnectionIdMap[wsConnection.id], now, symbolId,
-                              credential);
-                              rj::StringBuffer stringBuffer;
-                              rj::Writer<rj::StringBuffer> writer(stringBuffer);
-                              document.Accept(writer);
-                              std::string sendString = stringBuffer.GetString();
-                              CCAPI_LOGGER_TRACE("sendString = " + sendString);
+      that->convertRequestForWebsocket(document, allocator, wsConnection, request, ++that->wsRequestIdByConnectionIdMap[wsConnection.id], now, symbolId,
+                                       credential);
+      rj::StringBuffer stringBuffer;
+      rj::Writer<rj::StringBuffer> writer(stringBuffer);
+      document.Accept(writer);
+      std::string sendString = stringBuffer.GetString();
+      CCAPI_LOGGER_TRACE("sendString = " + sendString);
       that->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
       if (ec) {
         that->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
@@ -199,16 +199,19 @@ class ExecutionManagementService : public Service {
     });
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void convertRequestForWebsocketCustom(rj::Document& document, rj::Document::AllocatorType& allocator,  const WsConnection& wsConnection, const Request& request,int wsRequestId, const TimePoint& now, const std::string& symbolId,
-                                const std::map<std::string, std::string>& credential) {
+  virtual void convertRequestForWebsocketCustom(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection,
+                                                const Request& request, int wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                                const std::map<std::string, std::string>& credential) {
     auto errorMessage = "Websocket unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
     throw std::runtime_error(errorMessage);
   }
-  virtual void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {}
-  virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request,const std::string& wsRequestId, const TimePoint& now, const std::string& symbolId,
-                          const std::map<std::string, std::string>& credential) {}
-  virtual void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,int wsRequestId, const TimePoint& now, const std::string& symbolId,
-                          const std::map<std::string, std::string>& credential) {}
+  virtual void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
+                             const TimePoint& timeReceived) {}
+  virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const std::string& wsRequestId, const TimePoint& now,
+                                     const std::string& symbolId, const std::map<std::string, std::string>& credential) {}
+  virtual void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection,
+                                          const Request& request, int wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                          const std::map<std::string, std::string>& credential) {}
   virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
   }

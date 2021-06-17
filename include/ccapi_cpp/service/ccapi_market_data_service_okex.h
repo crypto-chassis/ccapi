@@ -30,25 +30,26 @@ class MarketDataServiceOkex : public MarketDataService {
 
  private:
 #endif
-void prepareSubscriptionDetail(std::string &channelId, const std::string &field, const WsConnection& wsConnection, const std::string & symbolId, const std::map<std::string,std::string> optionMap)override {
-  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-  auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-  CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
-  if (conflateIntervalMilliSeconds < 100) {
-    if (marketDepthRequested <= 50) {
-      channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT;
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+    if (conflateIntervalMilliSeconds < 100) {
+      if (marketDepthRequested <= 50) {
+        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT;
+      } else {
+        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT;
+      }
     } else {
-      channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT;
-    }
-  } else {
-    if (marketDepthRequested <= 5) {
-      channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5;
-    } else {
-      channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400;
+      if (marketDepthRequested <= 5) {
+        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5;
+      } else {
+        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400;
+      }
     }
   }
-}
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
@@ -118,20 +119,20 @@ void prepareSubscriptionDetail(std::string &channelId, const std::string &field,
         if (document.HasMember("event")) {
           // TODO(cryptochassis): implement
         } else {
-          if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400
-           || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
+          if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400 ||
+              channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
             std::string action = channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 ? "" : document["action"].GetString();
             CCAPI_LOGGER_TRACE("action = " + toString(action));
             for (const auto& datum : document["data"].GetArray()) {
-              CCAPI_LOGGER_TRACE("this->sessionOptions.enableCheckOrderBookChecksum = "+toString(this->sessionOptions.enableCheckOrderBookChecksum));
+              CCAPI_LOGGER_TRACE("this->sessionOptions.enableCheckOrderBookChecksum = " + toString(this->sessionOptions.enableCheckOrderBookChecksum));
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
                 auto it = datum.FindMember("checksum");
-                if (it!=datum.MemberEnd()){
+                if (it != datum.MemberEnd()) {
                   this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
                       intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(it->value.GetInt())));
                 }
               }
-              CCAPI_LOGGER_TRACE("this->orderBookChecksumByConnectionIdSymbolIdMap = "+toString(this->orderBookChecksumByConnectionIdSymbolIdMap));
+              CCAPI_LOGGER_TRACE("this->orderBookChecksumByConnectionIdSymbolIdMap = " + toString(this->orderBookChecksumByConnectionIdSymbolIdMap));
               MarketDataMessage marketDataMessage;
               marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
               CCAPI_LOGGER_TRACE("marketDataMessage.tp = " + toString(marketDataMessage.tp));
@@ -182,7 +183,7 @@ void prepareSubscriptionDetail(std::string &channelId, const std::string &field,
     return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+                             const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);

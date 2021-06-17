@@ -27,7 +27,8 @@ class ExecutionManagementServiceOkexTest : public ::testing::Test {
   std::string timestampStr;
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, const std::string& timestampStr) {
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase,
+                     const std::string& timestampStr) {
   EXPECT_EQ(req.base().at("OK-ACCESS-KEY").to_string(), apiKey);
   EXPECT_EQ(req.base().at("OK-ACCESS-PASSPHRASE").to_string(), apiPassphrase);
   EXPECT_EQ(req.base().at("OK-ACCESS-TIMESTAMP").to_string(), timestampStr);
@@ -575,7 +576,7 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventFilled) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, "",this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -670,7 +671,7 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventLive) {
 }
 
 TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradePlaceOrder) {
-  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "","same correlation id for subscription and request");
+  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
   std::string textMessage = R"(
     {
       "id": "1512",
@@ -702,7 +703,7 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradePlaceOrder) 
 }
 
 TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradeCancelOrder) {
-  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "","same correlation id for subscription and request");
+  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
   std::string textMessage = R"(
     {
       "code": "0",

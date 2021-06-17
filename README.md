@@ -32,6 +32,7 @@
       - [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
       - [Override exchange urls](#override-exchange-urls)
       - [Complex request parameters](#complex-request-parameters-1)
+      - [Send request by Websocket API](#send-request-by-websocket-api)
     - [FIX API](#fix-api)
     - [More Advanced Topics](#more-advanced-topics)
       - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
@@ -659,6 +660,17 @@ See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in
 
 #### Complex request parameters
 Please follow the exchange's API documentations: e.g. https://github.com/binance-us/binance-official-api-docs/blob/master/rest-api.md#new-order--trade.
+```
+Request request(Request::Operation::CREATE_ORDER, "okex", "BTC-USDT", "same correlation id for subscription and request");
+request.appendParam({
+    {"SIDE", "BUY"},
+    {"LIMIT_PRICE", "20000"},
+    {"QUANTITY", "0.001"},
+});
+session.sendRequestByWebsocket(request);
+```
+
+#### Send request by Websocket API
 ```
 Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
 request.appendParam({

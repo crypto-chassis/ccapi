@@ -15,8 +15,8 @@ class ExecutionManagementServiceCoinbaseCustom : public ExecutionManagementServi
       : ExecutionManagementServiceCoinbase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
 
  protected:
-  void convertReqCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                        const std::map<std::string, std::string>& credential) override {
+  void convertRequestForRestCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                                   const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::CUSTOM: {
         if (request.getParamList().at(0).at("CUSTOM_OPERATION") == "LIST_PROFILES") {
@@ -26,7 +26,7 @@ class ExecutionManagementServiceCoinbaseCustom : public ExecutionManagementServi
         }
       } break;
       default:
-        ExecutionManagementServiceCoinbase::convertReqCustom(req, request, now, symbolId, credential);
+        ExecutionManagementServiceCoinbase::convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
