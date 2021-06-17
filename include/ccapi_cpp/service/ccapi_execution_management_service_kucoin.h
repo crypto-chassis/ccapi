@@ -111,7 +111,13 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     }
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> standardizationMap = {}) {
+                   const std::map<std::string, std::string> standardizationMap =
+                                     {
+                                         {CCAPI_EM_ORDER_SIDE, "side"},
+                                         {CCAPI_EM_ORDER_QUANTITY, "size"},
+                                         {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                                         {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
+                                     }) {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
@@ -141,7 +147,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     this->signApiPassphrase(req, apiKeyVersion, apiPassphrase, apiSecret);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, now, credential);
     switch (request.getOperation()) {
@@ -152,13 +158,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param,
-                          {
-                              {CCAPI_EM_ORDER_SIDE, "side"},
-                              {CCAPI_EM_ORDER_QUANTITY, "size"},
-                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                              {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
-                          });
+        this->appendParam(document, allocator, param);
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -226,7 +226,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         this->signRequest(req, "", credential);
       } break;
       default:
-        this->convertReqCustom(req, request, now, symbolId, credential);
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -326,7 +326,12 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     return sendStringList;
   }
 
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) override {
+  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) override {
+    Event event = this->createEvent(wsConnection,subscription,textMessage,document,timeReceived);
+    if (!event.getMessageList().empty()){this->eventHandler(event);}
+  }
+
+  Event createEvent(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived)  {
     Event event;
     std::vector<Message> messageList;
     Message message;

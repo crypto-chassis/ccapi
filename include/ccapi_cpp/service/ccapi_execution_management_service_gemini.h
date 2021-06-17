@@ -69,7 +69,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("Content-Length", "0");
@@ -150,7 +150,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         this->signRequest(req, document, allocator, {}, now, credential);
       } break;
       default:
-        this->convertReqCustom(req, request, now, symbolId, credential);
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {

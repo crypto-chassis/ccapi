@@ -27,7 +27,7 @@ class ExecutionManagementServiceOkexTest : public ::testing::Test {
   std::string timestampStr;
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, std::string timestampStr) {
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, const std::string& timestampStr) {
   EXPECT_EQ(req.base().at("OK-ACCESS-KEY").to_string(), apiKey);
   EXPECT_EQ(req.base().at("OK-ACCESS-PASSPHRASE").to_string(), apiPassphrase);
   EXPECT_EQ(req.base().at("OK-ACCESS-TIMESTAMP").to_string(), timestampStr);
@@ -353,6 +353,384 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOpe
   verifyconvertTextMessageToMessageRestGetOpenOrders(this, false);
 }
 
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  EXPECT_EQ(req.target().to_string(), "/api/v5/account/balance");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+    "code": "0",
+    "data": [
+        {
+            "adjEq": "10679688.0460531643092577",
+            "details": [
+                {
+                    "availBal": "",
+                    "availEq": "9930359.9998",
+                    "cashBal": "9930359.9998",
+                    "ccy": "USDT",
+                    "crossLiab": "0",
+                    "disEq": "9439737.0772999514",
+                    "eq": "9930359.9998",
+                    "eqUsd": "9933041.196999946",
+                    "frozenBal": "0",
+                    "interest": "0",
+                    "isoEq": "0",
+                    "isoLiab": "0",
+                    "liab": "0",
+                    "maxLoan": "10000",
+                    "mgnRatio": "",
+                    "notionalLever": "",
+                    "ordFrozen": "0",
+                    "twap": "0",
+                    "uTime": "1620722938250",
+                    "upl": "0",
+                    "uplLiab": "0"
+                },
+                {
+                    "availBal": "",
+                    "availEq": "33.6799714158199414",
+                    "cashBal": "33.2009985",
+                    "ccy": "BTC",
+                    "crossLiab": "0",
+                    "disEq": "1239950.9687532129092577",
+                    "eq": "33.771820625136023",
+                    "eqUsd": "1239950.9687532129092577",
+                    "frozenBal": "0.0918492093160816",
+                    "interest": "0",
+                    "isoEq": "0",
+                    "isoLiab": "0",
+                    "liab": "0",
+                    "maxLoan": "1453.92289531493594",
+                    "mgnRatio": "",
+                    "notionalLever": "",
+                    "ordFrozen": "0",
+                    "twap": "0",
+                    "uTime": "1620722938250",
+                    "upl": "0.570822125136023",
+                    "uplLiab": "0"
+                }
+            ],
+            "imr": "3372.2942371050594217",
+            "isoEq": "0",
+            "mgnRatio": "70375.35408747017",
+            "mmr": "134.8917694842024",
+            "notionalUsd": "33722.9423710505978888",
+            "ordFroz": "0",
+            "totalEq": "11172992.1657531589092577",
+            "uTime": "1623392334718"
+        }
+    ],
+    "msg": ""
+  }
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 2);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "9930359.9998");
+}
+
+TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  EXPECT_EQ(req.target().to_string(), "/api/v5/account/positions");
+  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+          "code": "0",
+          "msg": "",
+          "data": [
+            {
+              "adl":"1",
+              "availPos":"1",
+              "avgPx":"2566.31",
+              "cTime":"1619507758793",
+              "ccy":"ETH",
+              "deltaBS":"",
+              "deltaPA":"",
+              "gammaBS":"",
+              "gammaPA":"",
+              "imr":"",
+              "instId":"ETH-USD-210430",
+              "instType":"FUTURES",
+              "interest":"0",
+              "last":"2566.22",
+              "lever":"10",
+              "liab":"",
+              "liabCcy":"",
+              "liqPx":"2352.8496681818233",
+              "margin":"0.0003896645377994",
+              "mgnMode":"isolated",
+              "mgnRatio":"11.731726509588816",
+              "mmr":"0.0000311811092368",
+              "notionalUsd":"2276.2546609009605",
+              "optVal":"",
+              "pTime":"1619507761462",
+              "pos":"1",
+              "posCcy":"",
+              "posId":"307173036051017730",
+              "posSide":"long",
+              "thetaBS":"",
+              "thetaPA":"",
+              "tradeId":"109844",
+              "uTime":"1619507761462",
+              "upl":"-0.0000009932766034",
+              "uplRatio":"-0.0025490556801078",
+              "vegaBS":"",
+              "vegaPA":""
+            }
+          ]
+        }
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_POSITIONS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "ETH-USD-210430");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "long");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "1");
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_COST)), 2566.31);
+}
+
+TEST_F(ExecutionManagementServiceOkexTest, createEventFilled) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", CCAPI_EM_PRIVATE_TRADE);
+  std::string textMessage = R"(
+    {
+      "arg": {
+        "channel": "orders",
+        "instType": "ANY",
+        "instId": "BTC-USDT"
+      },
+      "data": [
+        {
+          "accFillSz": "0.001",
+          "amendResult": "",
+          "avgPx": "39200",
+          "cTime": "1623824529470",
+          "category": "normal",
+          "ccy": "",
+          "clOrdId": "",
+          "code": "0",
+          "execType": "T",
+          "fee": "-0.0392",
+          "feeCcy": "USDT",
+          "fillFee": "-0.0392",
+          "fillFeeCcy": "USDT",
+          "fillNotionalUsd": "39.199216",
+          "fillPx": "39200",
+          "fillSz": "0.001",
+          "fillTime": "1623824529475",
+          "instId": "BTC-USDT",
+          "instType": "SPOT",
+          "lever": "",
+          "msg": "",
+          "notionalUsd": "19.9996",
+          "ordId": "325278884568641536",
+          "ordType": "limit",
+          "pnl": "0",
+          "posSide": "",
+          "px": "20000",
+          "rebate": "0",
+          "rebateCcy": "BTC",
+          "reqId": "",
+          "side": "sell",
+          "slOrdPx": "",
+          "slTriggerPx": "",
+          "state": "filled",
+          "sz": "0.001",
+          "tag": "",
+          "tdMode": "cash",
+          "tpOrdPx": "",
+          "tpTriggerPx": "",
+          "tradeId": "94615762",
+          "uTime": "1623824529476"
+        }
+      ]
+    }
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "",this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "94615762");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "39200");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "0.001");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "325278884568641536");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY), "-0.0392");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_ASSET), "USDT");
+}
+
+TEST_F(ExecutionManagementServiceOkexTest, createEventLive) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"(
+    {
+      "arg": {
+        "channel": "orders",
+        "instType": "ANY",
+        "instId": "BTC-USDT"
+      },
+      "data": [
+        {
+          "accFillSz": "0",
+          "amendResult": "",
+          "avgPx": "",
+          "cTime": "1623824125174",
+          "category": "normal",
+          "ccy": "",
+          "clOrdId": "",
+          "code": "0",
+          "execType": "",
+          "fee": "0",
+          "feeCcy": "BTC",
+          "fillFee": "0",
+          "fillFeeCcy": "",
+          "fillNotionalUsd": "",
+          "fillPx": "",
+          "fillSz": "0",
+          "fillTime": "",
+          "instId": "BTC-USDT",
+          "instType": "SPOT",
+          "lever": "",
+          "msg": "",
+          "notionalUsd": "19.9998",
+          "ordId": "325277188828311552",
+          "ordType": "limit",
+          "pnl": "0",
+          "posSide": "",
+          "px": "20000",
+          "rebate": "0",
+          "rebateCcy": "USDT",
+          "reqId": "",
+          "side": "buy",
+          "slOrdPx": "",
+          "slTriggerPx": "",
+          "state": "live",
+          "sz": "0.001",
+          "tag": "",
+          "tdMode": "cash",
+          "tpOrdPx": "",
+          "tpTriggerPx": "",
+          "tradeId": "",
+          "uTime": "1623824125174"
+        }
+      ]
+    }
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "325277188828311552");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "20000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "0.001");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "live");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
+}
+
+TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradePlaceOrder) {
+  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "","same correlation id for subscription and request");
+  std::string textMessage = R"(
+    {
+      "id": "1512",
+      "op": "order",
+      "data": [
+        {
+          "clOrdId": "",
+          "ordId": "12345689",
+          "tag": "",
+          "sCode": "0",
+          "sMsg": ""
+        }
+      ],
+      "code": "0",
+      "msg": ""
+    }
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::CREATE_ORDER);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "12345689");
+}
+
+TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradeCancelOrder) {
+  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "","same correlation id for subscription and request");
+  std::string textMessage = R"(
+    {
+      "code": "0",
+      "data": [
+        {
+          "clOrdId": "",
+          "ordId": "325631903554482176",
+          "sCode": "0",
+          "sMsg": ""
+        }
+      ],
+      "id": "1",
+      "msg": "",
+      "op": "cancel-order"
+    }
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::CANCEL_ORDER);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "325631903554482176");
+}
 } /* namespace ccapi */
 #endif
 #endif

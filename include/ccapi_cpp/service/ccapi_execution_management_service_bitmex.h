@@ -73,7 +73,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
@@ -172,7 +172,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         this->signRequest(req, "", credential);
       } break;
       default:
-        this->convertReqCustom(req, request, now, symbolId, credential);
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {

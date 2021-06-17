@@ -10,7 +10,7 @@ class MarketDataServiceOkex : public MarketDataService {
                         std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/public";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKEX_PUBLIC_WS_TARGET;
     ErrorCode ec = this->inflater.init(false);
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
@@ -81,6 +81,29 @@ void prepareSubscriptionDetail(std::string &channelId, const std::string &field,
     sendStringList.push_back(sendString);
     return sendStringList;
   }
+  std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
+    auto i = 0;
+    auto i1 = snapshotBid.rbegin();
+    auto i2 = snapshotAsk.begin();
+    std::vector<std::string> csData;
+    while (i < 25 && (i1 != snapshotBid.rend() || i2 != snapshotAsk.end())) {
+      if (i1 != snapshotBid.rend()) {
+        csData.push_back(toString(i1->first));
+        csData.push_back(i1->second);
+        ++i1;
+      }
+      if (i2 != snapshotAsk.end()) {
+        csData.push_back(toString(i2->first));
+        csData.push_back(i2->second);
+        ++i2;
+      }
+      ++i;
+    }
+    std::string csStr = UtilString::join(csData, ":");
+    CCAPI_LOGGER_DEBUG("csStr = " + csStr);
+    uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
+    return intToHex(csCalc);
+  }
   std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                     const TimePoint& timeReceived) override {
     std::vector<MarketDataMessage> marketDataMessageList;
@@ -100,6 +123,15 @@ void prepareSubscriptionDetail(std::string &channelId, const std::string &field,
             std::string action = channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 ? "" : document["action"].GetString();
             CCAPI_LOGGER_TRACE("action = " + toString(action));
             for (const auto& datum : document["data"].GetArray()) {
+              CCAPI_LOGGER_TRACE("this->sessionOptions.enableCheckOrderBookChecksum = "+toString(this->sessionOptions.enableCheckOrderBookChecksum));
+              if (this->sessionOptions.enableCheckOrderBookChecksum) {
+                auto it = datum.FindMember("checksum");
+                if (it!=datum.MemberEnd()){
+                  this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
+                      intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(it->value.GetInt())));
+                }
+              }
+              CCAPI_LOGGER_TRACE("this->orderBookChecksumByConnectionIdSymbolIdMap = "+toString(this->orderBookChecksumByConnectionIdSymbolIdMap));
               MarketDataMessage marketDataMessage;
               marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
               CCAPI_LOGGER_TRACE("marketDataMessage.tp = " + toString(marketDataMessage.tp));
@@ -149,7 +181,7 @@ void prepareSubscriptionDetail(std::string &channelId, const std::string &field,
     }
     return marketDataMessageList;
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
@@ -165,7 +197,7 @@ void prepareSubscriptionDetail(std::string &channelId, const std::string &field,
         req.target(target + "?" + queryString);
       } break;
       default:
-        this->convertReqCustom(req, request, now, symbolId, credential);
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,

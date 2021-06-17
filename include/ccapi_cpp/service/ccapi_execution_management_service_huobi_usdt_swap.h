@@ -121,7 +121,7 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
       default:
-        this->convertReqCustom(req, request, now, symbolId, credential);
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
