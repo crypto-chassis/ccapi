@@ -333,11 +333,11 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
   }
 
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) override {
-    Event event = this->createEvent(wsConnection,subscription,textMessage,document,timeReceived);
+    Event event = this->createEvent(subscription,textMessage,document,timeReceived);
     if (!event.getMessageList().empty()){this->eventHandler(event);}
   }
 
-  Event createEvent(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived)  {
+  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived)  {
     Event event;
     std::vector<Message> messageList;
     Message message;

@@ -534,7 +534,7 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventFills) {
 )");
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent({}, subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -578,7 +578,7 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventOrders) {
 )");
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent({}, subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);

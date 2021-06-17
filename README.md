@@ -316,9 +316,9 @@ Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTER
 
 #### Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed
 
-Instantiate `Subscription` with option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval.
+Instantiate `Subscription` with option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CONFLATE_GRACE_PERIOD_MILLISECONDS` to be the grace period for late events.
 ```
-Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000");
+Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
 ```
 
 #### Receive subscription market depth updates

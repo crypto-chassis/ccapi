@@ -477,7 +477,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventOpen) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent({}, subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -526,7 +526,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventMatch) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent({}, subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -570,7 +570,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventFilled) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent({}, subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -615,7 +615,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventCanceled) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent({}, subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -661,7 +661,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventChange) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent({}, subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
