@@ -51,7 +51,13 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     req.prepare_payload();
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> standardizationMap = {}) {
+                   const std::map<std::string, std::string> standardizationMap = {
+                       {CCAPI_EM_ORDER_SIDE, "side"},
+                       {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                       {CCAPI_EM_ORDER_QUANTITY, "size"},
+                       {CCAPI_EM_ORDER_TYPE, "type"},
+                       {CCAPI_EM_CLIENT_ORDER_ID, "clientId"},
+                   }) {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
@@ -68,9 +74,6 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
           document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
         }
       }
-    }
-    if (param.find("type") == param.end()) {
-      document.AddMember("type", rj::Value("limit").Move(), allocator);
     }
   }
   void appendParam_2(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
@@ -90,8 +93,8 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                             const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("FTX-KEY", apiKey);
@@ -108,14 +111,10 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param,
-                          {
-                              {CCAPI_EM_ORDER_SIDE, "side"},
-                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                              {CCAPI_EM_ORDER_QUANTITY, "size"},
-                              {CCAPI_EM_ORDER_TYPE, "type"},
-                              {CCAPI_EM_CLIENT_ORDER_ID, "clientId"},
-                          });
+        this->appendParam(document, allocator, param);
+        if (param.find("type") == param.end()) {
+          document.AddMember("type", rj::Value("limit").Move(), allocator);
+        }
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -198,7 +197,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
         this->signRequest(req, "", credential);
       } break;
       default:
-        this->convertReqCustom(req, request, now, symbolId, credential);
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
@@ -331,7 +330,16 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
     }
     return sendStringList;
   }
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) override {
+
+  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
+                     const TimePoint& timeReceived) override {
+    Event event = this->createEvent(subscription, textMessage, document, timeReceived);
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event);
+    }
+  }
+
+  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
     Message message;

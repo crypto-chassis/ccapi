@@ -32,6 +32,7 @@
       - [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
       - [Override exchange urls](#override-exchange-urls)
       - [Complex request parameters](#complex-request-parameters-1)
+      - [Send request by Websocket API](#send-request-by-websocket-api)
     - [FIX API](#fix-api)
     - [More Advanced Topics](#more-advanced-topics)
       - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
@@ -50,7 +51,7 @@
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
   * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin, ftx.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, ftx.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
@@ -77,7 +78,7 @@
 * Link libraries:
   * OpenSSL: libssl.
   * OpenSSL: libcrypto.
-  * If you need huobi or okex, also link ZLIB.
+  * If you need market data for huobi or okex, also link ZLIB.
   * On Windows, also link ws2_32.
 * Compiler flags:
   * `-pthread` for GCC and MinGW.
@@ -95,7 +96,7 @@
 * Require Python 3, SWIG, and CMake.
   * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
   * CMake: https://cmake.org/download/.
-* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need huobi or okex, also uncomment the lines corresponding to finding ZLIB.
+* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need market data for huobi or okex, also uncomment the lines corresponding to finding ZLIB.
 * Run the following commands.
 ```
 mkdir binding/build
@@ -316,7 +317,7 @@ Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTER
 
 #### Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed
 
-Instantiate `Subscription` with option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CONFLATE_GRACE_PERIOD_MILLISECONDS` to be your network latency.
+Instantiate `Subscription` with option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CONFLATE_GRACE_PERIOD_MILLISECONDS` to be the grace period for late events.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
 ```
@@ -632,7 +633,7 @@ std::vector<Event> eventList = eventQueue.purge();
 
 #### Provide API credentials for an exchange
 There are 3 ways to provide API credentials (listed with increasing priority).
-* Set the relevent environment variables (see section "exchange API credentials" in `include/ccapi_cpp/ccapi_macro.h`). Some exchanges might need additional credentials other than API keys and secrets: `COINBASE_API_PASSPHRASE`, `OKEX_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`, `KUCOIN_API_KEY_VERSION`, `FTX_API_SUBACCOUNT`.
+* Set the relevent environment variables (see section "exchange API credentials" in `include/ccapi_cpp/ccapi_macro.h`). Some exchanges might need additional credentials other than API keys and secrets: `COINBASE_API_PASSPHRASE`, `OKEX_API_PASSPHRASE`, `OKEX_API_X_SIMULATED_TRADING`, `KUCOIN_API_PASSPHRASE`, `KUCOIN_API_KEY_VERSION`, `FTX_API_SUBACCOUNT`.
 * Provide credentials to `SessionConfigs`.
 ```
 sessionConfigs.setCredential({
@@ -669,6 +670,20 @@ request.appendParam({
   {"price", "20000"},
   {"timeInForce", "GTC"}
 });
+```
+
+#### Send request by Websocket API
+```
+Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
+session.subscribe(subscription);
+...
+Request request(Request::Operation::CREATE_ORDER, "okex", "BTC-USDT", "same correlation id for subscription and request");
+request.appendParam({
+    {"SIDE", "BUY"},
+    {"LIMIT_PRICE", "20000"},
+    {"QUANTITY", "0.001"},
+});
+session.sendRequestByWebsocket(request);
 ```
 
 ### FIX API
