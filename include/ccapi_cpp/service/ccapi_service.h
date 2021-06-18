@@ -126,14 +126,14 @@ class Service : public std::enable_shared_from_this<Service> {
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
     }
   }
-  virtual void convertReqCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                                const std::map<std::string, std::string>& credential) {
-    auto errorMessage = "unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
+  virtual void convertRequestForRestCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                                           const std::map<std::string, std::string>& credential) {
+    auto errorMessage = "REST unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
     throw std::runtime_error(errorMessage);
   }
   virtual void subscribe(const std::vector<Subscription>& subscriptionList) {}
-  virtual void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                          const std::map<std::string, std::string>& credential) {}
+  virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                                     const std::map<std::string, std::string>& credential) {}
   virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
   std::shared_ptr<std::future<void>> sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -191,6 +191,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return futurePtr;
   }
+  virtual void sendRequestByWebsocket(const Request& request, const TimePoint& now) {}
   virtual void sendRequestByFix(const Request& request, const TimePoint& now) {}
   virtual void subscribeByFix(const Subscription& subscription) {}
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
@@ -735,7 +736,7 @@ class Service : public std::enable_shared_from_this<Service> {
       req.set(http::field::host, this->hostRest + ":" + this->portRest);
     }
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    this->convertReq(req, request, now, symbolId, credential);
+    this->convertRequestForRest(req, request, now, symbolId, credential);
     CCAPI_LOGGER_FUNCTION_EXIT;
     return req;
   }

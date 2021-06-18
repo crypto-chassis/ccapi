@@ -71,8 +71,8 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId, const std::string symbolIdCalled) {
     queryParamMap.insert(std::make_pair(symbolIdCalled, Url::urlEncode(symbolId)));
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                             const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     std::map<std::string, std::string> queryParamMap;

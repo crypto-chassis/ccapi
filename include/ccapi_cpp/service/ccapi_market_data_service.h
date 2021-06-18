@@ -85,20 +85,10 @@ class MarketDataService : public Service {
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
     return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
   }
-  void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
-    auto instrument = subscription.getInstrument();
-    CCAPI_LOGGER_TRACE("instrument = " + instrument);
-    auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
-    CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
-    auto field = subscription.getField();
-    CCAPI_LOGGER_TRACE("field = " + field);
-    auto optionMap = subscription.getOptionMap();
-    CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
+  virtual void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                         const std::map<std::string, std::string> optionMap) {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-    std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->exchangeName).at(field);
-    CCAPI_LOGGER_TRACE("channelId = " + channelId);
-    CCAPI_LOGGER_TRACE("this->exchangeName = " + this->exchangeName);
     if (field == CCAPI_MARKET_DEPTH) {
       if (this->exchangeName == CCAPI_EXCHANGE_NAME_KRAKEN || this->exchangeName == CCAPI_EXCHANGE_NAME_BITFINEX ||
           this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE_US || this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE ||
@@ -126,12 +116,6 @@ class MarketDataService : public Service {
         if (marketDepthRequested == 1) {
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
         }
-      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
-        if (marketDepthRequested <= 5) {
-          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5;
-        } else {
-          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400;
-        }
       } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
         if (marketDepthRequested <= 20) {
           channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
@@ -156,6 +140,20 @@ class MarketDataService : public Service {
         channelId += "|" + field;
       }
     }
+  }
+  void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
+    auto instrument = subscription.getInstrument();
+    CCAPI_LOGGER_TRACE("instrument = " + instrument);
+    auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+    CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
+    auto field = subscription.getField();
+    CCAPI_LOGGER_TRACE("field = " + field);
+    auto optionMap = subscription.getOptionMap();
+    CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
+    std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->exchangeName).at(field);
+    CCAPI_LOGGER_TRACE("channelId = " + channelId);
+    CCAPI_LOGGER_TRACE("this->exchangeName = " + this->exchangeName);
+    this->prepareSubscriptionDetail(channelId, field, wsConnection, symbolId, optionMap);
     CCAPI_LOGGER_TRACE("channelId = " + channelId);
     this->correlationIdListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(subscription.getCorrelationId());
     this->subscriptionListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(subscription);
@@ -206,7 +204,10 @@ class MarketDataService : public Service {
                 marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
               this->processOrderBookUpdate(wsConnection, channelId, symbolId, event, shouldEmitEvent, marketDataMessage.tp, timeReceived,
                                            marketDataMessage.data, field, optionMap, correlationIdList, snapshotBid, snapshotAsk);
-              if (this->sessionOptions.enableCheckOrderBookChecksum) {
+              if (this->sessionOptions.enableCheckOrderBookChecksum &&
+                  this->orderBookChecksumByConnectionIdSymbolIdMap.find(wsConnection.id) != this->orderBookChecksumByConnectionIdSymbolIdMap.end() &&
+                  this->orderBookChecksumByConnectionIdSymbolIdMap.at(wsConnection.id).find(symbolId) !=
+                      this->orderBookChecksumByConnectionIdSymbolIdMap.at(wsConnection.id).end()) {
                 bool shouldProcessRemainingMessage = true;
                 std::string receivedOrderBookChecksumStr = this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId];
                 if (!this->checkOrderBookChecksum(snapshotBid, snapshotAsk, receivedOrderBookChecksumStr, shouldProcessRemainingMessage)) {

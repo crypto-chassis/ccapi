@@ -85,8 +85,8 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
       target = target.replace(target.find(key), key.length(), value);
     }
   }
-  void convertReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                  const std::map<std::string, std::string>& credential) override {
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                             const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
@@ -179,7 +179,7 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         this->signRequest(req, now, credential);
       } break;
       default:
-        this->convertReqCustom(req, request, now, symbolId, credential);
+        this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {

@@ -462,7 +462,31 @@ class Session CCAPI_FINAL {
   }
   void sendRequestByFix(const std::vector<Request>& requestList) {
     for (const auto& x : requestList) {
-      this->sendRequest(x);
+      this->sendRequestByFix(x);
+    }
+  }
+  void sendRequestByWebsocket(const Request& request) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    auto serviceName = request.getServiceName();
+    CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
+    if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "please enable service: " + serviceName + ", and the exchanges that you want");
+      return;
+    }
+    std::map<std::string, wspp::lib::shared_ptr<Service> >& serviceByExchangeMap = this->serviceByServiceNameExchangeMap.at(serviceName);
+    auto exchange = request.getExchange();
+    if (serviceByExchangeMap.find(exchange) == serviceByExchangeMap.end()) {
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "please enable exchange: " + exchange);
+      return;
+    }
+    std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
+    auto now = UtilTime::now();
+    servicePtr->sendRequestByWebsocket(request, now);
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void sendRequestByWebsocket(const std::vector<Request>& requestList) {
+    for (const auto& x : requestList) {
+      this->sendRequestByWebsocket(x);
     }
   }
   void sendRequest(const Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
