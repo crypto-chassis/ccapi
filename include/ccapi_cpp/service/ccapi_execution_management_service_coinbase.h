@@ -263,7 +263,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
@@ -271,7 +270,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       this->eventHandler(event);
     }
   }
-
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;

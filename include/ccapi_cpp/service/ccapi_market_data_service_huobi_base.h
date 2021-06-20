@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_BASE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
-#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
 class MarketDataServiceHuobiBase : public MarketDataService {
@@ -21,6 +21,24 @@ class MarketDataServiceHuobiBase : public MarketDataService {
 
  protected:
 #endif
+void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                               const std::map<std::string, std::string> optionMap) override {
+  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+  auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+  CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+  if (field == CCAPI_MARKET_DEPTH) {
+    if (conflateIntervalMilliSeconds < 1000) {
+      if (marketDepthRequested ==1) {
+        channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
+      } else {
+        channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH;
+      }
+    } else {
+      channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH;
+    }
+  }
+}
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
@@ -45,7 +63,11 @@ class MarketDataServiceHuobiBase : public MarketDataService {
           exchangeSubscriptionId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL;
         }
         std::string toReplace("$symbol");
-        exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), symbolId);
+        std::string replacement(symbolId);
+        if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP){
+          replacement = UtilString::toUpper(replacement);
+        }
+        exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), replacement);
         document.AddMember("sub", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -83,7 +105,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
       auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
-      CCAPI_LOGGER_TRACE("channel = " + channelId);
+      CCAPI_LOGGER_TRACE("channelId = " + channelId);
       if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO_REGEX))) {
         CCAPI_LOGGER_TRACE("it is bbo");
         MarketDataMessage marketDataMessage;

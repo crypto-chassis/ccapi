@@ -112,11 +112,7 @@ class MarketDataService : public Service {
         } else if (marketDepthRequested <= 25) {
           channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
         }
-      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI || this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP) {
-        if (marketDepthRequested == 1) {
-          channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
-        }
-      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
+      }  else if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
         if (marketDepthRequested <= 20) {
           channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
                       std::to_string(marketDepthRequested);

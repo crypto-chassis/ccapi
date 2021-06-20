@@ -27,6 +27,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     this->getOrderTarget = "/v1/order/orders/{order-id}";
     this->getOrderByClientOrderIdTarget = "/v1/order/orders/getClientOrder";
     this->getOpenOrdersTarget = "/v1/order/openOrders";
+    this->getAccountsTarget="/v1/account/accounts";
+    this->getAccountBalancesTarget="/v1/account/accounts/{account-id}/balance";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobi() {}
@@ -120,6 +122,14 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         }
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
+      case Request::Operation::GET_ACCOUNTS: {
+        req.method(http::verb::get);
+        this->signRequest(req, this->getAccountsTarget, queryParamMap, credential);
+      }break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        req.method(http::verb::get);
+        this->signRequest(req, this->getAccountBalancesTarget, queryParamMap, credential);
+      }break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -152,6 +162,29 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
+    const auto& data = document["data"];
+    switch (request.getOperation()) {
+      case Request::Operation::GET_ACCOUNTS: {
+        for (const auto& x : data.GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
+          element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
+          elementList.emplace_back(std::move(element));
+        }
+      } break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        for (const auto& x : data["list"].GetArray()) {
+          if (std::string(x["type"].GetString())=="trade"){
+            Element element;
+            element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["balance"].GetString());
+            elementList.emplace_back(std::move(element));
+          }
+        }
+      } break;
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
     return elementList;
   }
   std::string cancelOrderByClientOrderIdTarget;

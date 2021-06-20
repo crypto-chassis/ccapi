@@ -28,7 +28,7 @@
 #include "websocketpp/client.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "websocketpp/config/asio_client.hpp"
-#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)
+#if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) && (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX))
 #include <iomanip>
 #include <sstream>
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
@@ -776,9 +776,9 @@ class Service : public std::enable_shared_from_this<Service> {
       queryString += key;
       queryString += "=";
       queryString += Url::urlEncode(kv.second);
-      if (i < param.size() - 1) {
+      // if (i < param.size() - 1) {
         queryString += "&";
-      }
+      // }
       ++i;
     }
   }
@@ -983,7 +983,7 @@ class Service : public std::enable_shared_from_this<Service> {
       }
     } else if (opcode == websocketpp::frame::opcode::binary) {
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) && \
-    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX))
+    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX))
       if (this->needDecompressWebsocketMessage) {
         std::string decompressed;
         const std::string& payload = msg->get_payload();
@@ -1143,7 +1143,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::string convertNumberToStringInJsonRewrite{"$1\"$2\""};
   bool needDecompressWebsocketMessage{};
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) && \
-    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX))
+    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX))
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled<monostate> inflater;
 #endif

@@ -411,6 +411,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, convertTextMessageToMessageRestGetA
   EXPECT_EQ(elementList.size(), 2);
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "5bd6e9286d99522a52e458de");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_TYPE), "main");
 }
 
 TEST_F(ExecutionManagementServiceKucoinTest, convertRequestGetAccountBalances) {

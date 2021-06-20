@@ -295,6 +295,95 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0");
 }
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/account/accounts");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::string textMessage =
+      R"({"code":"200000","data":
+        [
+        {
+    "id": 100009,
+    "type": "spot",
+    "subtype": "",
+    "state": "working"
+  }]
+  })";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNTS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "100009");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_TYPE), "spot");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ACCOUNT_ID, "5bd6e9286d99522a52e458de"},
+  };
+  request.appendParam(param);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/account/accounts/5bd6e9286d99522a52e458de/balance");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::string textMessage =
+      R"({"code":"200000","data":
+      {
+  "id": 100009,
+  "type": "spot",
+  "state": "working",
+  "list": [
+    {
+      "currency": "usdt",
+      "type": "trade",
+      "balance": "500009195917.4362872650"
+    },
+    {
+      "currency": "usdt",
+      "type": "frozen",
+      "balance": "328048.1199920000"
+    },
+   {
+      "currency": "etc",
+      "type": "trade",
+      "balance": "499999894616.1302471000"
+    }
+  ],
+}
+  })";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 2);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "usdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "500009195917.4362872650");
+}
 } /* namespace ccapi */
 #endif
 #endif
