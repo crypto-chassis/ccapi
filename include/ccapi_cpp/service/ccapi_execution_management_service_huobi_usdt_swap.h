@@ -8,7 +8,7 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
  public:
   ExecutionManagementServiceHuobiUsdtSwap(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                           ServiceContextPtr serviceContextPtr)
-      : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : ExecutionManagementServiceHuobiDerivativesBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -25,8 +25,8 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
     this->cancelOrderTarget = CCAPI_HUOBI_USDT_SWAP_CANCEL_ORDER_TARGET;
     this->getOrderTarget = CCAPI_HUOBI_USDT_SWAP_GET_ORDER_TARGET;
     this->getOpenOrdersTarget = CCAPI_HUOBI_USDT_SWAP_GET_OPEN_ORDERS_TARGET;
-    this->getAccountBalancesTarget=CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_BALANCES;
-    this->getAccountPositionsTarget=CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_POSITIONS;
+    this->getAccountBalancesTarget = CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_BALANCES_TARGET;
+    this->getAccountPositionsTarget = CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_POSITIONS_TARGET;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobiUsdtSwap() {}

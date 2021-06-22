@@ -94,14 +94,111 @@ class Decimal CCAPI_FINAL {
   friend bool operator>=(const Decimal& l, const Decimal& r) { return !(l < r); }
   friend bool operator==(const Decimal& l, const Decimal& r) { return !(l > r) && !(l < r); }
   friend bool operator!=(const Decimal& l, const Decimal& r) { return !(l == r); }
-#ifndef CCAPI_EXPOSE_INTERNAL
-
- private:
-#endif
+  Decimal negate() const {
+    Decimal o;
+    o.before = this->before;
+    o.frac = this->frac;
+    o.sign = !this->sign;
+    return o;
+  }
+  Decimal add(const Decimal& x) const {
+    if (this->sign && x.sign) {
+      Decimal o;
+      o.sign = true;
+      o.before = this->before + x.before;
+      if (this->frac.empty()) {
+        o.frac = x.frac;
+      } else if (x.frac.empty()) {
+        o.frac = this->frac;
+      } else {
+        auto l1 = this->frac.length();
+        auto l2 = x.frac.length();
+        if (l1 > l2) {
+          auto a = std::to_string(std::stoul(this->frac) + std::stoul(UtilString::rightPadTo(x.frac, l1, '0')));
+          if (a.length() < l1) {
+            a = UtilString::leftPadTo(a, l1, '0');
+          }
+          if (a.length() == l1) {
+            o.frac = UtilString::rtrim(a, "0");
+          } else {
+            o.frac = UtilString::rtrim(a.substr(a.length() - l1), "0");
+            o.before += std::stoul(a.substr(0, a.length() - l1));
+          }
+        } else if (l1 < l2) {
+          auto a = std::to_string(std::stoul(UtilString::rightPadTo(this->frac, l2, '0')) + std::stoul(x.frac));
+          if (a.length() < l2) {
+            a = UtilString::leftPadTo(a, l2, '0');
+          }
+          if (a.length() == l2) {
+            o.frac = UtilString::rtrim(a, "0");
+          } else {
+            o.frac = UtilString::rtrim(a.substr(a.length() - l2), "0");
+            o.before += std::stoul(a.substr(0, a.length() - l2));
+          }
+        } else {
+          auto a = std::to_string(std::stoul(this->frac) + std::stoul(x.frac));
+          if (a.length() < l1) {
+            a = UtilString::leftPadTo(a, l1, '0');
+          }
+          if (a.length() == l1) {
+            o.frac = UtilString::rtrim(a, "0");
+          } else {
+            o.frac = UtilString::rtrim(a.substr(a.length() - l1), "0");
+            o.before += std::stoul(a.substr(0, a.length() - l1));
+          }
+        }
+      }
+      return o;
+    } else if (!this->sign && x.sign) {
+      return x.subtract(this->negate());
+    } else if (this->sign && !x.sign) {
+      return this->subtract(x.negate());
+    } else {
+      return (this->negate().add(x.negate())).negate();
+    }
+  }
+  Decimal subtract(const Decimal& x) const {
+    if (this->sign && x.sign) {
+      if (*this > x) {
+        Decimal o;
+        o.sign = true;
+        if (this->frac >= x.frac) {
+          o.before = this->before - x.before;
+        } else {
+          o.before = this->before - 1 - x.before;
+        }
+        auto l1 = this->frac.length();
+        std::cout << "l1=" << l1 << std::endl;
+        auto l2 = x.frac.length();
+        std::cout << "l2=" << l2 << std::endl;
+        auto lmax = std::max(l1, l2);
+        std::cout << "lmax=" << lmax << std::endl;
+        auto a = std::to_string(std::stoul(UtilString::rightPadTo(this->frac, lmax, '0')) +
+                                (this->frac >= x.frac ? (unsigned)0 : std::stoul(UtilString::rightPadTo("1", 1 + lmax, '0'))) -
+                                std::stoul(UtilString::rightPadTo(x.frac, lmax, '0')));
+        std::cout << "a=" + a << std::endl;
+        if (a.length() < lmax) {
+          a = UtilString::leftPadTo(a, lmax, '0');
+          std::cout << "leftPadTo" << std::endl;
+        }
+        std::cout << "a=" + a << std::endl;
+        o.frac = UtilString::rtrim(a, "0");
+        return o;
+      } else {
+        return x.subtract(*this).negate();
+      }
+    } else if (!this->sign && x.sign) {
+      return x.subtract(this->negate());
+    } else if (this->sign && !x.sign) {
+      return this->subtract(x.negate());
+    } else {
+      return x.negate().subtract(this->negate());
+    }
+  }
   // {-}bbbb.aaaa
   unsigned long before{};
   std::string frac;
-  // -1 means negative sign needed
+  // false means negative sign needed
   bool sign{};
 };
 } /* namespace ccapi */

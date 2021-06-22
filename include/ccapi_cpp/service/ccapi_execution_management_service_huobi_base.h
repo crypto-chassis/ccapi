@@ -1,7 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_HUOBI_BASE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_HUOBI_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
 class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
@@ -19,7 +19,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     std::string preSignedText;
     preSignedText += std::string(req.method_string());
     preSignedText += "\n";
-    preSignedText += this->isDerivatives ? this->hostRest : req.base().at(http::field::host).to_string();
+    preSignedText += this->hostRest;
     preSignedText += "\n";
     preSignedText += path;
     preSignedText += "\n";

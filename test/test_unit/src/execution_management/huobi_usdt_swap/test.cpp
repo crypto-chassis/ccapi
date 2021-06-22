@@ -361,84 +361,64 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetAccountBalances) {
-  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
-  EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
-  EXPECT_EQ(req.target().to_string(), "/api/v5/account/balance");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  EXPECT_EQ(req.method(), http::verb::post);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_account_info");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAccountBalances) {
-  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
   std::string textMessage =
       R"(
         {
-    "code": "0",
-    "data": [
+    "status":"ok",
+    "data":[
         {
-            "adjEq": "10679688.0460531643092577",
-            "details": [
+            "margin_mode":"cross",
+            "margin_account":"USDT",
+            "margin_asset":"USDT",
+            "margin_balance":0.000000549410817836,
+            "margin_static":0.000000549410817836,
+            "margin_position":0,
+            "margin_frozen":0,
+            "profit_real":0,
+            "profit_unreal":0,
+            "withdraw_available":0.000000549410817836,
+            "risk_rate":null,
+            "contract_detail":[
                 {
-                    "availBal": "",
-                    "availEq": "9930359.9998",
-                    "cashBal": "9930359.9998",
-                    "ccy": "USDT",
-                    "crossLiab": "0",
-                    "disEq": "9439737.0772999514",
-                    "eq": "9930359.9998",
-                    "eqUsd": "9933041.196999946",
-                    "frozenBal": "0",
-                    "interest": "0",
-                    "isoEq": "0",
-                    "isoLiab": "0",
-                    "liab": "0",
-                    "maxLoan": "10000",
-                    "mgnRatio": "",
-                    "notionalLever": "",
-                    "ordFrozen": "0",
-                    "twap": "0",
-                    "uTime": "1620722938250",
-                    "upl": "0",
-                    "uplLiab": "0"
+                    "symbol":"BTC",
+                    "contract_code":"BTC-USDT",
+                    "margin_position":0,
+                    "margin_frozen":0,
+                    "margin_available":0.000000549410817836,
+                    "profit_unreal":0,
+                    "liquidation_price":null,
+                    "lever_rate":100,
+                    "adjust_factor":0.55
                 },
                 {
-                    "availBal": "",
-                    "availEq": "33.6799714158199414",
-                    "cashBal": "33.2009985",
-                    "ccy": "BTC",
-                    "crossLiab": "0",
-                    "disEq": "1239950.9687532129092577",
-                    "eq": "33.771820625136023",
-                    "eqUsd": "1239950.9687532129092577",
-                    "frozenBal": "0.0918492093160816",
-                    "interest": "0",
-                    "isoEq": "0",
-                    "isoLiab": "0",
-                    "liab": "0",
-                    "maxLoan": "1453.92289531493594",
-                    "mgnRatio": "",
-                    "notionalLever": "",
-                    "ordFrozen": "0",
-                    "twap": "0",
-                    "uTime": "1620722938250",
-                    "upl": "0.570822125136023",
-                    "uplLiab": "0"
+                    "symbol":"EOS",
+                    "contract_code":"EOS-USDT",
+                    "margin_position":0,
+                    "margin_frozen":0,
+                    "margin_available":0.000000549410817836,
+                    "profit_unreal":0,
+                    "liquidation_price":null,
+                    "lever_rate":5,
+                    "adjust_factor":0.06
                 }
-            ],
-            "imr": "3372.2942371050594217",
-            "isoEq": "0",
-            "mgnRatio": "70375.35408747017",
-            "mmr": "134.8917694842024",
-            "notionalUsd": "33722.9423710505978888",
-            "ordFroz": "0",
-            "totalEq": "11172992.1657531589092577",
-            "uTime": "1623392334718"
+            ]
         }
     ],
-    "msg": ""
-  }
+    "ts":1606906200680
+}
   )";
   auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
@@ -446,70 +426,52 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAcc
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
   auto elementList = message.getElementList();
-  EXPECT_EQ(elementList.size(), 2);
+  EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USDT");
-  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "9930359.9998");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "0.000000549410817836");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetAccountPositions) {
-  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
-  EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
-  EXPECT_EQ(req.target().to_string(), "/api/v5/account/positions");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  EXPECT_EQ(req.method(), http::verb::post);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_position_info");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAccountPositions) {
-  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
   std::string textMessage =
       R"(
         {
-          "code": "0",
-          "msg": "",
-          "data": [
-            {
-              "adl":"1",
-              "availPos":"1",
-              "avgPx":"2566.31",
-              "cTime":"1619507758793",
-              "ccy":"ETH",
-              "deltaBS":"",
-              "deltaPA":"",
-              "gammaBS":"",
-              "gammaPA":"",
-              "imr":"",
-              "instId":"ETH-USD-210430",
-              "instType":"FUTURES",
-              "interest":"0",
-              "last":"2566.22",
-              "lever":"10",
-              "liab":"",
-              "liabCcy":"",
-              "liqPx":"2352.8496681818233",
-              "margin":"0.0003896645377994",
-              "mgnMode":"isolated",
-              "mgnRatio":"11.731726509588816",
-              "mmr":"0.0000311811092368",
-              "notionalUsd":"2276.2546609009605",
-              "optVal":"",
-              "pTime":"1619507761462",
-              "pos":"1",
-              "posCcy":"",
-              "posId":"307173036051017730",
-              "posSide":"long",
-              "thetaBS":"",
-              "thetaPA":"",
-              "tradeId":"109844",
-              "uTime":"1619507761462",
-              "upl":"-0.0000009932766034",
-              "uplRatio":"-0.0025490556801078",
-              "vegaBS":"",
-              "vegaPA":""
-            }
-          ]
+    "status": "ok",
+    "data": [
+        {
+            "symbol": "BTC",
+            "contract_code": "BTC-USDT",
+            "volume": 2,
+            "available": 2,
+            "frozen": 0,
+            "cost_open": 51179.1,
+            "cost_hold": 51179.1,
+            "profit_unreal": 0,
+            "profit_rate": 0,
+            "lever_rate": 100,
+            "position_margin": 10.23582,
+            "direction": "sell",
+            "profit": 0,
+            "last_price": 51179.1,
+            "margin_asset": "USDT",
+            "margin_mode": "cross",
+            "margin_account": "USDT"
         }
+    ],
+    "ts": 1606962314205
+}
   )";
   auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
@@ -519,10 +481,10 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAcc
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "ETH-USD-210430");
-  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "long");
-  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "1");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_COST)), 2566.31);
+  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "BTC-USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "sell");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "51179.1");
 }
 } /* namespace ccapi */
 #endif

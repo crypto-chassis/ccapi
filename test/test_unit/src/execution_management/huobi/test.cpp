@@ -35,7 +35,7 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   std::string preSignedText;
   preSignedText += std::string(req.method_string());
   preSignedText += "\n";
-  preSignedText += req.base().at(http::field::host).to_string();
+  preSignedText += "api.huobi.pro";
   preSignedText += "\n";
   auto splitted = UtilString::split(req.target().to_string(), "?");
   preSignedText += splitted.at(0);
@@ -349,40 +349,33 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccountBalances) {
 TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAccountBalances) {
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
   std::string textMessage =
-      R"({"code":"200000","data":
+      R"(
+        {
+  "status": "ok",
+  "data": {
+    "id": 17469548,
+    "type": "spot",
+    "state": "working",
+    "list": [
       {
-  "id": 100009,
-  "type": "spot",
-  "state": "working",
-  "list": [
-    {
-      "currency": "usdt",
-      "type": "trade",
-      "balance": "500009195917.4362872650"
-    },
-    {
-      "currency": "usdt",
-      "type": "frozen",
-      "balance": "328048.1199920000"
-    },
-   {
-      "currency": "etc",
-      "type": "trade",
-      "balance": "499999894616.1302471000"
-    }
-  ],
+        "currency": "lun",
+        "type": "trade",
+        "balance": "0"
+      }
+    ]
+  }
 }
-  })";
+      )";
   auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, request.getCorrelationId());
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
   auto elementList = message.getElementList();
-  EXPECT_EQ(elementList.size(), 2);
+  EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "usdt");
-  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "500009195917.4362872650");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "lun");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "0");
 }
 } /* namespace ccapi */
 #endif

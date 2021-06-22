@@ -2,15 +2,17 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_HUOBI_DERIVATIVES_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
+#include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_base.h"
 namespace ccapi {
 class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagementServiceHuobiBase {
  public:
   ExecutionManagementServiceHuobiDerivativesBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                          ServiceContextPtr serviceContextPtr)
+                                                 ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->isDerivatives = true;
+    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobiDerivativesBase() {}
@@ -41,6 +43,15 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
                               {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
                           });
+        if (param.find("offset") == param.end()) {
+          document.AddMember("offset", rj::Value("open").Move(), allocator);
+        }
+        if (param.find("lever_rate") == param.end()) {
+          document.AddMember("lever_rate", rj::Value("1").Move(), allocator);
+        }
+        if (param.find("order_price_type") == param.end()) {
+          document.AddMember("order_price_type", rj::Value("limit").Move(), allocator);
+        }
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -106,13 +117,13 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        req.method(http::verb::get);
+        req.method(http::verb::post);
         this->signRequest(req, this->getAccountBalancesTarget, queryParamMap, credential);
-      }break;
+      } break;
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
-        req.method(http::verb::get);
+        req.method(http::verb::post);
         this->signRequest(req, this->getAccountPositionsTarget, queryParamMap, credential);
-      }break;
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -149,15 +160,15 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     const auto& data = document["data"];
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        for (const auto& x : data["list"].GetArray()) {
-          if (std::string(x["type"].GetString())=="trade"){
-            Element element;
-            element.insert(CCAPI_EM_ASSET, x["margin_asset"].GetString());
-            auto marginVailable = std::to_string(std::stod(x["margin_balance"].GetString())-std::stod(x["margin_position"].GetString())-std::stod(x["margin_frozen"].GetString()));
-            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, marginVailable);
-            elementList.emplace_back(std::move(element));
-          }
-        }
+        Element element;
+        auto it = data[0].FindMember("margin_asset");
+        element.insert(CCAPI_EM_ASSET, it != data[0].MemberEnd() ? it->value.GetString() : data[0]["symbol"].GetString());
+        auto marginAvailable = Decimal(data[0]["margin_balance"].GetString())
+                                   .subtract(Decimal(data[0]["margin_position"].GetString()))
+                                   .subtract(Decimal(data[0]["margin_frozen"].GetString()))
+                                   .toString();
+        element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, marginAvailable);
+        elementList.emplace_back(std::move(element));
       } break;
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : data.GetArray()) {
@@ -167,7 +178,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["available"].GetString());
           element.insert(CCAPI_EM_POSITION_COST, x["cost_open"].GetString());
           elementList.emplace_back(std::move(element));
-                  }
+        }
       } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);

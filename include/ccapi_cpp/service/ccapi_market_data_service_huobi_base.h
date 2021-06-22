@@ -21,24 +21,24 @@ class MarketDataServiceHuobiBase : public MarketDataService {
 
  protected:
 #endif
-void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
-                               const std::map<std::string, std::string> optionMap) override {
-  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-  auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-  CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
-  if (field == CCAPI_MARKET_DEPTH) {
-    if (conflateIntervalMilliSeconds < 1000) {
-      if (marketDepthRequested ==1) {
-        channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+    if (field == CCAPI_MARKET_DEPTH) {
+      if (conflateIntervalMilliSeconds < 1000) {
+        if (marketDepthRequested == 1) {
+          channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
+        } else {
+          channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH;
+        }
       } else {
         channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH;
       }
-    } else {
-      channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH;
     }
   }
-}
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
@@ -64,7 +64,7 @@ void prepareSubscriptionDetail(std::string& channelId, const std::string& field,
         }
         std::string toReplace("$symbol");
         std::string replacement(symbolId);
-        if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP){
+        if (this->exchangeName == CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP) {
           replacement = UtilString::toUpper(replacement);
         }
         exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), replacement);
