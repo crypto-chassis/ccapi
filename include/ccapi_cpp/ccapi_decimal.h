@@ -168,20 +168,14 @@ class Decimal CCAPI_FINAL {
           o.before = this->before - 1 - x.before;
         }
         auto l1 = this->frac.length();
-        std::cout << "l1=" << l1 << std::endl;
         auto l2 = x.frac.length();
-        std::cout << "l2=" << l2 << std::endl;
         auto lmax = std::max(l1, l2);
-        std::cout << "lmax=" << lmax << std::endl;
         auto a = std::to_string(std::stoul(UtilString::rightPadTo(this->frac, lmax, '0')) +
                                 (this->frac >= x.frac ? (unsigned)0 : std::stoul(UtilString::rightPadTo("1", 1 + lmax, '0'))) -
                                 std::stoul(UtilString::rightPadTo(x.frac, lmax, '0')));
-        std::cout << "a=" + a << std::endl;
         if (a.length() < lmax) {
           a = UtilString::leftPadTo(a, lmax, '0');
-          std::cout << "leftPadTo" << std::endl;
         }
-        std::cout << "a=" + a << std::endl;
         o.frac = UtilString::rtrim(a, "0");
         return o;
       } else {

@@ -777,9 +777,7 @@ class Service : public std::enable_shared_from_this<Service> {
       queryString += key;
       queryString += "=";
       queryString += Url::urlEncode(kv.second);
-      // if (i < param.size() - 1) {
       queryString += "&";
-      // }
       ++i;
     }
   }
