@@ -35,7 +35,7 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   std::string preSignedText;
   preSignedText += std::string(req.method_string());
   preSignedText += "\n";
-  preSignedText += req.base().at(http::field::host).to_string();
+  preSignedText += "api.huobi.pro";
   preSignedText += "\n";
   auto splitted = UtilString::split(req.target().to_string(), "?");
   preSignedText += splitted.at(0);
@@ -294,6 +294,88 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.453000000000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/account/accounts");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::string textMessage =
+      R"({"code":"200000","data":
+        [
+        {
+    "id": 100009,
+    "type": "spot",
+    "subtype": "",
+    "state": "working"
+  }]
+  })";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNTS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "100009");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_TYPE), "spot");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ACCOUNT_ID, "5bd6e9286d99522a52e458de"},
+  };
+  request.appendParam(param);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/account/accounts/5bd6e9286d99522a52e458de/balance");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+  "status": "ok",
+  "data": {
+    "id": 17469548,
+    "type": "spot",
+    "state": "working",
+    "list": [
+      {
+        "currency": "lun",
+        "type": "trade",
+        "balance": "0"
+      }
+    ]
+  }
+}
+      )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "lun");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "0");
 }
 } /* namespace ccapi */
 #endif
