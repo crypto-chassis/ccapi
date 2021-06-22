@@ -48,7 +48,7 @@ class Decimal CCAPI_FINAL {
     }
     std::vector<std::string> splitted = UtilString::split(fixedPointValue, ".");
     // TODO(cryptochassis): replace with std::from_chars() once upgrade to C++17
-    this->before = std::stoul(splitted.at(0));
+    this->before = std::stoull(splitted.at(0));
     if (splitted.size() > 1) {
       this->frac = splitted.at(1);
       if (!keepTrailingZero) {
@@ -114,7 +114,7 @@ class Decimal CCAPI_FINAL {
         auto l1 = this->frac.length();
         auto l2 = x.frac.length();
         if (l1 > l2) {
-          auto a = std::to_string(std::stoul(this->frac) + std::stoul(UtilString::rightPadTo(x.frac, l1, '0')));
+          auto a = std::to_string(std::stoull(this->frac) + std::stoull(UtilString::rightPadTo(x.frac, l1, '0')));
           if (a.length() < l1) {
             a = UtilString::leftPadTo(a, l1, '0');
           }
@@ -122,10 +122,10 @@ class Decimal CCAPI_FINAL {
             o.frac = UtilString::rtrim(a, "0");
           } else {
             o.frac = UtilString::rtrim(a.substr(a.length() - l1), "0");
-            o.before += std::stoul(a.substr(0, a.length() - l1));
+            o.before += std::stoull(a.substr(0, a.length() - l1));
           }
         } else if (l1 < l2) {
-          auto a = std::to_string(std::stoul(UtilString::rightPadTo(this->frac, l2, '0')) + std::stoul(x.frac));
+          auto a = std::to_string(std::stoull(UtilString::rightPadTo(this->frac, l2, '0')) + std::stoull(x.frac));
           if (a.length() < l2) {
             a = UtilString::leftPadTo(a, l2, '0');
           }
@@ -133,10 +133,10 @@ class Decimal CCAPI_FINAL {
             o.frac = UtilString::rtrim(a, "0");
           } else {
             o.frac = UtilString::rtrim(a.substr(a.length() - l2), "0");
-            o.before += std::stoul(a.substr(0, a.length() - l2));
+            o.before += std::stoull(a.substr(0, a.length() - l2));
           }
         } else {
-          auto a = std::to_string(std::stoul(this->frac) + std::stoul(x.frac));
+          auto a = std::to_string(std::stoull(this->frac) + std::stoull(x.frac));
           if (a.length() < l1) {
             a = UtilString::leftPadTo(a, l1, '0');
           }
@@ -144,7 +144,7 @@ class Decimal CCAPI_FINAL {
             o.frac = UtilString::rtrim(a, "0");
           } else {
             o.frac = UtilString::rtrim(a.substr(a.length() - l1), "0");
-            o.before += std::stoul(a.substr(0, a.length() - l1));
+            o.before += std::stoull(a.substr(0, a.length() - l1));
           }
         }
       }
@@ -170,9 +170,9 @@ class Decimal CCAPI_FINAL {
         auto l1 = this->frac.length();
         auto l2 = x.frac.length();
         auto lmax = std::max(l1, l2);
-        auto a = std::to_string(std::stoul(UtilString::rightPadTo(this->frac, lmax, '0')) +
-                                (this->frac >= x.frac ? (unsigned)0 : std::stoul(UtilString::rightPadTo("1", 1 + lmax, '0'))) -
-                                std::stoul(UtilString::rightPadTo(x.frac, lmax, '0')));
+        auto a = std::to_string(std::stoull(UtilString::rightPadTo(this->frac, lmax, '0')) +
+                                (this->frac >= x.frac ? (unsigned)0 : std::stoull(UtilString::rightPadTo("1", 1 + lmax, '0'))) -
+                                std::stoull(UtilString::rightPadTo(x.frac, lmax, '0')));
         if (a.length() < lmax) {
           a = UtilString::leftPadTo(a, lmax, '0');
         }
@@ -190,7 +190,7 @@ class Decimal CCAPI_FINAL {
     }
   }
   // {-}bbbb.aaaa
-  unsigned long before{};
+  unsigned long long before{};
   std::string frac;
   // false means negative sign needed
   bool sign{};
