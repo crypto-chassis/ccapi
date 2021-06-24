@@ -14,8 +14,8 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
 
  protected:
 #endif
-  void createSignature(std::string& signature, std::string& queryString, const std::string& reqMethod,const std::string& host,const std::string& path,const std::map<std::string,
-    std::string>& queryParamMap,const std::map<std::string, std::string>& credential){
+  void createSignature(std::string& signature, std::string& queryString, const std::string& reqMethod, const std::string& host, const std::string& path,
+                       const std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& credential) {
     std::string preSignedText;
     preSignedText += reqMethod;
     preSignedText += "\n";
@@ -34,15 +34,14 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
       i++;
     }
     preSignedText += queryString;
-    CCAPI_LOGGER_INFO("preSignedText="+preSignedText);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
   }
   void signRequest(http::request<http::string_body>& req, const std::string& path, const std::map<std::string, std::string>& queryParamMap,
                    const std::map<std::string, std::string>& credential) {
-                     std::string signature;
-                     std::string queryString;
-                     this->createSignature(signature,queryString,std::string(req.method_string()),this->hostRest,path,queryParamMap,credential);
+    std::string signature;
+    std::string queryString;
+    this->createSignature(signature, queryString, std::string(req.method_string()), this->hostRest, path, queryParamMap, credential);
     queryString += "&Signature=";
     queryString += Url::urlEncode(signature);
     req.target(path + "?" + queryString);

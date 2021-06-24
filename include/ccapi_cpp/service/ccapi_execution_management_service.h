@@ -105,8 +105,7 @@ class ExecutionManagementService : public Service {
                                       : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) : "null";
         if (y.first == CCAPI_EM_ORDER_INSTRUMENT) {
           value = this->convertRestSymbolIdToInstrument(value);
-        }
-        else if (y.first == CCAPI_EM_ORDER_SIDE) {
+        } else if (y.first == CCAPI_EM_ORDER_SIDE) {
           value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
         }
         element.insert(y.first, value);

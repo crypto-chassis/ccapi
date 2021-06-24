@@ -11,7 +11,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/ws/v2";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/v2";
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -202,7 +202,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     queryParamMap.insert(std::make_pair("signatureMethod", "HmacSHA256"));
     queryParamMap.insert(std::make_pair("signatureVersion", "2.1"));
     queryParamMap.insert(std::make_pair("timestamp", Url::urlEncode(timestamp)));
-    this->createSignature(signature,queryString,"GET",this->hostRest,"/ws/v2",queryParamMap,credential);
+    this->createSignature(signature, queryString, "GET", this->hostRest, "/ws/v2", queryParamMap, credential);
     std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
@@ -216,7 +216,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     params.AddMember("signatureVersion", rj::Value("2.1").Move(), allocator);
     params.AddMember("timestamp", rj::Value(timestamp.c_str(), allocator).Move(), allocator);
     params.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
-    document.AddMember("params",params,allocator);
+    document.AddMember("params", params, allocator);
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
@@ -235,7 +235,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         auto code = document["code"].GetInt();
         if (code == 200) {
           std::set<std::string> symbols;
-          if (instrumentSet.empty()){
+          if (instrumentSet.empty()) {
             symbols = {"*"};
           } else {
             symbols = instrumentSet;
@@ -247,17 +247,16 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
               auto& allocator = document.GetAllocator();
               document.AddMember("action", rj::Value("sub").Move(), allocator);
               std::string ch;
-              if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() ) {
-                ch = "orders#"+symbol;
-              } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()){
-                ch = "trade.clearing#"+symbol;
+              if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+                ch = "orders#" + symbol;
+              } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+                ch = "trade.clearing#" + symbol;
               }
-              document.AddMember("ch", rj::Value(ch.c_str(),allocator).Move(),allocator);
+              document.AddMember("ch", rj::Value(ch.c_str(), allocator).Move(), allocator);
               rj::StringBuffer stringBufferSubscribe;
               rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
               document.Accept(writerSubscribe);
               std::string sendString = stringBufferSubscribe.GetString();
-              CCAPI_LOGGER_INFO("sendString = " + sendString);
               ErrorCode ec;
               this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
               if (ec) {
@@ -269,7 +268,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, textMessage, {subscription.getCorrelationId()});
         }
       }
-    } else if (actionStr == "ping"){
+    } else if (actionStr == "ping") {
       rj::StringBuffer stringBufferSubscribe;
       rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
       document.Accept(writerSubscribe);
@@ -297,20 +296,20 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     message.setCorrelationIdList({subscription.getCorrelationId()});
     auto fieldSet = subscription.getFieldSet();
     auto instrumentSet = subscription.getInstrumentSet();
-    if (actionStr=="push") {
+    if (actionStr == "push") {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       Message message;
       message.setTimeReceived(timeReceived);
       message.setCorrelationIdList({subscription.getCorrelationId()});
-      std::string ch=document["ch"].GetString();
-      if(ch.rfind("orders#", 0) == 0 && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+      std::string ch = document["ch"].GetString();
+      if (ch.rfind("orders#", 0) == 0 && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
         const rj::Value& data = document["data"];
         auto instrument = this->convertWebsocketSymbolIdToInstrument(data["symbol"].GetString());
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           auto it = data.FindMember("lastActTime");
-          if (it==data.MemberEnd()){
+          if (it == data.MemberEnd()) {
             it = data.FindMember("orderCreateTime");
-            if (it==data.MemberEnd()){
+            if (it == data.MemberEnd()) {
               it = data.FindMember("tradeTime");
             }
           }
@@ -328,12 +327,16 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
               {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
           };
           Element info = this->extractOrderInfo(data, extractionFieldNameMap);
+          std::string dataEventType = data["eventType"].GetString();
+          if (dataEventType == "trigger" || dataEventType == "deletion") {
+            info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+          }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
           messageList.push_back(std::move(message));
         }
-      } else if(ch.rfind("trade.clearing#", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+      } else if (ch.rfind("trade.clearing#", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         const rj::Value& data = document["data"];
         auto instrument = this->convertWebsocketSymbolIdToInstrument(data["symbol"].GetString());
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
