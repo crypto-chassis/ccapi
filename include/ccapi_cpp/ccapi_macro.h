@@ -455,10 +455,10 @@
 #define CCAPI_HUOBI_URL_WS_BASE "wss://api.huobi.pro"
 #endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE
-#define CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE "wss://api.hbdm.com/linear-swap-ws"
+#define CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE "wss://api.hbdm.com"
 #endif
 #ifndef CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE
-#define CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE "wss://api.hbdm.com/swap-ws"
+#define CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE "wss://api.hbdm.com"
 #endif
 #ifndef CCAPI_OKEX_URL_WS_BASE
 #define CCAPI_OKEX_URL_WS_BASE "wss://ws.okex.com:8443"

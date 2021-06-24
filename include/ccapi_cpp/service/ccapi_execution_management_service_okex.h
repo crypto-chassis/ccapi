@@ -329,7 +329,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
     auto it = document.FindMember("event");
@@ -373,7 +372,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       }
     }
   }
-
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const std::string& eventStr,
                     const TimePoint& timeReceived) {
     Event event;

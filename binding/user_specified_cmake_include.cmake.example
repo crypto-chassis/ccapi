@@ -22,6 +22,7 @@
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
 #
@@ -42,3 +43,6 @@
 # add_compile_definitions(CCAPI_ENABLE_LOG_ERROR)
 #
 # add_compile_definitions(CCAPI_ENABLE_LOG_FATAL)
+#
+# find_package(ZLIB REQUIRED)
+# link_libraries(ZLIB::ZLIB)
