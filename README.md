@@ -661,17 +661,6 @@ See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in
 #### Complex request parameters
 Please follow the exchange's API documentations: e.g. https://github.com/binance-us/binance-official-api-docs/blob/master/rest-api.md#new-order--trade.
 ```
-Request request(Request::Operation::CREATE_ORDER, "okex", "BTC-USDT", "same correlation id for subscription and request");
-request.appendParam({
-    {"SIDE", "BUY"},
-    {"LIMIT_PRICE", "20000"},
-    {"QUANTITY", "0.001"},
-});
-session.sendRequestByWebsocket(request);
-```
-
-#### Send request by Websocket API
-```
 Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
 request.appendParam({
   {"side", "SELL"},
@@ -681,6 +670,20 @@ request.appendParam({
   {"price", "20000"},
   {"timeInForce", "GTC"}
 });
+```
+
+#### Send request by Websocket API
+```
+Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
+session.subscribe(subscription);
+...
+Request request(Request::Operation::CREATE_ORDER, "okex", "BTC-USDT", "same correlation id for subscription and request");
+request.appendParam({
+    {"SIDE", "BUY"},
+    {"LIMIT_PRICE", "20000"},
+    {"QUANTITY", "0.001"},
+});
+session.sendRequestByWebsocket(request);
 ```
 
 ### FIX API
