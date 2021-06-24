@@ -35,7 +35,7 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   std::string preSignedText;
   preSignedText += std::string(req.method_string());
   preSignedText += "\n";
-  preSignedText += req.base().at(http::field::host).to_string();
+  preSignedText += "api.huobi.pro";
   preSignedText += "\n";
   auto splitted = UtilString::split(req.target().to_string(), "?");
   preSignedText += splitted.at(0);
@@ -294,6 +294,340 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.453000000000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/account/accounts");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::string textMessage =
+      R"({"code":"200000","data":
+        [
+        {
+    "id": 100009,
+    "type": "spot",
+    "subtype": "",
+    "state": "working"
+  }]
+  })";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNTS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "100009");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_TYPE), "spot");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::map<std::string, std::string> param{
+      {CCAPI_EM_ACCOUNT_ID, "5bd6e9286d99522a52e458de"},
+  };
+  request.appendParam(param);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/account/accounts/5bd6e9286d99522a52e458de/balance");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+  "status": "ok",
+  "data": {
+    "id": 17469548,
+    "type": "spot",
+    "state": "working",
+    "list": [
+      {
+        "currency": "lun",
+        "type": "trade",
+        "balance": "0"
+      }
+    ]
+  }
+}
+      )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "lun");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "0");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, createEventTradeDetails) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_PRIVATE_TRADE);
+  std::string textMessage = R"(
+    {
+      "action": "push",
+    "ch": "trade.clearing#btcusdt#0",
+    "data": {
+         "eventType": "trade",
+         "symbol": "btcusdt",
+         "orderId": 99998888,
+         "tradePrice": "9999.99",
+         "tradeVolume": "0.96",
+         "orderSide": "buy",
+         "aggressor": true,
+         "tradeId": 919219323232,
+         "tradeTime": 998787897878,
+         "transactFee": "19.88",
+         "feeDeduct ": "0",
+         "feeDeductType": "",
+         "feeCurrency": "btc",
+         "accountId": 9912791,
+         "source": "spot-api",
+         "orderPrice": "10000",
+         "orderSize": "1",
+         "clientOrderId": "a001",
+         "orderCreateTime": 998787897878,
+         "orderStatus": "partial-filled"
+    }
+}
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "push", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "919219323232");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "9999.99");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "0.96");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "99998888");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY), "19.88");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_ASSET), "btc");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesTrigger) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"###(
+    {
+    "action":"push",
+    "ch":"orders#btcusdt",
+    "data":
+    {
+        "orderSide":"buy",
+        "lastActTime":1583853365586,
+        "clientOrderId":"abc123",
+        "orderStatus":"rejected",
+        "symbol":"btcusdt",
+        "eventType":"trigger",
+        "errCode": 2002,
+        "errMessage":"invalid.client.order.id (NT)"
+    }
+}
+)###";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "push", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "rejected");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesDeletion) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"(
+    {
+    "action":"push",
+    "ch":"orders#btcusdt",
+    "data":
+    {
+        "orderSide":"buy",
+        "lastActTime":1583853365586,
+        "clientOrderId":"abc123",
+        "orderStatus":"canceled",
+        "symbol":"btcusdt",
+        "eventType":"deletion"
+    }
+}
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "push", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "canceled");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCreation) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"(
+    {
+    "action":"push",
+    "ch":"orders#btcusdt",
+    "data":
+    {
+        "orderSize":"2.000000000000000000",
+        "orderCreateTime":1583853365586,
+        "accountld":992701,
+        "orderPrice":"77.000000000000000000",
+        "type":"sell-limit",
+        "orderId":27163533,
+        "clientOrderId":"abc123",
+        "orderSource":"spot-api",
+        "orderStatus":"submitted",
+        "symbol":"btcusdt",
+        "eventType":"creation"
+    }
+}
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "push", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "2.000000000000000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "77.000000000000000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "27163533");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "submitted");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesTrade) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"(
+    {
+        "action":"push",
+        "ch":"orders#btcusdt",
+        "data":
+        {
+            "tradePrice":"76.000000000000000000",
+            "tradeVolume":"1.013157894736842100",
+            "tradeId":301,
+            "tradeTime":1583854188883,
+            "aggressor":true,
+            "remainAmt":"0.000000000000000400000000000000000000",
+            "execAmt":"2",
+            "orderId":27163536,
+            "type":"sell-limit",
+            "clientOrderId":"abc123",
+            "orderSource":"spot-api",
+            "orderPrice":"15000",
+            "orderSize":"0.01",
+            "orderStatus":"filled",
+            "symbol":"btcusdt",
+            "eventType":"trade"
+        }
+    }
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "push", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "0.01");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "15000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "27163536");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "filled");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "0.000000000000000400000000000000000000");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCancellation) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"(
+    {
+        "action":"push",
+        "ch":"orders#btcusdt",
+        "data":
+        {
+            "lastActTime":1583853475406,
+            "remainAmt":"2.000000000000000000",
+            "execAmt":"2",
+            "orderId":27163533,
+            "type":"sell-limit",
+            "clientOrderId":"abc123",
+            "orderSource":"spot-api",
+            "orderPrice":"15000",
+            "orderSize":"0.01",
+            "orderStatus":"canceled",
+            "symbol":"btcusdt",
+            "eventType":"cancellation"
+        }
+    }
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "push", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "0.01");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "15000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "27163533");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "canceled");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "2.000000000000000000");
 }
 } /* namespace ccapi */
 #endif

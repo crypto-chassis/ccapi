@@ -284,6 +284,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         for (const auto& x : data.GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
+          element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -324,7 +325,6 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
@@ -332,7 +332,6 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       this->eventHandler(event);
     }
   }
-
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;

@@ -62,6 +62,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP
 #define CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP "huobi-usdt-swap"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP
+#define CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP "huobi-coin-swap"
+#endif
 #ifndef CCAPI_EXCHANGE_NAME_OKEX
 #define CCAPI_EXCHANGE_NAME_OKEX "okex"
 #endif
@@ -233,6 +236,9 @@
 #ifndef CCAPI_EM_ACCOUNT_ID
 #define CCAPI_EM_ACCOUNT_ID "ACCOUNT_ID"
 #endif
+#ifndef CCAPI_EM_ACCOUNT_TYPE
+#define CCAPI_EM_ACCOUNT_TYPE "ACCOUNT_TYPE"
+#endif
 #ifndef CCAPI_EM_ASSET
 #define CCAPI_EM_ASSET "ASSET"
 #endif
@@ -355,23 +361,56 @@
 #ifndef CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE
 #define CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE "https://api.hbdm.com"
 #endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_URL_REST_BASE
+#define CCAPI_HUOBI_COIN_SWAP_URL_REST_BASE "https://api.hbdm.com"
+#endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_CREATE_ORDER_TARGET
 #define CCAPI_HUOBI_USDT_SWAP_CREATE_ORDER_TARGET "/linear-swap-api/v1/swap_cross_order"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_CREATE_ORDER_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_CREATE_ORDER_TARGET "/swap-api/v1/swap_order"
 #endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_CANCEL_ORDER_TARGET
 #define CCAPI_HUOBI_USDT_SWAP_CANCEL_ORDER_TARGET "/linear-swap-api/v1/swap_cross_cancel"
 #endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_CANCEL_ORDER_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_CANCEL_ORDER_TARGET "/swap-api/v1/swap_cancel"
+#endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_GET_ORDER_TARGET
 #define CCAPI_HUOBI_USDT_SWAP_GET_ORDER_TARGET "/linear-swap-api/v1/swap_cross_order_info"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_GET_ORDER_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_GET_ORDER_TARGET "/swap-api/v1/swap_order_info"
 #endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_GET_OPEN_ORDERS_TARGET
 #define CCAPI_HUOBI_USDT_SWAP_GET_OPEN_ORDERS_TARGET "/linear-swap-api/v1/swap_cross_openorders"
 #endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_GET_OPEN_ORDERS_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_GET_OPEN_ORDERS_TARGET "/swap-api/v1/swap_openorders"
+#endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_CANCEL_ALL_ORDERS_TARGET
 #define CCAPI_HUOBI_USDT_SWAP_CANCEL_ALL_ORDERS_TARGET "/linear-swap-api/v1/swap_cross_cancelall"
 #endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_CANCEL_ALL_ORDERS_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_CANCEL_ALL_ORDERS_TARGET "/swap-api/v1/swap_cancelall"
+#endif
+#ifndef CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_BALANCES_TARGET
+#define CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_BALANCES_TARGET "/linear-swap-api/v1/swap_cross_account_info"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_GET_ACCOUNT_BALANCES_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_GET_ACCOUNT_BALANCES_TARGET "/swap-api/v1/swap_account_info"
+#endif
+#ifndef CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_POSITIONS_TARGET
+#define CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_POSITIONS_TARGET "/linear-swap-api/v1/swap_cross_position_info"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_GET_ACCOUNT_POSITIONS_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_GET_ACCOUNT_POSITIONS_TARGET "/swap-api/v1/swap_position_info"
+#endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_TARGET
 #define CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_TARGET "/linear-swap-ex/market/history/trade"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_GET_RECENT_TRADES_TARGET
+#define CCAPI_HUOBI_COIN_SWAP_GET_RECENT_TRADES_TARGET "/swap-ex/market/history/trade"
 #endif
 #ifndef CCAPI_OKEX_URL_REST_BASE
 #define CCAPI_OKEX_URL_REST_BASE "https://www.okex.com"
@@ -416,7 +455,10 @@
 #define CCAPI_HUOBI_URL_WS_BASE "wss://api.huobi.pro"
 #endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE
-#define CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE "wss://api.hbdm.com/linear-swap-ws"
+#define CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE "wss://api.hbdm.com"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE
+#define CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE "wss://api.hbdm.com"
 #endif
 #ifndef CCAPI_OKEX_URL_WS_BASE
 #define CCAPI_OKEX_URL_WS_BASE "wss://ws.okex.com:8443"
@@ -495,6 +537,12 @@
 #endif
 #ifndef CCAPI_HUOBI_USDT_SWAP_API_SECRET
 #define CCAPI_HUOBI_USDT_SWAP_API_SECRET "HUOBI_USDT_SWAP_API_SECRET"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_API_KEY
+#define CCAPI_HUOBI_COIN_SWAP_API_KEY "HUOBI_COIN_SWAP_API_KEY"
+#endif
+#ifndef CCAPI_HUOBI_COIN_SWAP_API_SECRET
+#define CCAPI_HUOBI_COIN_SWAP_API_SECRET "HUOBI_COIN_SWAP_API_SECRET"
 #endif
 #ifndef CCAPI_OKEX_API_KEY
 #define CCAPI_OKEX_API_KEY "OKEX_API_KEY"

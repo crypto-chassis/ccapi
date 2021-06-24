@@ -20,4 +20,5 @@ TEST(DecimalTest, trailingZero) {
   Decimal bid_1("0.10");
   EXPECT_EQ(bid_1.toString(), "0.1");
 }
+TEST(DecimalTest, subtract) { EXPECT_EQ(Decimal("0.000000549410817836").subtract(Decimal("0")).toString(), "0.000000549410817836"); }
 } /* namespace ccapi */

@@ -11,6 +11,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/v2";
     this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -27,6 +28,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     this->getOrderTarget = "/v1/order/orders/{order-id}";
     this->getOrderByClientOrderIdTarget = "/v1/order/orders/getClientOrder";
     this->getOpenOrdersTarget = "/v1/order/openOrders";
+    this->getAccountsTarget = "/v1/account/accounts";
+    this->getAccountBalancesTarget = "/v1/account/accounts/{account-id}/balance";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobi() {}
@@ -120,6 +123,17 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         }
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
+      case Request::Operation::GET_ACCOUNTS: {
+        req.method(http::verb::get);
+        this->signRequest(req, this->getAccountsTarget, queryParamMap, credential);
+      } break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        req.method(http::verb::get);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        auto accountId = mapGetWithDefault(param, std::string(CCAPI_EM_ACCOUNT_ID));
+        auto target = std::regex_replace(this->getAccountBalancesTarget, std::regex("\\{account\\-id\\}"), accountId);
+        this->signRequest(req, target, queryParamMap, credential);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -152,7 +166,212 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
+    const auto& data = document["data"];
+    switch (request.getOperation()) {
+      case Request::Operation::GET_ACCOUNTS: {
+        for (const auto& x : data.GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ACCOUNT_ID, std::to_string(x["id"].GetInt64()));
+          element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
+          elementList.emplace_back(std::move(element));
+        }
+      } break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        for (const auto& x : data["list"].GetArray()) {
+          if (std::string(x["type"].GetString()) == "trade") {
+            Element element;
+            element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["balance"].GetString());
+            elementList.emplace_back(std::move(element));
+          }
+        }
+      } break;
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
     return elementList;
+  }
+  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+                                                                const std::map<std::string, std::string>& credential) override {
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
+    std::string signature;
+    std::string queryString;
+    std::map<std::string, std::string> queryParamMap;
+    queryParamMap.insert(std::make_pair("accessKey", apiKey));
+    queryParamMap.insert(std::make_pair("signatureMethod", "HmacSHA256"));
+    queryParamMap.insert(std::make_pair("signatureVersion", "2.1"));
+    queryParamMap.insert(std::make_pair("timestamp", Url::urlEncode(timestamp)));
+    this->createSignature(signature, queryString, "GET", this->hostRest, "/ws/v2", queryParamMap, credential);
+    std::vector<std::string> sendStringList;
+    rj::Document document;
+    document.SetObject();
+    rj::Document::AllocatorType& allocator = document.GetAllocator();
+    document.AddMember("action", rj::Value("req").Move(), allocator);
+    document.AddMember("ch", rj::Value("auth").Move(), allocator);
+    rj::Value params(rj::kObjectType);
+    params.AddMember("authType", rj::Value("api").Move(), allocator);
+    params.AddMember("accessKey", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+    params.AddMember("signatureMethod", rj::Value("HmacSHA256").Move(), allocator);
+    params.AddMember("signatureVersion", rj::Value("2.1").Move(), allocator);
+    params.AddMember("timestamp", rj::Value(timestamp.c_str(), allocator).Move(), allocator);
+    params.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
+    document.AddMember("params", params, allocator);
+    rj::StringBuffer stringBuffer;
+    rj::Writer<rj::StringBuffer> writer(stringBuffer);
+    document.Accept(writer);
+    std::string sendString = stringBuffer.GetString();
+    sendStringList.push_back(sendString);
+    return sendStringList;
+  }
+  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
+                     const TimePoint& timeReceived) override {
+    std::string actionStr = document["action"].GetString();
+    auto fieldSet = subscription.getFieldSet();
+    auto instrumentSet = subscription.getInstrumentSet();
+    if (actionStr == "req") {
+      std::string chStr = document["ch"].GetString();
+      if (chStr == "auth") {
+        auto code = document["code"].GetInt();
+        if (code == 200) {
+          std::set<std::string> symbols;
+          if (instrumentSet.empty()) {
+            symbols = {"*"};
+          } else {
+            symbols = instrumentSet;
+          }
+          for (const auto& symbol : symbols) {
+            for (const auto& field : fieldSet) {
+              rj::Document document;
+              document.SetObject();
+              auto& allocator = document.GetAllocator();
+              document.AddMember("action", rj::Value("sub").Move(), allocator);
+              std::string ch;
+              if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+                ch = "orders#" + symbol;
+              } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+                ch = "trade.clearing#" + symbol;
+              }
+              document.AddMember("ch", rj::Value(ch.c_str(), allocator).Move(), allocator);
+              rj::StringBuffer stringBufferSubscribe;
+              rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
+              document.Accept(writerSubscribe);
+              std::string sendString = stringBufferSubscribe.GetString();
+              ErrorCode ec;
+              this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+              if (ec) {
+                this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+              }
+            }
+          }
+        } else {
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, textMessage, {subscription.getCorrelationId()});
+        }
+      }
+    } else if (actionStr == "ping") {
+      rj::StringBuffer stringBufferSubscribe;
+      rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
+      document.Accept(writerSubscribe);
+      std::string sendString = stringBufferSubscribe.GetString();
+      std::string toReplace("ping");
+      sendString.replace(sendString.find(toReplace), toReplace.length(), "pong");
+      ErrorCode ec;
+      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+      if (ec) {
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
+      }
+    } else {
+      Event event = this->createEvent(subscription, textMessage, document, actionStr, timeReceived);
+      if (!event.getMessageList().empty()) {
+        this->eventHandler(event);
+      }
+    }
+  }
+  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const std::string& actionStr,
+                    const TimePoint& timeReceived) {
+    Event event;
+    std::vector<Message> messageList;
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList({subscription.getCorrelationId()});
+    auto fieldSet = subscription.getFieldSet();
+    auto instrumentSet = subscription.getInstrumentSet();
+    if (actionStr == "push") {
+      event.setType(Event::Type::SUBSCRIPTION_DATA);
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setCorrelationIdList({subscription.getCorrelationId()});
+      std::string ch = document["ch"].GetString();
+      if (ch.rfind("orders#", 0) == 0 && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+        const rj::Value& data = document["data"];
+        auto instrument = this->convertWebsocketSymbolIdToInstrument(data["symbol"].GetString());
+        if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+          auto it = data.FindMember("lastActTime");
+          if (it == data.MemberEnd()) {
+            it = data.FindMember("orderCreateTime");
+            if (it == data.MemberEnd()) {
+              it = data.FindMember("tradeTime");
+            }
+          }
+          message.setTime(UtilTime::makeTimePointFromMilliseconds(it->value.GetInt64()));
+          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+          const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+              {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
+              {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("orderPrice", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_QUANTITY, std::make_pair("orderSize", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("remainAmt", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("execAmt", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_STATUS, std::make_pair("orderStatus", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
+          };
+          Element info = this->extractOrderInfo(data, extractionFieldNameMap);
+          std::string dataEventType = data["eventType"].GetString();
+          if (dataEventType == "trigger" || dataEventType == "deletion") {
+            info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+          }
+          std::vector<Element> elementList;
+          elementList.emplace_back(std::move(info));
+          message.setElementList(elementList);
+          messageList.push_back(std::move(message));
+        }
+      } else if (ch.rfind("trade.clearing#", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+        const rj::Value& data = document["data"];
+        auto instrument = this->convertWebsocketSymbolIdToInstrument(data["symbol"].GetString());
+        if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+          message.setTime(UtilTime::makeTimePointFromMilliseconds(data["tradeTime"].GetInt64()));
+          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+          std::vector<Element> elementList;
+          Element element;
+          element.insert(CCAPI_TRADE_ID, std::to_string(data["tradeId"].GetInt64()));
+          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["tradePrice"].GetString());
+          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["tradeVolume"].GetString());
+          element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+          element.insert(CCAPI_IS_MAKER, data["aggressor"].GetBool() ? "0" : "1");
+          element.insert(CCAPI_EM_ORDER_ID, std::to_string(data["orderId"].GetInt64()));
+          element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(data["clientOrderId"].GetString()));
+          element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
+          element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(data["transactFee"].GetString()));
+          element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(data["feeCurrency"].GetString()));
+          elementList.emplace_back(std::move(element));
+          message.setElementList(elementList);
+          messageList.push_back(std::move(message));
+        }
+      }
+    } else if (actionStr == "sub") {
+      auto code = document["code"].GetInt();
+      if (code == 200) {
+        event.setType(Event::Type::SUBSCRIPTION_STATUS);
+        message.setType(Message::Type::SUBSCRIPTION_STARTED);
+        Element element;
+        element.insert(CCAPI_INFO_MESSAGE, textMessage);
+        message.setElementList({element});
+        messageList.push_back(std::move(message));
+      }
+    }
+    event.setMessageList(messageList);
+    return event;
   }
   std::string cancelOrderByClientOrderIdTarget;
   std::string getOrderByClientOrderIdTarget;

@@ -360,6 +360,132 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
 }
+
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_account_info");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+    "status":"ok",
+    "data":[
+        {
+            "margin_mode":"cross",
+            "margin_account":"USDT",
+            "margin_asset":"USDT",
+            "margin_balance":0.000000549410817836,
+            "margin_static":0.000000549410817836,
+            "margin_position":0,
+            "margin_frozen":0,
+            "profit_real":0,
+            "profit_unreal":0,
+            "withdraw_available":0.000000549410817836,
+            "risk_rate":null,
+            "contract_detail":[
+                {
+                    "symbol":"BTC",
+                    "contract_code":"BTC-USDT",
+                    "margin_position":0,
+                    "margin_frozen":0,
+                    "margin_available":0.000000549410817836,
+                    "profit_unreal":0,
+                    "liquidation_price":null,
+                    "lever_rate":100,
+                    "adjust_factor":0.55
+                },
+                {
+                    "symbol":"EOS",
+                    "contract_code":"EOS-USDT",
+                    "margin_position":0,
+                    "margin_frozen":0,
+                    "margin_available":0.000000549410817836,
+                    "profit_unreal":0,
+                    "liquidation_price":null,
+                    "lever_rate":5,
+                    "adjust_factor":0.06
+                }
+            ]
+        }
+    ],
+    "ts":1606906200680
+}
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "0.000000549410817836");
+}
+
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_position_info");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_USDT_SWAP_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageRestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+    "status": "ok",
+    "data": [
+        {
+            "symbol": "BTC",
+            "contract_code": "BTC-USDT",
+            "volume": 2,
+            "available": 2,
+            "frozen": 0,
+            "cost_open": 51179.1,
+            "cost_hold": 51179.1,
+            "profit_unreal": 0,
+            "profit_rate": 0,
+            "lever_rate": 100,
+            "position_margin": 10.23582,
+            "direction": "sell",
+            "profit": 0,
+            "last_price": 51179.1,
+            "margin_asset": "USDT",
+            "margin_mode": "cross",
+            "margin_account": "USDT"
+        }
+    ],
+    "ts": 1606962314205
+}
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_POSITIONS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "BTC-USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "sell");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "51179.1");
+}
 } /* namespace ccapi */
 #endif
 #endif

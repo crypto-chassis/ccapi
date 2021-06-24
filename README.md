@@ -50,8 +50,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin, ftx.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, okex, erisx, kucoin, ftx.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
@@ -78,7 +78,7 @@
 * Link libraries:
   * OpenSSL: libssl.
   * OpenSSL: libcrypto.
-  * If you need market data for huobi or okex, also link ZLIB.
+  * If you need market data for huobi, huobi-usdt-swap, huobi-coin-swap, or okex, also link ZLIB.
   * On Windows, also link ws2_32.
 * Compiler flags:
   * `-pthread` for GCC and MinGW.
@@ -96,7 +96,7 @@
 * Require Python 3, SWIG, and CMake.
   * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
   * CMake: https://cmake.org/download/.
-* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need market data for huobi or okex, also uncomment the lines corresponding to finding ZLIB.
+* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need market data for huobi, huobi-usdt-swap, huobi-coin-swap, or okex, also uncomment the lines corresponding to finding and linking ZLIB.
 * Run the following commands.
 ```
 mkdir binding/build
@@ -432,7 +432,7 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`.
+* Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
 * Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_advanced_request/main.cpp).
 
 **Objective 2:**

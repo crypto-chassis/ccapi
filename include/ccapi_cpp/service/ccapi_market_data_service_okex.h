@@ -36,17 +36,19 @@ class MarketDataServiceOkex : public MarketDataService {
     CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
-    if (conflateIntervalMilliSeconds < 100) {
-      if (marketDepthRequested <= 50) {
-        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT;
+    if (field == CCAPI_MARKET_DEPTH) {
+      if (conflateIntervalMilliSeconds < 100) {
+        if (marketDepthRequested <= 50) {
+          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT;
+        } else {
+          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT;
+        }
       } else {
-        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT;
-      }
-    } else {
-      if (marketDepthRequested <= 5) {
-        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5;
-      } else {
-        channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400;
+        if (marketDepthRequested <= 5) {
+          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5;
+        } else {
+          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400;
+        }
       }
     }
   }
