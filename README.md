@@ -78,7 +78,7 @@
 * Link libraries:
   * OpenSSL: libssl.
   * OpenSSL: libcrypto.
-  * If you need huobi, also link ZLIB.
+  * If you need market data for huobi, huobi-usdt-swap, huobi-coin-swap, or okex, also link ZLIB.
   * On Windows, also link ws2_32.
 * Compiler flags:
   * `-pthread` for GCC and MinGW.
@@ -96,7 +96,7 @@
 * Require Python 3, SWIG, and CMake.
   * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
   * CMake: https://cmake.org/download/.
-* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need huobi, also uncomment the lines corresponding to finding and linking ZLIB.
+* Copy file `binding/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need market data for huobi, huobi-usdt-swap, huobi-coin-swap, or okex, also uncomment the lines corresponding to finding and linking ZLIB.
 * Run the following commands.
 ```
 mkdir binding/build

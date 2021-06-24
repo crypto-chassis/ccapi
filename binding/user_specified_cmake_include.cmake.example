@@ -22,6 +22,7 @@
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
 #
