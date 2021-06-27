@@ -10,7 +10,8 @@ class MarketDataServiceOkex : public MarketDataService {
                         std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKEX_PUBLIC_WS_TARGET;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKEX_PUBLIC_WS_PATH;
+    this->needDecompressWebsocketMessage = true;
     ErrorCode ec = this->inflater.init(false);
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
@@ -23,7 +24,6 @@ class MarketDataServiceOkex : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/api/v5/market/trades";
-    this->needDecompressWebsocketMessage = true;
   }
   virtual ~MarketDataServiceOkex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

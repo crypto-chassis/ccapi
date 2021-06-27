@@ -21,7 +21,7 @@ class ExecutionManagementServiceBinanceFutures : public ExecutionManagementServi
     this->apiKeyName = CCAPI_BINANCE_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_FUTURES_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
-    this->createOrderTarget = CCAPI_BINANCE_FUTURES_CREATE_ORDER_TARGET;
+    this->createOrderTarget = CCAPI_BINANCE_FUTURES_CREATE_ORDER_PATH;
     this->cancelOrderTarget = "/fapi/v1/order";
     this->getOrderTarget = "/fapi/v1/order";
     this->getOpenOrdersTarget = "/fapi/v1/openOrders";
