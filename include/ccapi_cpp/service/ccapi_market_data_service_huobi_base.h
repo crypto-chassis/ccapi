@@ -9,7 +9,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
   MarketDataServiceHuobiBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-        this->needDecompressWebsocketMessage = true;
+    this->needDecompressWebsocketMessage = true;
     ErrorCode ec = this->inflater.init(false, 31);
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());

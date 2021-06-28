@@ -28,9 +28,9 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
     this->getOpenOrdersTarget = CCAPI_HUOBI_USDT_SWAP_GET_OPEN_ORDERS_PATH;
     this->getAccountBalancesTarget = CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_BALANCES_PATH;
     this->getAccountPositionsTarget = CCAPI_HUOBI_USDT_SWAP_GET_ACCOUNT_POSITIONS_PATH;
-    this->authenticationPath="/linear-swap-notification";
-    this->orderDataTopic=CCAPI_HUOBI_USDT_SWAP_SUBSCRIBE_ORDER_DATA_TOPIC;
-    this->matchOrderDataTopic=CCAPI_HUOBI_USDT_SWAP_SUBSCRIBE_MATCH_ORDER_DATA_TOPIC;
+    this->authenticationPath = "/linear-swap-notification";
+    this->orderDataTopic = CCAPI_HUOBI_USDT_SWAP_SUBSCRIBE_ORDER_DATA_TOPIC;
+    this->matchOrderDataTopic = CCAPI_HUOBI_USDT_SWAP_SUBSCRIBE_MATCH_ORDER_DATA_TOPIC;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobiUsdtSwap() {}

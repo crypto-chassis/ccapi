@@ -529,7 +529,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventMatchOrderData) {
 )");
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, "notify",this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -603,7 +603,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventOrderData) {
 )");
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document,"notify", this->now).getMessageList();
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
