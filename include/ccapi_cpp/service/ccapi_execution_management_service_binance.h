@@ -2,8 +2,8 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE
-#ifndef CCAPI_BINANCE_CREATE_ORDER_TARGET
-#define CCAPI_BINANCE_CREATE_ORDER_TARGET "/api/v3/order"
+#ifndef CCAPI_BINANCE_CREATE_ORDER_PATH
+#define CCAPI_BINANCE_CREATE_ORDER_PATH "/api/v3/order"
 #endif
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 namespace ccapi {
@@ -24,7 +24,7 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
     this->apiKeyName = CCAPI_BINANCE_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
-    this->createOrderTarget = CCAPI_BINANCE_CREATE_ORDER_TARGET;
+    this->createOrderTarget = CCAPI_BINANCE_CREATE_ORDER_PATH;
     this->cancelOrderTarget = "/api/v3/order";
     this->getOrderTarget = "/api/v3/order";
     this->getOpenOrdersTarget = "/api/v3/openOrders";

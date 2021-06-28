@@ -21,7 +21,7 @@ class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBin
     this->apiKeyName = CCAPI_BINANCE_US_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_US_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
-    this->createOrderTarget = CCAPI_BINANCE_US_CREATE_ORDER_TARGET;
+    this->createOrderTarget = CCAPI_BINANCE_US_CREATE_ORDER_PATH;
     this->cancelOrderTarget = "/api/v3/order";
     this->getOrderTarget = "/api/v3/order";
     this->getOpenOrdersTarget = "/api/v3/openOrders";
