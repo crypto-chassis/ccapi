@@ -486,6 +486,140 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "2");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "51179.1");
 }
+
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventMatchOrderData) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "BTC-USDT", CCAPI_EM_PRIVATE_TRADE);
+  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+    {
+        "op":"notify",
+        "topic":"matchOrders_cross.btc-usdt",
+        "ts":1606981093177,
+        "uid":"123456789",
+        "symbol":"BTC",
+        "contract_code":"BTC-USDT",
+        "status":6,
+        "order_id":784081061787873280,
+        "order_id_str":"784081061787873280",
+        "client_order_id":null,
+        "order_type":1,
+        "volume":1,
+        "trade_volume":1,
+        "created_at":1606981092647,
+        "direction":"sell",
+        "offset":"open",
+        "lever_rate":100,
+        "price":51179.1,
+        "order_source":"web",
+        "order_price_type":"opponent",
+        "trade":[
+            {
+                "trade_id":33380,
+                "id":"33380-784081061787873280-1",
+                "trade_volume":1,
+                "trade_price":51179.1,
+                "trade_turnover":511.791,
+                "created_at":1606981093104,
+                "role":"taker",
+                "is_tpsl": 0
+            }
+        ],
+        "margin_mode":"cross",
+        "margin_account":"USDT"
+    }
+)");
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "33380");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "51179.1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "open");
+  EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "784081061787873280");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
+}
+
+TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventOrderData) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "BTC-USDT", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+    {
+        "op":"notify",
+        "topic":"orders_cross.btc-usdt",
+        "ts":1606878438414,
+        "symbol":"BTC",
+        "contract_code":"BTC-USDT",
+        "volume":8,
+        "price":50000,
+        "order_price_type":"limit",
+        "direction":"buy",
+        "offset":"close",
+        "status":6,
+        "lever_rate":100,
+        "order_id":783650498317316098,
+        "order_id_str":"783650498317316098",
+        "client_order_id":null,
+        "order_source":"risk",
+        "order_type":3,
+        "created_at":1606878438320,
+        "trade_volume":8,
+        "trade_turnover":4000,
+        "fee":0,
+        "trade_avg_price":50000,
+        "margin_frozen":0,
+        "profit":-1866.704,
+        "trade":[
+            {
+                "trade_fee":0,
+                "fee_asset":"USDT",
+                "trade_id":783650498317316098,
+                "id":"783650498317316098-783650498317316098-1",
+                "trade_volume":8,
+                "trade_price":50000,
+                "trade_turnover":4000,
+                "created_at":1606878438320,
+                "profit":-1866.704,
+                "real_profit":0,
+                "role":"taker"
+            }
+        ],
+        "canceled_at":0,
+        "fee_asset":"USDT",
+        "margin_asset":"USDT",
+        "uid":"123456789",
+        "liquidation_type":"1",
+        "margin_mode":"cross",
+        "margin_account":"USDT",
+        "is_tpsl": 0,
+        "real_profit":0
+    }
+)");
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "783650498317316098");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "50000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "8");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "8");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "6");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 400000);
+}
 } /* namespace ccapi */
 #endif
 #endif

@@ -19,7 +19,7 @@ class MarketDataServiceHuobiCoinSwap : public MarketDataServiceHuobiBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    this->getRecentTradesTarget = CCAPI_HUOBI_COIN_SWAP_GET_RECENT_TRADES_TARGET;
+    this->getRecentTradesTarget = CCAPI_HUOBI_COIN_SWAP_GET_RECENT_TRADES_PATH;
   }
   virtual ~MarketDataServiceHuobiCoinSwap() {}
 };
