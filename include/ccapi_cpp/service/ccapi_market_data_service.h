@@ -17,7 +17,7 @@ class MarketDataService : public Service {
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->requestOperationToMessageTypeMap = {
-        {Request::Operation::GET_RECENT_TRADES, Message::Type::GET_RECENT_TRADES},
+        {Request::Operation::GET_RECENT_TRADES, Message::Type::GET_RECENT_TRADES},{Request::Operation::GET_RECENT_AGG_TRADES, Message::Type::GET_RECENT_AGG_TRADES},
     };
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -90,9 +90,8 @@ class MarketDataService : public Service {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     if (field == CCAPI_MARKET_DEPTH) {
-      if (this->exchangeName == CCAPI_EXCHANGE_NAME_KRAKEN || this->exchangeName == CCAPI_EXCHANGE_NAME_BITFINEX ||
-          this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE_US || this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE ||
-          this->exchangeName == CCAPI_EXCHANGE_NAME_BINANCE_FUTURES) {
+      if (this->exchangeName == CCAPI_EXCHANGE_NAME_KRAKEN || this->exchangeName == CCAPI_EXCHANGE_NAME_BITFINEX
+          ) {
         int marketDepthSubscribedToExchange = 1;
         marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
             marketDepthRequested, this->sessionConfigs.getWebsocketAvailableMarketDepth().at(this->exchangeName));

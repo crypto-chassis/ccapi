@@ -50,6 +50,7 @@ class Message CCAPI_FINAL {
     GET_ACCOUNT_BALANCES,
     GET_ACCOUNT_POSITIONS,
     GET_RECENT_TRADES,
+    GET_RECENT_AGG_TRADES,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
@@ -120,6 +121,9 @@ class Message CCAPI_FINAL {
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
         break;
+        case Type::GET_RECENT_AGG_TRADES:
+          output = "GET_RECENT_AGG_TRADES";
+          break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
         break;

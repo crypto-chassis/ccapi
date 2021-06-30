@@ -19,6 +19,7 @@ class Request CCAPI_FINAL {
     CUSTOM = operationTypeCustom,
     FIX = operationTypeFix,
     GET_RECENT_TRADES = operationTypeMarketData,
+    GET_RECENT_AGG_TRADES,
     CREATE_ORDER = operationTypeExecutionManagementOrder,
     CANCEL_ORDER,
     GET_ORDER,
@@ -39,7 +40,9 @@ class Request CCAPI_FINAL {
         break;
       case Operation::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
-        break;
+        break;      case Operation::GET_RECENT_AGG_TRADES:
+                output = "GET_RECENT_AGG_TRADES";
+                break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
         break;

@@ -50,8 +50,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
@@ -247,7 +247,7 @@ Best bid and ask at 2020-07-27T23:56:51.884855000Z are:
 Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
   ...
 ```
-* Subscription fields: `MARKET_DEPTH`, `TRADE`. (Note that binance-futures only has aggregated (instead of raw) trade streams: https://binance-docs.github.io/apidocs/futures/en/#aggregate-trade-streams)
+* Subscription fields: `MARKET_DEPTH`, `TRADE`. (Note that binance-usds-futures and binance-coin-futures only has aggregated (instead of raw) trade streams: https://binance-docs.github.io/apidocs/futures/en/#aggregate-trade-streams)
 
 ### Advanced Market Data
 

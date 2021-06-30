@@ -21,6 +21,31 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
     this->getRecentTradesTarget = "/api/v3/trades";
   }
   virtual ~MarketDataServiceBinance() {}
+  #ifndef CCAPI_EXPOSE_INTERNAL
+
+private:
+  #endif
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+    if (field == CCAPI_MARKET_DEPTH) {
+      int marketDepthSubscribedToExchange = 1;
+      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
+          marketDepthRequested, std::vector<int>({5, 10, 20}));
+      std::string updateSpeed;
+      if (conflateIntervalMilliSeconds<1000){
+        updateSpeed = "100ms";
+      }
+      channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
+      if (!updateSpeed.empty()){
+        channelId += "&UPDATE_SPEED="+updateSpeed;
+      }
+      this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
+    }
+  }
 };
 } /* namespace ccapi */
 #endif

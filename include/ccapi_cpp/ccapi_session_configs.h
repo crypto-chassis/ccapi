@@ -89,7 +89,11 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH},
     };
-    std::map<std::string, std::string> fieldWebsocketChannelMapBinanceFutures = {
+    std::map<std::string, std::string> fieldWebsocketChannelMapBinanceUsdsFutures = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_AGG_TRADE},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH},
+    };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBinanceCoinFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_AGG_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH},
     };
@@ -145,8 +149,11 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinance) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE].push_back(fieldWebsocketChannel.first);
     }
-    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinanceFutures) {
-      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE_FUTURES].push_back(fieldWebsocketChannel.first);
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinanceUsdsFutures) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES].push_back(fieldWebsocketChannel.first);
+    }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBinanceCoinFutures) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES].push_back(fieldWebsocketChannel.first);
     }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHuobi) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HUOBI].push_back(fieldWebsocketChannel.first);
@@ -178,7 +185,8 @@ class SessionConfigs CCAPI_FINAL {
                                               {CCAPI_EXCHANGE_NAME_BITMEX, fieldWebsocketChannelMapBitmex},
                                               {CCAPI_EXCHANGE_NAME_BINANCE_US, fieldWebsocketChannelMapBinanceUs},
                                               {CCAPI_EXCHANGE_NAME_BINANCE, fieldWebsocketChannelMapBinance},
-                                              {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, fieldWebsocketChannelMapBinanceFutures},
+                                              {CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, fieldWebsocketChannelMapBinanceUsdsFutures},
+                                              {CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES, fieldWebsocketChannelMapBinanceCoinFutures},
                                               {CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi},
                                               {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, fieldWebsocketChannelMapHuobiUsdtSwap},
                                               {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, fieldWebsocketChannelMapHuobiCoinSwap},
@@ -189,8 +197,8 @@ class SessionConfigs CCAPI_FINAL {
     this->websocketAvailableMarketDepth = {
         {CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})}, {CCAPI_EXCHANGE_NAME_BITSTAMP, std::vector<int>({100})},
         {CCAPI_EXCHANGE_NAME_BITFINEX, std::vector<int>({1, 25, 100})},           {CCAPI_EXCHANGE_NAME_BITMEX, std::vector<int>({1, 10, 25})},
-        {CCAPI_EXCHANGE_NAME_BINANCE_US, std::vector<int>({5, 10, 20})},          {CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
-        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},     {CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
+        // {CCAPI_EXCHANGE_NAME_BINANCE_US, std::vector<int>({5, 10, 20})},          {CCAPI_EXCHANGE_NAME_BINANCE, std::vector<int>({5, 10, 20})},
+        // {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, std::vector<int>({5, 10, 20})},     {CCAPI_EXCHANGE_NAME_KUCOIN, std::vector<int>({1, 5, 50})},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -201,7 +209,8 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BINANCE_US_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_WS_BASE},
-        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, CCAPI_BINANCE_COIN_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, CCAPI_BINANCE_COIN_FUTURES_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE},
@@ -228,7 +237,8 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_BINANCE_FUTURES, CCAPI_BINANCE_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, CCAPI_BINANCE_USDS_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES, CCAPI_BINANCE_COIN_FUTURES_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, CCAPI_HUOBI_COIN_SWAP_URL_REST_BASE},
