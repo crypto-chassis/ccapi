@@ -10,22 +10,6 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
                                            ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    // this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_DERIVATIVES_BASE;
-    // this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    // this->setHostRestFromUrlRest(this->baseUrlRest);
-    // try {
-    //   this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    // } catch (const std::exception& e) {
-    //   CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    // }
-    // this->apiKeyName = CCAPI_BINANCE_DERIVATIVES_BASE_API_KEY;
-    // this->apiSecretName = CCAPI_BINANCE_DERIVATIVES_BASE_API_SECRET;
-    // this->setupCredential({this->apiKeyName, this->apiSecretName});
-    // this->createOrderTarget = CCAPI_BINANCE_DERIVATIVES_BASE_CREATE_ORDER_TARGET;
-    // this->cancelOrderTarget = "/fapi/v1/order";
-    // this->getOrderTarget = "/fapi/v1/order";
-    // this->getOpenOrdersTarget = "/fapi/v1/openOrders";
-    // this->cancelOpenOrdersTarget = "/fapi/v1/allOpenOrders";
     this->isDerivatives = true;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

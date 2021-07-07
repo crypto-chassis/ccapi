@@ -13,6 +13,7 @@ class SessionOptions CCAPI_FINAL {
                          ", enableCheckOrderBookCrossed = " + ccapi::toString(enableCheckOrderBookCrossed) +
                          ", enableCheckPingPongWebsocketProtocolLevel = " + ccapi::toString(enableCheckPingPongWebsocketProtocolLevel) +
                          ", enableCheckPingPongWebsocketApplicationLevel = " + ccapi::toString(enableCheckPingPongWebsocketApplicationLevel) +
+                         ", enableCheckHeartbeatFix = " + ccapi::toString(enableCheckHeartbeatFix) +
                          ", pingWebsocketProtocolLevelIntervalMilliSeconds = " + ccapi::toString(pingWebsocketProtocolLevelIntervalMilliSeconds) +
                          ", pongWebsocketProtocolLevelTimeoutMilliSeconds = " + ccapi::toString(pongWebsocketProtocolLevelTimeoutMilliSeconds) +
                          ", pingWebsocketApplicationLevelIntervalMilliSeconds = " + ccapi::toString(pingWebsocketApplicationLevelIntervalMilliSeconds) +
@@ -20,10 +21,13 @@ class SessionOptions CCAPI_FINAL {
                          ", heartbeatFixIntervalMilliSeconds = " + ccapi::toString(heartbeatFixIntervalMilliSeconds) +
                          ", heartbeatFixTimeoutMilliSeconds = " + ccapi::toString(heartbeatFixTimeoutMilliSeconds) +
                          ", maxEventQueueSize = " + ccapi::toString(maxEventQueueSize) +
-                         ", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) +
-                         ", httpMaxNumRetry = " + ccapi::toString(httpMaxNumRetry) + ", httpMaxNumRedirect = " + ccapi::toString(httpMaxNumRedirect) +
+                         ", httpMaxNumRetry = " + ccapi::toString(httpMaxNumRetry) +
+                         ", httpMaxNumRedirect = " + ccapi::toString(httpMaxNumRedirect) +
                          ", httpRequestTimeoutMilliSeconds = " + ccapi::toString(httpRequestTimeoutMilliSeconds) +
-                         ", httpConnectionPoolMaxSize = " + ccapi::toString(httpConnectionPoolMaxSize) + +"]";
+                         ", httpConnectionPoolMaxSize = " + ccapi::toString(httpConnectionPoolMaxSize) +
+                         ", httpConnectionPoolIdleTimeoutMilliSeconds = " + ccapi::toString(httpConnectionPoolIdleTimeoutMilliSeconds) +
+", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) +
+                         "]";
     return output;
   }
   long warnLateEventMaxMilliSeconds{};                      // used to print a warning log message if en event arrives late
@@ -44,6 +48,7 @@ class SessionOptions CCAPI_FINAL {
   int httpMaxNumRedirect{1};
   long httpRequestTimeoutMilliSeconds{10000};
   int httpConnectionPoolMaxSize{1};          // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
+  long httpConnectionPoolIdleTimeoutMilliSeconds{0};// used to purge the http connection pool if all connections in the pool have stayed idle for at least this amount of time
   bool enableOneHttpConnectionPerRequest{};  // create a new http connection for each request
 };
 } /* namespace ccapi */

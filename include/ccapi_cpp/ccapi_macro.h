@@ -9,8 +9,15 @@
 #define CCAPI_FINAL final
 #endif
 #endif
+#ifndef CCAPI_MARKET_DEPTH
 #define CCAPI_MARKET_DEPTH "MARKET_DEPTH"
+#endif
+#ifndef CCAPI_TRADE
 #define CCAPI_TRADE "TRADE"
+#endif
+#ifndef CCAPI_AGG_TRADE
+#define CCAPI_AGG_TRADE "AGG_TRADE"
+#endif
 #ifndef CCAPI_MARKET_DEPTH_MAX
 #define CCAPI_MARKET_DEPTH_MAX CCAPI_MARKET_DEPTH "_MAX"
 #endif
@@ -89,6 +96,9 @@
 #ifndef CCAPI_TRADE_ID
 #define CCAPI_TRADE_ID "TRADE_ID"
 #endif
+#ifndef CCAPI_AGG_TRADE_ID
+#define CCAPI_AGG_TRADE_ID "AGG_TRADE_ID"
+#endif
 #ifndef CCAPI_IS_BUYER_MAKER
 #define CCAPI_IS_BUYER_MAKER "IS_BUYER_MAKER"
 #endif
@@ -158,6 +168,7 @@
 #define CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25 "orderBookL2_25"
 #define CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2 "orderBookL2"
 #define CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_TRADE "trade"
+#define CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER "bookTicker"
 #define CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH "depth"
 #define CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_AGG_TRADE "aggTrade"
 #define CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL "market.$symbol.trade.detail"
@@ -349,11 +360,17 @@
 #ifndef CCAPI_BINANCE_US_CREATE_ORDER_PATH
 #define CCAPI_BINANCE_US_CREATE_ORDER_PATH "/api/v3/order"
 #endif
+#ifndef CCAPI_BINANCE_US_LISTEN_KEY_PATH
+#define CCAPI_BINANCE_US_LISTEN_KEY_PATH "/api/v3/userDataStream"
+#endif
 #ifndef CCAPI_BINANCE_URL_REST_BASE
 #define CCAPI_BINANCE_URL_REST_BASE "https://api.binance.com"
 #endif
 #ifndef CCAPI_BINANCE_CREATE_ORDER_PATH
 #define CCAPI_BINANCE_CREATE_ORDER_PATH "/api/v3/order"
+#endif
+#ifndef CCAPI_BINANCE_LISTEN_KEY_PATH
+#define CCAPI_BINANCE_LISTEN_KEY_PATH "/api/v3/userDataStream"
 #endif
 #ifndef CCAPI_BINANCE_USDS_FUTURES_URL_REST_BASE
 #define CCAPI_BINANCE_USDS_FUTURES_URL_REST_BASE "https://fapi.binance.com"
@@ -361,11 +378,17 @@
 #ifndef CCAPI_BINANCE_USDS_FUTURES_CREATE_ORDER_PATH
 #define CCAPI_BINANCE_USDS_FUTURES_CREATE_ORDER_PATH "/fapi/v1/order"
 #endif
+#ifndef CCAPI_BINANCE_USDS_FUTURES_LISTEN_KEY_PATH
+#define CCAPI_BINANCE_USDS_FUTURES_LISTEN_KEY_PATH "/fapi/v1/listenKey"
+#endif
 #ifndef CCAPI_BINANCE_COIN_FUTURES_URL_REST_BASE
 #define CCAPI_BINANCE_COIN_FUTURES_URL_REST_BASE "https://dapi.binance.com"
 #endif
 #ifndef CCAPI_BINANCE_COIN_FUTURES_CREATE_ORDER_PATH
 #define CCAPI_BINANCE_COIN_FUTURES_CREATE_ORDER_PATH "/dapi/v1/order"
+#endif
+#ifndef CCAPI_BINANCE_COIN_FUTURES_LISTEN_KEY_PATH
+#define CCAPI_BINANCE_COIN_FUTURES_LISTEN_KEY_PATH "/dapi/v1/listenKey"
 #endif
 #ifndef CCAPI_HUOBI_URL_REST_BASE
 #define CCAPI_HUOBI_URL_REST_BASE "https://api.huobi.pro"
@@ -455,16 +478,16 @@
 #define CCAPI_BITFINEX_URL_WS_BASE "wss://api-pub.bitfinex.com/ws/2"
 #endif
 #ifndef CCAPI_BINANCE_US_URL_WS_BASE
-#define CCAPI_BINANCE_US_URL_WS_BASE "wss://stream.binance.us:9443/stream"
+#define CCAPI_BINANCE_US_URL_WS_BASE "wss://stream.binance.us:9443"
 #endif
 #ifndef CCAPI_BINANCE_URL_WS_BASE
-#define CCAPI_BINANCE_URL_WS_BASE "wss://stream.binance.com:9443/stream"
+#define CCAPI_BINANCE_URL_WS_BASE "wss://stream.binance.com:9443"
 #endif
 #ifndef CCAPI_BINANCE_USDS_FUTURES_URL_WS_BASE
-#define CCAPI_BINANCE_USDS_FUTURES_URL_WS_BASE "wss://fstream.binance.com/stream"
+#define CCAPI_BINANCE_USDS_FUTURES_URL_WS_BASE "wss://fstream.binance.com"
 #endif
 #ifndef CCAPI_BINANCE_COIN_FUTURES_URL_WS_BASE
-#define CCAPI_BINANCE_COIN_FUTURES_URL_WS_BASE "wss://dstream.binance.com/stream"
+#define CCAPI_BINANCE_COIN_FUTURES_URL_WS_BASE "wss://dstream.binance.com"
 #endif
 #ifndef CCAPI_HUOBI_URL_WS_BASE
 #define CCAPI_HUOBI_URL_WS_BASE "wss://api.huobi.pro"

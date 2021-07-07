@@ -16,6 +16,27 @@ class MarketDataServiceBinanceBase : public MarketDataService {
 
  protected:
 #endif
+void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                               const std::map<std::string, std::string> optionMap) override {
+  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+  auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+  CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+  if (field == CCAPI_MARKET_DEPTH) {
+    int marketDepthSubscribedToExchange = 1;
+    marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
+        marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
+    std::string updateSpeed;
+    if (conflateIntervalMilliSeconds<1000){
+      updateSpeed = "100ms";
+    }
+    channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
+    if (!updateSpeed.empty()){
+      channelId += "&UPDATE_SPEED="+updateSpeed;
+    }
+    this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
+  }
+}
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
@@ -28,7 +49,11 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       for (const auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
         auto symbolId = subscriptionListByInstrument.first;
         auto exchangeSubscriptionId = symbolId + "@";
-        if (channelId.rfind(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH, 0) == 0) {
+        if (channelId.rfind(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER, 0) == 0) {
+          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
+          exchangeSubscriptionId+=CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
+        }
+        else if (channelId.rfind(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH, 0) == 0) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
           int marketDepthSubscribedToExchange =
               this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
@@ -64,11 +89,10 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
+                                                    const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     if (document.IsObject() && document.HasMember("result")) {
     } else if (document.IsObject() && document.HasMember("stream") && document.HasMember("data")) {
       MarketDataMessage marketDataMessage;
@@ -79,8 +103,25 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
       CCAPI_LOGGER_TRACE("channelId = " + channelId);
       const rj::Value& data = document["data"];
-      if (channelId.rfind(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH, 0) == 0) {
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      if (channelId == CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER) {
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
+        marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
+                                          ? MarketDataMessage::RecapType::NONE
+                                          : MarketDataMessage::RecapType::SOLICITED;
+                                          marketDataMessage.tp = this->isDerivatives ? TimePoint(std::chrono::milliseconds(data["T"].GetInt64())) : timeReceived;
+                                  marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+                                  {MarketDataMessage::TypeForDataPoint dataPoint;
+                                  dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["b"].GetString())});
+                                  dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["B"].GetString())});
+                                  marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));}
+                                  {MarketDataMessage::TypeForDataPoint dataPoint;
+                                  dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["a"].GetString())});
+                                  dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["A"].GetString())});
+                                  marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));}
+                                  marketDataMessageList.push_back(std::move(marketDataMessage));
+      }
+      else if (channelId.rfind(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_PARTIAL_BOOK_DEPTH, 0) == 0) {
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                           ? MarketDataMessage::RecapType::NONE
                                           : MarketDataMessage::RecapType::SOLICITED;
@@ -114,7 +155,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         marketDataMessageList.push_back(std::move(marketDataMessage));
       } else if (channelId == CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_TRADE) {
         MarketDataMessage marketDataMessage;
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
         marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(data["T"].GetInt64());
         marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -126,11 +167,10 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
         marketDataMessageList.push_back(std::move(marketDataMessage));
       } else if (channelId == CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_AGG_TRADE) {
-        if (this->isDerivatives) {
           int64_t tradeId = data["a"].GetInt64();
           auto time = UtilTime::makeTimePointFromMilliseconds(data["T"].GetInt64());
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           marketDataMessage.tp = time;
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -139,12 +179,10 @@ class MarketDataServiceBinanceBase : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(data["q"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(tradeId)});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, data["m"].GetBool() ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+          marketDataMessage.data[MarketDataMessage::DataType::AGG_TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
-        }
       }
     }
-    return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -152,6 +190,18 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                          });
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
+      } break;
+      case Request::Operation::GET_RECENT_AGG_TRADES: {
+        req.method(http::verb::get);
+        auto target = this->getRecentAggTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param,
@@ -174,7 +224,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(x["time"].GetInt64());
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
@@ -188,14 +238,14 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       case Request::Operation::GET_RECENT_AGG_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE;
           marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(x["T"].GetInt64());
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["p"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["q"].GetString()))});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(x["a"].GetInt64())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::AGG_TRADE_ID, std::to_string(x["a"].GetInt64())});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, x["m"].GetBool() ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+          marketDataMessage.data[MarketDataMessage::DataType::AGG_TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;

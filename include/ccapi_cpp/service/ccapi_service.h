@@ -110,6 +110,9 @@ class Service : public std::enable_shared_from_this<Service> {
     for (const auto& x : this->connectRetryOnFailTimerByConnectionIdMap) {
       x.second->cancel();
     }
+    if (this->httpConnectionPoolPurgeTimer) {
+      this->httpConnectionPoolPurgeTimer.cancel();
+    }
   }
   void setEventHandler(const std::function<void(Event& event)>& eventHandler) { this->eventHandler = eventHandler; }
   void stop() {
@@ -136,7 +139,7 @@ class Service : public std::enable_shared_from_this<Service> {
   virtual void subscribe(const std::vector<Subscription>& subscriptionList) {}
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                                      const std::map<std::string, std::string>& credential) {}
-  virtual void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
+  virtual void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
   std::shared_ptr<std::future<void>> sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
@@ -565,6 +568,19 @@ class Service : public std::enable_shared_from_this<Service> {
                      beast::bind_front_handler(&Service::onRead_2, shared_from_this(), httpConnectionPtr, request, reqPtr, retry, bufferPtr, resPtr));
     CCAPI_LOGGER_TRACE("after async_read");
   }
+  void setHttpConnectionPoolPurgeTimer(){
+    this->httpConnectionPoolPurgeTimer = this->serviceContextPtr->tlsClientPtr->set_timer(5000, [that = shared_from_this()](ErrorCode const& ec) {
+      auto now = UtilTime::now();
+        if (ec) {
+          that->onError(Event::Type::SESSION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+        } else {
+          if (std::chrono::duration_cast<std::chrono::milliseconds>(now-that->lastHttpConnectionPoolPushBackTp).count()>that->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds) {
+            that->httpConnectionPool.purge();
+          }
+          that->setHttpConnectionPoolPurgeTimer();
+        }
+    });
+  }
   void onRead_2(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, std::shared_ptr<http::request<http::string_body>> reqPtr, HttpRetry retry,
                 std::shared_ptr<beast::flat_buffer> bufferPtr, std::shared_ptr<http::response<http::string_body>> resPtr, beast::error_code ec,
                 std::size_t bytes_transferred) {
@@ -587,7 +603,11 @@ class Service : public std::enable_shared_from_this<Service> {
       CCAPI_LOGGER_TRACE("after async_shutdown");
     } else {
       try {
+        if (this->lastHttpConnectionPoolPushBackTp == std::chrono::seconds{0} && this->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds>0){
+this->setHttpConnectionPoolPurgeTimer();
+        }
         this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
+        this->lastHttpConnectionPoolPushBackTp = now;
         CCAPI_LOGGER_TRACE("pushed back httpConnectionPtr " + toString(*httpConnectionPtr) + " to pool");
       } catch (const std::runtime_error& e) {
         if (e.what() != this->httpConnectionPool.EXCEPTION_QUEUE_FULL) {
@@ -604,7 +624,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string body = resPtr->body();
     try {
       if (statusCode / 100 == 2) {
-        this->processSuccessfulTextMessage(request, body, now);
+        this->processSuccessfulTextMessageRest(request, body, now);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base().at("Location").to_string());
@@ -1124,6 +1144,8 @@ class Service : public std::enable_shared_from_this<Service> {
   tcp::resolver::results_type tcpResolverResultsRest;
   tcp::resolver::results_type tcpResolverResultsFix;
   Queue<std::shared_ptr<HttpConnection>> httpConnectionPool;
+  TimePoint lastHttpConnectionPoolPushBackTp{std::chrono::seconds{0}};
+  TimerPtr httpConnectionPoolPurgeTimer;
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
   std::map<std::string, WsConnection> wsConnectionByIdMap;

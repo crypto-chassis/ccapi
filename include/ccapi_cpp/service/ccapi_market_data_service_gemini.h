@@ -11,7 +11,7 @@ class MarketDataServiceGemini : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -52,14 +52,12 @@ class MarketDataServiceGemini : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     document.Parse(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
-    std::vector<MarketDataMessage> marketDataMessageList;
     if (this->sessionOptions.enableCheckSequence) {
       int sequence = document["socket_sequence"].GetInt();
       if (!this->checkSequence(wsConnection, sequence)) {
@@ -69,7 +67,6 @@ class MarketDataServiceGemini : public MarketDataService {
     }
     if (type == "update") {
       MarketDataMessage marketDataMessage;
-      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
       marketDataMessage.exchangeSubscriptionId = wsConnection.url;
       TimePoint time = timeReceived;
       auto it = document.FindMember("timestampms");
@@ -79,6 +76,7 @@ class MarketDataServiceGemini : public MarketDataService {
       for (auto& event : document["events"].GetArray()) {
         auto gType = std::string(event["type"].GetString());
         if (gType == "change") {
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(event["price"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(event["remaining"].GetString())});
@@ -110,6 +108,7 @@ class MarketDataServiceGemini : public MarketDataService {
             }
           }
         } else if (gType == "trade") {
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           std::string makerSide = event["makerSide"].GetString();
           if (makerSide == "bid" || makerSide == "ask") {
             marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -126,7 +125,6 @@ class MarketDataServiceGemini : public MarketDataService {
       marketDataMessageList.push_back(std::move(marketDataMessage));
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
-    return marketDataMessageList;
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto symbol = this->convertInstrumentToWebsocketSymbolId(subscription.getInstrument());
@@ -219,7 +217,7 @@ class MarketDataServiceGemini : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = TimePoint(std::chrono::milliseconds(x["timestampms"].GetInt64()));
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});

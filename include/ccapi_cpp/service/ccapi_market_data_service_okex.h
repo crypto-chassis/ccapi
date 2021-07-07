@@ -16,7 +16,7 @@ class MarketDataServiceOkex : public MarketDataService {
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -107,9 +107,7 @@ class MarketDataServiceOkex : public MarketDataService {
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
-    std::vector<MarketDataMessage> marketDataMessageList;
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
     if (textMessage != "pong") {
       rj::Document document;
       document.Parse(textMessage.c_str());
@@ -139,7 +137,7 @@ class MarketDataServiceOkex : public MarketDataService {
               marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
               CCAPI_LOGGER_TRACE("marketDataMessage.tp = " + toString(marketDataMessage.tp));
               marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-              marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+              marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
               if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5) {
                 if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
                   marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -166,7 +164,7 @@ class MarketDataServiceOkex : public MarketDataService {
           } else if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE) {
             for (const auto& datum : document["data"].GetArray()) {
               MarketDataMessage marketDataMessage;
-              marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+              marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
               marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
               marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
               marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
@@ -182,7 +180,6 @@ class MarketDataServiceOkex : public MarketDataService {
         }
       }
     }
-    return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -212,7 +209,7 @@ class MarketDataServiceOkex : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["px"].GetString())});

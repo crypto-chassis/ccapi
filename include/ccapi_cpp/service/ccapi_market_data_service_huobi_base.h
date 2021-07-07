@@ -92,13 +92,11 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
     return url + "|" + field + "|" + subscription.getSerializedOptions();
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
       std::string exchangeSubscriptionId = document["ch"].GetString();
       std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
@@ -109,7 +107,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO_REGEX))) {
         CCAPI_LOGGER_TRACE("it is bbo");
         MarketDataMessage marketDataMessage;
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                           ? MarketDataMessage::RecapType::NONE
                                           : MarketDataMessage::RecapType::SOLICITED;
@@ -151,7 +149,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       } else if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
         CCAPI_LOGGER_TRACE("it is snapshot");
         MarketDataMessage marketDataMessage;
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                           ? MarketDataMessage::RecapType::NONE
                                           : MarketDataMessage::RecapType::SOLICITED;
@@ -189,7 +187,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         const rj::Value& tick = document["tick"];
         for (const auto& x : tick["data"].GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           std::string ts = x["ts"].GetString();
           ts.insert(ts.size() - 3, ".");
@@ -216,7 +214,6 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       }
     } else if (document.IsObject() && document.HasMember("status") && document.HasMember("subbed")) {
     }
-    return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -237,10 +234,10 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
+    MarketDataService::processSuccessfulTextMessageRest(request, quotedTextMessage, timeReceived);
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                        const TimePoint& timeReceived) override {
@@ -252,7 +249,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         for (const auto& datum : document["data"].GetArray()) {
           for (const auto& x : datum["data"].GetArray()) {
             MarketDataMessage marketDataMessage;
-            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
             std::string ts = x["ts"].GetString();
             ts.insert(ts.size() - 3, ".");
             marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(ts));

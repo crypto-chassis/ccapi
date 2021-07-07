@@ -8,7 +8,9 @@ class MarketDataMessage CCAPI_FINAL {
  public:
   enum class Type {
     UNKNOWN,
-    MARKET_DATA_EVENTS,
+    MARKET_DATA_EVENTS_MARKET_DEPTH,
+    MARKET_DATA_EVENTS_TRADE,
+    MARKET_DATA_EVENTS_AGG_TRADE,
   };
   enum class RecapType {
     UNKNOWN,
@@ -36,6 +38,7 @@ class MarketDataMessage CCAPI_FINAL {
     BID = 0,
     ASK = 1,
     TRADE = 2,
+    AGG_TRADE = 3,
   };
   static std::string dataTypeToString(DataType dataType) {
     std::string output;
@@ -49,6 +52,9 @@ class MarketDataMessage CCAPI_FINAL {
       case DataType::TRADE:
         output = "TRADE";
         break;
+        case DataType::AGG_TRADE:
+          output = "AGG_TRADE";
+          break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
@@ -58,8 +64,9 @@ class MarketDataMessage CCAPI_FINAL {
     PRICE = 0,
     SIZE = 1,
     TRADE_ID = 2,
-    IS_BUYER_MAKER = 3,
-    SEQUENCE_NUMBER = 4,
+    AGG_TRADE_ID = 3,
+    IS_BUYER_MAKER = 4,
+    SEQUENCE_NUMBER = 5,
   };
   static std::string dataFieldTypeToString(DataFieldType dataFieldType) {
     std::string output;
@@ -73,6 +80,9 @@ class MarketDataMessage CCAPI_FINAL {
       case DataFieldType::TRADE_ID:
         output = "TRADE_ID";
         break;
+        case DataFieldType::AGG_TRADE_ID:
+          output = "AGG_TRADE_ID";
+          break;
       case DataFieldType::IS_BUYER_MAKER:
         output = "IS_BUYER_MAKER";
         break;
@@ -132,9 +142,15 @@ class MarketDataMessage CCAPI_FINAL {
       case Type::UNKNOWN:
         output = "UNKNOWN";
         break;
-      case Type::MARKET_DATA_EVENTS:
-        output = "MARKET_DATA_EVENTS";
-        break;
+        case Type::MARKET_DATA_EVENTS_MARKET_DEPTH:
+          output = "MARKET_DATA_EVENTS_MARKET_DEPTH";
+          break;
+          case Type::MARKET_DATA_EVENTS_TRADE:
+            output = "MARKET_DATA_EVENTS_TRADE";
+            break;
+            case Type::MARKET_DATA_EVENTS_AGG_TRADE:
+              output = "MARKET_DATA_EVENTS_AGG_TRADE";
+              break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }

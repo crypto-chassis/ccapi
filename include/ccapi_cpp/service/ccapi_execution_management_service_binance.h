@@ -14,7 +14,8 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/ws";
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -29,6 +30,7 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
     this->getOrderTarget = "/api/v3/order";
     this->getOpenOrdersTarget = "/api/v3/openOrders";
     this->cancelOpenOrdersTarget = "/api/v3/openOrders";
+    this->listenKeyTarget=CCAPI_BINANCE_LISTEN_KEY_PATH;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinance() {}

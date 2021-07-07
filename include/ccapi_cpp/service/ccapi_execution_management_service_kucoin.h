@@ -12,7 +12,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -38,16 +38,15 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
 
  protected:
 #endif
+void onOpen(wspp::connection_hdl hdl) override {
+}
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
     return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
   }
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
-    auto hostPort = this->extractHostFromUrl(CCAPI_KUCOIN_URL_REST_BASE);
-    std::string host = hostPort.first;
-    std::string port = hostPort.second;
     http::request<http::string_body> req;
-    req.set(http::field::host, host);
+    req.set(http::field::host, this->hostRest);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     req.method(http::verb::post);
     req.target("/api/v1/bullet-private");
@@ -285,6 +284,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
           element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
+          element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -327,12 +328,12 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
   }
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
-    Event event = this->createEvent(subscription, textMessage, document, timeReceived);
+    Event event = this->createEvent(wsConnection,subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event);
     }
   }
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
+  Event createEvent(const WsConnection& wsConnection,const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -401,6 +402,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       element.insert(CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
       messageList.push_back(std::move(message));
+    } else if (type == "welcome") {
+      ExecutionManagementService::onOpen(wsConnection.hdl);
     }
     event.setMessageList(messageList);
     return event;

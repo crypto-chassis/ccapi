@@ -12,7 +12,7 @@ class MarketDataServiceFtx : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->shouldAlignSnapshot = true;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -80,8 +80,7 @@ class MarketDataServiceFtx : public MarketDataService {
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
@@ -98,7 +97,7 @@ class MarketDataServiceFtx : public MarketDataService {
       auto exchangeSubscriptionId = channel + "|" + symbolId;
       if (channel == CCAPI_WEBSOCKET_FTX_CHANNEL_ORDERBOOKS) {
         MarketDataMessage marketDataMessage;
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         auto timePair = UtilTime::divide(data["time"].GetString());
         auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
@@ -137,7 +136,7 @@ class MarketDataServiceFtx : public MarketDataService {
       } else if (channel == CCAPI_WEBSOCKET_FTX_CHANNEL_TRADES) {
         for (const auto& x : data.GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           marketDataMessage.tp = UtilTime::parse(std::string(x["time"].GetString()), "%FT%T%Ez");
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -159,7 +158,7 @@ class MarketDataServiceFtx : public MarketDataService {
             intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoul(data["checksum"].GetString()))));
       }
       MarketDataMessage marketDataMessage;
-      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
       auto timePair = UtilTime::divide(std::string(data["time"].GetString()));
@@ -197,7 +196,6 @@ class MarketDataServiceFtx : public MarketDataService {
       // TODO(cryptochassis): implement
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
-    return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -220,10 +218,10 @@ class MarketDataServiceFtx : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
+    MarketDataService::processSuccessfulTextMessageRest(request, quotedTextMessage, timeReceived);
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                        const TimePoint& timeReceived) override {
@@ -234,7 +232,7 @@ class MarketDataServiceFtx : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["result"].GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = UtilTime::parse(std::string(x["time"].GetString()), "%FT%T%Ez");
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});

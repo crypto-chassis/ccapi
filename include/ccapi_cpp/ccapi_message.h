@@ -33,7 +33,9 @@ class Message CCAPI_FINAL {
     UNKNOWN,
     AUTHORIZATION_SUCCESS,
     AUTHORIZATION_FAILURE,
-    MARKET_DATA_EVENTS,
+    MARKET_DATA_EVENTS_MARKET_DEPTH,
+    MARKET_DATA_EVENTS_TRADE,
+    MARKET_DATA_EVENTS_AGG_TRADE,
     EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE,
     EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE,
     SUBSCRIPTION_STARTED,
@@ -64,9 +66,15 @@ class Message CCAPI_FINAL {
       case Type::UNKNOWN:
         output = "UNKNOWN";
         break;
-      case Type::MARKET_DATA_EVENTS:
-        output = "MARKET_DATA_EVENTS";
+      case Type::MARKET_DATA_EVENTS_MARKET_DEPTH:
+        output = "MARKET_DATA_EVENTS_MARKET_DEPTH";
         break;
+        case Type::MARKET_DATA_EVENTS_TRADE:
+          output = "MARKET_DATA_EVENTS_TRADE";
+          break;
+          case Type::MARKET_DATA_EVENTS_AGG_TRADE:
+            output = "MARKET_DATA_EVENTS_AGG_TRADE";
+            break;
       case Type::AUTHORIZATION_SUCCESS:
         output = "AUTHORIZATION_SUCCESS";
         break;

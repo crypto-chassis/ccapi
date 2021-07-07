@@ -315,6 +315,121 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestC
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
 }
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, createEventExecutionTypeTrade) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_BINANCE_US, "ETHBTC", CCAPI_EM_PRIVATE_TRADE);
+  std::string textMessage = R"(
+    {
+  "e": "executionReport",
+  "E": 1499405658658,
+  "s": "ETHBTC",
+  "c": "mUvoqJxFIILMdfAW5iGSOW",
+  "S": "BUY",
+  "o": "LIMIT",
+  "f": "GTC",
+  "q": "1.00000000",
+  "p": "0.10264410",
+  "P": "0.00000000",
+  "F": "0.00000000",
+  "g": -1,
+  "C": "",
+  "x": "NEW",
+  "X": "NEW",
+  "r": "NONE",
+  "i": 4293153,
+  "l": "0.00000000",
+  "z": "0.00000000",
+  "L": "0.00000000",
+  "n": "0",
+  "N": null,
+  "T": 1499405658657,
+  "t": -1,
+  "I": 8641984,
+  "w": true,
+  "m": false,
+  "M": false,
+  "O": 1499405658657,
+  "Z": "0.00000000",
+  "Y": "0.00000000",
+  "Q": "0.00000000"
+}
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "-1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "0.00000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "0.00000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "4293153");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "ETHBTC");
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, createEventExecutionTypeNew) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_BINANCE_US, "ETHBTC", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"(
+    {
+  "e": "executionReport",
+  "E": 1499405658658,
+  "s": "ETHBTC",
+  "c": "mUvoqJxFIILMdfAW5iGSOW",
+  "S": "BUY",
+  "o": "LIMIT",
+  "f": "GTC",
+  "q": "1.00000000",
+  "p": "0.10264410",
+  "P": "0.00000000",
+  "F": "0.00000000",
+  "g": -1,
+  "C": "",
+  "x": "NEW",
+  "X": "NEW",
+  "r": "NONE",
+  "i": 4293153,
+  "l": "0.00000000",
+  "z": "0.00000000",
+  "L": "0.00000000",
+  "n": "0",
+  "N": null,
+  "T": 1499405658657,
+  "t": -1,
+  "I": 8641984,
+  "w": true,
+  "m": false,
+  "M": false,
+  "O": 1499405658657,
+  "Z": "0.00000000",
+  "Y": "0.00000000",
+  "Q": "0.00000000"
+}
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "4293153");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.10264410");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.00000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.00000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "NEW");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "ETHBTC");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.00000000");
+}
 } /* namespace ccapi */
 #endif
 #endif

@@ -8,36 +8,6 @@ namespace ccapi {
 class Subscription CCAPI_FINAL {
  public:
   Subscription() {}
-  // breaking change to be added for next major version
-  // Subscription(std::string exchange, std::string instrument, std::string field, std::map<std::string, std::string> optionMap = {}, std::string correlationId
-  // = "",
-  //              std::map<std::string, std::string> credential = {})
-  //     : exchange(exchange), instrument(instrument), field(field), optionMap(optionMap),correlationId(correlationId), credential(credential) {
-  //       std::map<std::string, std::string> optionMapDefault = {
-  //         {CCAPI_MARKET_DEPTH_MAX,CCAPI_MARKET_DEPTH_MAX_DEFAULT},
-  //         {CCAPI_CONFLATE_INTERVAL_MILLISECONDS,CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT},
-  //         {CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS,CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT},
-  //         {CCAPI_MARKET_DEPTH_RETURN_UPDATE,CCAPI_MARKET_DEPTH_RETURN_UPDATE_DEFAULT},
-  //       };
-  //       for (const auto& x: optionMapDefault){
-  //         if (this->optionMap.find(x.first)==this->optionMap.end()){
-  //           this->optionMap.insert({x.first, x.second});
-  //         }
-  //       }
-  //   if (field == CCAPI_FIX) {
-  //     this->serviceName = CCAPI_FIX;
-  //   } else if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
-  //     this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
-  //   } else if (field == CCAPI_MARKET_DEPTH || field == CCAPI_TRADE) {
-  //     this->serviceName = CCAPI_MARKET_DATA;
-  //   }
-  //   CCAPI_LOGGER_TRACE("this->serviceName = " + this->serviceName);
-  //   if (this->correlationId.empty()) {
-  //     this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
-  //   }
-  //   this->instrumentSet = UtilString::splitToSet(instrument, ",");
-  //   this->fieldSet = UtilString::splitToSet(field, ",");
-  // }
   Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId = "",
                std::map<std::string, std::string> credential = {})
       : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential) {
@@ -57,15 +27,21 @@ class Subscription CCAPI_FINAL {
       this->serviceName = CCAPI_FIX;
     } else if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
       this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
-    } else if (field == CCAPI_MARKET_DEPTH || field == CCAPI_TRADE) {
+    } else if (field == CCAPI_MARKET_DEPTH || field == CCAPI_TRADE|| field == CCAPI_AGG_TRADE) {
       this->serviceName = CCAPI_MARKET_DATA;
     }
     CCAPI_LOGGER_TRACE("this->serviceName = " + this->serviceName);
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
-    this->instrumentSet = UtilString::splitToSet(instrument, ",");
-    this->fieldSet = UtilString::splitToSet(field, ",");
+    auto originalInstrumentSet=UtilString::splitToSet(instrument, ",");
+    // this->instrumentSet = UtilString::splitToSet(instrument, ",");
+    std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()), [](const std::string & value){
+    return !value.empty();});
+    // this->fieldSet = UtilString::splitToSet(field, ",");
+    auto originalFieldSet=UtilString::splitToSet(field, ",");
+    std::copy_if(originalFieldSet.begin(), originalFieldSet.end(), std::inserter(this->fieldSet, this->fieldSet.end()), [](const std::string & value){
+    return !value.empty();});
   }
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;

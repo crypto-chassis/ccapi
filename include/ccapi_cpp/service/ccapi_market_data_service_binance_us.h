@@ -10,8 +10,8 @@ class MarketDataServiceBinanceUs : public MarketDataServiceBinanceBase {
                              std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceBinanceBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_US;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/stream";
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -19,6 +19,7 @@ class MarketDataServiceBinanceUs : public MarketDataServiceBinanceBase {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/api/v3/trades";
+    this->getRecentAggTradesTarget="/api/v3/aggTrades";
   }
   virtual ~MarketDataServiceBinanceUs() {}
 };

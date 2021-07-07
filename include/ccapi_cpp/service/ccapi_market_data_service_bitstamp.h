@@ -12,7 +12,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITSTAMP;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->enableCheckPingPongWebsocketApplicationLevel = false;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -56,11 +56,9 @@ class MarketDataServiceBitstamp : public MarketDataService {
     }
     return sendStringList;
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     const rj::Value& data = document["data"];
     if (document.IsObject() && document.HasMember("event") && std::string(document["event"].GetString()) == "bts:subscription_succeeded") {
     } else if (document.IsObject() && document.HasMember("event") &&
@@ -74,7 +72,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
       CCAPI_LOGGER_TRACE("channelId = " + channelId);
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       if (channelId == CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_ORDER_BOOK) {
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
         } else {
@@ -108,7 +106,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
         }
         marketDataMessageList.push_back(std::move(marketDataMessage));
       } else if (channelId == CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_LIVE_TRADES) {
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
         marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
         std::string microtimestamp = data["microtimestamp"].GetString();
         microtimestamp.insert(microtimestamp.size() - 6, ".");
@@ -122,7 +120,6 @@ class MarketDataServiceBitstamp : public MarketDataService {
         marketDataMessageList.push_back(std::move(marketDataMessage));
       }
     }
-    return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -151,7 +148,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = UtilTime::makeTimePointFromSeconds(std::stol(x["date"].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
