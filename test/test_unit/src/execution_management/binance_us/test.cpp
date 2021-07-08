@@ -435,9 +435,9 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetAccountBalances
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_BINANCE_US, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
   EXPECT_EQ(req.target().to_string(), "/api/v3/account");
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  verifySignature("", this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestGetAccountBalances) {

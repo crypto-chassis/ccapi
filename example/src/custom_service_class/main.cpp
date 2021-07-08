@@ -29,7 +29,7 @@ class ExecutionManagementServiceCoinbaseCustom : public ExecutionManagementServi
         ExecutionManagementServiceCoinbase::convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     switch (request.getOperation()) {
       case Request::Operation::CUSTOM: {
         if (request.getParamList().at(0).at("CUSTOM_OPERATION") == "LIST_PROFILES") {
@@ -55,7 +55,7 @@ class ExecutionManagementServiceCoinbaseCustom : public ExecutionManagementServi
         }
       } break;
       default:
-        ExecutionManagementServiceCoinbase::processSuccessfulTextMessage(request, textMessage, timeReceived);
+        ExecutionManagementServiceCoinbase::processSuccessfulTextMessageRest(request, textMessage, timeReceived);
     }
   }
 };

@@ -2,6 +2,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
 #include "gtest/gtest.h"
 
+#include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_usds_futures.h"
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test {
@@ -22,6 +23,15 @@ class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test 
   long long timestamp{};
   TimePoint now{};
 };
+
+void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(req.base().at("X-MBX-APIKEY").to_string(), apiKey); }
+
+void verifySignature(const std::string& paramString, const std::string& apiSecret) {
+  auto pos = paramString.find_last_of("&");
+  auto paramStringWithoutSignature = paramString.substr(0, pos);
+  auto signature = paramString.substr(pos + 11, paramString.length() - pos - 1);
+  EXPECT_EQ(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, paramStringWithoutSignature, true), signature);
+}
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMessageRestGetOrder) {
   Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "BTCUSDT", "foo", this->credential);
@@ -189,9 +199,9 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY), "", this->timestamp);
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
   EXPECT_EQ(req.target().to_string(), "/fapi/v2/account");
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
+  verifySignature("", this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMessageRestGetAccountBalances) {
@@ -221,16 +231,16 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "2320.2");
 }
 
-TEST_F(ExecutionManagementServiceBinnaceUsdsFuturesTest, convertRequestGetAccountPositions) {
+TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccountPositions) {
   Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
+  verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
   EXPECT_EQ(req.target().to_string(), "/api/positions");
-  verifySignature(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
+  verifySignature("", this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceBinnaceUsdsFuturesTest, convertTextMessageToMessageRestGetAccountPositions) {
+TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMessageRestGetAccountPositions) {
   Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
   std::string textMessage =
       R"(

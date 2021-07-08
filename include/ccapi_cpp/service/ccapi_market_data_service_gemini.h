@@ -52,7 +52,7 @@ class MarketDataServiceGemini : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     document.Parse(textMessage.c_str());
@@ -62,7 +62,7 @@ class MarketDataServiceGemini : public MarketDataService {
       int sequence = document["socket_sequence"].GetInt();
       if (!this->checkSequence(wsConnection, sequence)) {
         this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, "");
-        return marketDataMessageList;
+        return ;
       }
     }
     if (type == "update") {
