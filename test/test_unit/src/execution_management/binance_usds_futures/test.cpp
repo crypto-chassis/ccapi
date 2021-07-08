@@ -184,6 +184,139 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventExecutionTyp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTCUSDT");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
 }
+
+TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY), "", this->timestamp);
+  EXPECT_EQ(req.target().to_string(), "/fapi/v2/account");
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+    {
+      "success": true,
+      "result": [
+        {
+          "coin": "USDTBEAR",
+          "free": 2320.2,
+          "total": 2340.2
+        }
+      ]
+    }
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USDTBEAR");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "2320.2");
+}
+
+TEST_F(ExecutionManagementServiceBinnaceUsdsFuturesTest, convertRequestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
+  EXPECT_EQ(req.target().to_string(), "/api/positions");
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinnaceUsdsFuturesTest, convertTextMessageToMessageRestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+            "feeTier": 0,
+            "canTrade": true,
+            "canDeposit": true,
+            "canWithdraw": true,
+            "updateTime": 0,
+            "totalInitialMargin": "0.00000000",
+            "totalMaintMargin": "0.00000000",
+            "totalWalletBalance": "23.72469206",
+            "totalUnrealizedProfit": "0.00000000",
+            "totalMarginBalance": "23.72469206",
+            "totalPositionInitialMargin": "0.00000000",
+            "totalOpenOrderInitialMargin": "0.00000000",
+            "totalCrossWalletBalance": "23.72469206",
+            "totalCrossUnPnl": "0.00000000",
+            "availableBalance": "23.72469206",
+            "maxWithdrawAmount": "23.72469206"
+            "assets": [
+                {
+                    "asset": "USDT",
+                    "walletBalance": "23.72469206",
+                    "unrealizedProfit": "0.00000000",
+                    "marginBalance": "23.72469206",
+                    "maintMargin": "0.00000000",
+                    "initialMargin": "0.00000000",
+                    "positionInitialMargin": "0.00000000",
+                    "openOrderInitialMargin": "0.00000000",
+                    "crossWalletBalance": "23.72469206",
+                    "crossUnPnl": "0.00000000"
+                    "availableBalance": "23.72469206",
+                    "maxWithdrawAmount": "23.72469206",
+                    "marginAvailable": true,
+                    "updateTime": 1625474304765
+                },
+                {
+                    "asset": "BUSD",
+                    "walletBalance": "103.12345678",
+                    "unrealizedProfit": "0.00000000",
+                    "marginBalance": "103.12345678",
+                    "maintMargin": "0.00000000",
+                    "initialMargin": "0.00000000",
+                    "positionInitialMargin": "0.00000000",
+                    "openOrderInitialMargin": "0.00000000",
+                    "crossWalletBalance": "103.12345678",
+                    "crossUnPnl": "0.00000000"
+                    "availableBalance": "103.12345678",
+                    "maxWithdrawAmount": "103.12345678",
+                    "marginAvailable": true,
+                    "updateTime": 1625474304765
+                }
+            ],
+            "positions": [
+                {
+                    "symbol": "BTCUSDT",
+                    "initialMargin": "0",
+                    "maintMargin": "0",
+                    "unrealizedProfit": "0.00000000",
+                    "positionInitialMargin": "0",
+                    "openOrderInitialMargin": "0",
+                    "leverage": "100",
+                    "isolated": true,
+                    "entryPrice": "0.00000",
+                    "maxNotional": "250000",
+                    "positionSide": "BOTH",
+                    "positionAmt": "0",
+                    "updateTime": 0
+                }
+            ]
+        }
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_POSITIONS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "BTCUSDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "BOTH");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0");
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_COST)), 0);
+}
 } /* namespace ccapi */
 #endif
 #endif

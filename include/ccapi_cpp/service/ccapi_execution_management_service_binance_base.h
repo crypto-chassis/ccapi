@@ -45,10 +45,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                             const std::map<std::string, std::string>& credential) override {
+  void prepareReq(http::request<http::string_body>& req, const std::map<std::string, std::string>& credential) {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("X-MBX-APIKEY", apiKey);
+  }
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                             const std::map<std::string, std::string>& credential) override {
+    this->prepareReq(req, credential);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
@@ -115,6 +118,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->signRequest(queryString, {}, now, credential);
         req.target(this->cancelOpenOrdersTarget + "?" + queryString);
       } break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        req.method(http::verb::get);
+        std::string queryString;
+        this->appendParam(queryString, {});
+        this->signRequest(queryString, {}, now, credential);
+        req.target(this->getAccountBalancesTarget + "?" + queryString);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -142,6 +152,18 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
+    switch (request.getOperation()) {
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        for (const auto& x : document[this->isDerivatives ?"assets":"balances"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x[this->isDerivatives ?"availableBalance":"free"].GetString());
+          elementList.emplace_back(std::move(element));
+        }
+      } break;
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
     return elementList;
   }
   void prepareConnect(WsConnection& wsConnection) override {

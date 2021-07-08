@@ -430,6 +430,58 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, createEventExecutionTypeNew) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "ETHBTC");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.00000000");
 }
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_BINANCE_US, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::get);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
+  EXPECT_EQ(req.target().to_string(), "/api/v3/account");
+  verifySignature(req, this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_BINANCE_US, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+          "makerCommission": 15,
+          "takerCommission": 15,
+          "buyerCommission": 0,
+          "sellerCommission": 0,
+          "canTrade": true,
+          "canWithdraw": true,
+          "canDeposit": true,
+          "updateTime": 123456789,
+          "accountType": "SPOT",
+          "balances": [
+            {
+              "asset": "BTC",
+              "free": "4723846.89208129",
+              "locked": "0.00000000"
+            },
+            {
+              "asset": "LTC",
+              "free": "4763368.68006011",
+              "locked": "0.00000000"
+            }
+          ],
+          "permissions": [
+             "SPOT"
+          ]
+        }
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "BTC");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "4723846.89208129");
+}
 } /* namespace ccapi */
 #endif
 #endif

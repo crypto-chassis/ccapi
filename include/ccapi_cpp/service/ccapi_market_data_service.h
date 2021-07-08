@@ -1080,7 +1080,7 @@ class MarketDataService : public Service {
                                                                                const TimePoint& timeReceived) {
     return {};
   }
-  virtual  processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
+  virtual  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
                                                             const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) {
   }
   virtual std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {

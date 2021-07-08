@@ -111,7 +111,7 @@ class Service : public std::enable_shared_from_this<Service> {
       x.second->cancel();
     }
     if (this->httpConnectionPoolPurgeTimer) {
-      this->httpConnectionPoolPurgeTimer.cancel();
+      this->httpConnectionPoolPurgeTimer->cancel();
     }
   }
   void setEventHandler(const std::function<void(Event& event)>& eventHandler) { this->eventHandler = eventHandler; }
@@ -603,7 +603,7 @@ class Service : public std::enable_shared_from_this<Service> {
       CCAPI_LOGGER_TRACE("after async_shutdown");
     } else {
       try {
-        if (this->lastHttpConnectionPoolPushBackTp == std::chrono::seconds{0} && this->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds>0){
+        if (std::chrono::duration_cast<std::chrono::seconds>(this->lastHttpConnectionPoolPushBackTp.time_since_epoch()).count() == 0 && this->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds>0){
 this->setHttpConnectionPoolPurgeTimer();
         }
         this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
@@ -829,6 +829,7 @@ this->setHttpConnectionPoolPurgeTimer();
     wsConnection.status = WsConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on dummy id " + wsConnection.id);
     std::string url = wsConnection.url;
+    CCAPI_LOGGER_DEBUG("url = "+url);
     this->serviceContextPtr->tlsClientPtr->set_tls_init_handler(std::bind(&Service::onTlsInit, shared_from_this(), std::placeholders::_1));
     CCAPI_LOGGER_DEBUG("endpoint tls init handler set");
     ErrorCode ec;

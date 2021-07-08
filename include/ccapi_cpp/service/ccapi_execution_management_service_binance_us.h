@@ -28,6 +28,7 @@ class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBin
     this->getOpenOrdersTarget = "/api/v3/openOrders";
     this->cancelOpenOrdersTarget = "/api/v3/openOrders";
     this->listenKeyTarget=CCAPI_BINANCE_US_LISTEN_KEY_PATH;
+    this->getAccountBalancesTarget="/api/v3/account";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinanceUs() {}

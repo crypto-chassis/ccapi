@@ -29,6 +29,8 @@ class ExecutionManagementServiceBinanceUsdsFutures : public ExecutionManagementS
     this->cancelOpenOrdersTarget = "/fapi/v1/allOpenOrders";
     this->isDerivatives = true;
     this->listenKeyTarget=CCAPI_BINANCE_USDS_FUTURES_LISTEN_KEY_PATH;
+    this->getAccountBalancesTarget="/fapi/v2/account";
+    this->getAccountPositionsTarget="/dapi/v1/account";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinanceUsdsFutures() {}

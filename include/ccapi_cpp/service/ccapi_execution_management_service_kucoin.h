@@ -39,6 +39,9 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
  protected:
 #endif
 void onOpen(wspp::connection_hdl hdl) override {
+  CCAPI_LOGGER_FUNCTION_ENTER;
+  WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+  wsConnection.status = WsConnection::Status::OPEN;
 }
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
     return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
@@ -326,14 +329,17 @@ void onOpen(wspp::connection_hdl hdl) override {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
-                     const TimePoint& timeReceived) override {
-    Event event = this->createEvent(wsConnection,subscription, textMessage, document, timeReceived);
+  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    auto subscription = wsConnection.subscriptionList.at(0);
+    rj::Document document;
+    document.Parse(textMessage.c_str());
+    Event event = this->createEvent(wsConnection,hdl,subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event);
     }
   }
-  Event createEvent(const WsConnection& wsConnection,const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
+  Event createEvent(const WsConnection& wsConnection,wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -403,7 +409,7 @@ void onOpen(wspp::connection_hdl hdl) override {
       message.setElementList({element});
       messageList.push_back(std::move(message));
     } else if (type == "welcome") {
-      ExecutionManagementService::onOpen(wsConnection.hdl);
+      ExecutionManagementService::onOpen(hdl);
     }
     event.setMessageList(messageList);
     return event;

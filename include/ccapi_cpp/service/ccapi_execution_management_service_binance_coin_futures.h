@@ -29,6 +29,8 @@ class ExecutionManagementServiceBinanceCoinFutures : public ExecutionManagementS
     this->cancelOpenOrdersTarget = "/dapi/v1/allOpenOrders";
     this->isDerivatives = true;
     this->listenKeyTarget=CCAPI_BINANCE_COIN_FUTURES_LISTEN_KEY_PATH;
+    this->getAccountBalancesTarget="/dapi/v1/account";
+    this->getAccountPositionsTarget="/dapi/v1/account";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinanceCoinFutures() {}
