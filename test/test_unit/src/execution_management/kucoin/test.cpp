@@ -412,6 +412,8 @@ TEST_F(ExecutionManagementServiceKucoinTest, convertTextMessageToMessageRestGetA
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "5bd6e9286d99522a52e458de");
   EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_TYPE), "main");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "BTC");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "237582.032");
 }
 
 TEST_F(ExecutionManagementServiceKucoinTest, convertRequestGetAccountBalances) {
@@ -478,7 +480,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventOpen) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -527,7 +529,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventMatch) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -571,7 +573,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventFilled) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -616,7 +618,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventCanceled) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -662,7 +664,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventChange) {
 )";
   rj::Document document;
   document.Parse(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);

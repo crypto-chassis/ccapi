@@ -1,3 +1,5 @@
+## Minor Breaking Changes (v5.0.0)
+* `Message::Type::MARKET_DATA_EVENTS` has been replaced by `Message::Type::MARKET_DATA_EVENTS_MARKET_DEPTH`, `Message::Type::MARKET_DATA_EVENTS_TRADE`, and `Message::Type::MARKET_DATA_EVENTS_AGG_TRADE` to accommodate for Binance.
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -50,8 +52,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
@@ -189,7 +191,7 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `GET_RECENT_TRADES`.
+* Request operation types: `GET_RECENT_TRADES`, `GET_RECENT_AGG_TRADES`(only applicable to binance family).
 * Request parameter names: `LIMIT`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
 
 **Objective 2:**
@@ -247,7 +249,7 @@ Best bid and ask at 2020-07-27T23:56:51.884855000Z are:
 Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
   ...
 ```
-* Subscription fields: `MARKET_DEPTH`, `TRADE`. (Note that binance-futures only has aggregated (instead of raw) trade streams: https://binance-docs.github.io/apidocs/futures/en/#aggregate-trade-streams)
+* Subscription fields: `MARKET_DEPTH`, `TRADE`, `AGG_TRADE`(only applicable to binance family).
 
 ### Advanced Market Data
 
@@ -820,24 +822,25 @@ Bye
 #### Handle events in "immediate" vs. "batching" mode
 
 In general there are 2 ways to handle events.
-* When a `Session` is instantiated with an `eventHandler` argument, it will handle events in immediate mode. The `processEvent` method in the `eventHandler` will be executed on one of the internal threads in the `eventDispatcher`. A default `EventDispatcher` with 1 internal thread will be created if no `eventDispatcher` argument is provided in `Session` instantiation. To dispatch events to multiple threads, instantiate `EventDispatcher` with `numDispatcherThreads` set to be the desired number. `EventHandler`s and/or `EventDispatcher`s can be shared among different sessions. Otherwise, different sessions are independent from each other.
-```
-EventDispatcher eventDispatcher(2);
-Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
-```
+* When a `Session` is instantiated with an `eventHandler` argument, it will handle events in immediate mode. The `processEvent` method in the `eventHandler` will be invoked immediately when an `Event` is available.
 * When a `Session` is instantiated without an `eventHandler` argument, it will handle events in batching mode. The evetns will be batched into an internal `Queue<Event>` and can be retrieved by
 ```
 std::vector<Event> eventList = session.getEventQueue().purge();
 ```
 
 #### Thread safety
-The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::subscribeByFix`, `Session::setTimer`, all public methods in `Queue`.
+* The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::subscribeByFix`, `Session::setTimer`, all public methods in `Queue`.
+* The `processEvent` method in the `eventHandler` is invoked on one of the internal threads in the `eventDispatcher`. A default `EventDispatcher` with 1 internal thread will be created if no `eventDispatcher` argument is provided in `Session` instantiation. To dispatch events to multiple threads, instantiate `EventDispatcher` with `numDispatcherThreads` set to be the desired number. `EventHandler`s and/or `EventDispatcher`s can be shared among different sessions. Otherwise, different sessions are independent from each other.
+```
+EventDispatcher eventDispatcher(2);
+Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
+```
 
 #### Enable library logging
 
 [C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/src/enable_library_logging/main.py)
 
-Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`.
+Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```
 namespace ccapi {
 class MyLogger final: public Logger {

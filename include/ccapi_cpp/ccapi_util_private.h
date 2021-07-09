@@ -10,6 +10,7 @@
 #include <iostream>
 #include <map>
 #include <numeric>
+#include <random>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -28,18 +29,16 @@ class UtilString CCAPI_FINAL {
     return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
   }
   // https://stackoverflow.com/questions/440133/how-do-i-create-a-random-alpha-numeric-string-in-c
-  static std::string generateRandomString(const size_t len) {
-    std::string tmp_s;
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-    std::srand((unsigned)std::time(NULL) * getpid());
-    tmp_s.reserve(len);
-    for (int i = 0; i < len; ++i) {
-      tmp_s += alphanum[std::rand() % (sizeof(alphanum) - 1)];
-    }
-    return tmp_s;
+  static std::string generateRandomString(const size_t length) {
+    static const auto ch_set = std::vector<char>({'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                                                  'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+                                                  'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'});
+    static std::default_random_engine rng(std::random_device{}());
+    static std::uniform_int_distribution<> dist(0, ch_set.size() - 1);
+    static auto randchar = []() { return ch_set[dist(rng)]; };
+    std::string str(length, 0);
+    std::generate_n(str.begin(), length, randchar);
+    return str;
   }
   static std::vector<std::string> split(const std::string& original, const std::string& delimiter) {
     std::string s = original;

@@ -73,7 +73,7 @@ class ExecutionManagementService : public Service {
     messageList.push_back(std::move(message));
     return messageList;
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     Event event;
     if (this->doesHttpBodyContainError(request, textMessage)) {
       event.setType(Event::Type::REQUEST_STATUS);
@@ -114,6 +114,7 @@ class ExecutionManagementService : public Service {
     return element;
   }
   virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    CCAPI_LOGGER_INFO("about to logon to exchange");
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
     auto subscription = wsConnection.subscriptionList.at(0);
     std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(subscription, now, credential);
@@ -141,7 +142,6 @@ class ExecutionManagementService : public Service {
     auto correlationId = wsConnection.subscriptionList.at(0).getCorrelationId();
     this->wsConnectionByCorrelationIdMap.insert({correlationId, wsConnection});
     this->correlationIdByConnectionIdMap.insert({wsConnection.id, correlationId});
-    CCAPI_LOGGER_INFO("about to logon to exchange");
     auto credential = wsConnection.subscriptionList.at(0).getCredential();
     if (credential.empty()) {
       credential = this->credentialDefault;

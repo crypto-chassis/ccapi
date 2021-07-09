@@ -62,14 +62,13 @@ class MarketDataServiceErisx : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     std::string type = document["type"].GetString();
     if (type == "MarketDataIncrementalRefresh" || type == "MarketDataIncrementalRefreshTrade") {
       std::string exchangeSubscriptionId = document["correlation"].GetString();
@@ -83,7 +82,7 @@ class MarketDataServiceErisx : public MarketDataService {
       }
       if (type == "MarketDataIncrementalRefresh") {
         MarketDataMessage marketDataMessage;
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.recapType = recapType;
         marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         marketDataMessage.tp = UtilTime::parse(UtilTime::convertFIXTimeToISO(std::string(document["transactTime"].GetString())));
@@ -101,7 +100,7 @@ class MarketDataServiceErisx : public MarketDataService {
       } else {
         for (const auto& x : document["trades"].GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = UtilTime::parse(UtilTime::convertFIXTimeToISO(std::string(x["transactTime"].GetString())));
           marketDataMessage.recapType = recapType;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
@@ -119,7 +118,7 @@ class MarketDataServiceErisx : public MarketDataService {
       auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
       auto symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_SYMBOL_ID);
       MarketDataMessage marketDataMessage;
-      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
       if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
         marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
       } else {
@@ -153,7 +152,6 @@ class MarketDataServiceErisx : public MarketDataService {
       marketDataMessageList.push_back(std::move(marketDataMessage));
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
-    return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
