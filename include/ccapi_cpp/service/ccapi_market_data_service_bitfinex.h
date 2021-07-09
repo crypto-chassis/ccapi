@@ -11,7 +11,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITFINEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -55,14 +55,13 @@ class MarketDataServiceBitfinex : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     document.Parse(quotedTextMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     CCAPI_LOGGER_TRACE("document.IsObject() = " + toString(document.IsObject()));
     if (document.IsArray() && document.Size() >= 1) {
       auto exchangeSubscriptionId = std::string(document[0].GetString());
@@ -73,7 +72,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
           int sequence = std::stoi(document[2].GetString());
           if (!this->checkSequence(wsConnection, sequence)) {
             this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-            return marketDataMessageList;
+            return;
           }
         }
       } else {
@@ -90,7 +89,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               int sequence = std::stoi(document[2].GetString());
               if (!this->checkSequence(wsConnection, sequence)) {
                 this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-                return marketDataMessageList;
+                return;
               }
             }
             const rj::Value& content = document[1].GetArray();
@@ -102,7 +101,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               }
               if (channelId.rfind(CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK, 0) == 0) {
                 MarketDataMessage marketDataMessage;
-                marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+                marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
                 marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
                 marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
                 marketDataMessage.tp = timeReceived;
@@ -133,7 +132,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               } else {
                 for (const auto& x : content.GetArray()) {
                   MarketDataMessage marketDataMessage;
-                  marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+                  marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
                   marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
                   marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
                   std::string timestampInMilliseconds = x[1].GetString();
@@ -188,13 +187,13 @@ class MarketDataServiceBitfinex : public MarketDataService {
                 int sequence = std::stoi(document[3].GetString());
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-                  return marketDataMessageList;
+                  return;
                 }
               }
               if (str == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) {
                 const rj::Value& x = document[2].GetArray();
                 MarketDataMessage marketDataMessage;
-                marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+                marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
                 marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
                 marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
                 std::string timestampInMilliseconds = x[1].GetString();
@@ -216,7 +215,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
                 int sequence = std::stoi(document[3].GetString());
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-                  return marketDataMessageList;
+                  return;
                 }
               }
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
@@ -224,7 +223,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
                     intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoi(document[2].GetString()))));
               }
               MarketDataMessage marketDataMessage;
-              marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+              marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
               std::string timestampInMilliseconds = document[4].GetString();
               timestampInMilliseconds.insert(timestampInMilliseconds.size() - 3, ".");
               marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(timestampInMilliseconds));
@@ -300,7 +299,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
-    return marketDataMessageList;
   }
   bool checkSequence(const WsConnection& wsConnection, int sequence) {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
@@ -389,10 +387,10 @@ class MarketDataServiceBitfinex : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
+    MarketDataService::processSuccessfulTextMessageRest(request, quotedTextMessage, timeReceived);
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                        const TimePoint& timeReceived) override {
@@ -403,7 +401,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(x[1].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
           std::string rawAmount = UtilString::normalizeDecimalString(x[2].GetString());

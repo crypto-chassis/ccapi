@@ -1,6 +1,17 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-Logger* Logger::logger = nullptr;  // This line is needed.
+  class MyLogger final : public Logger {
+   public:
+    void logMessage(std::string severity, std::string threadId, std::string timeISO, std::string fileName, std::string lineNumber, std::string message) override {
+      std::lock_guard<std::mutex> lock(m);
+      std::cout << threadId << ": [" << timeISO << "] {" << fileName << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message << std::endl;
+    }
+
+   private:
+    std::mutex m;
+  };
+  MyLogger myLogger;
+  Logger* Logger::logger = &myLogger;
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session* session) override {
@@ -17,14 +28,14 @@ using ::ccapi::SessionOptions;
 using ::ccapi::toString;
 using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
-  if (UtilSystem::getEnvAsString("BINANCE_US_API_KEY").empty()) {
-    std::cerr << "Please set environment variable BINANCE_US_API_KEY" << std::endl;
-    return EXIT_FAILURE;
-  }
-  if (UtilSystem::getEnvAsString("BINANCE_US_API_SECRET").empty()) {
-    std::cerr << "Please set environment variable BINANCE_US_API_SECRET" << std::endl;
-    return EXIT_FAILURE;
-  }
+  // if (UtilSystem::getEnvAsString("BINANCE_US_API_KEY").empty()) {
+  //   std::cerr << "Please set environment variable BINANCE_US_API_KEY" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
+  // if (UtilSystem::getEnvAsString("BINANCE_US_API_SECRET").empty()) {
+  //   std::cerr << "Please set environment variable BINANCE_US_API_SECRET" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
   std::vector<std::string> modeList = {
       "create_order", "cancel_order", "get_order", "get_open_orders", "cancel_open_orders",
   };
@@ -45,12 +56,12 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CREATE_ORDER, "binance-us", argv[2]);
-    request.appendParam({
-        {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
-        {"QUANTITY", argv[4]},
-        {"LIMIT_PRICE", argv[5]},
-    });
+    Request request(Request::Operation::GET_ACCOUNT_POSITIONS, "binance-usds-futures", argv[2]);
+    // request.appendParam({
+    //     {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
+    //     {"QUANTITY", argv[4]},
+    //     {"LIMIT_PRICE", argv[5]},
+    // });
     session.sendRequest(request);
   } else if (mode == "cancel_order") {
     if (argc != 4) {

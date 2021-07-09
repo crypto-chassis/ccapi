@@ -28,8 +28,11 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE
 #include "ccapi_cpp/service/ccapi_market_data_service_binance.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
-#include "ccapi_cpp/service/ccapi_market_data_service_binance_futures.h"
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
+#include "ccapi_cpp/service/ccapi_market_data_service_binance_usds_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
+#include "ccapi_cpp/service/ccapi_market_data_service_binance_coin_futures.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi.h"
@@ -72,8 +75,11 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
-#include "ccapi_cpp/service/ccapi_execution_management_service_binance_futures.h"
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_binance_usds_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_binance_coin_futures.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
@@ -192,9 +198,13 @@ class Session CCAPI_FINAL {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE] =
         std::make_shared<MarketDataServiceBinance>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_FUTURES] =
-        std::make_shared<MarketDataServiceBinanceFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES] =
+        std::make_shared<MarketDataServiceBinanceUsdsFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES] =
+        std::make_shared<MarketDataServiceBinanceCoinFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HUOBI] =
@@ -246,9 +256,13 @@ class Session CCAPI_FINAL {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE] =
         std::make_shared<ExecutionManagementServiceBinance>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_FUTURES] =
-        std::make_shared<ExecutionManagementServiceBinanceFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES] =
+        std::make_shared<ExecutionManagementServiceBinanceUsdsFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES] =
+        std::make_shared<ExecutionManagementServiceBinanceCoinFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HUOBI] =

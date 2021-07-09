@@ -12,7 +12,7 @@ class MarketDataServiceKraken : public MarketDataService {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->shouldAlignSnapshot = true;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -91,13 +91,12 @@ class MarketDataServiceKraken : public MarketDataService {
     }
     return sendStringList;
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     if (document.IsArray() && document.Size() >= 4 && document.Size() <= 5) {
       auto documentSize = document.Size();
       auto channelNameWithSuffix = std::string(document[documentSize - 2].GetString());
@@ -142,7 +141,7 @@ class MarketDataServiceKraken : public MarketDataService {
             }
           }
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           marketDataMessage.tp = latestTp;
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -166,7 +165,7 @@ class MarketDataServiceKraken : public MarketDataService {
         } else if (anonymous.IsObject() && anonymous.HasMember("as") && anonymous.HasMember("bs")) {
           CCAPI_LOGGER_TRACE("this is snapshot");
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
           marketDataMessage.tp = timeReceived;
@@ -187,7 +186,7 @@ class MarketDataServiceKraken : public MarketDataService {
       } else if (channelNameWithSuffix == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE) {
         for (const auto& x : document[1].GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           auto symbolId = std::string(document[documentSize - 1].GetString());
           marketDataMessage.exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -214,7 +213,6 @@ class MarketDataServiceKraken : public MarketDataService {
         // TODO(cryptochassis): implement
       }
     }
-    return marketDataMessageList;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
@@ -232,10 +230,10 @@ class MarketDataServiceKraken : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessage(request, quotedTextMessage, timeReceived);
+    MarketDataService::processSuccessfulTextMessageRest(request, quotedTextMessage, timeReceived);
   }
   std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                        const TimePoint& timeReceived) override {
@@ -248,7 +246,7 @@ class MarketDataServiceKraken : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["result"][symbolId.c_str()].GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           auto timePair = UtilTime::divide(std::string(x[2].GetString()));
           auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
           tp += std::chrono::nanoseconds(timePair.second);

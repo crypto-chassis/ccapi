@@ -12,7 +12,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -197,6 +197,8 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         for (const auto& x : document.GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
+          element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;

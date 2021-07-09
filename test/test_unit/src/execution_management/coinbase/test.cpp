@@ -376,6 +376,8 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGe
   EXPECT_EQ(elementList.size(), 2);
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "71452118-efc7-4cc4-8780-a5e22d4baa53");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "BTC");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "0.0000000000000000");
 }
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances) {

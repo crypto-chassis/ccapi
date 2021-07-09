@@ -33,7 +33,9 @@ class Message CCAPI_FINAL {
     UNKNOWN,
     AUTHORIZATION_SUCCESS,
     AUTHORIZATION_FAILURE,
-    MARKET_DATA_EVENTS,
+    MARKET_DATA_EVENTS_MARKET_DEPTH,
+    MARKET_DATA_EVENTS_TRADE,
+    MARKET_DATA_EVENTS_AGG_TRADE,
     EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE,
     EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE,
     SUBSCRIPTION_STARTED,
@@ -50,6 +52,7 @@ class Message CCAPI_FINAL {
     GET_ACCOUNT_BALANCES,
     GET_ACCOUNT_POSITIONS,
     GET_RECENT_TRADES,
+    GET_RECENT_AGG_TRADES,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
@@ -63,8 +66,14 @@ class Message CCAPI_FINAL {
       case Type::UNKNOWN:
         output = "UNKNOWN";
         break;
-      case Type::MARKET_DATA_EVENTS:
-        output = "MARKET_DATA_EVENTS";
+      case Type::MARKET_DATA_EVENTS_MARKET_DEPTH:
+        output = "MARKET_DATA_EVENTS_MARKET_DEPTH";
+        break;
+      case Type::MARKET_DATA_EVENTS_TRADE:
+        output = "MARKET_DATA_EVENTS_TRADE";
+        break;
+      case Type::MARKET_DATA_EVENTS_AGG_TRADE:
+        output = "MARKET_DATA_EVENTS_AGG_TRADE";
         break;
       case Type::AUTHORIZATION_SUCCESS:
         output = "AUTHORIZATION_SUCCESS";
@@ -119,6 +128,9 @@ class Message CCAPI_FINAL {
         break;
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
+        break;
+      case Type::GET_RECENT_AGG_TRADES:
+        output = "GET_RECENT_AGG_TRADES";
         break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";

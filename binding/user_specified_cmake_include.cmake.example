@@ -18,7 +18,8 @@
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
-# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_FUTURES)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)

@@ -12,7 +12,7 @@ class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiBase {
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/linear-swap-ws";
     this->isDerivatives = true;
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);

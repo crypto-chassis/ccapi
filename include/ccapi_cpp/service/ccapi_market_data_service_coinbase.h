@@ -11,7 +11,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = this->sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -63,19 +63,18 @@ class MarketDataServiceCoinbase : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  std::vector<MarketDataMessage> processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
     if (type == "l2update") {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2) + "|" + symbolId;
       MarketDataMessage marketDataMessage;
-      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       marketDataMessage.tp = UtilTime::parse(std::string(document["time"].GetString()));
       marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -96,7 +95,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_MATCH) + "|" + symbolId;
       MarketDataMessage marketDataMessage;
-      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       marketDataMessage.tp = UtilTime::parse(std::string(document["time"].GetString()));
       marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -113,7 +112,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2) + "|" + symbolId;
       MarketDataMessage marketDataMessage;
-      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
       marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
       marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
       marketDataMessage.tp = timeReceived;
@@ -138,7 +137,6 @@ class MarketDataServiceCoinbase : public MarketDataService {
       // TODO(cryptochassis): implement
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
-    return marketDataMessageList;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -170,7 +168,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
-          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = UtilTime::parse(std::string(x["time"].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
