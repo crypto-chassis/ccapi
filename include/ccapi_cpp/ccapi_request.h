@@ -40,9 +40,10 @@ class Request CCAPI_FINAL {
         break;
       case Operation::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
-        break;      case Operation::GET_RECENT_AGG_TRADES:
-                output = "GET_RECENT_AGG_TRADES";
-                break;
+        break;
+      case Operation::GET_RECENT_AGG_TRADES:
+        output = "GET_RECENT_AGG_TRADES";
+        break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
         break;

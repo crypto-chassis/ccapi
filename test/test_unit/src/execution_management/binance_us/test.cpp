@@ -333,7 +333,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, createEventExecutionTypeTrade) {
   "F": "0.00000000",
   "g": -1,
   "C": "",
-  "x": "NEW",
+  "x": "TRADE",
   "X": "NEW",
   "r": "NONE",
   "i": 4293153,
@@ -390,7 +390,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, createEventExecutionTypeNew) {
   "F": "0.00000000",
   "g": -1,
   "C": "",
-  "x": "NEW",
+  "x": "TRADE",
   "X": "NEW",
   "r": "NONE",
   "i": 4293153,
@@ -436,8 +436,11 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetAccountBalances
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/api/v3/account");
-  verifySignature("", this->credential.at(CCAPI_BINANCE_US_API_SECRET));
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/api/v3/account");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_US_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestGetAccountBalances) {
@@ -477,7 +480,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertTextMessageToMessageRestG
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
   auto elementList = message.getElementList();
-  EXPECT_EQ(elementList.size(), 1);
+  EXPECT_EQ(elementList.size(), 2);
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "BTC");
   EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "4723846.89208129");

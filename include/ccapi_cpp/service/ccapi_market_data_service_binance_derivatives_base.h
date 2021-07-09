@@ -7,15 +7,15 @@ namespace ccapi {
 class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceBase {
  public:
   MarketDataServiceBinanceDerivativesBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                  std::shared_ptr<ServiceContext> serviceContextPtr)
+                                          std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceBinanceBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }
   virtual ~MarketDataServiceBinanceDerivativesBase() {}
-  #ifndef CCAPI_EXPOSE_INTERNAL
+#ifndef CCAPI_EXPOSE_INTERNAL
 
-protected:
-  #endif
+ protected:
+#endif
   void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -24,23 +24,22 @@ protected:
     CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
-      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
-          marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
-          if (marketDepthSubscribedToExchange == 1) {
-            channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
-          } else {
-            std::string updateSpeed;
-            if (conflateIntervalMilliSeconds<250){
-              updateSpeed = "100ms";
-            }else if (conflateIntervalMilliSeconds>=500){
-              updateSpeed = "500ms";
-            }
-            channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
-            if (!updateSpeed.empty()){
-              channelId += "&UPDATE_SPEED="+updateSpeed;
-            }
-            this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
-          }
+      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
+      if (marketDepthSubscribedToExchange == 1) {
+        channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
+      } else {
+        std::string updateSpeed;
+        if (conflateIntervalMilliSeconds < 250) {
+          updateSpeed = "100ms";
+        } else if (conflateIntervalMilliSeconds >= 500) {
+          updateSpeed = "500ms";
+        }
+        channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
+        if (!updateSpeed.empty()) {
+          channelId += "&UPDATE_SPEED=" + updateSpeed;
+        }
+        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
+      }
     }
   }
 };

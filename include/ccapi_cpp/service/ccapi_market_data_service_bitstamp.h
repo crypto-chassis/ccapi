@@ -56,7 +56,8 @@ class MarketDataServiceBitstamp : public MarketDataService {
     }
     return sendStringList;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
     const rj::Value& data = document["data"];

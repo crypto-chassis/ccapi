@@ -55,8 +55,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
     MarketDataService::onClose(hdl);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage,
-                                                    const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
@@ -72,7 +72,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
           int sequence = std::stoi(document[2].GetString());
           if (!this->checkSequence(wsConnection, sequence)) {
             this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-            return ;
+            return;
           }
         }
       } else {
@@ -89,7 +89,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               int sequence = std::stoi(document[2].GetString());
               if (!this->checkSequence(wsConnection, sequence)) {
                 this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-                return ;
+                return;
               }
             }
             const rj::Value& content = document[1].GetArray();
@@ -187,7 +187,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
                 int sequence = std::stoi(document[3].GetString());
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-                  return ;
+                  return;
                 }
               }
               if (str == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) {
@@ -215,7 +215,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
                 int sequence = std::stoi(document[3].GetString());
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
-                  return ;
+                  return;
                 }
               }
               if (this->sessionOptions.enableCheckOrderBookChecksum) {

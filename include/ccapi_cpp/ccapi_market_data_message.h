@@ -52,9 +52,9 @@ class MarketDataMessage CCAPI_FINAL {
       case DataType::TRADE:
         output = "TRADE";
         break;
-        case DataType::AGG_TRADE:
-          output = "AGG_TRADE";
-          break;
+      case DataType::AGG_TRADE:
+        output = "AGG_TRADE";
+        break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
@@ -80,9 +80,9 @@ class MarketDataMessage CCAPI_FINAL {
       case DataFieldType::TRADE_ID:
         output = "TRADE_ID";
         break;
-        case DataFieldType::AGG_TRADE_ID:
-          output = "AGG_TRADE_ID";
-          break;
+      case DataFieldType::AGG_TRADE_ID:
+        output = "AGG_TRADE_ID";
+        break;
       case DataFieldType::IS_BUYER_MAKER:
         output = "IS_BUYER_MAKER";
         break;
@@ -142,15 +142,15 @@ class MarketDataMessage CCAPI_FINAL {
       case Type::UNKNOWN:
         output = "UNKNOWN";
         break;
-        case Type::MARKET_DATA_EVENTS_MARKET_DEPTH:
-          output = "MARKET_DATA_EVENTS_MARKET_DEPTH";
-          break;
-          case Type::MARKET_DATA_EVENTS_TRADE:
-            output = "MARKET_DATA_EVENTS_TRADE";
-            break;
-            case Type::MARKET_DATA_EVENTS_AGG_TRADE:
-              output = "MARKET_DATA_EVENTS_AGG_TRADE";
-              break;
+      case Type::MARKET_DATA_EVENTS_MARKET_DEPTH:
+        output = "MARKET_DATA_EVENTS_MARKET_DEPTH";
+        break;
+      case Type::MARKET_DATA_EVENTS_TRADE:
+        output = "MARKET_DATA_EVENTS_TRADE";
+        break;
+      case Type::MARKET_DATA_EVENTS_AGG_TRADE:
+        output = "MARKET_DATA_EVENTS_AGG_TRADE";
+        break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }

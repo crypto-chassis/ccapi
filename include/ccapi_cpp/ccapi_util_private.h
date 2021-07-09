@@ -10,10 +10,10 @@
 #include <iostream>
 #include <map>
 #include <numeric>
+#include <random>
 #include <regex>
 #include <set>
 #include <sstream>
-#include <random>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -30,25 +30,14 @@ class UtilString CCAPI_FINAL {
   }
   // https://stackoverflow.com/questions/440133/how-do-i-create-a-random-alpha-numeric-string-in-c
   static std::string generateRandomString(const size_t length) {
-    static const auto ch_set = std::vector<char>(
-    {'0','1','2','3','4',
-    '5','6','7','8','9',
-    'A','B','C','D','E','F',
-    'G','H','I','J','K',
-    'L','M','N','O','P',
-    'Q','R','S','T','U',
-    'V','W','X','Y','Z',
-    'a','b','c','d','e','f',
-    'g','h','i','j','k',
-    'l','m','n','o','p',
-    'q','r','s','t','u',
-    'v','w','x','y','z'
-    });
+    static const auto ch_set = std::vector<char>({'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                                                  'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+                                                  'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'});
     static std::default_random_engine rng(std::random_device{}());
-    static std::uniform_int_distribution<> dist(0, ch_set.size()-1);
-    static auto randchar = [  ](){return ch_set[ dist(rng) ];};
-    std::string str(length,0);
-    std::generate_n( str.begin(), length, randchar );
+    static std::uniform_int_distribution<> dist(0, ch_set.size() - 1);
+    static auto randchar = []() { return ch_set[dist(rng)]; };
+    std::string str(length, 0);
+    std::generate_n(str.begin(), length, randchar);
     return str;
   }
   static std::vector<std::string> split(const std::string& original, const std::string& delimiter) {

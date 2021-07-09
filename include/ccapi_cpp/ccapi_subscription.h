@@ -27,21 +27,21 @@ class Subscription CCAPI_FINAL {
       this->serviceName = CCAPI_FIX;
     } else if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
       this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
-    } else if (field == CCAPI_MARKET_DEPTH || field == CCAPI_TRADE|| field == CCAPI_AGG_TRADE) {
+    } else if (field == CCAPI_MARKET_DEPTH || field == CCAPI_TRADE || field == CCAPI_AGG_TRADE) {
       this->serviceName = CCAPI_MARKET_DATA;
     }
     CCAPI_LOGGER_TRACE("this->serviceName = " + this->serviceName);
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
-    auto originalInstrumentSet=UtilString::splitToSet(instrument, ",");
+    auto originalInstrumentSet = UtilString::splitToSet(instrument, ",");
     // this->instrumentSet = UtilString::splitToSet(instrument, ",");
-    std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()), [](const std::string & value){
-    return !value.empty();});
+    std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()),
+                 [](const std::string& value) { return !value.empty(); });
     // this->fieldSet = UtilString::splitToSet(field, ",");
-    auto originalFieldSet=UtilString::splitToSet(field, ",");
-    std::copy_if(originalFieldSet.begin(), originalFieldSet.end(), std::inserter(this->fieldSet, this->fieldSet.end()), [](const std::string & value){
-    return !value.empty();});
+    auto originalFieldSet = UtilString::splitToSet(field, ",");
+    std::copy_if(originalFieldSet.begin(), originalFieldSet.end(), std::inserter(this->fieldSet, this->fieldSet.end()),
+                 [](const std::string& value) { return !value.empty(); });
   }
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;

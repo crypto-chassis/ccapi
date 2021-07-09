@@ -568,17 +568,18 @@ class Service : public std::enable_shared_from_this<Service> {
                      beast::bind_front_handler(&Service::onRead_2, shared_from_this(), httpConnectionPtr, request, reqPtr, retry, bufferPtr, resPtr));
     CCAPI_LOGGER_TRACE("after async_read");
   }
-  void setHttpConnectionPoolPurgeTimer(){
+  void setHttpConnectionPoolPurgeTimer() {
     this->httpConnectionPoolPurgeTimer = this->serviceContextPtr->tlsClientPtr->set_timer(5000, [that = shared_from_this()](ErrorCode const& ec) {
       auto now = UtilTime::now();
-        if (ec) {
-          that->onError(Event::Type::SESSION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
-        } else {
-          if (std::chrono::duration_cast<std::chrono::milliseconds>(now-that->lastHttpConnectionPoolPushBackTp).count()>that->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds) {
-            that->httpConnectionPool.purge();
-          }
-          that->setHttpConnectionPoolPurgeTimer();
+      if (ec) {
+        that->onError(Event::Type::SESSION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+      } else {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - that->lastHttpConnectionPoolPushBackTp).count() >
+            that->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds) {
+          that->httpConnectionPool.purge();
         }
+        that->setHttpConnectionPoolPurgeTimer();
+      }
     });
   }
   void onRead_2(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, std::shared_ptr<http::request<http::string_body>> reqPtr, HttpRetry retry,
@@ -603,8 +604,9 @@ class Service : public std::enable_shared_from_this<Service> {
       CCAPI_LOGGER_TRACE("after async_shutdown");
     } else {
       try {
-        if (std::chrono::duration_cast<std::chrono::seconds>(this->lastHttpConnectionPoolPushBackTp.time_since_epoch()).count() == 0 && this->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds>0){
-this->setHttpConnectionPoolPurgeTimer();
+        if (std::chrono::duration_cast<std::chrono::seconds>(this->lastHttpConnectionPoolPushBackTp.time_since_epoch()).count() == 0 &&
+            this->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds > 0) {
+          this->setHttpConnectionPoolPurgeTimer();
         }
         this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
         this->lastHttpConnectionPoolPushBackTp = now;
@@ -829,7 +831,7 @@ this->setHttpConnectionPoolPurgeTimer();
     wsConnection.status = WsConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on dummy id " + wsConnection.id);
     std::string url = wsConnection.url;
-    CCAPI_LOGGER_DEBUG("url = "+url);
+    CCAPI_LOGGER_DEBUG("url = " + url);
     this->serviceContextPtr->tlsClientPtr->set_tls_init_handler(std::bind(&Service::onTlsInit, shared_from_this(), std::placeholders::_1));
     CCAPI_LOGGER_DEBUG("endpoint tls init handler set");
     ErrorCode ec;

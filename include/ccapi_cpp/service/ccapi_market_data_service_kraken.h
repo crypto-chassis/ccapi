@@ -91,7 +91,8 @@ class MarketDataServiceKraken : public MarketDataService {
     }
     return sendStringList;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -100,7 +101,6 @@ class MarketDataServiceKraken : public MarketDataService {
       auto documentSize = document.Size();
       auto channelNameWithSuffix = std::string(document[documentSize - 2].GetString());
       if (channelNameWithSuffix.rfind(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
-        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         auto symbolId = std::string(document[documentSize - 1].GetString());
         auto exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
@@ -141,6 +141,7 @@ class MarketDataServiceKraken : public MarketDataService {
             }
           }
           MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           marketDataMessage.tp = latestTp;
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
@@ -164,6 +165,7 @@ class MarketDataServiceKraken : public MarketDataService {
         } else if (anonymous.IsObject() && anonymous.HasMember("as") && anonymous.HasMember("bs")) {
           CCAPI_LOGGER_TRACE("this is snapshot");
           MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
           marketDataMessage.tp = timeReceived;

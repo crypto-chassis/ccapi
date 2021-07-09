@@ -69,12 +69,12 @@ class Message CCAPI_FINAL {
       case Type::MARKET_DATA_EVENTS_MARKET_DEPTH:
         output = "MARKET_DATA_EVENTS_MARKET_DEPTH";
         break;
-        case Type::MARKET_DATA_EVENTS_TRADE:
-          output = "MARKET_DATA_EVENTS_TRADE";
-          break;
-          case Type::MARKET_DATA_EVENTS_AGG_TRADE:
-            output = "MARKET_DATA_EVENTS_AGG_TRADE";
-            break;
+      case Type::MARKET_DATA_EVENTS_TRADE:
+        output = "MARKET_DATA_EVENTS_TRADE";
+        break;
+      case Type::MARKET_DATA_EVENTS_AGG_TRADE:
+        output = "MARKET_DATA_EVENTS_AGG_TRADE";
+        break;
       case Type::AUTHORIZATION_SUCCESS:
         output = "AUTHORIZATION_SUCCESS";
         break;
@@ -129,9 +129,9 @@ class Message CCAPI_FINAL {
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
         break;
-        case Type::GET_RECENT_AGG_TRADES:
-          output = "GET_RECENT_AGG_TRADES";
-          break;
+      case Type::GET_RECENT_AGG_TRADES:
+        output = "GET_RECENT_AGG_TRADES";
+        break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
         break;

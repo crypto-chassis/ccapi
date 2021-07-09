@@ -7,10 +7,10 @@ namespace ccapi {
 class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDerivativesBase {
  public:
   MarketDataServiceBinanceCoinFutures(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                  std::shared_ptr<ServiceContext> serviceContextPtr)
+                                      std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceBinanceDerivativesBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/stream";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/stream";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -19,7 +19,7 @@ class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDeriv
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/dapi/v1/trades";
-    this->getRecentAggTradesTarget="/dapi/v1/aggTrades";
+    this->getRecentAggTradesTarget = "/dapi/v1/aggTrades";
     // this->isDerivatives = true;
   }
   virtual ~MarketDataServiceBinanceCoinFutures() {}

@@ -10,7 +10,7 @@ class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test 
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceBinanceUsdsFutures>([](Event& event) {}, SessionOptions(), SessionConfigs(),
-                                                                               wspp::lib::make_shared<ServiceContext>());
+                                                                                   wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_BINANCE_USDS_FUTURES_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"},
         {CCAPI_BINANCE_USDS_FUTURES_API_SECRET, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"},
@@ -200,24 +200,86 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/fapi/v2/account");
-  verifySignature("", this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/fapi/v2/account");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMessageRestGetAccountBalances) {
   Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
   std::string textMessage =
       R"(
-    {
-      "success": true,
-      "result": [
         {
-          "coin": "USDTBEAR",
-          "free": 2320.2,
-          "total": 2340.2
+            "feeTier": 0,
+            "canTrade": true,
+            "canDeposit": true,
+            "canWithdraw": true,
+            "updateTime": 0,
+            "totalInitialMargin": "0.00000000",
+            "totalMaintMargin": "0.00000000",
+            "totalWalletBalance": "23.72469206",
+            "totalUnrealizedProfit": "0.00000000",
+            "totalMarginBalance": "23.72469206",
+            "totalPositionInitialMargin": "0.00000000",
+            "totalOpenOrderInitialMargin": "0.00000000",
+            "totalCrossWalletBalance": "23.72469206",
+            "totalCrossUnPnl": "0.00000000",
+            "availableBalance": "23.72469206",
+            "maxWithdrawAmount": "23.72469206",
+            "assets": [
+                {
+                    "asset": "USDT",
+                    "walletBalance": "23.72469206",
+                    "unrealizedProfit": "0.00000000",
+                    "marginBalance": "23.72469206",
+                    "maintMargin": "0.00000000",
+                    "initialMargin": "0.00000000",
+                    "positionInitialMargin": "0.00000000",
+                    "openOrderInitialMargin": "0.00000000",
+                    "crossWalletBalance": "23.72469206",
+                    "crossUnPnl": "0.00000000",
+                    "availableBalance": "23.72469206",
+                    "maxWithdrawAmount": "23.72469206",
+                    "marginAvailable": true,
+                    "updateTime": 1625474304765
+                },
+                {
+                    "asset": "BUSD",
+                    "walletBalance": "103.12345678",
+                    "unrealizedProfit": "0.00000000",
+                    "marginBalance": "103.12345678",
+                    "maintMargin": "0.00000000",
+                    "initialMargin": "0.00000000",
+                    "positionInitialMargin": "0.00000000",
+                    "openOrderInitialMargin": "0.00000000",
+                    "crossWalletBalance": "103.12345678",
+                    "crossUnPnl": "0.00000000",
+                    "availableBalance": "103.12345678",
+                    "maxWithdrawAmount": "103.12345678",
+                    "marginAvailable": true,
+                    "updateTime": 1625474304765
+                }
+            ],
+            "positions": [
+                {
+                    "symbol": "BTCUSDT",
+                    "initialMargin": "0",
+                    "maintMargin": "0",
+                    "unrealizedProfit": "0.00000000",
+                    "positionInitialMargin": "0",
+                    "openOrderInitialMargin": "0",
+                    "leverage": "100",
+                    "isolated": true,
+                    "entryPrice": "0.00000",
+                    "maxNotional": "250000",
+                    "positionSide": "BOTH",
+                    "positionAmt": "0",
+                    "updateTime": 0
+                }
+            ]
         }
-      ]
-    }
   )";
   auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
@@ -225,10 +287,10 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
   auto elementList = message.getElementList();
-  EXPECT_EQ(elementList.size(), 1);
+  EXPECT_EQ(elementList.size(), 2);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USDTBEAR");
-  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "2320.2");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "23.72469206");
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccountPositions) {
@@ -236,8 +298,11 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/api/positions");
-  verifySignature("", this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/fapi/v2/account");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
+  verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMessageRestGetAccountPositions) {
@@ -260,7 +325,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
             "totalCrossWalletBalance": "23.72469206",
             "totalCrossUnPnl": "0.00000000",
             "availableBalance": "23.72469206",
-            "maxWithdrawAmount": "23.72469206"
+            "maxWithdrawAmount": "23.72469206",
             "assets": [
                 {
                     "asset": "USDT",
@@ -272,7 +337,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
                     "positionInitialMargin": "0.00000000",
                     "openOrderInitialMargin": "0.00000000",
                     "crossWalletBalance": "23.72469206",
-                    "crossUnPnl": "0.00000000"
+                    "crossUnPnl": "0.00000000",
                     "availableBalance": "23.72469206",
                     "maxWithdrawAmount": "23.72469206",
                     "marginAvailable": true,
@@ -288,7 +353,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
                     "positionInitialMargin": "0.00000000",
                     "openOrderInitialMargin": "0.00000000",
                     "crossWalletBalance": "103.12345678",
-                    "crossUnPnl": "0.00000000"
+                    "crossUnPnl": "0.00000000",
                     "availableBalance": "103.12345678",
                     "maxWithdrawAmount": "103.12345678",
                     "marginAvailable": true,

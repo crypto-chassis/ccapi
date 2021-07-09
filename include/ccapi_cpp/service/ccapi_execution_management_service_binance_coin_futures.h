@@ -7,11 +7,11 @@ namespace ccapi {
 class ExecutionManagementServiceBinanceCoinFutures : public ExecutionManagementServiceBinanceDerivativesBase {
  public:
   ExecutionManagementServiceBinanceCoinFutures(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                           ServiceContextPtr serviceContextPtr)
+                                               ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBinanceDerivativesBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/ws";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -28,9 +28,9 @@ class ExecutionManagementServiceBinanceCoinFutures : public ExecutionManagementS
     this->getOpenOrdersTarget = "/dapi/v1/openOrders";
     this->cancelOpenOrdersTarget = "/dapi/v1/allOpenOrders";
     this->isDerivatives = true;
-    this->listenKeyTarget=CCAPI_BINANCE_COIN_FUTURES_LISTEN_KEY_PATH;
-    this->getAccountBalancesTarget="/dapi/v1/account";
-    this->getAccountPositionsTarget="/dapi/v1/account";
+    this->listenKeyTarget = CCAPI_BINANCE_COIN_FUTURES_LISTEN_KEY_PATH;
+    this->getAccountBalancesTarget = "/dapi/v1/account";
+    this->getAccountPositionsTarget = "/dapi/v1/account";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinanceCoinFutures() {}
