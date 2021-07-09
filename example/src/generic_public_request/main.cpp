@@ -30,10 +30,9 @@ int main(int argc, char** argv) {
   }
   std::this_thread::sleep_for(std::chrono::seconds(10));
   {
-    Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "binance", "", "Old Trade Lookup",
-                    {
-                        {"BINANCE_API_KEY", UtilSystem::getEnvAsString("BINANCE_API_KEY")},
-                    });
+    // This endpoint requires X-MBX-APIKEY header: https://binance-docs.github.io/apidocs/spot/en/#old-trade-lookup
+    // Therefore please set environment variable BINANCE_API_KEY.
+    Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "binance", "", "Old Trade Lookup");
     request.appendParam({
         {"HTTP_METHOD", "GET"},
         {"HTTP_PATH", "/api/v3/historicalTrades"},
