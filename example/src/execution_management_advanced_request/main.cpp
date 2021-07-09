@@ -14,7 +14,6 @@ using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
-using ::ccapi::toString;
 using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
   if (UtilSystem::getEnvAsString("BINANCE_US_API_KEY").empty()) {

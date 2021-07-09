@@ -139,7 +139,7 @@ class Service : public std::enable_shared_from_this<Service> {
   virtual void subscribe(const std::vector<Subscription>& subscriptionList) {}
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                                      const std::map<std::string, std::string>& credential) {}
-  virtual void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
+  virtual void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
   std::shared_ptr<std::future<void>> sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
@@ -626,7 +626,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string body = resPtr->body();
     try {
       if (statusCode / 100 == 2) {
-        this->processSuccessfulTextMessageRest(request, body, now);
+        this->processSuccessfulTextMessageRest(statusCode, request, body, now);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
           Url url(resPtr->base().at("Location").to_string());
@@ -1133,7 +1133,13 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  http::verb convertHttpMethodStringToMethod(const std::string& methodString) {
+    std::string methodStringUpper = UtilString::toUpper(methodString);
+    return http::string_to_verb(methodStringUpper);
+  }
   virtual void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) {}
+  std::string apiKeyName;
+  std::string apiSecretName;
   std::string exchangeName;
   std::string baseUrl;
   std::string baseUrlRest;

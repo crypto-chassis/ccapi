@@ -59,6 +59,7 @@ class Message CCAPI_FINAL {
     CUSTOM,
     FIX,
     FIX_FAILURE,
+    GENERIC_PUBLIC_REQUEST,
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -149,6 +150,9 @@ class Message CCAPI_FINAL {
         break;
       case Type::FIX_FAILURE:
         output = "FIX_FAILURE";
+        break;
+      case Type::GENERIC_PUBLIC_REQUEST:
+        output = "GENERIC_PUBLIC_REQUEST";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
