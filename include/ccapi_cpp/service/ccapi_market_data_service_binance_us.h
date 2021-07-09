@@ -18,6 +18,8 @@ class MarketDataServiceBinanceUs : public MarketDataServiceBinanceBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+    this->apiKeyName = CCAPI_BINANCE_US_API_KEY;
+    this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/api/v3/trades";
     this->getRecentAggTradesTarget = "/api/v3/aggTrades";
   }

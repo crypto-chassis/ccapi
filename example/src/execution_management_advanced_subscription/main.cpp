@@ -31,7 +31,6 @@ using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
-using ::ccapi::toString;
 using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
   if (UtilSystem::getEnvAsString("OKEX_API_KEY").empty()) {

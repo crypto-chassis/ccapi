@@ -35,10 +35,8 @@ class Subscription CCAPI_FINAL {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
     auto originalInstrumentSet = UtilString::splitToSet(instrument, ",");
-    // this->instrumentSet = UtilString::splitToSet(instrument, ",");
     std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()),
                  [](const std::string& value) { return !value.empty(); });
-    // this->fieldSet = UtilString::splitToSet(field, ",");
     auto originalFieldSet = UtilString::splitToSet(field, ",");
     std::copy_if(originalFieldSet.begin(), originalFieldSet.end(), std::inserter(this->fieldSet, this->fieldSet.end()),
                  [](const std::string& value) { return !value.empty(); });

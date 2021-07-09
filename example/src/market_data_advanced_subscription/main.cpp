@@ -16,7 +16,6 @@ using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
-using ::ccapi::toString;
 int main(int argc, char** argv) {
   std::vector<std::string> modeList = {"specify_correlation_id",
                                        "normalize_instrument_name",
