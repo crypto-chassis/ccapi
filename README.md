@@ -1,5 +1,7 @@
 ## Minor Breaking Changes (v5.0.0)
 * `Message::Type::MARKET_DATA_EVENTS` has been replaced by `Message::Type::MARKET_DATA_EVENTS_MARKET_DEPTH`, `Message::Type::MARKET_DATA_EVENTS_TRADE`, and `Message::Type::MARKET_DATA_EVENTS_AGG_TRADE` to accommodate for Binance.
+* Exchange name "binance-futures" has been replaced by "binance-usds-futures" and "binance-coin-futures".
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -24,6 +26,7 @@
       - [Receive subscription market depth updates](#receive-subscription-market-depth-updates)
       - [Receive subscription trade events](#receive-subscription-trade-events)
       - [Receive subscription OHLC events at periodic intervals](#receive-subscription-ohlc-events-at-periodic-intervals)
+      - [Send generic public requests](#send-generic-public-requests)
     - [Simple Execution Management](#simple-execution-management)
     - [Advanced Execution Management](#advanced-execution-management)
       - [Specify correlation id](#specify-correlation-id-1)
@@ -343,6 +346,17 @@ Subscription subscription("coinbase", "BTC-USD", "TRADE");
 Instantiate `Subscription` with field `TRADE` and option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CONFLATE_GRACE_PERIOD_MILLISECONDS` to be your network latency.
 ```
 Subscription subscription("coinbase", "BTC-USD", "TRADE", "CONFLATE_INTERVAL_MILLISECONDS=5000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
+```
+
+#### Send generic public requests
+
+Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (should be url-encoded), `HTTP_BODY`.
+```
+Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "binance", "", "Check Server Time");
+request.appendParam({
+    {"HTTP_METHOD", "GET"},
+    {"HTTP_PATH", "/api/v3/time"},
+});
 ```
 
 ### Simple Execution Management

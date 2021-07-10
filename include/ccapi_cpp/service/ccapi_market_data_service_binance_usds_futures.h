@@ -18,6 +18,8 @@ class MarketDataServiceBinanceUsdsFutures : public MarketDataServiceBinanceDeriv
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+    this->apiKeyName = CCAPI_BINANCE_USDS_FUTURES_API_KEY;
+    this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/fapi/v1/trades";
     this->getRecentAggTradesTarget = "/fapi/v1/aggTrades";
     // this->isDerivatives = true;

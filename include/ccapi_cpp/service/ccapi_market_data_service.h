@@ -981,31 +981,45 @@ class MarketDataService : public Service {
       }
     }
   }
-  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    std::vector<MarketDataMessage> marketDataMessageList = this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived);
-    CCAPI_LOGGER_TRACE("marketDataMessageList = " + toString(marketDataMessageList));
-    if (!marketDataMessageList.empty()) {
-      Event event;
-      event.setType(Event::Type::RESPONSE);
-      for (auto& marketDataMessage : marketDataMessageList) {
-        if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
-            marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
-            marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-          const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
-          CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
-          if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end() ||
-              marketDataMessage.data.find(MarketDataMessage::DataType::AGG_TRADE) != marketDataMessage.data.end()) {
-            auto messageType = this->requestOperationToMessageTypeMap.at(request.getOperation());
-            this->processTrade(event, marketDataMessage.tp, timeReceived, marketDataMessage.data, correlationIdList, messageType);
+    Event event;
+    event.setType(Event::Type::RESPONSE);
+    if (request.getOperation() == Request::Operation::GENERIC_PUBLIC_REQUEST) {
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::GENERIC_PUBLIC_REQUEST);
+      Element element;
+      element.insert(CCAPI_HTTP_STATUS_CODE, std::to_string(statusCode));
+      element.insert(CCAPI_HTTP_BODY, textMessage);
+      message.setElementList({element});
+      const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
+      CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
+      message.setCorrelationIdList(correlationIdList);
+      event.addMessages({message});
+    } else {
+      std::vector<MarketDataMessage> marketDataMessageList = this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived);
+      CCAPI_LOGGER_TRACE("marketDataMessageList = " + toString(marketDataMessageList));
+      if (!marketDataMessageList.empty()) {
+        for (auto& marketDataMessage : marketDataMessageList) {
+          if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
+              marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
+              marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
+            const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
+            CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
+            if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end() ||
+                marketDataMessage.data.find(MarketDataMessage::DataType::AGG_TRADE) != marketDataMessage.data.end()) {
+              auto messageType = this->requestOperationToMessageTypeMap.at(request.getOperation());
+              this->processTrade(event, marketDataMessage.tp, timeReceived, marketDataMessage.data, correlationIdList, messageType);
+            }
+          } else {
+            CCAPI_LOGGER_WARN("market data event type is unknown!");
           }
-        } else {
-          CCAPI_LOGGER_WARN("market data event type is unknown!");
         }
+        CCAPI_LOGGER_TRACE("event type is " + event.typeToString(event.getType()));
       }
-      CCAPI_LOGGER_TRACE("event type is " + event.typeToString(event.getType()));
-      this->eventHandler(event);
     }
+    this->eventHandler(event);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void processTrade(Event& event, const TimePoint& tp, const TimePoint& timeReceived, MarketDataMessage::TypeForData& input,
@@ -1083,6 +1097,28 @@ class MarketDataService : public Service {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     Service::onClose(hdl);
+  }
+  void convertRequestForRestGenericPublicRequest(http::request<http::string_body>& req, const Request& request, const TimePoint& now,
+                                                 const std::string& symbolId, const std::map<std::string, std::string>& credential) {
+    const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+    auto methodString = mapGetWithDefault(param, std::string(CCAPI_HTTP_METHOD));
+    CCAPI_LOGGER_TRACE("methodString = " + methodString);
+    req.method(this->convertHttpMethodStringToMethod(methodString));
+    auto path = mapGetWithDefault(param, std::string(CCAPI_HTTP_PATH));
+    CCAPI_LOGGER_TRACE("path = " + path);
+    auto queryString = mapGetWithDefault(param, std::string(CCAPI_HTTP_QUERY_STRING));
+    CCAPI_LOGGER_TRACE("queryString = " + queryString);
+    auto target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    req.target(target);
+    auto body = mapGetWithDefault(param, std::string(CCAPI_HTTP_BODY));
+    CCAPI_LOGGER_TRACE("body = " + body);
+    if (!body.empty()) {
+      req.body() = body;
+      req.prepare_payload();
+    }
   }
   virtual std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
                                                                                const TimePoint& timeReceived) {

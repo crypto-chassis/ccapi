@@ -10,13 +10,15 @@ namespace ccapi {
 class Request CCAPI_FINAL {
  public:
   static constexpr int operationTypeCustom = 0x100;
-  static constexpr int operationTypeFix = 0x200;
-  static constexpr int operationTypeMarketData = 0x300;
-  static constexpr int operationTypeExecutionManagement = 0x400;
+  static constexpr int operationTypeGenericPublicRequest = 0x200;
+  static constexpr int operationTypeFix = 0x300;
+  static constexpr int operationTypeMarketData = 0x400;
+  static constexpr int operationTypeExecutionManagement = 0x500;
   static constexpr int operationTypeExecutionManagementOrder = operationTypeExecutionManagement;
-  static constexpr int operationTypeExecutionManagementAccount = 0x500;
+  static constexpr int operationTypeExecutionManagementAccount = 0x600;
   enum class Operation {
     CUSTOM = operationTypeCustom,
+    GENERIC_PUBLIC_REQUEST = operationTypeGenericPublicRequest,
     FIX = operationTypeFix,
     GET_RECENT_TRADES = operationTypeMarketData,
     GET_RECENT_AGG_TRADES,
@@ -34,6 +36,9 @@ class Request CCAPI_FINAL {
     switch (operation) {
       case Operation::CUSTOM:
         output = "CUSTOM";
+        break;
+      case Operation::GENERIC_PUBLIC_REQUEST:
+        output = "GENERIC_PUBLIC_REQUEST";
         break;
       case Operation::FIX:
         output = "FIX";
@@ -79,6 +84,8 @@ class Request CCAPI_FINAL {
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
     if (operation == Operation::CUSTOM) {
       this->serviceName = CCAPI_UNKNOWN;
+    } else if (operation == Operation::GENERIC_PUBLIC_REQUEST) {
+      this->serviceName = CCAPI_MARKET_DATA;
     } else if (operation == Operation::FIX) {
       this->serviceName = CCAPI_FIX;
     } else {

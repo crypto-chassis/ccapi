@@ -186,9 +186,19 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       }
     }
   }
+  void prepareReq(http::request<http::string_body>& req, const std::map<std::string, std::string>& credential) {
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    if (!apiKey.empty()) {
+      req.set("X-MBX-APIKEY", apiKey);
+    }
+  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
+    this->prepareReq(req, credential);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PUBLIC_REQUEST: {
+        MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;

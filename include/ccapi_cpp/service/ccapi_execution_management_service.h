@@ -73,7 +73,7 @@ class ExecutionManagementService : public Service {
     messageList.push_back(std::move(message));
     return messageList;
   }
-  void processSuccessfulTextMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     Event event;
     if (this->doesHttpBodyContainError(request, textMessage)) {
       event.setType(Event::Type::REQUEST_STATUS);
@@ -222,8 +222,6 @@ class ExecutionManagementService : public Service {
                                                                         const std::map<std::string, std::string>& credential) {
     return {};
   }
-  std::string apiKeyName;
-  std::string apiSecretName;
   std::string createOrderTarget;
   std::string cancelOrderTarget;
   std::string getOrderTarget;
