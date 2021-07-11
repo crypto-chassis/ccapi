@@ -354,7 +354,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       std::string topic = document["topic"].GetString();
       if (topic == "/spotMarket/tradeOrders") {
         const rj::Value& data = document["data"];
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(data["symbol"].GetString());
+        std::string instrument = std::string((data["symbol"].GetString());
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           std::string ts = std::to_string(data["ts"].GetInt64());
           message.setTime(UtilTime::makeTimePoint({std::stoll(ts.substr(0, ts.length() - 9)), std::stoll(ts.substr(ts.length() - 9))}));

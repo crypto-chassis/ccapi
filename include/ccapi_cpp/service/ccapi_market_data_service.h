@@ -103,14 +103,6 @@ class MarketDataService : public Service {
           channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
           this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
         }
-      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_BITMEX) {
-        if (marketDepthRequested == 1) {
-          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
-        } else if (marketDepthRequested <= 10) {
-          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10;
-        } else if (marketDepthRequested <= 25) {
-          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
-        }
       } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
         if (marketDepthRequested <= 20) {
           channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
@@ -139,7 +131,7 @@ class MarketDataService : public Service {
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
     CCAPI_LOGGER_TRACE("instrument = " + instrument);
-    auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+    const std::string& symbolId = instrument;
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     auto field = subscription.getField();
     CCAPI_LOGGER_TRACE("field = " + field);

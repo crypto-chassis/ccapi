@@ -244,7 +244,7 @@ class MarketDataServiceKraken : public MarketDataService {
     document.Parse(textMessage.c_str());
     std::vector<MarketDataMessage> marketDataMessageList;
     auto instrument = request.getInstrument();
-    auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
+    const std::string& symbolId = instrument;
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["result"][symbolId.c_str()].GetArray()) {

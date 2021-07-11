@@ -238,7 +238,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     rj::Value symbolIds(rj::kArrayType);
     auto instrumentSet = subscription.getInstrumentSet();
     for (const auto& instrument : instrumentSet) {
-      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      const std::string& symbolId = instrument;
       symbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
     }
     channel.AddMember("name", rj::Value(channelId.c_str(), allocator).Move(), allocator);
@@ -248,7 +248,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     heartbeatChannel.AddMember("name", rj::Value("heartbeat").Move(), allocator);
     rj::Value heartbeatSymbolIds(rj::kArrayType);
     for (const auto& instrument : instrumentSet) {
-      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      const std::string& symbolId = instrument;
       heartbeatSymbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
     }
     heartbeatChannel.AddMember("product_ids", heartbeatSymbolIds, allocator);
@@ -284,7 +284,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       auto fieldSet = subscription.getFieldSet();
       auto instrumentSet = subscription.getInstrumentSet();
       if (document.FindMember("user_id") != document.MemberEnd()) {
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(document["product_id"].GetString());
+        std::string instrument = std::string((document["product_id"].GetString());
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           auto it = document.FindMember("time");
           if (it != document.MemberEnd()) {

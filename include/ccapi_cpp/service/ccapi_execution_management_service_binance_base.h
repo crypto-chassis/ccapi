@@ -177,7 +177,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     req.method(http::verb::post);
     std::string target = this->listenKeyTarget;
     if (this->listenKeyTarget == "/sapi/v1/userDataStream/isolated") {
-      auto symbol = this->convertInstrumentToRestSymbolId(wsConnection.subscriptionList.at(0).getInstrument());
+      auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
       target += "?" + symbol;
     }
     req.target(target);
@@ -242,7 +242,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
             auto listenKey = that->extraPropertyByConnectionIdMap.at(wsConnection.id).at("listenKey");
             params.insert({"listenKey", listenKey});
             if (that->listenKeyTarget == "/sapi/v1/userDataStream/isolated") {
-              auto symbol = that->convertInstrumentToRestSymbolId(wsConnection.subscriptionList.at(0).getInstrument());
+              auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
               params.insert({"symbol", symbol});
             }
             target += "?";
@@ -299,7 +299,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       const rj::Value& data = this->isDerivatives ? document["o"] : document;
       std::string executionType = data["x"].GetString();
-      std::string instrument = this->convertWebsocketSymbolIdToInstrument(data["s"].GetString());
+      std::string instrument = std::string((data["s"].GetString());
       if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
         message.setTime(TimePoint(std::chrono::milliseconds((this->isDerivatives ? document : data)["E"].GetInt64())));
         if (executionType == "TRADE" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {

@@ -304,7 +304,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       std::string ch = document["ch"].GetString();
       if (ch.rfind("orders#", 0) == 0 && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
         const rj::Value& data = document["data"];
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(data["symbol"].GetString());
+        std::string instrument = std::string((data["symbol"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           auto it = data.FindMember("lastActTime");
           if (it == data.MemberEnd()) {
@@ -338,7 +338,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         }
       } else if (ch.rfind("trade.clearing#", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         const rj::Value& data = document["data"];
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(data["symbol"].GetString());
+        std::string instrument = std::string((data["symbol"].GetString());
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           message.setTime(UtilTime::makeTimePointFromMilliseconds(data["tradeTime"].GetInt64()));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);

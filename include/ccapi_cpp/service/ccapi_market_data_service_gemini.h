@@ -128,11 +128,12 @@ class MarketDataServiceGemini : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
-    auto symbol = this->convertInstrumentToWebsocketSymbolId(subscription.getInstrument());
+    auto instrument = subscription.getInstrument();
+    auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
     auto field = subscription.getField();
     auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->exchangeName).at(field), ",");
     std::set<std::string> parameterSet(parameterList.begin(), parameterList.end());
-    std::string url = this->baseUrl + "/" + symbol;
+    std::string url = this->baseUrl + "/" + symbolId;
     url += "?";
     if ((parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_BIDS) != parameterSet.end() ||
          parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_OFFERS) != parameterSet.end())) {

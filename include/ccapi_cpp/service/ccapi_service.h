@@ -437,63 +437,63 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return streamPtr;
   }
-  std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
-    std::string symbolId = instrument;
-    if (!instrument.empty()) {
-      if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
-              this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
-      }
-    }
-    return symbolId;
-  }
-  std::string convertWebsocketSymbolIdToInstrument(std::string symbolId) {
-    std::string instrument = symbolId;
-    if (!symbolId.empty()) {
-      if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
-          this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
-              this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
-        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
-      }
-    }
-    return instrument;
-  }
-  std::string convertInstrumentToRestSymbolId(std::string instrument) {
-    std::string symbolId = instrument;
-    CCAPI_LOGGER_DEBUG("instrument = " + instrument);
-    if (!instrument.empty()) {
-      if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(this->exchangeName) !=
-              this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
-          this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).find(instrument) !=
-              this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).at(instrument);
-      } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) !=
-                     this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-                 this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
-                     this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
-        symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
-      }
-    }
-    return symbolId;
-  }
-  std::string convertRestSymbolIdToInstrument(std::string symbolId) {
-    std::string instrument = symbolId;
-    if (!symbolId.empty()) {
-      if (this->sessionConfigs.getExchangeSymbolInstrumentMapRest().find(this->exchangeName) !=
-              this->sessionConfigs.getExchangeSymbolInstrumentMapRest().end() &&
-          this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).find(symbolId) !=
-              this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).end()) {
-        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).at(symbolId);
-      } else if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) !=
-                     this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
-                 this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
-                     this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
-        instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
-      }
-    }
-    return instrument;
-  }
+  // std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
+  //   std::string symbolId = instrument;
+  //   if (!instrument.empty()) {
+  //     if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+  //         this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
+  //             this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
+  //       symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
+  //     }
+  //   }
+  //   return symbolId;
+  // }
+  // std::string convertWebsocketSymbolIdToInstrument(std::string symbolId) {
+  //   std::string instrument = symbolId;
+  //   if (!symbolId.empty()) {
+  //     if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
+  //         this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
+  //             this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
+  //       instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
+  //     }
+  //   }
+  //   return instrument;
+  // }
+  // std::string convertInstrumentToRestSymbolId(std::string instrument) {
+  //   std::string symbolId = instrument;
+  //   CCAPI_LOGGER_DEBUG("instrument = " + instrument);
+  //   if (!instrument.empty()) {
+  //     if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(this->exchangeName) !=
+  //             this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
+  //         this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).find(instrument) !=
+  //             this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).end()) {
+  //       symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).at(instrument);
+  //     } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) !=
+  //                    this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
+  //                this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
+  //                    this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
+  //       symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
+  //     }
+  //   }
+  //   return symbolId;
+  // }
+  // std::string convertRestSymbolIdToInstrument(std::string symbolId) {
+  //   std::string instrument = symbolId;
+  //   if (!symbolId.empty()) {
+  //     if (this->sessionConfigs.getExchangeSymbolInstrumentMapRest().find(this->exchangeName) !=
+  //             this->sessionConfigs.getExchangeSymbolInstrumentMapRest().end() &&
+  //         this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).find(symbolId) !=
+  //             this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).end()) {
+  //       instrument = this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).at(symbolId);
+  //     } else if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) !=
+  //                    this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
+  //                this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
+  //                    this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
+  //       instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
+  //     }
+  //   }
+  //   return instrument;
+  // }
   void performRequest(std::shared_ptr<HttpConnection> httpConnectionPtr, const Request& request, http::request<http::string_body>& req,
                       const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -751,7 +751,7 @@ class Service : public std::enable_shared_from_this<Service> {
       credential = this->credentialDefault;
     }
     auto instrument = request.getInstrument();
-    auto symbolId = this->convertInstrumentToRestSymbolId(instrument);
+    auto symbolId = instrument;
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     http::request<http::string_body> req;
     if (this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {

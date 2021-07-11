@@ -10,30 +10,36 @@
 namespace ccapi {
 class SessionConfigs CCAPI_FINAL {
  public:
-  SessionConfigs() : SessionConfigs({}, {}, {}) { this->initializUrlFixBase(); }
-  explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap,
-                          std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {},
-                          std::map<std::string, std::string> credential = {})
-      : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap), exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest), credential(credential) {
-    this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
-    this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
+  // SessionConfigs() : SessionConfigs({}, {}, {}) { this->initializUrlFixBase(); }
+  // explicit SessionConfigs(std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap,
+  //                         std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest = {},
+  //                         std::map<std::string, std::string> credential = {})
+  //     : exchangeInstrumentSymbolMap(exchangeInstrumentSymbolMap), exchangeInstrumentSymbolMapRest(exchangeInstrumentSymbolMapRest), credential(credential) {
+  //   this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
+  //   this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
+  //   this->updateExchangeInstrumentMap();
+  //   this->updateExchangeInstrumentMapRest();
+  //   this->initializUrlFixBase();
+  // }
+  explicit SessionConfigs(std::map<std::string, std::string> credential = {})
+      : credential(credential) {
     this->updateExchangeInstrumentMap();
     this->updateExchangeInstrumentMapRest();
     this->initializUrlFixBase();
   }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const { return exchangeInstrumentSymbolMap; }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMapRest() const { return exchangeInstrumentSymbolMapRest; }
-  void setExchangeInstrumentSymbolMap(const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
-    this->exchangeInstrumentSymbolMap = exchangeInstrumentSymbolMap;
-    this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
-    this->updateExchangeInstrumentMap();
-    this->updateExchangeInstrumentMapRest();
-  }
-  void setExchangeInstrumentSymbolMapRest(const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMapRest) {
-    this->exchangeInstrumentSymbolMapRest = exchangeInstrumentSymbolMapRest;
-    this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
-    this->updateExchangeInstrumentMapRest();
-  }
+  // const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMap() const { return exchangeInstrumentSymbolMap; }
+  // const std::map<std::string, std::map<std::string, std::string> >& getExchangeInstrumentSymbolMapRest() const { return exchangeInstrumentSymbolMapRest; }
+  // void setExchangeInstrumentSymbolMap(const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMap) {
+  //   this->exchangeInstrumentSymbolMap = exchangeInstrumentSymbolMap;
+  //   this->exchangeSymbolInstrumentMap = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMap);
+  //   this->updateExchangeInstrumentMap();
+  //   this->updateExchangeInstrumentMapRest();
+  // }
+  // void setExchangeInstrumentSymbolMapRest(const std::map<std::string, std::map<std::string, std::string> >& exchangeInstrumentSymbolMapRest) {
+  //   this->exchangeInstrumentSymbolMapRest = exchangeInstrumentSymbolMapRest;
+  //   this->exchangeSymbolInstrumentMapRest = this->invertInstrumentSymbolMap(exchangeInstrumentSymbolMapRest);
+  //   this->updateExchangeInstrumentMapRest();
+  // }
   const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const { return exchangeInstrumentMap; }
   const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const { return exchangeInstrumentMapRest; }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const { return exchangeFieldMap; }
@@ -45,18 +51,18 @@ class SessionConfigs CCAPI_FINAL {
   const std::map<std::string, int>& getInitialSequenceByExchangeMap() const { return initialSequenceByExchangeMap; }
   const std::map<std::string, std::string>& getCredential() const { return credential; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMap() const { return exchangeSymbolInstrumentMap; }
-  const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMapRest() const { return exchangeSymbolInstrumentMapRest; }
+  // const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMap() const { return exchangeSymbolInstrumentMap; }
+  // const std::map<std::string, std::map<std::string, std::string> >& getExchangeSymbolInstrumentMapRest() const { return exchangeSymbolInstrumentMapRest; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
   void updateExchangeInstrumentMap() {
-    for (const auto& x : exchangeInstrumentSymbolMap) {
-      for (const auto& y : x.second) {
-        this->exchangeInstrumentMap[x.first].push_back(y.first);
-      }
-    }
+    // for (const auto& x : exchangeInstrumentSymbolMap) {
+    //   for (const auto& y : x.second) {
+    //     this->exchangeInstrumentMap[x.first].push_back(y.first);
+    //   }
+    // }
     std::map<std::string, std::string> fieldWebsocketChannelMapCoinbase = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_COINBASE_CHANNEL_MATCH},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2},
@@ -200,7 +206,6 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_KRAKEN, std::vector<int>({10, 25, 100, 500, 1000})},
         {CCAPI_EXCHANGE_NAME_BITSTAMP, std::vector<int>({100})},
         {CCAPI_EXCHANGE_NAME_BITFINEX, std::vector<int>({1, 25, 100})},
-        {CCAPI_EXCHANGE_NAME_BITMEX, std::vector<int>({1, 10, 25})},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -208,7 +213,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_KRAKEN, CCAPI_KRAKEN_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITSTAMP, CCAPI_BITSTAMP_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITFINEX, CCAPI_BITFINEX_URL_WS_BASE},
-        {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BINANCE_US_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, CCAPI_BINANCE_USDS_FUTURES_URL_WS_BASE},
@@ -225,11 +230,11 @@ class SessionConfigs CCAPI_FINAL {
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
   void updateExchangeInstrumentMapRest() {
-    for (const auto& x : exchangeInstrumentSymbolMapRest) {
-      for (const auto& y : x.second) {
-        this->exchangeInstrumentMapRest[x.first].push_back(y.first);
-      }
-    }
+    // for (const auto& x : exchangeInstrumentSymbolMapRest) {
+    //   for (const auto& y : x.second) {
+    //     this->exchangeInstrumentMapRest[x.first].push_back(y.first);
+    //   }
+    // }
     this->urlRestBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_REST_BASE},
@@ -250,24 +255,24 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
     };
   }
-  std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(
-      std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {
-    std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMap;
-    for (const auto& x : exchangeInstrumentSymbolMap) {
-      exchangeSymbolInstrumentMap.insert(std::make_pair(x.first, invertMap(x.second)));
-    }
-    return exchangeSymbolInstrumentMap;
-  }
+  // std::map<std::string, std::map<std::string, std::string> > invertInstrumentSymbolMap(
+  //     std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap) {
+  //   std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMap;
+  //   for (const auto& x : exchangeInstrumentSymbolMap) {
+  //     exchangeSymbolInstrumentMap.insert(std::make_pair(x.first, invertMap(x.second)));
+  //   }
+  //   return exchangeSymbolInstrumentMap;
+  // }
   void initializUrlFixBase() {
     this->urlFixBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_FIX_BASE},
         {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_FIX_BASE},
     };
   }
-  std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
-  std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest;
-  std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMap;
-  std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMapRest;
+  // std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
+  // std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMapRest;
+  // std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMap;
+  // std::map<std::string, std::map<std::string, std::string> > exchangeSymbolInstrumentMapRest;
   std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
   std::map<std::string, std::vector<std::string> > exchangeFieldMap;
   std::map<std::string, std::vector<std::string> > exchangeInstrumentMapRest;

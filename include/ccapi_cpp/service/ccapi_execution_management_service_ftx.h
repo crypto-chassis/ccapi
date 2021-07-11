@@ -11,7 +11,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -350,7 +350,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
       std::string channel = std::string(document["channel"].GetString());
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       const rj::Value& data = document["data"];
-      auto instrument = this->convertWebsocketSymbolIdToInstrument(data["market"].GetString());
+      std::string instrument = std::string((data["market"].GetString());
       if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
         if (channel == "fills" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
           message.setTime(UtilTime::parse(std::string(data["time"].GetString()), "%FT%T%Ez"));

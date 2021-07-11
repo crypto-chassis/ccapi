@@ -477,6 +477,9 @@
 #ifndef CCAPI_BITFINEX_URL_WS_BASE
 #define CCAPI_BITFINEX_URL_WS_BASE "wss://api-pub.bitfinex.com/ws/2"
 #endif
+#ifndef CCAPI_BITMEX_URL_WS_BASE
+#define CCAPI_BITMEX_URL_WS_BASE "wss://www.bitmex.com"
+#endif
 #ifndef CCAPI_BINANCE_US_URL_WS_BASE
 #define CCAPI_BINANCE_US_URL_WS_BASE "wss://stream.binance.us:9443"
 #endif
@@ -523,7 +526,7 @@
 #define CCAPI_ERISX_URL_WS_BASE "wss://publicmd-api.erisx.com"
 #endif
 #ifndef CCAPI_FTX_URL_WS_BASE
-#define CCAPI_FTX_URL_WS_BASE "wss://ftx.com/ws"
+#define CCAPI_FTX_URL_WS_BASE "wss://ftx.com"
 #endif
 // end: exchange WS urls
 
