@@ -143,7 +143,7 @@ class MarketDataServiceGemini : public MarketDataService {
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto instrument = subscription.getInstrument();
-    auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+    auto symbolId = instrument;
     auto field = subscription.getField();
     auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->exchangeName).at(field), ",");
     std::set<std::string> parameterSet(parameterList.begin(), parameterList.end());

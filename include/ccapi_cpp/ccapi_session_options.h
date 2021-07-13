@@ -36,9 +36,9 @@ class SessionOptions CCAPI_FINAL {
   bool enableCheckPingPongWebsocketApplicationLevel{true};  // used to check ping-pong health for exchange connections on websocket application level
   bool enableCheckHeartbeatFix{true};                       // used to check heartbeat health for exchange connections on FIX
   long pingWebsocketProtocolLevelIntervalMilliSeconds{15000};
-  long pongWebsocketProtocolLevelTimeoutMilliSeconds{10000};  // should be less than pingWebsocketProtocolLevelIntervalMilliSeconds
+  long pongWebsocketProtocolLevelTimeoutMilliSeconds{1};  // should be less than pingWebsocketProtocolLevelIntervalMilliSeconds
   long pingWebsocketApplicationLevelIntervalMilliSeconds{15000};
-  long pongWebsocketApplicationLevelTimeoutMilliSeconds{10000};  // should be less than pingWebsocketApplicationLevelIntervalMilliSeconds
+  long pongWebsocketApplicationLevelTimeoutMilliSeconds{1};  // should be less than pingWebsocketApplicationLevelIntervalMilliSeconds
   long heartbeatFixIntervalMilliSeconds{15000};
   long heartbeatFixTimeoutMilliSeconds{10000};  // should be less than heartbeatFixIntervalMilliSeconds
   int maxEventQueueSize{0};                     // if set to a positive integer, the event queue will throw an exception when overflown

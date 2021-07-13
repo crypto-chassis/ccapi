@@ -319,7 +319,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       message.setCorrelationIdList({subscription.getCorrelationId()});
       std::string topic = document["topic"].GetString();
       if (topic.rfind(this->orderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
-        std::string instrument = std::string((document["contract_code"].GetString();
+        std::string instrument = document["contract_code"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(document["ts"].GetString())));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
@@ -348,7 +348,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           messageList.push_back(std::move(message));
         }
       } else if (topic.rfind(this->matchOrderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-        std::string instrument = std::string((document["contract_code"].GetString());
+        std::string instrument = document["contract_code"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           std::string orderSide = std::string(document["direction"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
           std::string positionSide = document["offset"].GetString();

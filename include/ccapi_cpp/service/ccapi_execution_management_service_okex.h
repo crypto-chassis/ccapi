@@ -409,7 +409,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         const rj::Value& data = document["data"];
         std::string channel = std::string(arg["channel"].GetString());
         event.setType(Event::Type::SUBSCRIPTION_DATA);
-        std::string instrument = std::string((arg["instId"].GetString();
+        std::string instrument = arg["instId"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           if (channel == "orders" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
             for (const auto& x : data.GetArray()) {

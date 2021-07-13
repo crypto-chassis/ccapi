@@ -821,6 +821,7 @@ In general there are 2 ways to handle events.
 ```
 std::vector<Event> eventList = session.getEventQueue().purge();
 ```
+An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
 
 #### Thread safety
 * The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::subscribeByFix`, `Session::setTimer`, all public methods in `Queue`.
@@ -829,6 +830,7 @@ std::vector<Event> eventList = session.getEventQueue().purge();
 EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
 ```
+An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
 
 #### Enable library logging
 

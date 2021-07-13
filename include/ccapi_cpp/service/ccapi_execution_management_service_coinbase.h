@@ -284,7 +284,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       auto fieldSet = subscription.getFieldSet();
       auto instrumentSet = subscription.getInstrumentSet();
       if (document.FindMember("user_id") != document.MemberEnd()) {
-        std::string instrument = std::string((document["product_id"].GetString());
+        std::string instrument = document["product_id"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           auto it = document.FindMember("time");
           if (it != document.MemberEnd()) {

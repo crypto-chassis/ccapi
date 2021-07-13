@@ -350,7 +350,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementService {
       std::string channel = std::string(document["channel"].GetString());
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       const rj::Value& data = document["data"];
-      std::string instrument = std::string((data["market"].GetString());
+      std::string instrument = data["market"].GetString();
       if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
         if (channel == "fills" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
           message.setTime(UtilTime::parse(std::string(data["time"].GetString()), "%FT%T%Ez"));
