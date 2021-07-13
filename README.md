@@ -1,6 +1,10 @@
-## Minor Breaking Changes (v5.0.0)
+## Small Breaking Changes (v5.0.0)
 * `Message::Type::MARKET_DATA_EVENTS` has been replaced by `Message::Type::MARKET_DATA_EVENTS_MARKET_DEPTH`, `Message::Type::MARKET_DATA_EVENTS_TRADE`, and `Message::Type::MARKET_DATA_EVENTS_AGG_TRADE` to accommodate for Binance.
 * Exchange name "binance-futures" has been replaced by "binance-usds-futures" and "binance-coin-futures".
+
+## Small Breaking Changes (v5.2.0)
+* "Normalize instrument name" (https://github.com/crypto-chassis/ccapi/tree/v5.1.0#normalize-instrument-name) has been removed to improve speed.
+
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -19,7 +23,6 @@
       - [Complex request parameters](#complex-request-parameters)
       - [Specify subscription market depth](#specify-subscription-market-depth)
       - [Specify correlation id](#specify-correlation-id)
-      - [Normalize instrument name](#normalize-instrument-name)
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments)
       - [Receive subscription events at periodic intervals](#receive-subscription-events-at-periodic-intervals)
       - [Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed](#receive-subscription-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
@@ -30,7 +33,6 @@
     - [Simple Execution Management](#simple-execution-management)
     - [Advanced Execution Management](#advanced-execution-management)
       - [Specify correlation id](#specify-correlation-id-1)
-      - [Normalize instrument name](#normalize-instrument-name-1)
       - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments-1)
       - [Multiple subscription fields](#multiple-subscription-fields)
       - [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
@@ -285,17 +287,6 @@ Instantiate `Subscription` with the desired correlationId.
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id");
 ```
 
-#### Normalize instrument name
-
-Instantiate `SessionConfigs` with a map mapping the exchange name and the normalized instrument name to the instrument's symbol on the exchange.
-```
-std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
-std::string coolName = "btc_usd";
-exchangeInstrumentSymbolMap["coinbase"][coolName] = "BTC-USD";
-SessionConfigs sessionConfigs(exchangeInstrumentSymbolMap);
-Session session(sessionOptions, sessionConfigs, &eventHandler);
-```
-
 #### Multiple exchanges and/or instruments
 
 Send a `std::vector<Request>`.
@@ -449,7 +440,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
-* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_advanced_request/main.cpp).
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_advanced_request/main.cpp).
 
 **Objective 2:**
 
@@ -602,17 +593,6 @@ Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD", "cool 
 Instantiate `Subscription` with the desired correlationId.
 ```
 Subscription subscription("coinbase", "BTC-USD", "ORDER_UPDATE", "", "cool correlation id");
-```
-
-#### Normalize instrument name
-
-Instantiate `SessionConfigs` with a map mapping the exchange name and the normalized instrument name to the instrument's symbol on the exchange.
-```
-std::map<std::string, std::map<std::string, std::string> > exchangeInstrumentSymbolMap;
-std::string coolName = "btc_usd";
-exchangeInstrumentSymbolMap["coinbase"][coolName] = "BTC-USD";
-SessionConfigs sessionConfigs(exchangeInstrumentSymbolMap);
-Session session(sessionOptions, sessionConfigs, &eventHandler);
 ```
 
 #### Multiple exchanges and/or instruments
@@ -841,6 +821,7 @@ In general there are 2 ways to handle events.
 ```
 std::vector<Event> eventList = session.getEventQueue().purge();
 ```
+An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
 
 #### Thread safety
 * The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::subscribeByFix`, `Session::setTimer`, all public methods in `Queue`.
@@ -849,6 +830,7 @@ std::vector<Event> eventList = session.getEventQueue().purge();
 EventDispatcher eventDispatcher(2);
 Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
 ```
+An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
 
 #### Enable library logging
 

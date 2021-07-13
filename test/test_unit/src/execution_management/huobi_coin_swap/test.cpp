@@ -102,6 +102,7 @@ TEST_F(ExecutionManagementServiceHuobiCoinSwapTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "buy");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "20.000000000000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "0.604834710743801652");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "20");
 }
 } /* namespace ccapi */
 #endif

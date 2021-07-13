@@ -298,6 +298,12 @@
 #ifndef CCAPI_EM_ORDER_STATUS
 #define CCAPI_EM_ORDER_STATUS "STATUS"
 #endif
+#ifndef CCAPI_EM_ORDER_LEVERAGE
+#define CCAPI_EM_ORDER_LEVERAGE "LEVERAGE"
+#endif
+#ifndef CCAPI_EM_POSITION_LEVERAGE
+#define CCAPI_EM_POSITION_LEVERAGE "LEVERAGE"
+#endif
 #ifndef CCAPI_HTTP_STATUS_CODE
 #define CCAPI_HTTP_STATUS_CODE "HTTP_STATUS_CODE"
 #endif
@@ -466,7 +472,7 @@
 #define CCAPI_COINBASE_URL_WS_BASE "wss://ws-feed.pro.coinbase.com"
 #endif
 #ifndef CCAPI_GEMINI_URL_WS_BASE
-#define CCAPI_GEMINI_URL_WS_BASE "wss://api.gemini.com/v1/marketdata"
+#define CCAPI_GEMINI_URL_WS_BASE "wss://api.gemini.com"
 #endif
 #ifndef CCAPI_KRAKEN_URL_WS_BASE
 #define CCAPI_KRAKEN_URL_WS_BASE "wss://ws.kraken.com"
@@ -476,6 +482,9 @@
 #endif
 #ifndef CCAPI_BITFINEX_URL_WS_BASE
 #define CCAPI_BITFINEX_URL_WS_BASE "wss://api-pub.bitfinex.com/ws/2"
+#endif
+#ifndef CCAPI_BITMEX_URL_WS_BASE
+#define CCAPI_BITMEX_URL_WS_BASE "wss://www.bitmex.com"
 #endif
 #ifndef CCAPI_BINANCE_US_URL_WS_BASE
 #define CCAPI_BINANCE_US_URL_WS_BASE "wss://stream.binance.us:9443"
@@ -523,7 +532,7 @@
 #define CCAPI_ERISX_URL_WS_BASE "wss://publicmd-api.erisx.com"
 #endif
 #ifndef CCAPI_FTX_URL_WS_BASE
-#define CCAPI_FTX_URL_WS_BASE "wss://ftx.com/ws"
+#define CCAPI_FTX_URL_WS_BASE "wss://ftx.com"
 #endif
 // end: exchange WS urls
 

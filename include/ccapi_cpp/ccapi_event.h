@@ -8,20 +8,12 @@ class Event CCAPI_FINAL {
  public:
   enum class Type {
     UNKNOWN,
-    ADMIN,
     SESSION_STATUS,
     SUBSCRIPTION_STATUS,
     REQUEST_STATUS,
     RESPONSE,
-    PARTIAL_RESPONSE,
     SUBSCRIPTION_DATA,
-    SERVICE_STATUS,
-    TIMEOUT,
     AUTHORIZATION_STATUS,
-    RESOLUTION_STATUS,
-    TOPIC_STATUS,
-    TOKEN_STATUS,
-    REQUEST,
     FIX,
     FIX_STATUS,
   };
@@ -30,9 +22,6 @@ class Event CCAPI_FINAL {
     switch (type) {
       case Type::UNKNOWN:
         output = "UNKNOWN";
-        break;
-      case Type::ADMIN:
-        output = "ADMIN";
         break;
       case Type::SESSION_STATUS:
         output = "SESSION_STATUS";
@@ -46,32 +35,11 @@ class Event CCAPI_FINAL {
       case Type::RESPONSE:
         output = "RESPONSE";
         break;
-      case Type::PARTIAL_RESPONSE:
-        output = "PARTIAL_RESPONSE";
-        break;
       case Type::SUBSCRIPTION_DATA:
         output = "SUBSCRIPTION_DATA";
         break;
-      case Type::SERVICE_STATUS:
-        output = "SERVICE_STATUS";
-        break;
-      case Type::TIMEOUT:
-        output = "TIMEOUT";
-        break;
       case Type::AUTHORIZATION_STATUS:
         output = "AUTHORIZATION_STATUS";
-        break;
-      case Type::RESOLUTION_STATUS:
-        output = "RESOLUTION_STATUS";
-        break;
-      case Type::TOPIC_STATUS:
-        output = "TOPIC_STATUS";
-        break;
-      case Type::TOKEN_STATUS:
-        output = "TOKEN_STATUS";
-        break;
-      case Type::REQUEST:
-        output = "REQUEST";
         break;
       case Type::FIX:
         output = "FIX";
