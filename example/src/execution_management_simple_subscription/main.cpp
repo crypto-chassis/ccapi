@@ -13,7 +13,7 @@ class MyEventHandler : public EventHandler {
             {"SIDE", "BUY"},
             {"LIMIT_PRICE", "20000"},
             {"QUANTITY", "0.001"},
-            {"CLIENT_ORDER_ID","6d4eb0fb-2229-469f-873e-557dd78ac11e"},
+            {"CLIENT_ORDER_ID", "6d4eb0fb-2229-469f-873e-557dd78ac11e"},
         });
         session->sendRequest(request);
       }
