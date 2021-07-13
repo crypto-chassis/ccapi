@@ -238,7 +238,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     rj::Value symbolIds(rj::kArrayType);
     auto instrumentSet = subscription.getInstrumentSet();
     for (const auto& instrument : instrumentSet) {
-      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      const std::string& symbolId = instrument;
       symbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
     }
     channel.AddMember("name", rj::Value(channelId.c_str(), allocator).Move(), allocator);
@@ -248,7 +248,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     heartbeatChannel.AddMember("name", rj::Value("heartbeat").Move(), allocator);
     rj::Value heartbeatSymbolIds(rj::kArrayType);
     for (const auto& instrument : instrumentSet) {
-      auto symbolId = this->convertInstrumentToWebsocketSymbolId(instrument);
+      const std::string& symbolId = instrument;
       heartbeatSymbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
     }
     heartbeatChannel.AddMember("product_ids", heartbeatSymbolIds, allocator);
@@ -284,7 +284,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       auto fieldSet = subscription.getFieldSet();
       auto instrumentSet = subscription.getInstrumentSet();
       if (document.FindMember("user_id") != document.MemberEnd()) {
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(document["product_id"].GetString());
+        std::string instrument = document["product_id"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           auto it = document.FindMember("time");
           if (it != document.MemberEnd()) {
@@ -293,7 +293,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             auto it = document.FindMember("timestamp");
             message.setTime(UtilTime::makeTimePoint(UtilTime::divide(std::string(it->value.GetString()))));
           }
-          if (type == "match" && (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end())) {
+          if (type == "match" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             std::vector<Element> elementList;
             Element element;
@@ -314,7 +314,8 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
             messageList.push_back(std::move(message));
-          } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+          }
+          if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
             std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},

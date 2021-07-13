@@ -340,6 +340,219 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestCanc
   auto message = messageList.at(0);
   EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
 }
+
+TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
+  EXPECT_EQ(req.target().to_string(), "/v1/account/list");
+  rj::Document document;
+  document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
+  EXPECT_EQ(std::string(document["request"].GetString()), "/v1/account/list");
+  verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestGetAccounts) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        [
+    {
+        "name": "Primary",
+        "account": "primary",
+        "counterparty_id": "EMONNYXH",
+        "type": "exchange",
+        "created": 1495127793000
+    },
+    {
+        "name": "Other exchange account!",
+        "account": "other-exchange-account",
+        "counterparty_id": "EMONNYXK",
+        "type": "exchange",
+        "created": 1565970772000
+    }
+]
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNTS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 2);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "primary");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_TYPE), "exchange");
+}
+
+TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
+  EXPECT_EQ(req.target().to_string(), "/v1/balances");
+  rj::Document document;
+  document.Parse(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  EXPECT_EQ(document["nonce"].GetInt64(), this->timestamp * 1000LL);
+  EXPECT_EQ(std::string(document["request"].GetString()), "/v1/balances");
+  verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceGeminiTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_GEMINI, "", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        [
+    {
+        "type": "exchange",
+        "currency": "BTC",
+        "amount": "1154.62034001",
+        "available": "1129.10517279",
+        "availableForWithdrawal": "1129.10517279"
+    },
+    {
+        "type": "exchange",
+        "currency": "USD",
+        "amount": "18722.79",
+        "available": "14481.62",
+        "availableForWithdrawal": "14481.62"
+    },
+    {
+        "type": "exchange",
+        "currency": "ETH",
+        "amount": "20124.50369697",
+        "available": "20124.50369697",
+        "availableForWithdrawal": "20124.50369697"
+    }
+]
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNT_BALANCES);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 3);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "BTC");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "1129.10517279");
+}
+
+TEST_F(ExecutionManagementServiceGeminiTest, createEventPrivateTrade) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_GEMINI, "btcusd", CCAPI_EM_PRIVATE_TRADE);
+  std::string textMessage = R"(
+    [
+  {
+    "type": "fill",
+    "order_id": "989511901",
+    "client_order_id": "6d4eb0fb-2229-469f-873e-557dd78ac11e",
+    "api_session": "account-DgM6GKGlzWtjOrdWiUyh",
+    "symbol": "btcusd",
+    "side": "buy",
+    "order_type": "exchange limit",
+    "timestamp": "1626143414",
+    "timestampms": 1626143414688,
+    "is_live": false,
+    "is_cancelled": false,
+    "is_hidden": false,
+    "avg_execution_price": "32971.07",
+    "executed_amount": "0.01",
+    "remaining_amount": "0",
+    "original_amount": "0.01",
+    "price": "34970.00",
+    "fill": {
+      "trade_id": "989511904",
+      "liquidity": "Taker",
+      "price": "32971.07",
+      "amount": "0.01",
+      "fee": "0.3297107",
+      "fee_currency": "USD"
+    },
+    "socket_sequence": 0
+  }
+]
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "989511904");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "32971.07");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "0.01");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "989511901");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "6d4eb0fb-2229-469f-873e-557dd78ac11e");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusd");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY), "0.3297107");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_ASSET), "USD");
+}
+
+TEST_F(ExecutionManagementServiceGeminiTest, createEventOrderUpdate) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_GEMINI, "btcusd", CCAPI_EM_ORDER_UPDATE);
+  std::string textMessage = R"(
+    [
+  {
+    "type": "fill",
+    "order_id": "989310043",
+    "client_order_id": "6d4eb0fb-2229-469f-873e-557dd78ac11e",
+    "api_session": "account-DgM6GKGlzWtjOrdWiUyh",
+    "symbol": "btcusd",
+    "side": "buy",
+    "order_type": "exchange limit",
+    "timestamp": "1626127462",
+    "timestampms": 1626127462905,
+    "is_live": false,
+    "is_cancelled": false,
+    "is_hidden": false,
+    "avg_execution_price": "32908.69",
+    "executed_amount": "0.01",
+    "remaining_amount": "0",
+    "original_amount": "0.01",
+    "price": "34970.00",
+    "fill": {
+      "trade_id": "989310046",
+      "liquidity": "Taker",
+      "price": "32908.69",
+      "amount": "0.01",
+      "fee": "0.3290869",
+      "fee_currency": "USD"
+    },
+    "socket_sequence": 2
+  }
+]
+)";
+  rj::Document document;
+  document.Parse(textMessage.c_str());
+  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, subscription.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 1);
+  Element element = elementList.at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "989310043");
+  EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "6d4eb0fb-2229-469f-873e-557dd78ac11e");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "34970.00");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "0.01");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.01");
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 32908.69 * 0.01);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusd");
+  EXPECT_EQ(element.getValue("is_live"), "false");
+  EXPECT_EQ(element.getValue("is_cancelled"), "false");
+}
+
 } /* namespace ccapi */
 #endif
 #endif

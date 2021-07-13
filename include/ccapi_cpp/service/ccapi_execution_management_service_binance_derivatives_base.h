@@ -46,6 +46,7 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
           }
           element.insert(CCAPI_EM_POSITION_QUANTITY, positionAmt);
           element.insert(CCAPI_EM_POSITION_COST, std::to_string(std::stod(x["entryPrice"].GetString()) * std::stod(positionAmt)));
+          element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;

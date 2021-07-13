@@ -276,6 +276,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
           std::string positionQuantity = availPos.empty() ? x["pos"].GetString() : availPos;
           element.insert(CCAPI_EM_POSITION_QUANTITY, positionQuantity);
           element.insert(CCAPI_EM_POSITION_COST, std::to_string(std::stod(x["avgPx"].GetString()) * std::stod(positionQuantity)));
+          element.insert(CCAPI_EM_POSITION_LEVERAGE, x["lever"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -408,7 +409,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         const rj::Value& data = document["data"];
         std::string channel = std::string(arg["channel"].GetString());
         event.setType(Event::Type::SUBSCRIPTION_DATA);
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(arg["instId"].GetString());
+        std::string instrument = arg["instId"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           if (channel == "orders" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
             for (const auto& x : data.GetArray()) {

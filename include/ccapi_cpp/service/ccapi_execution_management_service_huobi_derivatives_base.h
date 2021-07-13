@@ -48,6 +48,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
                               {CCAPI_EM_ORDER_QUANTITY, "volume"},
                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
                               {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
+                              {CCAPI_EM_ORDER_LEVERAGE, "lever_rate"},
                           });
         if (param.find("offset") == param.end()) {
           document.AddMember("offset", rj::Value("open").Move(), allocator);
@@ -183,6 +184,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           element.insert(CCAPI_EM_POSITION_SIDE, x["direction"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["available"].GetString());
           element.insert(CCAPI_EM_POSITION_COST, x["cost_open"].GetString());
+          element.insert(CCAPI_EM_POSITION_LEVERAGE, x["lever_rate"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -317,7 +319,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       message.setCorrelationIdList({subscription.getCorrelationId()});
       std::string topic = document["topic"].GetString();
       if (topic.rfind(this->orderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(document["contract_code"].GetString());
+        std::string instrument = document["contract_code"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(document["ts"].GetString())));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
@@ -346,7 +348,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           messageList.push_back(std::move(message));
         }
       } else if (topic.rfind(this->matchOrderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-        auto instrument = this->convertWebsocketSymbolIdToInstrument(document["contract_code"].GetString());
+        std::string instrument = document["contract_code"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           std::string orderSide = std::string(document["direction"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
           std::string positionSide = document["offset"].GetString();

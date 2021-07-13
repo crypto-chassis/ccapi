@@ -14,8 +14,8 @@ using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
-using ::ccapi::UtilSystem;
 using ::ccapi::toString;
+using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
   if (UtilSystem::getEnvAsString("BINANCE_API_KEY").empty()) {
     std::cerr << "Please set environment variable BINANCE_API_KEY" << std::endl;

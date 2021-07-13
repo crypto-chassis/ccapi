@@ -16,7 +16,7 @@ class WsConnection CCAPI_FINAL {
   }
   std::string toString() const {
     std::string output = "WsConnection [id = " + id + ", url = " + url + ", group = " + group + ", subscriptionList = " + ccapi::toString(subscriptionList) +
-                         ", status = " + statusToString(status) + "]";
+                         ", status = " + statusToString(status) + ", headers = " + ccapi::toString(headers) + "]";
     return output;
   }
   enum class Status {
@@ -59,6 +59,7 @@ class WsConnection CCAPI_FINAL {
   std::vector<Subscription> subscriptionList;
   Status status{Status::UNKNOWN};
   wspp::connection_hdl hdl = wspp::lib::weak_ptr<void>();
+  std::map<std::string, std::string> headers;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
