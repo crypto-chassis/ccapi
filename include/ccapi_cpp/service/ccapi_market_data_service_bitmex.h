@@ -10,7 +10,7 @@ class MarketDataServiceBitmex : public MarketDataService {
                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/realtime";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/realtime";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -26,11 +26,11 @@ class MarketDataServiceBitmex : public MarketDataService {
 
  private:
 #endif
-void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
-                               const std::map<std::string, std::string> optionMap) override {
-  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-  if (field == CCAPI_MARKET_DEPTH) {
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
       } else if (marketDepthRequested <= 10) {
@@ -38,8 +38,8 @@ void prepareSubscriptionDetail(std::string& channelId, const std::string& field,
       } else if (marketDepthRequested <= 25) {
         channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
       }
+    }
   }
-}
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;

@@ -11,7 +11,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/realtime";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/realtime";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -28,6 +28,8 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     this->getOrderTarget = prefix + "/order";
     this->getOpenOrdersTarget = prefix + "/order";
     this->cancelOpenOrdersTarget = prefix + "/order/all";
+    this->getAccountBalancesTarget = prefix + "/user/margin";
+    this->getAccountPositionsTarget = prefix + "/position";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBitmex() {}
@@ -172,6 +174,22 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        req.method(http::verb::get);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        auto target = this->getAccountBalancesTarget;
+        auto asset = param.find(CCAPI_EM_ASSET) != param.end() ? param.at(CCAPI_EM_ASSET) : "";
+        target += "?currency=" + asset;
+        req.target(target);
+        this->signRequest(req, "", credential);
+      } break;
+      case Request::Operation::GET_ACCOUNT_POSITIONS: {
+        req.method(http::verb::get);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        auto target = this->getAccountPositionsTarget;
+        req.target(target);
+        this->signRequest(req, "", credential);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -198,6 +216,29 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
+    switch (request.getOperation()) {
+      case Request::Operation::GET_ACCOUNT_BALANCES: {
+        Element element;
+        element.insert(CCAPI_EM_ACCOUNT_ID, document["account"].GetString());
+        element.insert(CCAPI_EM_ASSET, document["currency"].GetString());
+        element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, document["availableMargin"].GetString());
+        elementList.emplace_back(std::move(element));
+      } break;
+      case Request::Operation::GET_ACCOUNT_POSITIONS: {
+        for (const auto& x : document.GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ACCOUNT_ID, x["account"].GetString());
+          element.insert(CCAPI_EM_SYMBOL, x["symbol"].GetString());
+          element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+          element.insert(CCAPI_EM_POSITION_QUANTITY, x["currentQty"].GetString());
+          element.insert(CCAPI_EM_POSITION_COST, x["openingCost"].GetString());
+          element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
+          elementList.emplace_back(std::move(element));
+        }
+      } break;
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
     return elementList;
   }
   std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
@@ -225,14 +266,13 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     auto& allocator = document.GetAllocator();
     document.AddMember("op", rj::Value("authKeyExpires").Move(), allocator);
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    auto expires = std::chrono::duration_cast<std::chrono::seconds>(
-                                              (now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch())
-                                              .count();
-                                              auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-                                              std::string preSignedText = "GET";
-                                              preSignedText += "/realtime";
-                                              preSignedText += std::to_string(expires);
-                                              auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
+    auto expires =
+        std::chrono::duration_cast<std::chrono::seconds>((now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch()).count();
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    std::string preSignedText = "GET";
+    preSignedText += "/realtime";
+    preSignedText += std::to_string(expires);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
     rj::Value args(rj::kArrayType);
     args.PushBack(rj::Value(apiKey.c_str(), allocator).Move(), allocator);
     args.PushBack(rj::Value(expires).Move(), allocator);
@@ -247,14 +287,15 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
   }
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
-                       if (textMessage != "pong") {
-                         Event event = this->createEvent(wsConnection,subscription, textMessage, document, timeReceived);
-                         if (!event.getMessageList().empty()) {
-                           this->eventHandler(event);
-                         }
-                       }
+    if (textMessage != "pong") {
+      Event event = this->createEvent(wsConnection.hdl, subscription, textMessage, document, timeReceived);
+      if (!event.getMessageList().empty()) {
+        this->eventHandler(event);
+      }
+    }
   }
-  Event createEvent(const WsConnection& wsConnection,const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
+  Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
+                    const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -262,10 +303,10 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     message.setCorrelationIdList({subscription.getCorrelationId()});
     auto fieldSet = subscription.getFieldSet();
     auto instrumentSet = subscription.getInstrumentSet();
-    if (document.FindMember("error")!=document.MemberEnd()){
+    if (document.FindMember("error") != document.MemberEnd()) {
       auto it = document.FindMember("request");
-      if (it!=document.MemberEnd()){
-        if(std::string(it->value["op"].GetString())=="authKeyExpires"){
+      if (it != document.MemberEnd()) {
+        if (std::string(it->value["op"].GetString()) == "authKeyExpires") {
           event.setType(Event::Type::SUBSCRIPTION_STATUS);
           message.setType(Message::Type::SUBSCRIPTION_FAILURE);
           Element element;
@@ -275,10 +316,10 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         }
       }
     } else {
-      if (document.FindMember("success")!=document.MemberEnd()){
+      if (document.FindMember("success") != document.MemberEnd()) {
         auto it = document.FindMember("request");
-        if (it!=document.MemberEnd()){
-          if(std::string(it->value["op"].GetString())=="authKeyExpires"){
+        if (it != document.MemberEnd()) {
+          if (std::string(it->value["op"].GetString()) == "authKeyExpires") {
             event.setType(Event::Type::SUBSCRIPTION_STATUS);
             message.setType(Message::Type::SUBSCRIPTION_STARTED);
             Element element;
@@ -290,24 +331,24 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
             rj::Document::AllocatorType& allocator = document.GetAllocator();
             document.AddMember("op", rj::Value("subscribe").Move(), allocator);
             rj::Value args(rj::kArrayType);
-            if (instrumentSet.empty()){
-              for (const auto& field:fieldSet){
-                if (field==CCAPI_EM_ORDER_UPDATE){
+            if (instrumentSet.empty()) {
+              for (const auto& field : fieldSet) {
+                if (field == CCAPI_EM_ORDER_UPDATE) {
                   args.PushBack(rj::Value("order").Move(), allocator);
-                }else if (field==CCAPI_EM_PRIVATE_TRADE){
+                } else if (field == CCAPI_EM_PRIVATE_TRADE) {
                   args.PushBack(rj::Value("execution").Move(), allocator);
                 }
               }
             } else {
-              for (const auto& instrument: instrumentSet){
-                for (const auto& field:fieldSet){
+              for (const auto& instrument : instrumentSet) {
+                for (const auto& field : fieldSet) {
                   std::string arg;
-                  if (field==CCAPI_EM_ORDER_UPDATE){
-                    arg = std::string("order:")+instrument;
-                  }else if (field==CCAPI_EM_PRIVATE_TRADE){
-                    arg = std::string("execution:")+instrument;
+                  if (field == CCAPI_EM_ORDER_UPDATE) {
+                    arg = std::string("order:") + instrument;
+                  } else if (field == CCAPI_EM_PRIVATE_TRADE) {
+                    arg = std::string("execution:") + instrument;
                   }
-                  args.PushBack(rj::Value(arg.c_str(),allocator).Move(), allocator);
+                  args.PushBack(rj::Value(arg.c_str(), allocator).Move(), allocator);
                 }
               }
             }
@@ -318,40 +359,45 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
             std::string sendString = stringBuffer.GetString();
             CCAPI_LOGGER_INFO("sendString = " + sendString);
             ErrorCode ec;
-            this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+            this->send(hdl, sendString, wspp::frame::opcode::text, ec);
             if (ec) {
               this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
             }
           }
         }
       } else {
-        auto it=document.FindMember("table");
-        if (it!=document.MemberEnd()){
-          std::string table=it->value.GetString();
-            event.setType(Event::Type::SUBSCRIPTION_DATA);
-            for (const auto& x:document["data"].GetArray()){
-              std::string instrument = std::string(x["symbol"].GetString());
-              if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-                message.setTime(UtilTime::parse(std::string(x["timestamp"].GetString())));
-                if (table == "execution" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-                  std::string execType=x["execType"].GetString();
-                  if (execType=="Trade"){
-                    message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-                    std::vector<Element> elementList;
-                    Element element;
-                    element.insert(CCAPI_TRADE_ID, std::string(x["trdMatchID"].GetString()));
-                    element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["lastPx"].GetString()));
-                    element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["lastQty"].GetString()));
-                    element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "Buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                    element.insert(CCAPI_IS_MAKER, std::string(x["lastLiquidityInd"].GetString()) == "RemovedLiquidity" ? "0" : "1");
-                    element.insert(CCAPI_EM_ORDER_ID, std::string(x["orderID"].GetString()));
-                    element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-                    element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["commission"].GetString()));
-                    elementList.emplace_back(std::move(element));
-                    message.setElementList(elementList);
-                    messageList.push_back(std::move(message));
-                  }
-                } else if (table == "order" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+        auto it = document.FindMember("table");
+        if (it != document.MemberEnd()) {
+          std::string table = it->value.GetString();
+          event.setType(Event::Type::SUBSCRIPTION_DATA);
+          auto it_2 = document.FindMember("action");
+          if (it_2 != document.MemberEnd()) {
+            std::string action = it_2->value.GetString();
+            if (action == "insert") {
+              for (const auto& x : document["data"].GetArray()) {
+                std::string instrument = std::string(x["symbol"].GetString());
+                if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+                  message.setTime(UtilTime::parse(std::string(x["timestamp"].GetString())));
+                  if (table == "execution" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+                    std::string execType = x["execType"].GetString();
+                    if (execType == "Trade") {
+                      message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                      std::vector<Element> elementList;
+                      Element element;
+                      element.insert(CCAPI_TRADE_ID, std::string(x["trdMatchID"].GetString()));
+                      element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["lastPx"].GetString()));
+                      element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["lastQty"].GetString()));
+                      element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "Buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                      element.insert(CCAPI_IS_MAKER, std::string(x["lastLiquidityInd"].GetString()) == "RemovedLiquidity" ? "0" : "1");
+                      element.insert(CCAPI_EM_ORDER_ID, std::string(x["orderID"].GetString()));
+                      element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["clOrdID"].GetString()));
+                      element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
+                      element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["commission"].GetString()));
+                      elementList.emplace_back(std::move(element));
+                      message.setElementList(elementList);
+                      messageList.push_back(std::move(message));
+                    }
+                  } else if (table == "order" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
                     message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
                     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
                         {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
@@ -366,7 +412,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
                     };
                     Element info = this->extractOrderInfo(x, extractionFieldNameMap);
                     auto it = x.FindMember("avgPx");
-                    if (it != x.MemberEnd()&&!it->value.IsNull()) {
+                    if (it != x.MemberEnd() && !it->value.IsNull()) {
                       info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
                                   std::to_string(std::stod(it->value.GetString()) * std::stod(x["cumQty"].GetString())));
                     }
@@ -374,9 +420,11 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
                     elementList.emplace_back(std::move(info));
                     message.setElementList(elementList);
                     messageList.push_back(std::move(message));
+                  }
                 }
               }
             }
+          }
         }
       }
     }

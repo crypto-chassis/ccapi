@@ -485,6 +485,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "sell");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "2");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "51179.1");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "100");
 }
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventMatchOrderData) {

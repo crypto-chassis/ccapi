@@ -10,7 +10,7 @@ class MarketDataServiceFtx : public MarketDataService {
                        std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/ws";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->shouldAlignSnapshot = true;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);

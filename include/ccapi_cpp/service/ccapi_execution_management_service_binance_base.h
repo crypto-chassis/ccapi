@@ -10,6 +10,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   ExecutionManagementServiceBinanceBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                         ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+    this->enableCheckPingPongWebsocketApplicationLevel = false;
     this->pingListenKeyIntervalSeconds = 600;
   }
   virtual ~ExecutionManagementServiceBinanceBase() {}

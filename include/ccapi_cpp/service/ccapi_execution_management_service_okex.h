@@ -276,6 +276,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
           std::string positionQuantity = availPos.empty() ? x["pos"].GetString() : availPos;
           element.insert(CCAPI_EM_POSITION_QUANTITY, positionQuantity);
           element.insert(CCAPI_EM_POSITION_COST, std::to_string(std::stod(x["avgPx"].GetString()) * std::stod(positionQuantity)));
+          element.insert(CCAPI_EM_POSITION_LEVERAGE, x["lever"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;

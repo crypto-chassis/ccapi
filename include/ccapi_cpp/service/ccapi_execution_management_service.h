@@ -131,6 +131,7 @@ class ExecutionManagementService : public Service {
     rj::Document document;
     document.Parse(textMessage.c_str());
     this->onTextMessage(wsConnection, subscription, textMessage, document, timeReceived);
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
   }
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -173,7 +174,7 @@ class ExecutionManagementService : public Service {
       auto& wsConnection = it->second;
       CCAPI_LOGGER_TRACE("wsConnection = " + toString(wsConnection));
       auto instrument = request.getInstrument();
-      auto symbolId =instrument;
+      auto symbolId = instrument;
       CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
       ErrorCode ec;
       rj::Document document;

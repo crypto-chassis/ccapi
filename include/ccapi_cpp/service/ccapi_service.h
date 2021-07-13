@@ -836,6 +836,9 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_DEBUG("endpoint tls init handler set");
     ErrorCode ec;
     TlsClient::connection_ptr con = this->serviceContextPtr->tlsClientPtr->get_connection(url, ec);
+    for (const auto& kv : wsConnection.headers) {
+      con->append_header(kv.first, kv.second);
+    }
     wsConnection.id = this->connectionAddressToString(con);
     CCAPI_LOGGER_DEBUG("connection initialization on actual id " + wsConnection.id);
     if (ec) {

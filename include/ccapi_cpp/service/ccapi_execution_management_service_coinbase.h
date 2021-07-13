@@ -293,7 +293,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             auto it = document.FindMember("timestamp");
             message.setTime(UtilTime::makeTimePoint(UtilTime::divide(std::string(it->value.GetString()))));
           }
-          if (type == "match" && (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end())) {
+          if (type == "match" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             std::vector<Element> elementList;
             Element element;
@@ -314,7 +314,8 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
             messageList.push_back(std::move(message));
-          } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+          }
+          if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
             std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},

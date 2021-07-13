@@ -21,8 +21,7 @@ class SessionConfigs CCAPI_FINAL {
   //   this->updateExchangeInstrumentMapRest();
   //   this->initializUrlFixBase();
   // }
-  explicit SessionConfigs(std::map<std::string, std::string> credential = {})
-      : credential(credential) {
+  explicit SessionConfigs(std::map<std::string, std::string> credential = {}) : credential(credential) {
     this->updateExchangeInstrumentMap();
     this->updateExchangeInstrumentMapRest();
     this->initializUrlFixBase();

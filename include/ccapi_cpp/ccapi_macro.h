@@ -298,6 +298,12 @@
 #ifndef CCAPI_EM_ORDER_STATUS
 #define CCAPI_EM_ORDER_STATUS "STATUS"
 #endif
+#ifndef CCAPI_EM_ORDER_LEVERAGE
+#define CCAPI_EM_ORDER_LEVERAGE "LEVERAGE"
+#endif
+#ifndef CCAPI_EM_POSITION_LEVERAGE
+#define CCAPI_EM_POSITION_LEVERAGE "LEVERAGE"
+#endif
 #ifndef CCAPI_HTTP_STATUS_CODE
 #define CCAPI_HTTP_STATUS_CODE "HTTP_STATUS_CODE"
 #endif
@@ -466,7 +472,7 @@
 #define CCAPI_COINBASE_URL_WS_BASE "wss://ws-feed.pro.coinbase.com"
 #endif
 #ifndef CCAPI_GEMINI_URL_WS_BASE
-#define CCAPI_GEMINI_URL_WS_BASE "wss://api.gemini.com/v1/marketdata"
+#define CCAPI_GEMINI_URL_WS_BASE "wss://api.gemini.com"
 #endif
 #ifndef CCAPI_KRAKEN_URL_WS_BASE
 #define CCAPI_KRAKEN_URL_WS_BASE "wss://ws.kraken.com"
