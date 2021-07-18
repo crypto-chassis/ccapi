@@ -754,11 +754,7 @@ class Service : public std::enable_shared_from_this<Service> {
     auto symbolId = instrument;
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     http::request<http::string_body> req;
-    if (this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
-      req.set(http::field::host, this->hostRest);
-    } else {
-      req.set(http::field::host, this->hostRest + ":" + this->portRest);
-    }
+    req.set(http::field::host, this->hostRest);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertRequestForRest(req, request, now, symbolId, credential);
     CCAPI_LOGGER_FUNCTION_EXIT;
