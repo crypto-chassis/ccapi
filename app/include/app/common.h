@@ -7,9 +7,13 @@
 namespace ccapi {
 class AppUtil {
  public:
-  static double linearInterpolate(double x1, double y1, double x2, double y2, double x) {
-    return y1 + (y2 - y1) / (x2 - x1) * (x - x1);
+  static std::string printDoubleScientific(double number) {
+    std::stringstream ss;
+    ss << std::scientific;
+    ss << number;
+    return ss.str();
   }
+  static double linearInterpolate(double x1, double y1, double x2, double y2, double x) { return y1 + (y2 - y1) / (x2 - x1) * (x - x1); }
   static std::string roundInput(double input, const std::string& inputIncrement, bool roundUp) {
     int64_t x = std::floor(input / std::stod(inputIncrement));
     if (roundUp) {
@@ -39,8 +43,13 @@ class AppUtil {
 };
 class AppLogger {
  public:
+  void log(const std::string& message) { this->log(std::chrono::system_clock::now(), message); }
   void log(const std::string& fileName, const std::string& lineNumber, const std::string& message) {
     this->log(std::chrono::system_clock::now(), fileName, lineNumber, message);
+  }
+  void log(const TimePoint& now, const std::string& message) {
+    std::lock_guard<std::mutex> lock(m);
+    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << message << std::endl;
   }
   void log(const TimePoint& now, const std::string& fileName, const std::string& lineNumber, const std::string& message) {
     std::lock_guard<std::mutex> lock(m);
