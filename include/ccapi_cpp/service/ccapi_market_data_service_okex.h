@@ -24,6 +24,7 @@ class MarketDataServiceOkex : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/api/v5/market/trades";
+    this->getInstrumentTarget = "/api/v5/public/instruments";
   }
   virtual ~MarketDataServiceOkex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -118,7 +119,47 @@ class MarketDataServiceOkex : public MarketDataService {
         std::string symbolId = arg["instId"].GetString();
         std::string exchangeSubscriptionId = channelId + ":" + symbolId;
         if (document.HasMember("event")) {
-          // TODO(cryptochassis): implement
+          std::string eventStr = document["event"].GetString();
+          if (eventStr == "subscribe") {
+            event.setType(Event::Type::SUBSCRIPTION_STATUS);
+            std::vector<Message> messageList;
+            Message message;
+            message.setTimeReceived(timeReceived);
+            std::vector<std::string> correlationIdList;
+            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+              const rj::Value& arg = document["arg"];
+              std::string channelId = arg["channel"].GetString();
+              std::string symbolId = arg["instId"].GetString();
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                  std::vector<std::string> correlationIdList_2 =
+                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                  correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+                }
+              }
+            }
+            message.setCorrelationIdList(correlationIdList);
+            message.setType(Message::Type::SUBSCRIPTION_STARTED);
+            Element element;
+            element.insert(CCAPI_INFO_MESSAGE, textMessage);
+            message.setElementList({element});
+            messageList.push_back(std::move(message));
+            event.setMessageList(messageList);
+          } else if (eventStr == "error") {
+            event.setType(Event::Type::SUBSCRIPTION_STATUS);
+            std::vector<Message> messageList;
+            Message message;
+            message.setTimeReceived(timeReceived);
+            message.setType(Message::Type::SUBSCRIPTION_FAILURE);
+            Element element;
+            element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+            message.setElementList({element});
+            messageList.push_back(std::move(message));
+            event.setMessageList(messageList);
+          }
         } else {
           if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400 ||
               channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
@@ -200,15 +241,26 @@ class MarketDataServiceOkex : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "instId");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT_TYPE, "instType"},
+                          });
+        this->appendSymbolId(queryString, symbolId, "instId");
+        req.target(target + "?" + queryString);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {
@@ -224,10 +276,29 @@ class MarketDataServiceOkex : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        for (const auto& x : document["data"].GetArray()) {
+          if (std::string(x["instId"].GetString()) == request.getInstrument()) {
+            Element element;
+            element.insert(CCAPI_BASE_ASSET, x["baseCcy"].GetString());
+            element.insert(CCAPI_QUOTE_ASSET, x["quoteCcy"].GetString());
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSz"].GetString());
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSz"].GetString());
+            element.insert(CCAPI_MARGIN_ASSET, x["settleCcy"].GetString());
+            element.insert(CCAPI_UNDERLYING_SYMBOL, x["uly"].GetString());
+            message.setElementList({element});
+            break;
+          }
+        }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
 };
 } /* namespace ccapi */

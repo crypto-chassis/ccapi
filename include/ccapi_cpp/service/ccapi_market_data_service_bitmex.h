@@ -19,6 +19,7 @@ class MarketDataServiceBitmex : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/api/v1/trade";
+    this->getInstrumentTarget = "/api/v1/instrument";
     this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceBitmex() {}
@@ -200,8 +201,37 @@ class MarketDataServiceBitmex : public MarketDataService {
             marketDataMessageList.push_back(std::move(marketDataMessage));
           }
         }
-      } else if (document.IsObject() && document.HasMember("subscribe") && document["success"].GetBool()) {
-        // TODO(cryptochassis): implement
+      } else if (document.IsObject() && document.HasMember("request") && std::string(document["request"]["op"].GetString()) == "subscribe") {
+        bool success = document.HasMember("success") && document["success"].GetBool();
+        event.setType(Event::Type::SUBSCRIPTION_STATUS);
+        std::vector<Message> messageList;
+        Message message;
+        message.setTimeReceived(timeReceived);
+        std::vector<std::string> correlationIdList;
+        if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+          for (const auto& x : document["request"]["args"].GetArray()) {
+            auto splitted = UtilString::split(x.GetString(), ":");
+            std::string channelId = splitted.at(0);
+            std::string symbolId = splitted.at(1);
+            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                std::vector<std::string> correlationIdList_2 =
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+              }
+            }
+          }
+        }
+        message.setCorrelationIdList(correlationIdList);
+        message.setType(success ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
+        Element element;
+        element.insert(success ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+        message.setElementList({element});
+        messageList.push_back(std::move(message));
+        event.setMessageList(messageList);
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -225,20 +255,27 @@ class MarketDataServiceBitmex : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
+  // }
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -254,10 +291,27 @@ class MarketDataServiceBitmex : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        Element element;
+        for (const auto& x : document.GetArray()) {
+          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
+            element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
+            element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSize"].GetString());
+            message.setElementList({element});
+            break;
+          }
+        }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > priceByConnectionIdChannelIdSymbolIdPriceIdMap;
 };

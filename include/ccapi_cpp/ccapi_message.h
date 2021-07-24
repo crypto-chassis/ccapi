@@ -53,6 +53,7 @@ class Message CCAPI_FINAL {
     GET_ACCOUNT_POSITIONS,
     GET_RECENT_TRADES,
     GET_RECENT_AGG_TRADES,
+    GET_INSTRUMENT,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
@@ -133,6 +134,9 @@ class Message CCAPI_FINAL {
       case Type::GET_RECENT_AGG_TRADES:
         output = "GET_RECENT_AGG_TRADES";
         break;
+      case Type::GET_INSTRUMENT:
+        output = "GET_INSTRUMENT";
+        break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";
         break;
@@ -180,6 +184,7 @@ class Message CCAPI_FINAL {
   void setElementList(std::vector<Element>& elementList) { this->elementList = std::move(elementList); }
   const std::vector<std::string>& getCorrelationIdList() const { return correlationIdList; }
   void setCorrelationIdList(const std::vector<std::string>& correlationIdList) { this->correlationIdList = correlationIdList; }
+  // 'getTime' only works in C++. For other languages, please use 'getTimeISO'.
   TimePoint getTime() const { return time; }
   std::string getTimeISO() const { return UtilTime::getISOTimestamp(time); }
   std::pair<long long, long long> getTimePair() const { return UtilTime::divide(time); }
@@ -188,6 +193,7 @@ class Message CCAPI_FINAL {
   void setRecapType(RecapType recapType) { this->recapType = recapType; }
   Type getType() const { return type; }
   void setType(Type type) { this->type = type; }
+  // 'getTimeReceived' only works in C++. For other languages, please use 'getTimeReceivedISO'.
   TimePoint getTimeReceived() const { return timeReceived; }
   std::string getTimeReceivedISO() const { return UtilTime::getISOTimestamp(timeReceived); }
   std::pair<long long, long long> getTimeReceivedPair() const { return UtilTime::divide(timeReceived); }

@@ -11,6 +11,12 @@ class Subscription CCAPI_FINAL {
   Subscription(std::string exchange, std::string instrument, std::string field, std::string options = "", std::string correlationId = "",
                std::map<std::string, std::string> credential = {})
       : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential) {
+    auto originalInstrumentSet = UtilString::splitToSet(instrument, ",");
+    std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()),
+                 [](const std::string& value) { return !value.empty(); });
+    auto originalFieldSet = UtilString::splitToSet(field, ",");
+    std::copy_if(originalFieldSet.begin(), originalFieldSet.end(), std::inserter(this->fieldSet, this->fieldSet.end()),
+                 [](const std::string& value) { return !value.empty(); });
     std::vector<std::string> optionList;
     if (!options.empty()) {
       optionList = UtilString::split(options, "&");
@@ -23,9 +29,11 @@ class Subscription CCAPI_FINAL {
       auto optionKeyValue = UtilString::split(option, "=");
       this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
     }
+    std::set<std::string> executionManagementSubscriptionFieldSet = {std::string(CCAPI_EM_ORDER_UPDATE), std::string(CCAPI_EM_PRIVATE_TRADE)};
     if (field == CCAPI_FIX) {
       this->serviceName = CCAPI_FIX;
-    } else if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
+    } else if (std::includes(executionManagementSubscriptionFieldSet.begin(), executionManagementSubscriptionFieldSet.end(), this->fieldSet.begin(),
+                             this->fieldSet.end())) {
       this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
     } else if (field == CCAPI_MARKET_DEPTH || field == CCAPI_TRADE || field == CCAPI_AGG_TRADE) {
       this->serviceName = CCAPI_MARKET_DATA;
@@ -34,12 +42,6 @@ class Subscription CCAPI_FINAL {
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);
     }
-    auto originalInstrumentSet = UtilString::splitToSet(instrument, ",");
-    std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()),
-                 [](const std::string& value) { return !value.empty(); });
-    auto originalFieldSet = UtilString::splitToSet(field, ",");
-    std::copy_if(originalFieldSet.begin(), originalFieldSet.end(), std::inserter(this->fieldSet, this->fieldSet.end()),
-                 [](const std::string& value) { return !value.empty(); });
   }
   std::string toString() const {
     std::map<std::string, std::string> shortCredential;

@@ -5,56 +5,57 @@
 #else
 #define CCAPI_LOGGER_FILE_SEPARATOR '/'
 #endif
-#define CCAPI_LOGGER_FILENAME (strrchr(__FILE__, CCAPI_LOGGER_FILE_SEPARATOR) ? strrchr(__FILE__, CCAPI_LOGGER_FILE_SEPARATOR) + 1 : __FILE__)
+#define CCAPI_LOGGER_FILE_NAME (strrchr(__FILE__, CCAPI_LOGGER_FILE_SEPARATOR) ? strrchr(__FILE__, CCAPI_LOGGER_FILE_SEPARATOR) + 1 : __FILE__)
+#define CCAPI_LOGGER_LINE_NUMBER std::to_string(__LINE__)
 #define CCAPI_LOGGER_THREAD_ID std::this_thread::get_id()
 #define CCAPI_LOGGER_NOW std::chrono::system_clock::now()
 #if defined(CCAPI_ENABLE_LOG_FATAL) || defined(CCAPI_ENABLE_LOG_ERROR) || defined(CCAPI_ENABLE_LOG_WARN) || defined(CCAPI_ENABLE_LOG_INFO) || \
     defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
-#define CCAPI_LOGGER_FATAL(message)                                                                                     \
-  if (::ccapi::Logger::logger) {                                                                                        \
-    ::ccapi::Logger::logger->fatal(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); \
-    throw std::runtime_error(message);                                                                                  \
+#define CCAPI_LOGGER_FATAL(message)                                                                                                      \
+  if (::ccapi::Logger::logger) {                                                                                                         \
+    ::ccapi::Logger::logger->fatal(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILE_NAME, CCAPI_LOGGER_LINE_NUMBER, message); \
+    throw std::runtime_error(message);                                                                                                   \
   }
 #else
 #define CCAPI_LOGGER_FATAL(message) throw std::runtime_error(message)
 #endif
 #if defined(CCAPI_ENABLE_LOG_ERROR) || defined(CCAPI_ENABLE_LOG_WARN) || defined(CCAPI_ENABLE_LOG_INFO) || defined(CCAPI_ENABLE_LOG_DEBUG) || \
     defined(CCAPI_ENABLE_LOG_TRACE)
-#define CCAPI_LOGGER_ERROR(message)                                                                                     \
-  if (::ccapi::Logger::logger) {                                                                                        \
-    ::ccapi::Logger::logger->error(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); \
+#define CCAPI_LOGGER_ERROR(message)                                                                                                      \
+  if (::ccapi::Logger::logger) {                                                                                                         \
+    ::ccapi::Logger::logger->error(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILE_NAME, CCAPI_LOGGER_LINE_NUMBER, message); \
   }
 #else
 #define CCAPI_LOGGER_ERROR(message)
 #endif
 #if defined(CCAPI_ENABLE_LOG_WARN) || defined(CCAPI_ENABLE_LOG_INFO) || defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
-#define CCAPI_LOGGER_WARN(message)                                                                                     \
-  if (::ccapi::Logger::logger) {                                                                                       \
-    ::ccapi::Logger::logger->warn(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); \
+#define CCAPI_LOGGER_WARN(message)                                                                                                      \
+  if (::ccapi::Logger::logger) {                                                                                                        \
+    ::ccapi::Logger::logger->warn(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILE_NAME, CCAPI_LOGGER_LINE_NUMBER, message); \
   }
 #else
 #define CCAPI_LOGGER_WARN(message)
 #endif
 #if defined(CCAPI_ENABLE_LOG_INFO) || defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
-#define CCAPI_LOGGER_INFO(message)                                                                                     \
-  if (::ccapi::Logger::logger) {                                                                                       \
-    ::ccapi::Logger::logger->info(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); \
+#define CCAPI_LOGGER_INFO(message)                                                                                                      \
+  if (::ccapi::Logger::logger) {                                                                                                        \
+    ::ccapi::Logger::logger->info(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILE_NAME, CCAPI_LOGGER_LINE_NUMBER, message); \
   }
 #else
 #define CCAPI_LOGGER_INFO(message)
 #endif
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
-#define CCAPI_LOGGER_DEBUG(message)                                                                                     \
-  if (::ccapi::Logger::logger) {                                                                                        \
-    ::ccapi::Logger::logger->debug(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); \
+#define CCAPI_LOGGER_DEBUG(message)                                                                                                      \
+  if (::ccapi::Logger::logger) {                                                                                                         \
+    ::ccapi::Logger::logger->debug(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILE_NAME, CCAPI_LOGGER_LINE_NUMBER, message); \
   }
 #else
 #define CCAPI_LOGGER_DEBUG(message)
 #endif
 #if defined(CCAPI_ENABLE_LOG_TRACE)
-#define CCAPI_LOGGER_TRACE(message)                                                                                     \
-  if (::ccapi::Logger::logger) {                                                                                        \
-    ::ccapi::Logger::logger->trace(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILENAME, __LINE__, message); \
+#define CCAPI_LOGGER_TRACE(message)                                                                                                      \
+  if (::ccapi::Logger::logger) {                                                                                                         \
+    ::ccapi::Logger::logger->trace(CCAPI_LOGGER_THREAD_ID, CCAPI_LOGGER_NOW, CCAPI_LOGGER_FILE_NAME, CCAPI_LOGGER_LINE_NUMBER, message); \
   }
 #else
 #define CCAPI_LOGGER_TRACE(message)
@@ -82,22 +83,28 @@ class Logger {
   std::string LOG_SEVERITY_DEBUG = "DEBUG";
   std::string LOG_SEVERITY_TRACE = "TRACE";
   virtual ~Logger() {}
-  void fatal(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber, std::string message) {
+  void fatal(const std::thread::id& threadId, const std::chrono::system_clock::time_point& time, const std::string& fileName, const std::string& lineNumber,
+             const std::string& message) {
     this->logMessagePrivate(LOG_SEVERITY_FATAL, threadId, time, fileName, lineNumber, message);
   }
-  void error(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber, std::string message) {
+  void error(const std::thread::id& threadId, const std::chrono::system_clock::time_point& time, const std::string& fileName, const std::string& lineNumber,
+             const std::string& message) {
     this->logMessagePrivate(LOG_SEVERITY_ERROR, threadId, time, fileName, lineNumber, message);
   }
-  void warn(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber, std::string message) {
+  void warn(const std::thread::id& threadId, const std::chrono::system_clock::time_point& time, const std::string& fileName, const std::string& lineNumber,
+            const std::string& message) {
     this->logMessagePrivate(LOG_SEVERITY_WARN, threadId, time, fileName, lineNumber, message);
   }
-  void info(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber, std::string message) {
+  void info(const std::thread::id& threadId, const std::chrono::system_clock::time_point& time, const std::string& fileName, const std::string& lineNumber,
+            const std::string& message) {
     this->logMessagePrivate(LOG_SEVERITY_INFO, threadId, time, fileName, lineNumber, message);
   }
-  void debug(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber, std::string message) {
+  void debug(const std::thread::id& threadId, const std::chrono::system_clock::time_point& time, const std::string& fileName, const std::string& lineNumber,
+             const std::string& message) {
     this->logMessagePrivate(LOG_SEVERITY_DEBUG, threadId, time, fileName, lineNumber, message);
   }
-  void trace(std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber, std::string message) {
+  void trace(const std::thread::id& threadId, const std::chrono::system_clock::time_point& time, const std::string& fileName, const std::string& lineNumber,
+             const std::string& message) {
     this->logMessagePrivate(LOG_SEVERITY_TRACE, threadId, time, fileName, lineNumber, message);
   }
   static Logger* logger;
@@ -105,15 +112,16 @@ class Logger {
 
  protected:
 #endif
-  virtual void logMessage(std::string severity, std::string threadId, std::string timeISO, std::string fileName, std::string lineNumber, std::string message) {}
-  void logMessagePrivate(std::string severity, std::thread::id threadId, std::chrono::system_clock::time_point time, std::string fileName, int lineNumber,
-                         std::string message) {
+  virtual void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
+                          const std::string& lineNumber, const std::string& message) {}
+  void logMessagePrivate(const std::string& severity, const std::thread::id& threadId, const std::chrono::system_clock::time_point& time,
+                         const std::string& fileName, const std::string& lineNumber, const std::string& message) {
     std::stringstream ss;
     ss << threadId;
-    this->logMessage(severity, ss.str(), getISOTimestamp(time), fileName, std::to_string(lineNumber), message);
+    this->logMessage(severity, ss.str(), getISOTimestamp(time), fileName, lineNumber, message);
   }
   template <typename T = std::chrono::nanoseconds>
-  static std::string getISOTimestamp(TimePoint tp, std::string fmt = "%FT%TZ") {
+  static std::string getISOTimestamp(const TimePoint& tp, const std::string& fmt = "%FT%TZ") {
     return date::format(fmt.c_str(), date::floor<T>(tp));
   }
 };
