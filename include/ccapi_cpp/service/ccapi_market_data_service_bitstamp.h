@@ -20,6 +20,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}/";  // must have trailing slash
+    this->getInstrumentTarget = "/api/v2/trading-pairs-info/";
   }
   virtual ~MarketDataServiceBitstamp() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -62,6 +63,32 @@ class MarketDataServiceBitstamp : public MarketDataService {
     document.Parse(textMessage.c_str());
     const rj::Value& data = document["data"];
     if (document.IsObject() && document.HasMember("event") && std::string(document["event"].GetString()) == "bts:subscription_succeeded") {
+      event.setType(Event::Type::SUBSCRIPTION_STATUS);
+      std::vector<Message> messageList;
+      Message message;
+      message.setTimeReceived(timeReceived);
+      std::vector<std::string> correlationIdList;
+      if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+        std::string exchangeSubscriptionId = document["channel"].GetString();
+        std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+        std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                std::vector<std::string> correlationIdList_2 =
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+              }
+          }
+      }
+      message.setCorrelationIdList(correlationIdList);
+      message.setType(Message::Type::SUBSCRIPTION_STARTED);
+      Element element;
+      element.insert(CCAPI_INFO_MESSAGE, textMessage);
+      message.setElementList({element});
+      messageList.push_back(std::move(message));
+      event.setMessageList(messageList);
     } else if (document.IsObject() && document.HasMember("event") &&
                (std::string(document["event"].GetString()) == "data" || std::string(document["event"].GetString()) == "trade")) {
       MarketDataMessage marketDataMessage;
@@ -139,15 +166,19 @@ class MarketDataServiceBitstamp : public MarketDataService {
         this->appendParam(queryString, param, {});
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -163,10 +194,31 @@ class MarketDataServiceBitstamp : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        for (const auto& x : document.GetArray()){
+          if (std::string(x["url_symbol"].GetString()) == request.getInstrument()){
+            Element element;
+            std::string name = x["name"].GetString();
+            auto splitted = UtilString::split(name,"/");
+            element.insert(CCAPI_BASE_ASSET, UtilString::toLower(splitted.at(0)));
+            element.insert(CCAPI_QUOTE_ASSET, UtilString::toLower(splitted.at(1)));
+            int counterDecimals = x["counter_decimals"].GetInt();
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(counterDecimals-1,'0')+"1");
+            int baseDecimals = x["base_decimals"].GetInt();
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(baseDecimals-1,'0')+"1");
+            message.setElementList({element});
+            break;
+          }
+        }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
 };
 } /* namespace ccapi */

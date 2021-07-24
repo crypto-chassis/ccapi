@@ -20,13 +20,28 @@ class MarketDataServiceKraken : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/0/public/Trades";
-    this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    this->getInstrumentTarget = "/0/public/AssetPairs";
+    // this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceKraken() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
+void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                               const std::map<std::string, std::string> optionMap) override {
+  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+  auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+  CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+  if (field == CCAPI_MARKET_DEPTH) {
+      int marketDepthSubscribedToExchange = 1;
+      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
+          marketDepthRequested, std::vector<int>({10, 25, 100, 500, 1000}));
+      channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
+      this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
+  }
+}
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -197,9 +212,6 @@ class MarketDataServiceKraken : public MarketDataService {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x[0].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x[1].GetString()))});
-          // std::stringstream ss;
-          // ss << std::setw(9) << std::setfill('0') << timePair.second;
-          // dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x[3].GetString()) == "s" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
@@ -210,7 +222,39 @@ class MarketDataServiceKraken : public MarketDataService {
       if (eventPayload == "heartbeat") {
         CCAPI_LOGGER_DEBUG("heartbeat: " + toString(wsConnection));
       } else if (eventPayload == "subscriptionStatus") {
-        // TODO(cryptochassis): implement
+        std::string status = document["status"].GetString();
+        if (status == "subscribed"||status == "error"){
+          event.setType(Event::Type::SUBSCRIPTION_STATUS);
+          std::vector<Message> messageList;
+          Message message;
+          message.setTimeReceived(timeReceived);
+          std::vector<std::string> correlationIdList;
+          std::string exchangeSubscriptionId = document["subscription"]["name"].GetString();
+          if (exchangeSubscriptionId == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK){
+            exchangeSubscriptionId+= "-"+std::to_string(document["subscription"]["depth"].GetInt());
+          }
+          std::string symbolId = document["pair"].GetString();
+          exchangeSubscriptionId += "|" + symbolId;
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+            auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
+            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                  std::vector<std::string> correlationIdList_2 =
+                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                  correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+                }
+            }
+          }
+          message.setCorrelationIdList(correlationIdList);
+          message.setType(status == "subscribed"?Message::Type::SUBSCRIPTION_STARTED:Message::Type::SUBSCRIPTION_FAILURE);
+          Element element;
+          element.insert(status == "subscribed"?CCAPI_INFO_MESSAGE:CCAPI_ERROR_MESSAGE, textMessage);
+          message.setElementList({element});
+          messageList.push_back(std::move(message));
+          event.setMessageList(messageList);
+        }
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -229,20 +273,27 @@ class MarketDataServiceKraken : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "pair");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendSymbolId(queryString, symbolId, "pair");
+        req.target(target + "?" + queryString);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
+  // }
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto instrument = request.getInstrument();
     const std::string& symbolId = instrument;
     switch (request.getOperation()) {
@@ -257,18 +308,30 @@ class MarketDataServiceKraken : public MarketDataService {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x[0].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x[1].GetString()))});
-          // std::stringstream ss;
-          // ss << std::setw(9) << std::setfill('0') << timePair.second;
-          // dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(timePair.first) + ss.str()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x[3].GetString()) == "s" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        const rj::Value& x = document["result"][request.getInstrument().c_str()];
+        Element element;
+        element.insert(CCAPI_BASE_ASSET, x["base"].GetString());
+        element.insert(CCAPI_QUOTE_ASSET, x["quote"].GetString());
+        int pairDecimals = std::stoi(x["pair_decimals"].GetString());
+        element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(pairDecimals-1,'0')+"1");
+        int lotDecimals = std::stoi(x["lot_decimals"].GetString());
+        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(lotDecimals-1,'0')+"1");
+        message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
 };
 } /* namespace ccapi */

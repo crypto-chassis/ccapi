@@ -402,9 +402,9 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-    CCAPI_LOGGER_TRACE("before async_shutdown");
-    stream.async_shutdown(beast::bind_front_handler(&Service::onShutdown, shared_from_this(), httpConnectionPtr, errorHandler));
-    CCAPI_LOGGER_TRACE("after async_shutdown");
+    // CCAPI_LOGGER_TRACE("before async_shutdown");
+    // stream.async_shutdown(beast::bind_front_handler(&Service::onShutdown, shared_from_this(), httpConnectionPtr, errorHandler));
+    // CCAPI_LOGGER_TRACE("after async_shutdown");
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << *resPtr;
@@ -412,20 +412,31 @@ class Service : public std::enable_shared_from_this<Service> {
 #endif
     responseHandler(*resPtr);
   }
-  void onShutdown(std::shared_ptr<HttpConnection> httpConnectionPtr, std::function<void(const beast::error_code&)> errorHandler, beast::error_code ec) {
-    CCAPI_LOGGER_TRACE("async_shutdown callback start");
-    if (ec == net::error::eof) {
-      // Rationale:
-      // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-      ec = {};
-    }
-    if (ec) {
-      CCAPI_LOGGER_TRACE("shutdown fail: " + ec.message() + ", category: " + ec.category().name());
-      return;
-    }
-    CCAPI_LOGGER_TRACE("shutdown");
-    // If we get here then the connection is closed gracefully
-  }
+  // void onShutdown(std::shared_ptr<HttpConnection> httpConnectionPtr, std::function<void(const beast::error_code&)> errorHandler, beast::error_code ec) {
+  //   CCAPI_LOGGER_TRACE("async_shutdown callback start");
+  //   if (ec == net::error::eof) {
+  //     // Rationale:
+  //     // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+  //     ec = {};
+  //   }
+  //   if (ec) {
+  //     CCAPI_LOGGER_TRACE("shutdown fail: " + ec.message() + ", category: " + ec.category().name());
+  //     return;
+  //   }
+  //   CCAPI_LOGGER_TRACE("shutdown");
+  //   // If we get here then the connection is closed gracefully
+  // }
+  // std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
+  //                                                                    const std::string& host) {
+  //   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
+  //   // Set SNI Hostname (many hosts need this to handshake successfully)
+  //   if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
+  //     beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
+  //     CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+  //     throw ec;
+  //   }
+  //   return streamPtr;
+  // }
   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
                                                                      const std::string& host) {
     std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
@@ -437,6 +448,12 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return streamPtr;
   }
+  // template <typename T>
+  // std::shared_ptr<T> createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
+  //                                                                    const std::string& host) {
+  //   std::shared_ptr<beast::tcp_stream> streamPtr(new beast::tcp_stream(*iocPtr));
+  //   return streamPtr;
+  // }
   // std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
   //   std::string symbolId = instrument;
   //   if (!instrument.empty()) {
@@ -598,10 +615,10 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     if (this->sessionOptions.enableOneHttpConnectionPerRequest) {
-      beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-      CCAPI_LOGGER_TRACE("before async_shutdown");
-      stream.async_shutdown(beast::bind_front_handler(&Service::onShutdown_2, shared_from_this(), httpConnectionPtr));
-      CCAPI_LOGGER_TRACE("after async_shutdown");
+      // beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+      // CCAPI_LOGGER_TRACE("before async_shutdown");
+      // stream.async_shutdown(beast::bind_front_handler(&Service::onShutdown_2, shared_from_this(), httpConnectionPtr));
+      // CCAPI_LOGGER_TRACE("after async_shutdown");
     } else {
       try {
         if (std::chrono::duration_cast<std::chrono::seconds>(this->lastHttpConnectionPoolPushBackTp.time_since_epoch()).count() == 0 &&
@@ -642,10 +659,9 @@ class Service : public std::enable_shared_from_this<Service> {
           retry.numRedirect += 1;
           CCAPI_LOGGER_WARN("redirect from request " + request.toString() + " to url " + url.toString());
           this->tryRequest(request, req, retry);
-          return;
-        } else {
-          this->onResponseError(request, statusCode, body);
         }
+          this->onResponseError(request, statusCode, body);
+          return;
       } else if (statusCode / 100 == 4) {
         this->onResponseError(request, statusCode, body);
       } else if (statusCode / 100 == 5) {
@@ -669,21 +685,21 @@ class Service : public std::enable_shared_from_this<Service> {
     }
   }
   virtual bool doesHttpBodyContainError(const Request& request, const std::string& body) { return false; }
-  void onShutdown_2(std::shared_ptr<HttpConnection> httpConnectionPtr, beast::error_code ec) {
-    CCAPI_LOGGER_TRACE("async_shutdown callback start");
-    if (ec == net::error::eof) {
-      // Rationale:
-      // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-      ec = {};
-    }
-    if (ec) {
-      CCAPI_LOGGER_TRACE("shutdown fail: " + ec.message() + ", category: " + ec.category().name());
-      // this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
-      return;
-    }
-    CCAPI_LOGGER_TRACE("shutdown");
-    // If we get here then the connection is closed gracefully
-  }
+  // void onShutdown_2(std::shared_ptr<HttpConnection> httpConnectionPtr, beast::error_code ec) {
+  //   CCAPI_LOGGER_TRACE("async_shutdown callback start");
+  //   if (ec == net::error::eof) {
+  //     // Rationale:
+  //     // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
+  //     ec = {};
+  //   }
+  //   if (ec) {
+  //     CCAPI_LOGGER_TRACE("shutdown fail: " + ec.message() + ", category: " + ec.category().name());
+  //     // this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+  //     return;
+  //   }
+  //   CCAPI_LOGGER_TRACE("shutdown");
+  //   // If we get here then the connection is closed gracefully
+  // }
   void tryRequest(const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
@@ -754,6 +770,10 @@ class Service : public std::enable_shared_from_this<Service> {
     auto symbolId = instrument;
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     http::request<http::string_body> req;
+    req.version(11);
+    if (this->sessionOptions.enableOneHttpConnectionPerRequest){
+      req.keep_alive(false);
+    }
     req.set(http::field::host, this->hostRest);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertRequestForRest(req, request, now, symbolId, credential);

@@ -22,7 +22,7 @@ class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDeriv
     this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/dapi/v1/trades";
     this->getRecentAggTradesTarget = "/dapi/v1/aggTrades";
-    // this->isDerivatives = true;
+    this->getInstrumentTarget="/dapi/v1/exchangeInfo";
   }
   virtual ~MarketDataServiceBinanceCoinFutures() {}
 };

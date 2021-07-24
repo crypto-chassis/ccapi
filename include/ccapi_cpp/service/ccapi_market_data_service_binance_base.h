@@ -44,6 +44,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("method", rj::Value("SUBSCRIBE").Move(), allocator);
     rj::Value params(rj::kArrayType);
+    std::vector<std::string> exchangeSubscriptionIdList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
@@ -69,10 +70,12 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
                            toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
+                           exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
       }
     }
     document.AddMember("params", params, allocator);
     document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
+    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap[this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] = exchangeSubscriptionIdList;
     this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -81,18 +84,41 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->exchangeJsonPayloadIdByConnectionIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
-  }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    if (document.IsObject() && document.HasMember("result")) {
+    if (document.IsObject() && document.HasMember("result") && document["result"].IsNull()) {
+      event.setType(Event::Type::SUBSCRIPTION_STATUS);
+      std::vector<Message> messageList;
+      Message message;
+      message.setTimeReceived(timeReceived);
+      std::vector<std::string> correlationIdList;
+      if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+        int id = document["id"].GetInt();
+        if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.find(id)!=this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.end()){
+          for (const auto& exchangeSubscriptionId: this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.at(id)){
+            std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+            std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
+            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                  std::vector<std::string> correlationIdList_2 =
+                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                  correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+                }
+            }
+          }
+        }
+      }
+      message.setCorrelationIdList(correlationIdList);
+      message.setType(Message::Type::SUBSCRIPTION_STARTED);
+      Element element;
+      element.insert(CCAPI_INFO_MESSAGE, textMessage);
+      message.setElementList({element});
+      messageList.push_back(std::move(message));
+      event.setMessageList(messageList);
     } else if (document.IsObject() && document.HasMember("stream") && document.HasMember("data")) {
       MarketDataMessage marketDataMessage;
       std::string exchangeSubscriptionId = document["stream"].GetString();
@@ -223,15 +249,21 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        std::string queryString;
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -261,13 +293,30 @@ class MarketDataServiceBinanceBase : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        for (const auto& x: document["symbols"].GetArray()){
+          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+            Element element;
+            element.insert(CCAPI_BASE_ASSET, x["baseAsset"].GetString());
+            element.insert(CCAPI_QUOTE_ASSET, x["quoteAsset"].GetString());
+            int quoteAssetPrecision = x["quoteAssetPrecision"].GetInt();
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(quoteAssetPrecision-1,'0')+"1");
+            int baseAssetPrecision = x["baseAssetPrecision"].GetInt();
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(baseAssetPrecision-1,'0')+"1");
+            message.setElementList({element});
+            break;
+          }
+        }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
-  // https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md#live-subscribingunsubscribing-to-streams
-  std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
   bool isDerivatives{};
   std::string getRecentAggTradesTarget;
 };

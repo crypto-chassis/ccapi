@@ -22,6 +22,7 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
     this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/api/v3/trades";
     this->getRecentAggTradesTarget = "/api/v3/aggTrades";
+    this->getInstrumentTarget="/api/v3/exchangeInfo";
   }
   virtual ~MarketDataServiceBinance() {}
 };

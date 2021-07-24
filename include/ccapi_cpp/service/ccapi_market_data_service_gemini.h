@@ -19,6 +19,7 @@ class MarketDataServiceGemini : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/v1/trades/:symbol";
+    this->getInstrumentTarget="/v1/symbols/details/:symbol";
   }
   virtual ~MarketDataServiceGemini() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -44,6 +45,7 @@ class MarketDataServiceGemini : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    std::vector<std::string> correlationIdList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
@@ -55,9 +57,47 @@ class MarketDataServiceGemini : public MarketDataService {
         auto exchangeSubscriptionId = wsConnection.url;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
+          std::vector<std::string> correlationIdList_2 =
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+          correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
       }
     }
+    auto timeReceived = UtilTime::now();
+    Event event;
+    event.setType(Event::Type::SUBSCRIPTION_STATUS);
+    std::vector<Message> messageList;
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList(correlationIdList);
+    message.setType(Message::Type::SUBSCRIPTION_STARTED);
+    messageList.push_back(std::move(message));
+    event.setMessageList(messageList);
+    this->eventHandler(event);
     CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void onFail_(WsConnection& wsConnection) override {
+    std::vector<std::string> correlationIdList;
+    for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+      auto channelId = subscriptionListByChannelIdSymbolId.first;
+      for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
+        auto symbolId = subscriptionListByInstrument.first;
+          std::vector<std::string> correlationIdList_2 =
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+          correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+      }
+    }
+    auto timeReceived = UtilTime::now();
+    Event event;
+    event.setType(Event::Type::SUBSCRIPTION_STATUS);
+    std::vector<Message> messageList;
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList(correlationIdList);
+    message.setType(Message::Type::SUBSCRIPTION_FAILURE);
+    messageList.push_back(std::move(message));
+    event.setMessageList(messageList);
+    this->eventHandler(event);
+    MarketDataService::onFail_(wsConnection);
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -223,34 +263,53 @@ class MarketDataServiceGemini : public MarketDataService {
                           });
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        this->substituteParam(target, {
+                                          {":symbol", symbolId},
+                                      });
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
-          marketDataMessage.tp = TimePoint(std::chrono::milliseconds(x["timestampms"].GetInt64()));
+          marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(x["timestampms"].GetString())));
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["amount"].GetString()))});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(x["tid"].GetInt64())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, x["tid"].GetString()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["type"].GetString()) == "sell" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        Element element;
+        element.insert(CCAPI_BASE_ASSET, document["base_currency"].GetString());
+        element.insert(CCAPI_QUOTE_ASSET, document["quote_currency"].GetString());
+        element.insert(CCAPI_ORDER_PRICE_INCREMENT, Decimal(document["quote_increment"].GetString()).toString());
+        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, Decimal(document["tick_size"].GetString()).toString());
+        message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
   std::map<std::string, int> sequenceByConnectionIdMap;
 };

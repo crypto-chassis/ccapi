@@ -1,34 +1,26 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_DERIVATIVES_BASE_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_DERIVATIVES_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
-#ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
+#if defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi_base.h"
 namespace ccapi {
-class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
+class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase {
  public:
-  MarketDataServiceHuobi(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                         std::shared_ptr<ServiceContext> serviceContextPtr)
+  MarketDataServiceHuobiDerivativesBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                 std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceHuobiBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    this->setHostRestFromUrlRest(this->baseUrlRest);
-    try {
-      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-    this->getRecentTradesTarget = "/market/history/trade";
-    this->getInstrumentTarget="/v1/common/symbols";
+    this->isDerivatives = true;
   }
-  virtual ~MarketDataServiceHuobi() {}
+  virtual ~MarketDataServiceHuobiDerivativesBase() {}
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_INSTRUMENT: {
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
-        req.target(target);
+        std::string queryString;
+        this->appendSymbolId(queryString, symbolId, "contract_code" );
+        req.target(target + "?" + queryString);
       } break;
       default:
         MarketDataServiceHuobiBase::convertRequestForRest(req, request, now, symbolId, credential);
@@ -44,14 +36,10 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x: document["data"].GetArray()){
-          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+          if (std::string(x["contract_code"].GetString())==request.getInstrument()){
             Element element;
-            element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
-            element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
-            int pricePrecision = std::stoi(x["price-precision"].GetString());
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(pricePrecision-1,'0')+"1");
-            int amountPrecision =std::stoi(x["amount-precision"].GetString());
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(amountPrecision-1,'0')+"1");
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, UtilString::normalizeDecimalString(x["price_tick"].GetString()));
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, UtilString::normalizeDecimalString(x["contract_size"].GetString()));
             message.setElementList({element});
             break;
           }
@@ -68,4 +56,4 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_HUOBI_DERIVATIVES_BASE_H_

@@ -55,6 +55,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_market_data_service_ftx.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
+#include "ccapi_cpp/service/ccapi_market_data_service_ftx_us.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -102,6 +105,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_execution_management_service_ftx.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
+#include "ccapi_cpp/service/ccapi_execution_management_service_ftx_us.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -110,8 +116,14 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_fix_service_coinbase.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
+#include "ccapi_cpp/service/ccapi_fix_service_gemini.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_fix_service_ftx.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
+#include "ccapi_cpp/service/ccapi_fix_service_ftx_us.h"
 #endif
 #endif
 // end: enable exchanges for FIX
@@ -234,6 +246,10 @@ class Session CCAPI_FINAL {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_FTX] =
         std::make_shared<MarketDataServiceFtx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_FTX_US] =
+        std::make_shared<MarketDataServiceFtxUs>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -292,15 +308,27 @@ class Session CCAPI_FINAL {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX] =
         std::make_shared<ExecutionManagementServiceFtx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX_US] =
+        std::make_shared<ExecutionManagementServiceFtxUs>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_COINBASE] =
         std::make_shared<FixServiceCoinbase>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
+    this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_GEMINI] =
+        std::make_shared<FixServiceGemini>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_FTX] =
         std::make_shared<FixServiceFtx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
+    this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_FTX_US] =
+        std::make_shared<FixServiceFtxUs>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
@@ -447,16 +475,16 @@ class Session CCAPI_FINAL {
     CCAPI_LOGGER_TRACE("event = " + toString(event));
     if (this->eventHandler) {
       CCAPI_LOGGER_TRACE("handle event in immediate mode");
-      this->eventDispatcher->dispatch([&, event] {
+      this->eventDispatcher->dispatch([that=this, event=std::move(event)] {
         bool shouldContinue = true;
         try {
-          shouldContinue = this->eventHandler->processEvent(event, this);
+          shouldContinue = that->eventHandler->processEvent(event, this);
         } catch (const std::runtime_error& e) {
           CCAPI_LOGGER_ERROR(e.what());
         }
         if (!shouldContinue) {
           CCAPI_LOGGER_DEBUG("about to pause the event dispatcher");
-          this->eventDispatcher->pause();
+          that->eventDispatcher->pause();
         }
       });
     } else {

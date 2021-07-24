@@ -39,6 +39,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 element.getValue("FEE_QUANTITY"),
                 element.getValue("FEE_ASSET"),
             };
+            this->appLogger->log("Private trade - side: " + element.getValue("SIDE") + ", price: " + element.getValue("LAST_EXECUTED_PRICE") + ", quantity: " + element.getValue("LAST_EXECUTED_SIZE") + ".");
             rows.push_back(row);
           }
           this->privateTradeCsvWriter->writeRows(rows);
@@ -137,8 +138,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
         auto element = firstMessage.getElementList().at(0);
         this->baseAsset = element.getValue("BASE_ASSET");
         this->quoteAsset = element.getValue("QUOTE_ASSET");
-        this->orderPriceIncrement = element.getValue("PRICE_INCREMENT");
-        this->orderQuantityIncrement = element.getValue("QUANTITY_INCREMENT");
+        this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue("PRICE_INCREMENT"));
+        this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue("QUANTITY_INCREMENT"));
         Subscription subscriptionMarketDepth(this->exchange, this->instrument, "MARKET_DEPTH",
                                              "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0", "MARKET_DEPTH");
         Subscription subscriptionPrivate(this->exchange, this->instrument, "PRIVATE_TRADE,ORDER_UPDATE", "", "PRIVATE_TRADE,ORDER_UPDATE");

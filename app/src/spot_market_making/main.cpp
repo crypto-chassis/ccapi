@@ -94,4 +94,5 @@ int main(int argc, char** argv) {
   }
   return EXIT_SUCCESS;
 }
-// if too many errors per minute or loss is large then quick_exit which can register hooks
+// if loss is large then quick_exit which can register hooks
+// 50% order size is a special case for ping pong

@@ -69,6 +69,13 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         }
         exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), replacement);
         document.AddMember("sub", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
+        if (this->isDerivatives){
+          document.AddMember("id", rj::Value(std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).c_str(),allocator).Move(), allocator);
+        }else{
+          document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
+        }
+        this->exchangeSubscriptionIdByExchangeJsonPayloadIdMap[this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]]=exchangeSubscriptionId;
+        this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
@@ -213,7 +220,34 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }
-    } else if (document.IsObject() && document.HasMember("status") && document.HasMember("subbed")) {
+    } else if (document.IsObject() && document.HasMember("status")) {
+      std::string status=document["status"].GetString();
+      event.setType(Event::Type::SUBSCRIPTION_STATUS);
+      std::vector<Message> messageList;
+      Message message;
+      message.setTimeReceived(timeReceived);
+      std::vector<std::string> correlationIdList;
+      if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+        std::string exchangeSubscriptionId=this->exchangeSubscriptionIdByExchangeJsonPayloadIdMap.at(std::stoi(document["id"].GetString()));
+        std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+        std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                std::vector<std::string> correlationIdList_2 =
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+              }
+          }
+      }
+      message.setCorrelationIdList(correlationIdList);
+      message.setType(status=="ok"?Message::Type::SUBSCRIPTION_STARTED:Message::Type::SUBSCRIPTION_FAILURE);
+      Element element;
+      element.insert(status=="ok"?CCAPI_INFO_MESSAGE:CCAPI_ERROR_MESSAGE, textMessage);
+      message.setElementList({element});
+      messageList.push_back(std::move(message));
+      event.setMessageList(messageList);
     }
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
@@ -238,16 +272,15 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
+  // }
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {
@@ -267,10 +300,29 @@ class MarketDataServiceHuobiBase : public MarketDataService {
           }
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        for (const auto& x: document["data"].GetArray()){
+          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+            Element element;
+            element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
+            element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
+            int pricePrecision = std::stoi(x["price-precision"].GetString());
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(pricePrecision-1,'0')+"1");
+            int amountPrecision =std::stoi(x["amount-precision"].GetString());
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(amountPrecision-1,'0')+"1");
+            message.setElementList({element});
+            break;
+          }
+        }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
   bool isDerivatives{};
 };

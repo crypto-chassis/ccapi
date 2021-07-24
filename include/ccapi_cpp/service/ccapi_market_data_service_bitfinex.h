@@ -19,6 +19,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
+    this->getInstrumentTarget="/v2/conf/pub:list:pair:exchange";
     this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceBitfinex() {}
@@ -26,6 +27,20 @@ class MarketDataServiceBitfinex : public MarketDataService {
 
  private:
 #endif
+void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                               const std::map<std::string, std::string> optionMap) override {
+  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+  auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+  CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+  if (field == CCAPI_MARKET_DEPTH) {
+    int marketDepthSubscribedToExchange = 1;
+    marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
+        marketDepthRequested, std::vector<int>({1,25,100,250}));
+    channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
+    this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
+  }
+}
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -238,7 +253,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
         }
       }
     } else if (document.IsObject() && document.HasMember("event")) {
-      if (std::string(document["event"].GetString()) == "conf") {
+      std::string eventStr = document["event"].GetString();
+      if (eventStr == "conf") {
         std::vector<std::string> sendStringList;
         CCAPI_LOGGER_TRACE("this->subscriptionListByConnectionIdChannelSymbolIdMap = " + toString(this->subscriptionListByConnectionIdChannelIdSymbolIdMap));
         for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -282,7 +298,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
             this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
           }
         }
-      } else if (std::string(document["event"].GetString()) == "subscribed") {
+      } else if (eventStr == "subscribed" || eventStr=="error") {
         std::string channel = document["channel"].GetString();
         auto channelId = channel == CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK
                              ? channel + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::string(document["len"].GetString())
@@ -290,12 +306,37 @@ class MarketDataServiceBitfinex : public MarketDataService {
         CCAPI_LOGGER_TRACE("channelId = " + channelId);
         auto symbolId = std::string(document["symbol"].GetString());
         CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
-        auto exchangeSubscriptionId = std::string(document["chanId"].GetString());
-        CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
-        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
-                           toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
+        if (eventStr == "subscribed"){
+          auto exchangeSubscriptionId = std::string(document["chanId"].GetString());
+          CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
+          this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+          this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
+          CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
+                             toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
+        }
+                           event.setType(Event::Type::SUBSCRIPTION_STATUS);
+                           std::vector<Message> messageList;
+                           Message message;
+                           message.setTimeReceived(timeReceived);
+                           std::vector<std::string> correlationIdList;
+                           if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+                             if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+                                 this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+                                 if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                                     this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                                   std::vector<std::string> correlationIdList_2 =
+                                       this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                                   correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+                                 }
+                             }
+                           }
+                           message.setCorrelationIdList(correlationIdList);
+                           message.setType(eventStr == "subscribed"?Message::Type::SUBSCRIPTION_STARTED:Message::Type::SUBSCRIPTION_FAILURE);
+                           Element element;
+                           element.insert(eventStr == "subscribed"?CCAPI_INFO_MESSAGE:CCAPI_ERROR_MESSAGE, textMessage);
+                           message.setElementList({element});
+                           messageList.push_back(std::move(message));
+                           event.setMessageList(messageList);
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -386,6 +427,11 @@ class MarketDataServiceBitfinex : public MarketDataService {
                           });
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -395,11 +441,10 @@ class MarketDataServiceBitfinex : public MarketDataService {
     CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -417,10 +462,34 @@ class MarketDataServiceBitfinex : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        for (const auto& x: document[0].GetArray()){
+          std::string pair = x.GetString();
+          if (pair==request.getInstrument().substr(1)){
+            Element element;
+            auto splitted = UtilString::split(pair, ":");
+            if (splitted.size()==1){
+              element.insert(CCAPI_BASE_ASSET, pair.substr(0,3));
+              element.insert(CCAPI_QUOTE_ASSET, pair.substr(3,6));
+            } else {
+              element.insert(CCAPI_BASE_ASSET, splitted.at(0));
+              element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
+            }
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(8-1,'0')+"1");
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(8-1,'0')+"1");
+            message.setElementList({element});
+            break;
+          }
+        }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
   std::map<std::string, std::map<std::string, MarketDataMessage::TypeForData> > marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap;
   std::map<std::string, int> sequenceByConnectionIdMap;

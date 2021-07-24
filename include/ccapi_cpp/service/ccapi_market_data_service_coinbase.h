@@ -161,7 +161,16 @@ class MarketDataServiceCoinbase : public MarketDataService {
       messageList.push_back(std::move(message));
       event.setMessageList(messageList);
     } else if (type == "error") {
-      // TODO(cryptochassis): implement
+      event.setType(Event::Type::SUBSCRIPTION_STATUS);
+      std::vector<Message> messageList;
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::SUBSCRIPTION_FAILURE);
+      Element element;
+      element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+      message.setElementList({element});
+      messageList.push_back(std::move(message));
+      event.setMessageList(messageList);
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

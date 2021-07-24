@@ -57,8 +57,9 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
-  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us.
+  * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us.
+  * FIX: coinbase, gemini, ftx, ftx-us.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
@@ -196,8 +197,8 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `GET_RECENT_TRADES`, `GET_RECENT_AGG_TRADES`(only applicable to binance family).
-* Request parameter names: `LIMIT`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
+* Request operation types: `GET_INSTRUMENT`, `GET_RECENT_TRADES`, `GET_RECENT_AGG_TRADES`(only applicable to binance family).
+* Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
 
 **Objective 2:**
 

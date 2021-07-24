@@ -87,42 +87,6 @@ class MarketDataService : public Service {
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
     return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
   }
-  virtual void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
-                                         const std::map<std::string, std::string> optionMap) {
-    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-    if (field == CCAPI_MARKET_DEPTH) {
-      if (this->exchangeName == CCAPI_EXCHANGE_NAME_KRAKEN || this->exchangeName == CCAPI_EXCHANGE_NAME_BITFINEX) {
-        int marketDepthSubscribedToExchange = 1;
-        marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
-            marketDepthRequested, this->sessionConfigs.getWebsocketAvailableMarketDepth().at(this->exchangeName));
-        channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
-        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
-      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
-        if (marketDepthRequested <= 20) {
-          channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
-                      std::to_string(marketDepthRequested);
-          this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthRequested;
-        } else {
-          channelId += "|" + field;
-        }
-      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_KUCOIN) {
-        if (marketDepthRequested == 1) {
-          channelId = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_TICKER;
-        } else if (marketDepthRequested <= 5) {
-          channelId = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH5;
-        } else {
-          channelId = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH50;
-        }
-      } else if (this->exchangeName == CCAPI_EXCHANGE_NAME_FTX) {
-        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = 100;
-      }
-    } else if (field == CCAPI_TRADE) {
-      if (this->exchangeName == CCAPI_EXCHANGE_NAME_ERISX) {
-        channelId += "|" + field;
-      }
-    }
-  }
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
     CCAPI_LOGGER_TRACE("instrument = " + instrument);
@@ -1092,6 +1056,8 @@ class MarketDataService : public Service {
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.erase(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]);
+    this->exchangeJsonPayloadIdByConnectionIdMap.erase(wsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     Service::onClose(hdl);
   }
@@ -1125,6 +1091,9 @@ class MarketDataService : public Service {
     return {};
   }
   virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
+  virtual void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                         const std::map<std::string, std::string> optionMap) {
+  }
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, int>>> marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap;
@@ -1152,6 +1121,8 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> closeByConnectionIdChannelIdSymbolIdMap;
   std::string getRecentTradesTarget;
   std::string getInstrumentTarget;
+  std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
+  std::map<int, std::vector<std::string>> exchangeSubscriptionIdListByExchangeJsonPayloadIdMap;
 };
 } /* namespace ccapi */
 #endif

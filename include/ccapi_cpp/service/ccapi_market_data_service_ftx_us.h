@@ -1,15 +1,15 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_FTX_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_FTX_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_FTX_US_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_FTX_US_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
-#ifdef CCAPI_ENABLE_EXCHANGE_FTX
+#ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
 #include "ccapi_cpp/service/ccapi_market_data_service_ftx_base.h"
 namespace ccapi {
-class MarketDataServiceFtx : public MarketDataServiceFtxBase {
+class MarketDataServiceFtxUs : public MarketDataServiceFtxBase {
  public:
-  MarketDataServiceFtx(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceFtxUs(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                        std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceFtxBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
+    this->exchangeName = CCAPI_EXCHANGE_NAME_FTX_US;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     // this->shouldAlignSnapshot = true;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -23,9 +23,9 @@ class MarketDataServiceFtx : public MarketDataServiceFtxBase {
     // this->getInstrumentTarget="/api/markets/{market_name}";
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
-  virtual ~MarketDataServiceFtx() {}
+  virtual ~MarketDataServiceFtxUs() {}
 };
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_FTX_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_FTX_US_H_
