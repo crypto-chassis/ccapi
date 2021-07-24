@@ -3,6 +3,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <mutex>
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class AppUtil {
