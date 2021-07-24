@@ -51,10 +51,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
       }
       if (value != "null") {
-        // if (key == "price" || key == "size") {
-        //   // https://help.ftx.com/hc/en-us/articles/360027946651-Order-Limits-and-Price-Bands: Clamping to step sizes
-        //   document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(std::stod(value)), allocator);
-        // } else
         if (value == "true" || value == "false") {
           document.AddMember(rj::Value(key.c_str(), allocator).Move(), value == "true", allocator);
         } else {
@@ -179,13 +175,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
-      // case Request::Operation::GET_ACCOUNT_POSITIONS: {
-      //   req.method(http::verb::get);
-      //   const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-      //   auto target = this->getAccountPositionsTarget;
-      //   req.target(target);
-      //   this->signRequest(req, "", credential);
-      // } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -230,16 +219,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
           elementList.emplace_back(std::move(element));
         }
       } break;
-      // case Request::Operation::GET_ACCOUNT_POSITIONS: {
-      //   for (const auto& x : document["result"].GetArray()) {
-      //     Element element;
-      //     element.insert(CCAPI_EM_SYMBOL, x["future"].GetString());
-      //     element.insert(CCAPI_EM_POSITION_SIDE, x["side"].GetString());
-      //     element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
-      //     element.insert(CCAPI_EM_POSITION_COST, x["cost"].GetString());
-      //     elementList.emplace_back(std::move(element));
-      //   }
-      // } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }

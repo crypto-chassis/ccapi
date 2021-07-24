@@ -92,17 +92,6 @@ class FixService : public Service {
         });
   }
   std::shared_ptr<T> createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host);
-  // std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
-  //                                                                    const std::string& host) {
-  //   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
-  //   // Set SNI Hostname (many hosts need this to handshake successfully)
-  //   if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
-  //     beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-  //     CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
-  //     throw ec;
-  //   }
-  //   return streamPtr;
-  // }
   void connect(Subscription& subscription) {
     std::shared_ptr<T> streamPtr(nullptr);
     try {

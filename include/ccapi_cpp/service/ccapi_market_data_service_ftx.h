@@ -11,7 +11,6 @@ class MarketDataServiceFtx : public MarketDataServiceFtxBase {
       : MarketDataServiceFtxBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
-    // this->shouldAlignSnapshot = true;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -19,9 +18,6 @@ class MarketDataServiceFtx : public MarketDataServiceFtxBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    // this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
-    // this->getInstrumentTarget="/api/markets/{market_name}";
-    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceFtx() {}
 };

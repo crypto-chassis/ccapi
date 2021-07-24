@@ -14,16 +14,11 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
     this->hostFix = CCAPI_GEMINI_URL_FIX_HOST;
     CCAPI_LOGGER_INFO(this->baseUrlFix);
     this->portFix = CCAPI_GEMINI_URL_FIX_PORT;
-    // this->setHostFixFromUrlFix(this->baseUrlFix);CCAPI_LOGGER_INFO(this->hostFix);CCAPI_LOGGER_INFO(this->portFix);
     try {
       this->tcpResolverResultsFix = this->resolver.resolve(this->hostFix, this->portFix);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    // this->apiKeyName = CCAPI_GEMINI_API_KEY;
-    // this->apiSecretName = CCAPI_GEMINI_API_SECRET;
-    // this->apiPassphraseName = CCAPI_GEMINI_API_PASSPHRASE;
-    // this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_GEMINI;
     this->senderCompID = CCAPI_GEMINI_API_SENDER_COMP_ID;
     this->targetCompID = CCAPI_GEMINI_API_TARGET_COMP_ID;

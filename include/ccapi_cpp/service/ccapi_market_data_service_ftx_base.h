@@ -9,16 +9,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
   MarketDataServiceFtxBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                            std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    // this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
-    // this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->shouldAlignSnapshot = true;
-    // this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
-    // this->setHostRestFromUrlRest(this->baseUrlRest);
-    // try {
-    //   this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    // } catch (const std::exception& e) {
-    //   CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    // }
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
     this->getInstrumentTarget = "/api/markets/{market_name}";
     this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
@@ -271,11 +262,6 @@ class MarketDataServiceFtxBase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  // }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;

@@ -840,16 +840,13 @@ An example can be found [here](example/src/market_data_advanced_subscription/mai
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```
 namespace ccapi {
-class MyLogger final: public Logger {
-  void logMessage(std::string severity,
-                          std::string threadId,
-                          std::string timeISO,
-                          std::string fileName,
-                          std::string lineNumber,
-                          std::string message) override {
-    ...                          
-  }
-};
+  class MyLogger final : public Logger {
+   public:
+    void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
+                    const std::string& lineNumber, const std::string& message) override {
+                      ...
+    }
+  };
 MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
 }
