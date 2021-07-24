@@ -25,7 +25,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
-      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
+      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
       std::string updateSpeed;
       if (conflateIntervalMilliSeconds < 1000) {
         updateSpeed = "100ms";
