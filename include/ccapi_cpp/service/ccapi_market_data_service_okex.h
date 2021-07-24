@@ -120,25 +120,26 @@ class MarketDataServiceOkex : public MarketDataService {
         std::string exchangeSubscriptionId = channelId + ":" + symbolId;
         if (document.HasMember("event")) {
           std::string eventStr = document["event"].GetString();
-          if (eventStr=="subscribe"){
+          if (eventStr == "subscribe") {
             event.setType(Event::Type::SUBSCRIPTION_STATUS);
             std::vector<Message> messageList;
             Message message;
             message.setTimeReceived(timeReceived);
             std::vector<std::string> correlationIdList;
-            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
-              const rj::Value& arg=document["arg"];
-                std::string channelId = arg["channel"].GetString();
-                std::string symbolId = arg["instId"].GetString();
-                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-                    if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                        this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                      std::vector<std::string> correlationIdList_2 =
-                          this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                      correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-                    }
+            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+              const rj::Value& arg = document["arg"];
+              std::string channelId = arg["channel"].GetString();
+              std::string symbolId = arg["instId"].GetString();
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                  std::vector<std::string> correlationIdList_2 =
+                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                  correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
                 }
+              }
             }
             message.setCorrelationIdList(correlationIdList);
             message.setType(Message::Type::SUBSCRIPTION_STARTED);
@@ -147,7 +148,7 @@ class MarketDataServiceOkex : public MarketDataService {
             message.setElementList({element});
             messageList.push_back(std::move(message));
             event.setMessageList(messageList);
-          }else if (eventStr=="error"){
+          } else if (eventStr == "error") {
             event.setType(Event::Type::SUBSCRIPTION_STATUS);
             std::vector<Message> messageList;
             Message message;
@@ -279,8 +280,8 @@ class MarketDataServiceOkex : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        for (const auto& x: document["data"].GetArray()){
-          if (std::string(x["instId"].GetString())==request.getInstrument()){
+        for (const auto& x : document["data"].GetArray()) {
+          if (std::string(x["instId"].GetString()) == request.getInstrument()) {
             Element element;
             element.insert(CCAPI_BASE_ASSET, x["baseCcy"].GetString());
             element.insert(CCAPI_QUOTE_ASSET, x["quoteCcy"].GetString());

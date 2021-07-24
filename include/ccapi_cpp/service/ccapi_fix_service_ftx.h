@@ -5,7 +5,7 @@
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/service/ccapi_fix_service_ftx_base.h"
 namespace ccapi {
-class FixServiceFtx :  public FixServiceFtxBase {
+class FixServiceFtx : public FixServiceFtxBase {
  public:
   FixServiceFtx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                 ServiceContextPtr serviceContextPtr)

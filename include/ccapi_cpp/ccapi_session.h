@@ -475,7 +475,7 @@ class Session CCAPI_FINAL {
     CCAPI_LOGGER_TRACE("event = " + toString(event));
     if (this->eventHandler) {
       CCAPI_LOGGER_TRACE("handle event in immediate mode");
-      this->eventDispatcher->dispatch([that=this, event=std::move(event)] {
+      this->eventDispatcher->dispatch([that = this, event = std::move(event)] {
         bool shouldContinue = true;
         try {
           shouldContinue = that->eventHandler->processEvent(event, that);

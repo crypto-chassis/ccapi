@@ -28,20 +28,19 @@ class MarketDataServiceKraken : public MarketDataService {
 
  private:
 #endif
-void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
-                               const std::map<std::string, std::string> optionMap) override {
-  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-  auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-  CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
-  if (field == CCAPI_MARKET_DEPTH) {
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
+    if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
-      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(
-          marketDepthRequested, std::vector<int>({10, 25, 100, 500, 1000}));
+      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({10, 25, 100, 500, 1000}));
       channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
       this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
+    }
   }
-}
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -223,34 +222,35 @@ void prepareSubscriptionDetail(std::string& channelId, const std::string& field,
         CCAPI_LOGGER_DEBUG("heartbeat: " + toString(wsConnection));
       } else if (eventPayload == "subscriptionStatus") {
         std::string status = document["status"].GetString();
-        if (status == "subscribed"||status == "error"){
+        if (status == "subscribed" || status == "error") {
           event.setType(Event::Type::SUBSCRIPTION_STATUS);
           std::vector<Message> messageList;
           Message message;
           message.setTimeReceived(timeReceived);
           std::vector<std::string> correlationIdList;
           std::string exchangeSubscriptionId = document["subscription"]["name"].GetString();
-          if (exchangeSubscriptionId == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK){
-            exchangeSubscriptionId+= "-"+std::to_string(document["subscription"]["depth"].GetInt());
+          if (exchangeSubscriptionId == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK) {
+            exchangeSubscriptionId += "-" + std::to_string(document["subscription"]["depth"].GetInt());
           }
           std::string symbolId = document["pair"].GetString();
           exchangeSubscriptionId += "|" + symbolId;
-          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
             auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
             if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
                 this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                  std::vector<std::string> correlationIdList_2 =
-                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                  correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-                }
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                std::vector<std::string> correlationIdList_2 =
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+              }
             }
           }
           message.setCorrelationIdList(correlationIdList);
-          message.setType(status == "subscribed"?Message::Type::SUBSCRIPTION_STARTED:Message::Type::SUBSCRIPTION_FAILURE);
+          message.setType(status == "subscribed" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
           Element element;
-          element.insert(status == "subscribed"?CCAPI_INFO_MESSAGE:CCAPI_ERROR_MESSAGE, textMessage);
+          element.insert(status == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
           messageList.push_back(std::move(message));
           event.setMessageList(messageList);
@@ -322,9 +322,9 @@ void prepareSubscriptionDetail(std::string& channelId, const std::string& field,
         element.insert(CCAPI_BASE_ASSET, x["base"].GetString());
         element.insert(CCAPI_QUOTE_ASSET, x["quote"].GetString());
         int pairDecimals = std::stoi(x["pair_decimals"].GetString());
-        element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(pairDecimals-1,'0')+"1");
+        element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pairDecimals - 1, '0') + "1");
         int lotDecimals = std::stoi(x["lot_decimals"].GetString());
-        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(lotDecimals-1,'0')+"1");
+        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(lotDecimals - 1, '0') + "1");
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});

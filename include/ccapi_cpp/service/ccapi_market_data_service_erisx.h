@@ -18,22 +18,22 @@ class MarketDataServiceErisx : public MarketDataService {
 
  private:
 #endif
-void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
-                               const std::map<std::string, std::string> optionMap) override {
-                                 auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-                                 CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-                                 if (field == CCAPI_MARKET_DEPTH) {
-                                   if (marketDepthRequested <= 20) {
-                                     channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
-                                                 std::to_string(marketDepthRequested);
-                                     this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthRequested;
-                                   } else {
-                                     channelId += "|" + field;
-                                   }
-                                 } else if (field == CCAPI_TRADE) {
-                                     channelId += "|" + field;
-                                 }
-}
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    if (field == CCAPI_MARKET_DEPTH) {
+      if (marketDepthRequested <= 20) {
+        channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
+                    std::to_string(marketDepthRequested);
+        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthRequested;
+      } else {
+        channelId += "|" + field;
+      }
+    } else if (field == CCAPI_TRADE) {
+      channelId += "|" + field;
+    }
+  }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {

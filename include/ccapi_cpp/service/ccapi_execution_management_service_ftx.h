@@ -24,7 +24,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
     this->apiSubaccountName = CCAPI_FTX_API_SUBACCOUNT;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiSubaccountName});
     this->getAccountPositionsTarget = "/api/positions";
-    this->ftx="FTX";
+    this->ftx = "FTX";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceFtx() {}
@@ -36,7 +36,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
-        this->prepareReq(req,now,credential);
+        this->prepareReq(req, now, credential);
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         auto target = this->getAccountPositionsTarget;
@@ -48,7 +48,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
     }
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-std::vector<Element> elementList;
+    std::vector<Element> elementList;
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document["result"].GetArray()) {
@@ -61,7 +61,7 @@ std::vector<Element> elementList;
         }
       } break;
       default:
-        elementList =ExecutionManagementServiceFtxBase::extractAccountInfoFromRequest( request,   operation,  document);
+        elementList = ExecutionManagementServiceFtxBase::extractAccountInfoFromRequest(request, operation, document);
     }
     return elementList;
   }

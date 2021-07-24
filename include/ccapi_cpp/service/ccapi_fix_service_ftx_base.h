@@ -5,12 +5,11 @@
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/service/ccapi_fix_service.h"
 namespace ccapi {
-class FixServiceFtxBase :  public FixService<beast::ssl_stream<beast::tcp_stream>> {
+class FixServiceFtxBase : public FixService<beast::ssl_stream<beast::tcp_stream>> {
  public:
   FixServiceFtxBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                ServiceContextPtr serviceContextPtr)
-      : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-  }
+                    ServiceContextPtr serviceContextPtr)
+      : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~FixServiceFtxBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 

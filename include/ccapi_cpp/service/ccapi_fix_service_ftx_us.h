@@ -5,10 +5,10 @@
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/service/ccapi_fix_service_ftx_base.h"
 namespace ccapi {
-class FixServiceFtxUs :  public FixServiceFtxBase {
+class FixServiceFtxUs : public FixServiceFtxBase {
  public:
   FixServiceFtxUs(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                ServiceContextPtr serviceContextPtr)
+                  ServiceContextPtr serviceContextPtr)
       : FixServiceFtxBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX_US;

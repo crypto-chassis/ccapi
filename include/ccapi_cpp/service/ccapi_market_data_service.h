@@ -1092,8 +1092,7 @@ class MarketDataService : public Service {
   }
   virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
   virtual void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
-                                         const std::map<std::string, std::string> optionMap) {
-  }
+                                         const std::map<std::string, std::string> optionMap) {}
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, int>>> marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap;

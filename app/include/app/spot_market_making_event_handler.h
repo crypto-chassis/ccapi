@@ -39,7 +39,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 element.getValue("FEE_QUANTITY"),
                 element.getValue("FEE_ASSET"),
             };
-            this->appLogger->log("Private trade - side: " + element.getValue("SIDE") + ", price: " + element.getValue("LAST_EXECUTED_PRICE") + ", quantity: " + element.getValue("LAST_EXECUTED_SIZE") + ".");
+            this->appLogger->log("Private trade - side: " + element.getValue("SIDE") + ", price: " + element.getValue("LAST_EXECUTED_PRICE") +
+                                 ", quantity: " + element.getValue("LAST_EXECUTED_SIZE") + ".");
             rows.push_back(row);
           }
           this->privateTradeCsvWriter->writeRows(rows);

@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceFtxBase : public MarketDataService {
  public:
   MarketDataServiceFtxBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                       std::shared_ptr<ServiceContext> serviceContextPtr)
+                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     // this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     // this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
@@ -20,7 +20,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
     //   CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     // }
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
-    this->getInstrumentTarget="/api/markets/{market_name}";
+    this->getInstrumentTarget = "/api/markets/{market_name}";
     this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceFtxBase() {}
@@ -28,14 +28,14 @@ class MarketDataServiceFtxBase : public MarketDataService {
 
  private:
 #endif
- void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
-                                       const std::map<std::string, std::string> optionMap) override{
-  auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-  CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
-  if (field == CCAPI_MARKET_DEPTH) {
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    if (field == CCAPI_MARKET_DEPTH) {
       this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = 100;
+    }
   }
-}
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
@@ -206,17 +206,17 @@ class MarketDataServiceFtxBase : public MarketDataService {
       message.setTimeReceived(timeReceived);
       std::vector<std::string> correlationIdList;
       if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
-          std::string channelId = document["channel"].GetString();
-          std::string symbolId = document["market"].GetString();
-          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
-              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                std::vector<std::string> correlationIdList_2 =
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-              }
+        std::string channelId = document["channel"].GetString();
+        std::string symbolId = document["market"].GetString();
+        if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+            std::vector<std::string> correlationIdList_2 =
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+            correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
           }
+        }
       }
       message.setCorrelationIdList(correlationIdList);
       message.setType(Message::Type::SUBSCRIPTION_STARTED);
@@ -299,24 +299,24 @@ class MarketDataServiceFtxBase : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        const rj::Value& result=document["result"];
-            Element element;
-              if (!result["baseCurrency"].IsNull()){
-                element.insert(CCAPI_BASE_ASSET, result["baseCurrency"].GetString());
-              }
-              if (!result["quoteCurrency"].IsNull()){
-                element.insert(CCAPI_QUOTE_ASSET, result["quoteCurrency"].GetString());
-              }
-              if (!result["priceIncrement"].IsNull()){
-                element.insert(CCAPI_ORDER_PRICE_INCREMENT, result["priceIncrement"].GetString());
-              }
-              if (!result["sizeIncrement"].IsNull()){
-                element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, result["sizeIncrement"].GetString());
-              }
-              if (!result["underlying"].IsNull()){
-                element.insert(CCAPI_UNDERLYING_SYMBOL, result["underlying"].GetString());
-              }
-            message.setElementList({element});
+        const rj::Value& result = document["result"];
+        Element element;
+        if (!result["baseCurrency"].IsNull()) {
+          element.insert(CCAPI_BASE_ASSET, result["baseCurrency"].GetString());
+        }
+        if (!result["quoteCurrency"].IsNull()) {
+          element.insert(CCAPI_QUOTE_ASSET, result["quoteCurrency"].GetString());
+        }
+        if (!result["priceIncrement"].IsNull()) {
+          element.insert(CCAPI_ORDER_PRICE_INCREMENT, result["priceIncrement"].GetString());
+        }
+        if (!result["sizeIncrement"].IsNull()) {
+          element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, result["sizeIncrement"].GetString());
+        }
+        if (!result["underlying"].IsNull()) {
+          element.insert(CCAPI_UNDERLYING_SYMBOL, result["underlying"].GetString());
+        }
+        message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

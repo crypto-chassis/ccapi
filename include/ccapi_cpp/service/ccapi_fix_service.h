@@ -5,13 +5,11 @@
 #include "hffix.hpp"
 namespace hff = hffix;
 namespace ccapi {
-  template<class T>
+template <class T>
 class FixService : public Service {
  public:
-  FixService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                     ServiceContextPtr serviceContextPtr)
-      : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-  }
+  FixService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+      : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~FixService() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -93,8 +91,7 @@ class FixService : public Service {
           }
         });
   }
-  std::shared_ptr<T> createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
-                                                                     const std::string& host);
+  std::shared_ptr<T> createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host);
   // std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
   //                                                                    const std::string& host) {
   //   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
@@ -109,7 +106,7 @@ class FixService : public Service {
   void connect(Subscription& subscription) {
     std::shared_ptr<T> streamPtr(nullptr);
     try {
-        streamPtr = this->createStreamFix(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostFix);
+      streamPtr = this->createStreamFix(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostFix);
     } catch (const beast::error_code& ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
@@ -119,8 +116,8 @@ class FixService : public Service {
     fixConnectionPtr->status = FixConnection<T>::Status::CONNECTING;
     CCAPI_LOGGER_TRACE("before async_connect");
     T& stream = *streamPtr;
-    beast::get_lowest_layer(stream).async_connect(
-        this->tcpResolverResultsFix, beast::bind_front_handler(&FixService::onConnect_3, shared_from_base<FixService>(), fixConnectionPtr));
+    beast::get_lowest_layer(stream).async_connect(this->tcpResolverResultsFix,
+                                                  beast::bind_front_handler(&FixService::onConnect_3, shared_from_base<FixService>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
   void onConnect_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
@@ -134,10 +131,9 @@ class FixService : public Service {
     CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
     CCAPI_LOGGER_TRACE("connected");
     T& stream = *fixConnectionPtr->streamPtr;
-    if (this->useSsl){
+    if (this->useSsl) {
       CCAPI_LOGGER_TRACE("before async_handshake");
-      stream.async_handshake(ssl::stream_base::client,
-                             beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(), fixConnectionPtr));
+      stream.async_handshake(ssl::stream_base::client, beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(), fixConnectionPtr));
       CCAPI_LOGGER_TRACE("after async_handshake");
     } else {
       this->start(fixConnectionPtr);
@@ -266,12 +262,15 @@ class FixService : public Service {
                       auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
                       that->writeMessage(
                           fixConnectionPtr, nowFixTimeStr,
-                          {{{hff::tag::MsgType, "0"},},
+                          {{
+                               {hff::tag::MsgType, "0"},
+                           },
                            {
                                {hff::tag::MsgType, "1"},
                                {hff::tag::TestReqID, std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count())},
                            }});
-                    }, true);
+                    },
+                    true);
               } else {
                 event.setType(Event::Type::AUTHORIZATION_STATUS);
                 message.setType(Message::Type::AUTHORIZATION_FAILURE);
@@ -420,7 +419,7 @@ class FixService : public Service {
       return;
     }
     if (fixConnectionPtr->status == FixConnection<T>::Status::OPEN) {
-      if (pingNow){
+      if (pingNow) {
         pingMethod(fixConnectionPtr);
       }
       if (this->pingTimerByMethodByConnectionIdMap.find(fixConnectionPtr->id) != this->pingTimerByMethodByConnectionIdMap.end() &&
@@ -482,9 +481,7 @@ class FixService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual std::vector<std::pair<int, std::string>> createCommonParam(const std::string& connectionId, const std::string& nowFixTimeStr) {
-    return {};
-  }
+  virtual std::vector<std::pair<int, std::string>> createCommonParam(const std::string& connectionId, const std::string& nowFixTimeStr) { return {}; }
   virtual std::vector<std::pair<int, std::string>> createLogonParam(const std::string& connectionId, const std::string& nowFixTimeStr,
                                                                     const std::map<int, std::string> logonOptionMap = {}) {
     return {};
@@ -503,12 +500,12 @@ class FixService : public Service {
   std::string hostFix;
   std::string portFix;
   std::string protocolVersion;
-    std::string senderCompID;
-    std::string targetCompID;
+  std::string senderCompID;
+  std::string targetCompID;
 };
 template <>
-inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::ssl_stream<beast::tcp_stream>>::createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
-                                                                   const std::string& host) {
+inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::ssl_stream<beast::tcp_stream>>::createStreamFix(
+    std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host) {
   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
   // Set SNI Hostname (many hosts need this to handshake successfully)
   if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
@@ -519,13 +516,14 @@ inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::s
   return streamPtr;
 }
 template <>
-inline std::shared_ptr<beast::tcp_stream> FixService<beast::tcp_stream>::createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
-                                                                   const std::string& host) {
+inline std::shared_ptr<beast::tcp_stream> FixService<beast::tcp_stream>::createStreamFix(std::shared_ptr<net::io_context> iocPtr,
+                                                                                         std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host) {
   std::shared_ptr<beast::tcp_stream> streamPtr(new beast::tcp_stream(*iocPtr));
   return streamPtr;
 }
 template <>
-inline void FixService<beast::ssl_stream<beast::tcp_stream>>::onConnect_3(std::shared_ptr<FixConnection<beast::ssl_stream<beast::tcp_stream>>> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
+inline void FixService<beast::ssl_stream<beast::tcp_stream>>::onConnect_3(std::shared_ptr<FixConnection<beast::ssl_stream<beast::tcp_stream>>> fixConnectionPtr,
+                                                                          beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
   CCAPI_LOGGER_TRACE("async_connect callback start");
   auto now = UtilTime::now();
   if (ec) {
@@ -536,13 +534,13 @@ inline void FixService<beast::ssl_stream<beast::tcp_stream>>::onConnect_3(std::s
   CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
   CCAPI_LOGGER_TRACE("connected");
   beast::ssl_stream<beast::tcp_stream>& stream = *fixConnectionPtr->streamPtr;
-    CCAPI_LOGGER_TRACE("before async_handshake");
-    stream.async_handshake(ssl::stream_base::client,
-                           beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(), fixConnectionPtr));
-    CCAPI_LOGGER_TRACE("after async_handshake");
+  CCAPI_LOGGER_TRACE("before async_handshake");
+  stream.async_handshake(ssl::stream_base::client, beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(), fixConnectionPtr));
+  CCAPI_LOGGER_TRACE("after async_handshake");
 }
 template <>
-inline void FixService<beast::tcp_stream>::onConnect_3(std::shared_ptr<FixConnection<beast::tcp_stream>> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
+inline void FixService<beast::tcp_stream>::onConnect_3(std::shared_ptr<FixConnection<beast::tcp_stream>> fixConnectionPtr, beast::error_code ec,
+                                                       tcp::resolver::results_type::endpoint_type) {
   CCAPI_LOGGER_TRACE("async_connect callback start");
   auto now = UtilTime::now();
   if (ec) {
@@ -553,7 +551,7 @@ inline void FixService<beast::tcp_stream>::onConnect_3(std::shared_ptr<FixConnec
   CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
   CCAPI_LOGGER_TRACE("connected");
   beast::tcp_stream& stream = *fixConnectionPtr->streamPtr;
-    this->start(fixConnectionPtr,now);
+  this->start(fixConnectionPtr, now);
 }
 } /* namespace ccapi */
 #endif

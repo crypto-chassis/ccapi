@@ -69,12 +69,13 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         }
         exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), replacement);
         document.AddMember("sub", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
-        if (this->isDerivatives){
-          document.AddMember("id", rj::Value(std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).c_str(),allocator).Move(), allocator);
-        }else{
+        if (this->isDerivatives) {
+          document.AddMember("id", rj::Value(std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).c_str(), allocator).Move(),
+                             allocator);
+        } else {
           document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
         }
-        this->exchangeSubscriptionIdByExchangeJsonPayloadIdMap[this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]]=exchangeSubscriptionId;
+        this->exchangeSubscriptionIdByExchangeJsonPayloadIdMap[this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] = exchangeSubscriptionId;
         this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -221,30 +222,30 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }
     } else if (document.IsObject() && document.HasMember("status")) {
-      std::string status=document["status"].GetString();
+      std::string status = document["status"].GetString();
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       std::vector<Message> messageList;
       Message message;
       message.setTimeReceived(timeReceived);
       std::vector<std::string> correlationIdList;
       if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
-        std::string exchangeSubscriptionId=this->exchangeSubscriptionIdByExchangeJsonPayloadIdMap.at(std::stoi(document["id"].GetString()));
+        std::string exchangeSubscriptionId = this->exchangeSubscriptionIdByExchangeJsonPayloadIdMap.at(std::stoi(document["id"].GetString()));
         std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
         std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
-          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
-              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                std::vector<std::string> correlationIdList_2 =
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-              }
+        if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+            std::vector<std::string> correlationIdList_2 =
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+            correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
           }
+        }
       }
       message.setCorrelationIdList(correlationIdList);
-      message.setType(status=="ok"?Message::Type::SUBSCRIPTION_STARTED:Message::Type::SUBSCRIPTION_FAILURE);
+      message.setType(status == "ok" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
-      element.insert(status=="ok"?CCAPI_INFO_MESSAGE:CCAPI_ERROR_MESSAGE, textMessage);
+      element.insert(status == "ok" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
       messageList.push_back(std::move(message));
       event.setMessageList(messageList);
@@ -304,15 +305,15 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        for (const auto& x: document["data"].GetArray()){
-          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+        for (const auto& x : document["data"].GetArray()) {
+          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
             Element element;
             element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
             element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
             int pricePrecision = std::stoi(x["price-precision"].GetString());
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(pricePrecision-1,'0')+"1");
-            int amountPrecision =std::stoi(x["amount-precision"].GetString());
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(amountPrecision-1,'0')+"1");
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePrecision - 1, '0') + "1");
+            int amountPrecision = std::stoi(x["amount-precision"].GetString());
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
             message.setElementList({element});
             break;
           }

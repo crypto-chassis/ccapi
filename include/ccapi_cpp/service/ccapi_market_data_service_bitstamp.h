@@ -72,15 +72,15 @@ class MarketDataServiceBitstamp : public MarketDataService {
         std::string exchangeSubscriptionId = document["channel"].GetString();
         std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
         std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
-          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
-              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                std::vector<std::string> correlationIdList_2 =
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-              }
+        if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+            std::vector<std::string> correlationIdList_2 =
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+            correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
           }
+        }
       }
       message.setCorrelationIdList(correlationIdList);
       message.setType(Message::Type::SUBSCRIPTION_STARTED);
@@ -198,17 +198,17 @@ class MarketDataServiceBitstamp : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        for (const auto& x : document.GetArray()){
-          if (std::string(x["url_symbol"].GetString()) == request.getInstrument()){
+        for (const auto& x : document.GetArray()) {
+          if (std::string(x["url_symbol"].GetString()) == request.getInstrument()) {
             Element element;
             std::string name = x["name"].GetString();
-            auto splitted = UtilString::split(name,"/");
+            auto splitted = UtilString::split(name, "/");
             element.insert(CCAPI_BASE_ASSET, UtilString::toLower(splitted.at(0)));
             element.insert(CCAPI_QUOTE_ASSET, UtilString::toLower(splitted.at(1)));
             int counterDecimals = x["counter_decimals"].GetInt();
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(counterDecimals-1,'0')+"1");
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
             int baseDecimals = x["base_decimals"].GetInt();
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(baseDecimals-1,'0')+"1");
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseDecimals - 1, '0') + "1");
             message.setElementList({element});
             break;
           }

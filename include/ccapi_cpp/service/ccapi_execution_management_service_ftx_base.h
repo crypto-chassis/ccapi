@@ -7,7 +7,7 @@ namespace ccapi {
 class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
  public:
   ExecutionManagementServiceFtxBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                ServiceContextPtr serviceContextPtr)
+                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->createOrderTarget = "/api/orders";
@@ -27,12 +27,12 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
 #endif
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at(this->ftx+"-TS").to_string();
+    auto preSignedText = req.base().at(this->ftx + "-TS").to_string();
     preSignedText += std::string(req.method_string());
     preSignedText += req.target().to_string();
     preSignedText += body;
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
-    req.set(this->ftx+"-SIGN", signature);
+    req.set(this->ftx + "-SIGN", signature);
     req.body() = body;
     req.prepare_payload();
   }
@@ -80,19 +80,19 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential){
+  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set(this->ftx+"-KEY", apiKey);
-    req.set(this->ftx+"-TS", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
+    req.set(this->ftx + "-KEY", apiKey);
+    req.set(this->ftx + "-TS", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
     auto apiSubaccountName = mapGetWithDefault(credential, this->apiSubaccountName);
     if (!apiSubaccountName.empty()) {
-      req.set(this->ftx+"-SUBACCOUNT", Url::urlEncode(apiSubaccountName));
+      req.set(this->ftx + "-SUBACCOUNT", Url::urlEncode(apiSubaccountName));
     }
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-    this->prepareReq(req,now,credential);
+    this->prepareReq(req, now, credential);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
@@ -301,9 +301,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     auto fieldSet = subscription.getFieldSet();
     for (const auto& field : subscription.getFieldSet()) {
       std::string channelId;
-      if (field==CCAPI_EM_ORDER_UPDATE) {
+      if (field == CCAPI_EM_ORDER_UPDATE) {
         channelId = "orders";
-      } else if (field==CCAPI_EM_PRIVATE_TRADE) {
+      } else if (field == CCAPI_EM_PRIVATE_TRADE) {
         channelId = "fills";
       }
       rj::Document documentSubscribe;

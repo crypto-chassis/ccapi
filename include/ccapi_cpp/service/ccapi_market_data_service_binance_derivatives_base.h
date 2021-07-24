@@ -51,16 +51,16 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        for (const auto& x: document["symbols"].GetArray()){
-          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+        for (const auto& x : document["symbols"].GetArray()) {
+          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
             Element element;
             element.insert(CCAPI_MARGIN_ASSET, x["marginAsset"].GetString());
             element.insert(CCAPI_UNDERLYING_SYMBOL, x["pair"].GetString());
-            for (const auto& y: x["filters"].GetArray()){
+            for (const auto& y : x["filters"].GetArray()) {
               std::string filterType = y["filterType"].GetString();
-              if (filterType=="PRICE_FILTER"){
+              if (filterType == "PRICE_FILTER") {
                 element.insert(CCAPI_ORDER_PRICE_INCREMENT, y["tickSize"].GetString());
-              } else if (filterType=="LOT_SIZE"){
+              } else if (filterType == "LOT_SIZE") {
                 element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, y["stepSize"].GetString());
               }
             }
@@ -72,8 +72,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         event.addMessages({message});
       } break;
       default:
-        MarketDataServiceBinanceBase::convertTextMessageToMarketDataMessage(request,  textMessage,  timeReceived,  event,
-                                                    marketDataMessageList);
+        MarketDataServiceBinanceBase::convertTextMessageToMarketDataMessage(request, textMessage, timeReceived, event, marketDataMessageList);
     }
   }
 };

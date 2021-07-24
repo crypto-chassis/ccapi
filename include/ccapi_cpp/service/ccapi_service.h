@@ -660,8 +660,8 @@ class Service : public std::enable_shared_from_this<Service> {
           CCAPI_LOGGER_WARN("redirect from request " + request.toString() + " to url " + url.toString());
           this->tryRequest(request, req, retry);
         }
-          this->onResponseError(request, statusCode, body);
-          return;
+        this->onResponseError(request, statusCode, body);
+        return;
       } else if (statusCode / 100 == 4) {
         this->onResponseError(request, statusCode, body);
       } else if (statusCode / 100 == 5) {
@@ -771,7 +771,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     http::request<http::string_body> req;
     req.version(11);
-    if (this->sessionOptions.enableOneHttpConnectionPerRequest){
+    if (this->sessionOptions.enableOneHttpConnectionPerRequest) {
       req.keep_alive(false);
     }
     req.set(http::field::host, this->hostRest);

@@ -19,7 +19,7 @@ class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiDerivativesB
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_PATH;
-    this->getInstrumentTarget="/linear-swap-api/v1/swap_contract_info";
+    this->getInstrumentTarget = "/linear-swap-api/v1/swap_contract_info";
   }
   virtual ~MarketDataServiceHuobiUsdtSwap() {}
 };

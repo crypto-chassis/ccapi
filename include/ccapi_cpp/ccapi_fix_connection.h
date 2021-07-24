@@ -5,10 +5,10 @@
 #include "ccapi_cpp/ccapi_subscription.h"
 namespace beast = boost::beast;
 namespace ccapi {
-  template<class T>
+template <class T>
 class FixConnection CCAPI_FINAL {
  public:
-  FixConnection(std::string host, std::string port, Subscription subscription, std::shared_ptr<T > streamPtr)
+  FixConnection(std::string host, std::string port, Subscription subscription, std::shared_ptr<T> streamPtr)
       : host(host), port(port), subscription(subscription), streamPtr(streamPtr) {
     this->id = subscription.getCorrelationId();
     this->url = host + ":" + port;
@@ -60,7 +60,7 @@ class FixConnection CCAPI_FINAL {
   std::string url;
   Subscription subscription;
   Status status{Status::UNKNOWN};
-  std::shared_ptr<T > streamPtr;
+  std::shared_ptr<T> streamPtr;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_FIX_CONNECTION_H_

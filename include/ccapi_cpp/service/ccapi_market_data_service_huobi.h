@@ -19,7 +19,7 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/market/history/trade";
-    this->getInstrumentTarget="/v1/common/symbols";
+    this->getInstrumentTarget = "/v1/common/symbols";
   }
   virtual ~MarketDataServiceHuobi() {}
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
@@ -43,15 +43,15 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        for (const auto& x: document["data"].GetArray()){
-          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+        for (const auto& x : document["data"].GetArray()) {
+          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
             Element element;
             element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
             element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
             int pricePrecision = std::stoi(x["price-precision"].GetString());
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(pricePrecision-1,'0')+"1");
-            int amountPrecision =std::stoi(x["amount-precision"].GetString());
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(amountPrecision-1,'0')+"1");
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePrecision - 1, '0') + "1");
+            int amountPrecision = std::stoi(x["amount-precision"].GetString());
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
             message.setElementList({element});
             break;
           }
@@ -60,8 +60,7 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
         event.addMessages({message});
       } break;
       default:
-        MarketDataServiceHuobiBase::convertTextMessageToMarketDataMessage( request,  textMessage,  timeReceived,  event,
-                                                    marketDataMessageList);
+        MarketDataServiceHuobiBase::convertTextMessageToMarketDataMessage(request, textMessage, timeReceived, event, marketDataMessageList);
     }
   }
 };

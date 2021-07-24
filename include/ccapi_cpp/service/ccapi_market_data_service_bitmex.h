@@ -201,33 +201,34 @@ class MarketDataServiceBitmex : public MarketDataService {
             marketDataMessageList.push_back(std::move(marketDataMessage));
           }
         }
-      } else if (document.IsObject() && document.HasMember("request") && std::string(document["request"]["op"].GetString())=="subscribe") {
+      } else if (document.IsObject() && document.HasMember("request") && std::string(document["request"]["op"].GetString()) == "subscribe") {
         bool success = document.HasMember("success") && document["success"].GetBool();
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         std::vector<Message> messageList;
         Message message;
         message.setTimeReceived(timeReceived);
         std::vector<std::string> correlationIdList;
-        if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+        if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
           for (const auto& x : document["request"]["args"].GetArray()) {
-            auto splitted = UtilString::split(x.GetString(),":");
+            auto splitted = UtilString::split(x.GetString(), ":");
             std::string channelId = splitted.at(0);
             std::string symbolId = splitted.at(1);
             if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
                 this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                  std::vector<std::string> correlationIdList_2 =
-                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                  correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-                }
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                std::vector<std::string> correlationIdList_2 =
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+              }
             }
           }
         }
         message.setCorrelationIdList(correlationIdList);
-        message.setType(success?Message::Type::SUBSCRIPTION_STARTED:Message::Type::SUBSCRIPTION_FAILURE);
+        message.setType(success ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
         Element element;
-        element.insert(success?CCAPI_INFO_MESSAGE:CCAPI_ERROR_MESSAGE, textMessage);
+        element.insert(success ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
         message.setElementList({element});
         messageList.push_back(std::move(message));
         event.setMessageList(messageList);
@@ -295,8 +296,8 @@ class MarketDataServiceBitmex : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         Element element;
-        for (const auto& x: document.GetArray()){
-          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+        for (const auto& x : document.GetArray()) {
+          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
             element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
             element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());
             element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());

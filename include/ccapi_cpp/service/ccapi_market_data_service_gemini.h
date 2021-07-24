@@ -19,7 +19,7 @@ class MarketDataServiceGemini : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/v1/trades/:symbol";
-    this->getInstrumentTarget="/v1/symbols/details/:symbol";
+    this->getInstrumentTarget = "/v1/symbols/details/:symbol";
   }
   virtual ~MarketDataServiceGemini() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -57,9 +57,8 @@ class MarketDataServiceGemini : public MarketDataService {
         auto exchangeSubscriptionId = wsConnection.url;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
-          std::vector<std::string> correlationIdList_2 =
-              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-          correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+        std::vector<std::string> correlationIdList_2 = this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+        correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
       }
     }
     auto timeReceived = UtilTime::now();
@@ -81,9 +80,8 @@ class MarketDataServiceGemini : public MarketDataService {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
         auto symbolId = subscriptionListByInstrument.first;
-          std::vector<std::string> correlationIdList_2 =
-              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-          correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+        std::vector<std::string> correlationIdList_2 = this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+        correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
       }
     }
     auto timeReceived = UtilTime::now();

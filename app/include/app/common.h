@@ -2,8 +2,8 @@
 #define APP_INCLUDE_APP_COMMON_H_
 #include <cmath>
 #include <fstream>
-#include <string>
 #include <mutex>
+#include <string>
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class AppUtil {

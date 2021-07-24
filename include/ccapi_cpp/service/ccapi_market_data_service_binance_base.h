@@ -25,8 +25,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
-        channelId=CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
-      }else {
+        channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
+      } else {
         int marketDepthSubscribedToExchange = 1;
         marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
         std::string updateSpeed;
@@ -74,7 +74,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
                            toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
-                           exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
+        exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
       }
     }
     document.AddMember("params", params, allocator);
@@ -100,18 +100,18 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       std::vector<std::string> correlationIdList;
       if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
         int id = document["id"].GetInt();
-        if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.find(id)!=this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.end()){
-          for (const auto& exchangeSubscriptionId: this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.at(id)){
+        if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.find(id) != this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.end()) {
+          for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.at(id)) {
             std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
             std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
             if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
                 this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                  std::vector<std::string> correlationIdList_2 =
-                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                  correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-                }
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                std::vector<std::string> correlationIdList_2 =
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+              }
             }
           }
         }
@@ -301,15 +301,15 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        for (const auto& x: document["symbols"].GetArray()){
-          if (std::string(x["symbol"].GetString())==request.getInstrument()){
+        for (const auto& x : document["symbols"].GetArray()) {
+          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
             Element element;
             element.insert(CCAPI_BASE_ASSET, x["baseAsset"].GetString());
             element.insert(CCAPI_QUOTE_ASSET, x["quoteAsset"].GetString());
             int quoteAssetPrecision = x["quoteAssetPrecision"].GetInt();
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0."+std::string(quoteAssetPrecision-1,'0')+"1");
+            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(quoteAssetPrecision - 1, '0') + "1");
             int baseAssetPrecision = x["baseAssetPrecision"].GetInt();
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0."+std::string(baseAssetPrecision-1,'0')+"1");
+            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseAssetPrecision - 1, '0') + "1");
             message.setElementList({element});
             break;
           }

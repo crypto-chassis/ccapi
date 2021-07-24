@@ -7,7 +7,7 @@ namespace ccapi {
 class ExecutionManagementServiceFtxUs : public ExecutionManagementServiceFtxBase {
  public:
   ExecutionManagementServiceFtxUs(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                ServiceContextPtr serviceContextPtr)
+                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceFtxBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX_US;
@@ -23,7 +23,7 @@ class ExecutionManagementServiceFtxUs : public ExecutionManagementServiceFtxBase
     this->apiSecretName = CCAPI_FTX_US_API_SECRET;
     this->apiSubaccountName = CCAPI_FTX_US_API_SUBACCOUNT;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiSubaccountName});
-    this->ftx="FTXUS";
+    this->ftx = "FTXUS";
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceFtxUs() {}

@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase {
  public:
   MarketDataServiceHuobiDerivativesBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                 std::shared_ptr<ServiceContext> serviceContextPtr)
+                                        std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceHuobiBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }
@@ -19,7 +19,7 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
         std::string queryString;
-        this->appendSymbolId(queryString, symbolId, "contract_code" );
+        this->appendSymbolId(queryString, symbolId, "contract_code");
         req.target(target + "?" + queryString);
       } break;
       default:
@@ -35,8 +35,8 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        for (const auto& x: document["data"].GetArray()){
-          if (std::string(x["contract_code"].GetString())==request.getInstrument()){
+        for (const auto& x : document["data"].GetArray()) {
+          if (std::string(x["contract_code"].GetString()) == request.getInstrument()) {
             Element element;
             element.insert(CCAPI_ORDER_PRICE_INCREMENT, UtilString::normalizeDecimalString(x["price_tick"].GetString()));
             element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, UtilString::normalizeDecimalString(x["contract_size"].GetString()));
@@ -48,8 +48,7 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
         event.addMessages({message});
       } break;
       default:
-        MarketDataServiceHuobiBase::convertTextMessageToMarketDataMessage( request,  textMessage,  timeReceived,  event,
-                                                    marketDataMessageList);
+        MarketDataServiceHuobiBase::convertTextMessageToMarketDataMessage(request, textMessage, timeReceived, event, marketDataMessageList);
     }
   }
 };
