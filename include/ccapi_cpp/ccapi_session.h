@@ -478,7 +478,7 @@ class Session CCAPI_FINAL {
       this->eventDispatcher->dispatch([that=this, event=std::move(event)] {
         bool shouldContinue = true;
         try {
-          shouldContinue = that->eventHandler->processEvent(event, this);
+          shouldContinue = that->eventHandler->processEvent(event, that);
         } catch (const std::runtime_error& e) {
           CCAPI_LOGGER_ERROR(e.what());
         }

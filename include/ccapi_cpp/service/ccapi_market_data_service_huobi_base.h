@@ -325,6 +325,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
   }
   bool isDerivatives{};
+  std::map<int, std::string> exchangeSubscriptionIdByExchangeJsonPayloadIdMap;
 };
 } /* namespace ccapi */
 #endif

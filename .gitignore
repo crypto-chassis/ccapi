@@ -1,3 +1,9 @@
+# CLion
+.idea/
+app/.idea/
+app/cmake-build-debug/
+include/.idea/
+
 # Deploy
 build/
 *_dev.env
