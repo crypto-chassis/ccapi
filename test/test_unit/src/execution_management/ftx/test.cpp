@@ -72,11 +72,11 @@ TEST_F(ExecutionManagementServiceFtxTest, convertRequestCreateOrder) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_FTX_API_KEY), "", this->timestamp);
   EXPECT_EQ(req.target().to_string(), "/api/orders");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["market"].GetString()), "XRP-PERP");
   EXPECT_EQ(std::string(document["side"].GetString()), "sell");
-  EXPECT_DOUBLE_EQ(document["price"].GetDouble(), 0.306525);
-  EXPECT_DOUBLE_EQ(document["size"].GetDouble(), 31431.0);
+  EXPECT_EQ(std::string(document["price"].GetString()), "0.306525");
+  EXPECT_EQ(std::string(document["size"].GetString()), "31431.0");
   EXPECT_EQ(std::string(document["type"].GetString()), "limit");
   verifySignature(req, this->credential.at(CCAPI_FTX_API_SECRET));
 }

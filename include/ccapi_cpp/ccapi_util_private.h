@@ -426,6 +426,22 @@ class UtilSystem CCAPI_FINAL {
       return defaultValue;
     }
   }
+  static float getEnvAsFloat(const std::string variableName, const float defaultValue = 0) {
+    const char* env_p = std::getenv(variableName.c_str());
+    if (env_p) {
+      return std::stof(std::string(env_p));
+    } else {
+      return defaultValue;
+    }
+  }
+  static double getEnvAsDouble(const std::string variableName, const double defaultValue = 0) {
+    const char* env_p = std::getenv(variableName.c_str());
+    if (env_p) {
+      return std::stod(std::string(env_p));
+    } else {
+      return defaultValue;
+    }
+  }
   static bool checkEnvExist(const std::string& variableName) {
     const char* env_p = std::getenv(variableName.c_str());
     if (env_p) {

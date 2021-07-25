@@ -402,29 +402,12 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-    CCAPI_LOGGER_TRACE("before async_shutdown");
-    stream.async_shutdown(beast::bind_front_handler(&Service::onShutdown, shared_from_this(), httpConnectionPtr, errorHandler));
-    CCAPI_LOGGER_TRACE("after async_shutdown");
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << *resPtr;
     CCAPI_LOGGER_DEBUG("res = \n" + oss.str());
 #endif
     responseHandler(*resPtr);
-  }
-  void onShutdown(std::shared_ptr<HttpConnection> httpConnectionPtr, std::function<void(const beast::error_code&)> errorHandler, beast::error_code ec) {
-    CCAPI_LOGGER_TRACE("async_shutdown callback start");
-    if (ec == net::error::eof) {
-      // Rationale:
-      // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-      ec = {};
-    }
-    if (ec) {
-      CCAPI_LOGGER_TRACE("shutdown fail: " + ec.message() + ", category: " + ec.category().name());
-      return;
-    }
-    CCAPI_LOGGER_TRACE("shutdown");
-    // If we get here then the connection is closed gracefully
   }
   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
                                                                      const std::string& host) {
@@ -437,63 +420,6 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return streamPtr;
   }
-  // std::string convertInstrumentToWebsocketSymbolId(std::string instrument) {
-  //   std::string symbolId = instrument;
-  //   if (!instrument.empty()) {
-  //     if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) != this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-  //         this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
-  //             this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
-  //       symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
-  //     }
-  //   }
-  //   return symbolId;
-  // }
-  // std::string convertWebsocketSymbolIdToInstrument(std::string symbolId) {
-  //   std::string instrument = symbolId;
-  //   if (!symbolId.empty()) {
-  //     if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) != this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
-  //         this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
-  //             this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
-  //       instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
-  //     }
-  //   }
-  //   return instrument;
-  // }
-  // std::string convertInstrumentToRestSymbolId(std::string instrument) {
-  //   std::string symbolId = instrument;
-  //   CCAPI_LOGGER_DEBUG("instrument = " + instrument);
-  //   if (!instrument.empty()) {
-  //     if (this->sessionConfigs.getExchangeInstrumentSymbolMapRest().find(this->exchangeName) !=
-  //             this->sessionConfigs.getExchangeInstrumentSymbolMapRest().end() &&
-  //         this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).find(instrument) !=
-  //             this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).end()) {
-  //       symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMapRest().at(this->exchangeName).at(instrument);
-  //     } else if (this->sessionConfigs.getExchangeInstrumentSymbolMap().find(this->exchangeName) !=
-  //                    this->sessionConfigs.getExchangeInstrumentSymbolMap().end() &&
-  //                this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).find(instrument) !=
-  //                    this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).end()) {
-  //       symbolId = this->sessionConfigs.getExchangeInstrumentSymbolMap().at(this->exchangeName).at(instrument);
-  //     }
-  //   }
-  //   return symbolId;
-  // }
-  // std::string convertRestSymbolIdToInstrument(std::string symbolId) {
-  //   std::string instrument = symbolId;
-  //   if (!symbolId.empty()) {
-  //     if (this->sessionConfigs.getExchangeSymbolInstrumentMapRest().find(this->exchangeName) !=
-  //             this->sessionConfigs.getExchangeSymbolInstrumentMapRest().end() &&
-  //         this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).find(symbolId) !=
-  //             this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).end()) {
-  //       instrument = this->sessionConfigs.getExchangeSymbolInstrumentMapRest().at(this->exchangeName).at(symbolId);
-  //     } else if (this->sessionConfigs.getExchangeSymbolInstrumentMap().find(this->exchangeName) !=
-  //                    this->sessionConfigs.getExchangeSymbolInstrumentMap().end() &&
-  //                this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).find(symbolId) !=
-  //                    this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).end()) {
-  //       instrument = this->sessionConfigs.getExchangeSymbolInstrumentMap().at(this->exchangeName).at(symbolId);
-  //     }
-  //   }
-  //   return instrument;
-  // }
   void performRequest(std::shared_ptr<HttpConnection> httpConnectionPtr, const Request& request, http::request<http::string_body>& req,
                       const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -597,12 +523,7 @@ class Service : public std::enable_shared_from_this<Service> {
       this->tryRequest(request, req, retry);
       return;
     }
-    if (this->sessionOptions.enableOneHttpConnectionPerRequest) {
-      beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-      CCAPI_LOGGER_TRACE("before async_shutdown");
-      stream.async_shutdown(beast::bind_front_handler(&Service::onShutdown_2, shared_from_this(), httpConnectionPtr));
-      CCAPI_LOGGER_TRACE("after async_shutdown");
-    } else {
+    if (!this->sessionOptions.enableOneHttpConnectionPerRequest) {
       try {
         if (std::chrono::duration_cast<std::chrono::seconds>(this->lastHttpConnectionPoolPushBackTp.time_since_epoch()).count() == 0 &&
             this->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds > 0) {
@@ -642,10 +563,9 @@ class Service : public std::enable_shared_from_this<Service> {
           retry.numRedirect += 1;
           CCAPI_LOGGER_WARN("redirect from request " + request.toString() + " to url " + url.toString());
           this->tryRequest(request, req, retry);
-          return;
-        } else {
-          this->onResponseError(request, statusCode, body);
         }
+        this->onResponseError(request, statusCode, body);
+        return;
       } else if (statusCode / 100 == 4) {
         this->onResponseError(request, statusCode, body);
       } else if (statusCode / 100 == 5) {
@@ -669,21 +589,6 @@ class Service : public std::enable_shared_from_this<Service> {
     }
   }
   virtual bool doesHttpBodyContainError(const Request& request, const std::string& body) { return false; }
-  void onShutdown_2(std::shared_ptr<HttpConnection> httpConnectionPtr, beast::error_code ec) {
-    CCAPI_LOGGER_TRACE("async_shutdown callback start");
-    if (ec == net::error::eof) {
-      // Rationale:
-      // http://stackoverflow.com/questions/25587403/boost-asio-ssl-async-shutdown-always-finishes-with-an-error
-      ec = {};
-    }
-    if (ec) {
-      CCAPI_LOGGER_TRACE("shutdown fail: " + ec.message() + ", category: " + ec.category().name());
-      // this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
-      return;
-    }
-    CCAPI_LOGGER_TRACE("shutdown");
-    // If we get here then the connection is closed gracefully
-  }
   void tryRequest(const Request& request, http::request<http::string_body>& req, const HttpRetry& retry) {
     CCAPI_LOGGER_FUNCTION_ENTER;
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
@@ -754,11 +659,11 @@ class Service : public std::enable_shared_from_this<Service> {
     auto symbolId = instrument;
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     http::request<http::string_body> req;
-    if (this->exchangeName == CCAPI_EXCHANGE_NAME_OKEX) {
-      req.set(http::field::host, this->hostRest);
-    } else {
-      req.set(http::field::host, this->hostRest + ":" + this->portRest);
+    req.version(11);
+    if (this->sessionOptions.enableOneHttpConnectionPerRequest) {
+      req.keep_alive(false);
     }
+    req.set(http::field::host, this->hostRest);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertRequestForRest(req, request, now, symbolId, credential);
     CCAPI_LOGGER_FUNCTION_EXIT;

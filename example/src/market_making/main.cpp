@@ -30,7 +30,7 @@ class MyEventHandler : public EventHandler {
   std::string bestAskPrice;
 };
 } /* namespace ccapi */
-std::string regularizePrice(double price) {
+std::string roundPrice(double price) {
   std::stringstream stream;
   stream << std::fixed << std::setprecision(2) << price;
   return stream.str();
@@ -44,12 +44,12 @@ using ::ccapi::Subscription;
 using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
   if (argc != 3) {
-    std::cerr << "Usage: <program name> <spread percentage> <order quantity>\n"
+    std::cerr << "Usage: <program name> <spread proportion> <order quantity>\n"
               << "Example:\n"
-              << "    main 0.5 0.01" << std::endl;
+              << "    main 0.5 0.0001" << std::endl;
     return EXIT_FAILURE;
   }
-  double spreadPercentage = std::stod(argv[1]);
+  double spreadProportion = std::stod(argv[1]);
   std::string orderQuantity = argv[2];
   if (UtilSystem::getEnvAsString("COINBASE_API_KEY").empty()) {
     std::cerr << "Please set environment variable COINBASE_API_KEY" << std::endl;
@@ -80,8 +80,8 @@ int main(int argc, char** argv) {
     if (!bbo.first.empty() && !bbo.second.empty()) {
       double midPrice = (std::stod(bbo.first) + std::stod(bbo.second)) / 2;
       std::cout << "Current mid price is " + std::to_string(midPrice) << std::endl;
-      std::string buyPrice = regularizePrice(midPrice * (1 - spreadPercentage / 100 / 2));
-      std::string sellPrice = regularizePrice(midPrice * (1 + spreadPercentage / 100 / 2));
+      std::string buyPrice = roundPrice(midPrice * (1 - spreadProportion / 2));
+      std::string sellPrice = roundPrice(midPrice * (1 + spreadProportion / 2));
       std::vector<Request> requestList;
       Request requestBuy(Request::Operation::CREATE_ORDER, "coinbase", "BTC-USD", "", myCredentials);
       requestBuy.appendParam({

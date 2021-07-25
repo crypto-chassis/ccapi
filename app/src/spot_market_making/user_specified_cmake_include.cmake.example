@@ -1,0 +1,18 @@
+
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GEMINI)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX)
+#
+# find_package(ZLIB REQUIRED)
+# link_libraries(ZLIB::ZLIB)

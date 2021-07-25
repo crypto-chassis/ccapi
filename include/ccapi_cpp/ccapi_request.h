@@ -22,6 +22,7 @@ class Request CCAPI_FINAL {
     FIX = operationTypeFix,
     GET_RECENT_TRADES = operationTypeMarketData,
     GET_RECENT_AGG_TRADES,
+    GET_INSTRUMENT,
     CREATE_ORDER = operationTypeExecutionManagementOrder,
     CANCEL_ORDER,
     GET_ORDER,
@@ -49,6 +50,9 @@ class Request CCAPI_FINAL {
       case Operation::GET_RECENT_AGG_TRADES:
         output = "GET_RECENT_AGG_TRADES";
         break;
+      case Operation::GET_INSTRUMENT:
+        output = "GET_INSTRUMENT";
+        break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
         break;
@@ -65,10 +69,10 @@ class Request CCAPI_FINAL {
         output = "CANCEL_OPEN_ORDERS";
         break;
       case Operation::GET_ACCOUNTS:
-        output = "GET_ACCOUNT_BALANCES";
+        output = "GET_ACCOUNTS";
         break;
       case Operation::GET_ACCOUNT_BALANCES:
-        output = "GET_ACCOUNTS";
+        output = "GET_ACCOUNT_BALANCES";
         break;
       case Operation::GET_ACCOUNT_POSITIONS:
         output = "GET_ACCOUNT_POSITIONS";

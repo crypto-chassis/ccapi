@@ -18,14 +18,30 @@ class MarketDataServiceErisx : public MarketDataService {
 
  private:
 #endif
+  void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+                                 const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
+    if (field == CCAPI_MARKET_DEPTH) {
+      if (marketDepthRequested <= 20) {
+        channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
+                    std::to_string(marketDepthRequested);
+        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthRequested;
+      } else {
+        channelId += "|" + field;
+      }
+    } else if (field == CCAPI_TRADE) {
+      channelId += "|" + field;
+    }
+  }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
         std::string symbolId = subscriptionListBySymbolId.first;
-        std::string exchangeSubscriptionId = std::to_string(this->nextExchangeSubscriptionIdByConnectionIdMap[wsConnection.id]);
-        this->nextExchangeSubscriptionIdByConnectionIdMap[wsConnection.id] += 1;
+        std::string exchangeSubscriptionId = std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]);
+        this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         rj::Document document;
@@ -54,13 +70,6 @@ class MarketDataServiceErisx : public MarketDataService {
     CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
                        toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
     return sendStringList;
-  }
-  void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->nextExchangeSubscriptionIdByConnectionIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -157,13 +166,10 @@ class MarketDataServiceErisx : public MarketDataService {
                              const std::map<std::string, std::string>& credential) override {
     // TODO(cryptochassis): implement
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
-    std::vector<MarketDataMessage> marketDataMessageList;
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     // TODO(cryptochassis): implement
-    return marketDataMessageList;
   }
-  std::map<std::string, int> nextExchangeSubscriptionIdByConnectionIdMap;
 };
 } /* namespace ccapi */
 #endif

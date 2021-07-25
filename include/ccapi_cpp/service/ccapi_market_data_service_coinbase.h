@@ -19,6 +19,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/products/<product-id>/trades";
+    this->getInstrumentTarget = "/products/<product-id>";
   }
   virtual ~MarketDataServiceCoinbase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -106,8 +107,6 @@ class MarketDataServiceCoinbase : public MarketDataService {
       dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "buy" ? "1" : "0"});
       marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
       marketDataMessageList.push_back(std::move(marketDataMessage));
-    } else if (type == "heartbeat") {
-      // TODO(cryptochassis): implement
     } else if (type == "snapshot") {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2) + "|" + symbolId;
@@ -132,9 +131,46 @@ class MarketDataServiceCoinbase : public MarketDataService {
       }
       marketDataMessageList.push_back(std::move(marketDataMessage));
     } else if (type == "subscriptions") {
-      // TODO(cryptochassis): implement
+      event.setType(Event::Type::SUBSCRIPTION_STATUS);
+      std::vector<Message> messageList;
+      Message message;
+      message.setTimeReceived(timeReceived);
+      std::vector<std::string> correlationIdList;
+      if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
+        for (const auto& x : document["channels"].GetArray()) {
+          std::string channelId = x["name"].GetString();
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+            for (const auto& y : x["product_ids"].GetArray()) {
+              std::string symbolId = y.GetString();
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+                std::vector<std::string> correlationIdList_2 =
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+              }
+            }
+          }
+        }
+      }
+      message.setCorrelationIdList(correlationIdList);
+      message.setType(Message::Type::SUBSCRIPTION_STARTED);
+      Element element;
+      element.insert(CCAPI_INFO_MESSAGE, textMessage);
+      message.setElementList({element});
+      messageList.push_back(std::move(message));
+      event.setMessageList(messageList);
     } else if (type == "error") {
-      // TODO(cryptochassis): implement
+      event.setType(Event::Type::SUBSCRIPTION_STATUS);
+      std::vector<Message> messageList;
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::SUBSCRIPTION_FAILURE);
+      Element element;
+      element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+      message.setElementList({element});
+      messageList.push_back(std::move(message));
+      event.setMessageList(messageList);
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -158,15 +194,22 @@ class MarketDataServiceCoinbase : public MarketDataService {
                           });
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        this->substituteParam(target, {
+                                          {"<product-id>", symbolId},
+                                      });
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<MarketDataMessage> convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage,
-                                                                       const TimePoint& timeReceived) override {
+  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+                                             std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse(textMessage.c_str());
-    std::vector<MarketDataMessage> marketDataMessageList;
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -182,10 +225,22 @@ class MarketDataServiceCoinbase : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        Element element;
+        element.insert(CCAPI_BASE_ASSET, document["base_currency"].GetString());
+        element.insert(CCAPI_QUOTE_ASSET, document["quote_currency"].GetString());
+        element.insert(CCAPI_ORDER_PRICE_INCREMENT, document["quote_increment"].GetString());
+        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, document["base_increment"].GetString());
+        message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return marketDataMessageList;
   }
 };
 } /* namespace ccapi */
