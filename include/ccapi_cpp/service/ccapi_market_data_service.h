@@ -208,12 +208,12 @@ class MarketDataService : public Service {
     auto it = snapshot.find(price);
     if (it == snapshot.end()) {
       if ((!sizeMayHaveTrailingZero && size != "0") ||
-          (sizeMayHaveTrailingZero && size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0")) {
+          (sizeMayHaveTrailingZero && ((size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0") || (size.find('.') == std::string::npos && size != "0")))) {
         snapshot.emplace(std::move(price), std::move(size));
       }
     } else {
       if ((!sizeMayHaveTrailingZero && size != "0") ||
-          (sizeMayHaveTrailingZero && size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0")) {
+          (sizeMayHaveTrailingZero && ((size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0") || (size.find('.') == std::string::npos && size != "0")))) {
         it->second = std::move(size);
       } else {
         snapshot.erase(price);
@@ -618,7 +618,7 @@ class MarketDataService : public Service {
             this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
         this->alignSnapshot(snapshotBid, snapshotAsk, marketDepthSubscribedToExchange);
       }
-      CCAPI_LOGGER_TRACE("afer updating orderbook");
+      CCAPI_LOGGER_TRACE("after updating orderbook");
       CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBid, maxMarketDepth));
       CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, " + toString(maxMarketDepth) + ") = " + firstNToString(snapshotAsk, maxMarketDepth));
       CCAPI_LOGGER_TRACE("lastNToString(snapshotBidPrevious, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBidPrevious, maxMarketDepth));
@@ -938,24 +938,37 @@ class MarketDataService : public Service {
   void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     Event event;
-    event.setType(Event::Type::RESPONSE);
-    if (request.getOperation() == Request::Operation::GENERIC_PUBLIC_REQUEST) {
+    if (this->doesHttpBodyContainError(request, textMessage)) {
+      event.setType(Event::Type::RESPONSE);
       Message message;
+      message.setType(Message::Type::RESPONSE_ERROR);
       message.setTimeReceived(timeReceived);
-      message.setType(Message::Type::GENERIC_PUBLIC_REQUEST);
+      message.setCorrelationIdList({request.getCorrelationId()});
       Element element;
-      element.insert(CCAPI_HTTP_STATUS_CODE, std::to_string(statusCode));
-      element.insert(CCAPI_HTTP_BODY, textMessage);
+      element.insert(CCAPI_HTTP_STATUS_CODE, "200");
+      element.insert(CCAPI_ERROR_MESSAGE, UtilString::trim(textMessage));
       message.setElementList({element});
-      const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
-      CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
-      message.setCorrelationIdList(correlationIdList);
-      event.addMessages({message});
+      event.setMessageList({message});
     } else {
-      std::vector<MarketDataMessage> marketDataMessageList;
-      this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived, event, marketDataMessageList);
-      if (!marketDataMessageList.empty()) {
-        this->processMarketDataMessageList(request, textMessage, timeReceived, event, marketDataMessageList);
+      event.setType(Event::Type::RESPONSE);
+      if (request.getOperation() == Request::Operation::GENERIC_PUBLIC_REQUEST) {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(Message::Type::GENERIC_PUBLIC_REQUEST);
+        Element element;
+        element.insert(CCAPI_HTTP_STATUS_CODE, std::to_string(statusCode));
+        element.insert(CCAPI_HTTP_BODY, textMessage);
+        message.setElementList({element});
+        const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
+        CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
+        message.setCorrelationIdList(correlationIdList);
+        event.addMessages({message});
+      } else {
+        std::vector<MarketDataMessage> marketDataMessageList;
+        this->convertTextMessageToMarketDataMessage(request, textMessage, timeReceived, event, marketDataMessageList);
+        if (!marketDataMessageList.empty()) {
+          this->processMarketDataMessageList(request, textMessage, timeReceived, event, marketDataMessageList);
+        }
       }
     }
     if (!event.getMessageList().empty()) {

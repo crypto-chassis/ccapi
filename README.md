@@ -344,10 +344,11 @@ Subscription subscription("coinbase", "BTC-USD", "TRADE", "CONFLATE_INTERVAL_MIL
 
 Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (should be url-encoded), `HTTP_BODY`.
 ```
-Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "binance", "", "Check Server Time");
+Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");
 request.appendParam({
     {"HTTP_METHOD", "GET"},
-    {"HTTP_PATH", "/api/v3/time"},
+    {"HTTP_PATH", "/0/public/AssetPairs"},
+    {"HTTP_QUERY_STRING", "pair=XXBTZUSD"},
 });
 ```
 

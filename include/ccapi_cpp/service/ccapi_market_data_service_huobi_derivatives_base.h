@@ -12,6 +12,7 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
     this->isDerivatives = true;
   }
   virtual ~MarketDataServiceHuobiDerivativesBase() {}
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err_code") != std::string::npos; }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {

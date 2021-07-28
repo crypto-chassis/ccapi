@@ -227,7 +227,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string statusCodeStr = std::to_string(statusCode);
     CCAPI_LOGGER_ERROR("request = " + toString(request) + ", statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
     Event event;
-    event.setType(Event::Type::REQUEST_STATUS);
+    event.setType(Event::Type::RESPONSE);
     Message message;
     auto now = UtilTime::now();
     message.setTimeReceived(now);

@@ -22,10 +22,11 @@ int main(int argc, char** argv) {
   std::string saveCsvDirectory = UtilSystem::getEnvAsString("SAVE_CSV_DIRECTORY");
   std::string nowISO = UtilTime::getISOTimestamp(UtilTime::now());
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
-  std::string instrument = UtilSystem::getEnvAsString("INSTRUMENT");
-  std::string privateTradeCsvFilename(nowISO + "__private_trade__" + exchange + "__" + instrument + ".csv"),
-      orderUpdateCsvFilename(nowISO + "__order_update__" + exchange + "__" + instrument + ".csv"),
-      accountBalanceCsvFilename(nowISO + "__account_balance__" + exchange + "__" + instrument + ".csv");
+  std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
+  std::string instrumentWebsocket = instrumentRest;
+  std::string privateTradeCsvFilename(nowISO + "__private_trade__" + exchange + "__" + instrumentRest + ".csv"),
+      orderUpdateCsvFilename(nowISO + "__order_update__" + exchange + "__" + instrumentRest + ".csv"),
+      accountBalanceCsvFilename(nowISO + "__account_balance__" + exchange + "__" + instrumentRest + ".csv");
   if (!saveCsvDirectory.empty()) {
     privateTradeCsvFilename = saveCsvDirectory + "/" + privateTradeCsvFilename;
     orderUpdateCsvFilename = saveCsvDirectory + "/" + orderUpdateCsvFilename;
@@ -68,7 +69,8 @@ int main(int argc, char** argv) {
   accountBalanceCsvWriter.flush();
   SpotMarketMakingEventHandler eventHandler(&appLogger, &privateTradeCsvWriter, &orderUpdateCsvWriter, &accountBalanceCsvWriter);
   eventHandler.exchange = exchange;
-  eventHandler.instrument = instrument;
+  eventHandler.instrumentRest = instrumentRest;
+  eventHandler.instrumentWebsocket = instrumentWebsocket;
   eventHandler.baseAvailableBalanceProportion = UtilSystem::getEnvAsDouble("BASE_AVAILABLE_BALANCE_PROPORTION");
   eventHandler.quoteAvailableBalanceProportion = UtilSystem::getEnvAsDouble("QUOTE_AVAILABLE_BALANCE_PROPORTION");
   double a = UtilSystem::getEnvAsDouble("INVENTORY_BASE_QUOTE_RATIO_TARGET");
@@ -80,6 +82,7 @@ int main(int argc, char** argv) {
   eventHandler.orderRefreshIntervalOffsetSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_OFFSET_SECONDS") % eventHandler.orderRefreshIntervalSeconds;
   eventHandler.accountBalanceRefreshWaitSeconds = UtilSystem::getEnvAsInt("ACCOUNT_BALANCE_REFRESH_WAIT_SECONDS");
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
+  eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   if (eventHandler.exchange == "coinbase") {
     eventHandler.useGetAccountsToGetAccountBalances = true;
   }
@@ -87,12 +90,31 @@ int main(int argc, char** argv) {
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrument, "GET_INSTRUMENT");
+  if (exchange == "kraken"){
+    Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");
+    request.appendParam({
+        {"HTTP_METHOD", "GET"},
+        {"HTTP_PATH", "/0/public/AssetPairs"},
+        {"HTTP_QUERY_STRING", "pair="+instrumentRest},
+    });
+    Queue<Event> eventQueue;
+    session.sendRequest(request, &eventQueue);
+    std::vector<Event> eventList = eventQueue.purge();
+    for (const auto& event: eventList){
+      if (event.getType()==Event::Type::RESPONSE){
+        rj::Document document;
+        document.Parse(event.getMessageList.at(0).getElementList().at(0).getValue("HTTP_BODY"));
+        eventHandler.instrumentWebsocket= document["result"][instrumentRest]["wsname"].GetString();
+        break;
+      }
+    }
+  } else if (exchange.rfind("binance", 0) == 0){
+    eventHandler.instrumentWebsocket=UtilString::toLower(instrumentRest);
+  }
+  Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
   session.sendRequest(request);
   while (true) {
     std::this_thread::sleep_for(std::chrono::seconds(INT_MAX));
   }
   return EXIT_SUCCESS;
 }
-// if loss is large then quick_exit which can register hooks
-// 50% order size is a special case for ping pong

@@ -52,7 +52,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
-        auto symbolId = subscriptionListByInstrument.first;
+        auto symbolId = UtilString::toLower(subscriptionListByInstrument.first);
         auto exchangeSubscriptionId = symbolId + "@";
         if (channelId.rfind(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER, 0) == 0) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
@@ -209,7 +209,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         MarketDataMessage::TypeForDataPoint dataPoint;
         dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(data["p"].GetString()))});
         dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(data["q"].GetString()))});
-        dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(tradeId)});
+        dataPoint.insert({MarketDataMessage::DataFieldType::AGG_TRADE_ID, std::to_string(tradeId)});
         dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, data["m"].GetBool() ? "1" : "0"});
         marketDataMessage.data[MarketDataMessage::DataType::AGG_TRADE].push_back(std::move(dataPoint));
         marketDataMessageList.push_back(std::move(marketDataMessage));

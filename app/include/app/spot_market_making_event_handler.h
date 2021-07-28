@@ -10,7 +10,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
         appLogger(appLogger),
         privateTradeCsvWriter(privateTradeCsvWriter),
         orderUpdateCsvWriter(orderUpdateCsvWriter),
-        accountBalanceCsvWriter(accountBalanceCsvWriter) {}
+        accountBalanceCsvWriter(accountBalanceCsvWriter) {
+          this->totalBalancePeak=0;
+        }
   bool processEvent(const Event& event, Session* session) override {
     // this->appLogger->log("Received an event: " + event.toString());
     auto eventType = event.getType();
@@ -86,7 +88,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
              std::chrono::duration_cast<std::chrono::seconds>(messageTime.time_since_epoch()).count() % this->orderRefreshIntervalSeconds ==
                  this->orderRefreshIntervalOffsetSeconds)) {
           this->cancelOpenOrdersRequestCorrelationId = messageTimeISO + "-CANCEL_OPEN_ORDERS";
-          Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->exchange, this->instrument, this->cancelOpenOrdersRequestCorrelationId);
+          Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->exchange, this->instrumentRest, this->cancelOpenOrdersRequestCorrelationId);
           requestList.push_back(request);
           this->orderRefreshLastTime = messageTime;
           this->cancelOpenOrdersLastTime = messageTime;
@@ -141,9 +143,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
         this->quoteAsset = element.getValue("QUOTE_ASSET");
         this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue("PRICE_INCREMENT"));
         this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue("QUANTITY_INCREMENT"));
-        Subscription subscriptionMarketDepth(this->exchange, this->instrument, "MARKET_DEPTH",
+        Subscription subscriptionMarketDepth(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH",
                                              "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0", "MARKET_DEPTH");
-        Subscription subscriptionPrivate(this->exchange, this->instrument, "PRIVATE_TRADE,ORDER_UPDATE", "", "PRIVATE_TRADE,ORDER_UPDATE");
+        Subscription subscriptionPrivate(this->exchange, this->instrumentWebsocket, "PRIVATE_TRADE,ORDER_UPDATE", "", "PRIVATE_TRADE,ORDER_UPDATE");
         session->subscribe({subscriptionMarketDepth, subscriptionPrivate});
       }
     }
@@ -161,7 +163,15 @@ class SpotMarketMakingEventHandler : public EventHandler {
       return;
     }
     if (this->baseBalance > 0 || this->quoteBalance > 0) {
-      double r = this->baseBalance / (this->baseBalance + this->quoteBalance / midPrice);
+      double totalBalance = this->baseBalance * midPrice + this->quoteBalance;
+      if (totalBalance>this->totalBalancePeak){
+        this->totalBalancePeak=totalBalance;
+      }
+      if ((this->totalBalancePeak-totalBalance)/this->totalBalancePeak>this->killSwitchMaximumDrawdown){
+        this->appLogger->log("Kill switch triggered - Maximum Drawdown. Exit.");
+        std::quick_exit(EXIT_SUCCESS);
+      }
+      double r = this->baseBalance* midPrice  / totalBalance;
       std::string orderQuantity =
           AppUtil::roundInput((this->quoteBalance / midPrice + this->baseBalance) * this->orderQuantityProportion, this->orderQuantityIncrement, false);
       if (r < this->inventoryBasePortionTarget) {
@@ -192,9 +202,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
       return;
     }
   }
-  std::string exchange, instrument, baseAsset, quoteAsset, accountId, orderPriceIncrement, orderQuantityIncrement;
+  std::string exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement, orderQuantityIncrement;
   double halfSpreadMinimum, halfSpreadMaximum, inventoryBasePortionTarget, baseBalance, quoteBalance, baseAvailableBalanceProportion,
-      quoteAvailableBalanceProportion, orderQuantityProportion;
+      quoteAvailableBalanceProportion, orderQuantityProportion, totalBalancePeak;
   int orderRefreshIntervalSeconds, orderRefreshIntervalOffsetSeconds, accountBalanceRefreshWaitSeconds;
   std::string bestBidPrice, bestAskPrice;
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}};
@@ -205,7 +215,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
 
  private:
   Request createRequestForCreateOrder(const std::string& side, const std::string& price, const std::string& quantity) {
-    Request request(Request::Operation::CREATE_ORDER, this->exchange, this->instrument);
+    Request request(Request::Operation::CREATE_ORDER, this->exchange, this->instrumentRest);
     request.appendParam({
         {"SIDE", side},
         {"QUANTITY", quantity},

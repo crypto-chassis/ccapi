@@ -27,6 +27,9 @@ class MarketDataServiceKraken : public MarketDataService {
 
  private:
 #endif
+bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+  return body.find(R"("error":[])") == std::string::npos;
+}
   void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));

@@ -22,6 +22,7 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
     this->getInstrumentTarget = "/v1/common/symbols";
   }
   virtual ~MarketDataServiceHuobi() {}
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {

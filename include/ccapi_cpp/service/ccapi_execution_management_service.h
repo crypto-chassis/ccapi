@@ -76,7 +76,7 @@ class ExecutionManagementService : public Service {
   void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
     Event event;
     if (this->doesHttpBodyContainError(request, textMessage)) {
-      event.setType(Event::Type::REQUEST_STATUS);
+      event.setType(Event::Type::RESPONSE);
       Message message;
       message.setType(Message::Type::RESPONSE_ERROR);
       message.setTimeReceived(timeReceived);
@@ -91,7 +91,9 @@ class ExecutionManagementService : public Service {
       const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
       event.addMessages(messageList);
     }
-    this->eventHandler(event);
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event);
+    }
   }
   virtual Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
     Element element;
