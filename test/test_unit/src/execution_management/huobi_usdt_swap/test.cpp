@@ -490,7 +490,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventMatchOrderData) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "BTC-USDT", CCAPI_EM_PRIVATE_TRADE);
-  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+  std::string textMessage = R"(
     {
         "op":"notify",
         "topic":"matchOrders_cross.btc-usdt",
@@ -527,7 +527,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventMatchOrderData) {
         "margin_mode":"cross",
         "margin_account":"USDT"
     }
-)");
+)";
   rj::Document document;
   document.Parse(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();
@@ -550,7 +550,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventMatchOrderData) {
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventOrderData) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, "BTC-USDT", CCAPI_EM_ORDER_UPDATE);
-  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+  std::string textMessage = R"(
     {
         "op":"notify",
         "topic":"orders_cross.btc-usdt",
@@ -601,7 +601,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventOrderData) {
         "is_tpsl": 0,
         "real_profit":0
     }
-)");
+)";
   rj::Document document;
   document.Parse(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();

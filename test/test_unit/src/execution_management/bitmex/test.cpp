@@ -653,7 +653,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageRestGetA
 
 TEST_F(ExecutionManagementServiceBitmexTest, createEventPrivateTrade) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", CCAPI_EM_PRIVATE_TRADE);
-  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+  std::string textMessage = R"(
     {
   "table": "execution",
   "action": "insert",
@@ -758,7 +758,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, createEventPrivateTrade) {
     }
   ]
 }
-)");
+)";
   rj::Document document;
   document.Parse(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
@@ -782,7 +782,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, createEventPrivateTrade) {
 
 TEST_F(ExecutionManagementServiceBitmexTest, createEventOrderUpdate) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_BITMEX, "XBTUSD", CCAPI_EM_ORDER_UPDATE);
-  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+  std::string textMessage = R"(
     {
   "table": "order",
   "action": "insert",
@@ -824,7 +824,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, createEventOrderUpdate) {
     }
   ]
 }
-)");
+)";
   rj::Document document;
   document.Parse(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
