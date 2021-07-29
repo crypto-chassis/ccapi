@@ -60,7 +60,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     const rj::Value& data = document["data"];
     if (document.IsObject() && document.HasMember("event") && std::string(document["event"].GetString()) == "bts:subscription_succeeded") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
@@ -142,8 +142,8 @@ class MarketDataServiceBitstamp : public MarketDataService {
         MarketDataMessage::TypeForDataPoint dataPoint;
         dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(data["price_str"].GetString()))});
         dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(data["amount_str"].GetString()))});
-        dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(data["id"].GetInt64())});
-        dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, data["type"].GetInt() == 0 ? "1" : "0"});
+        dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(data["id"].GetString())});
+        dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(data["type"].GetString()) == "0" ? "1" : "0"});
         marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
         marketDataMessageList.push_back(std::move(marketDataMessage));
       }
@@ -178,7 +178,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -205,9 +205,9 @@ class MarketDataServiceBitstamp : public MarketDataService {
             auto splitted = UtilString::split(name, "/");
             element.insert(CCAPI_BASE_ASSET, UtilString::toLower(splitted.at(0)));
             element.insert(CCAPI_QUOTE_ASSET, UtilString::toLower(splitted.at(1)));
-            int counterDecimals = x["counter_decimals"].GetInt();
+            int counterDecimals = std::stoi(x["counter_decimals"].GetString());
             element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
-            int baseDecimals = x["base_decimals"].GetInt();
+            int baseDecimals = std::stoi(x["base_decimals"].GetString());
             element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseDecimals - 1, '0') + "1");
             message.setElementList({element});
             break;

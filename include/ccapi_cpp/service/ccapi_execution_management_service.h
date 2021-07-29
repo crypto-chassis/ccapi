@@ -56,7 +56,7 @@ class ExecutionManagementService : public Service {
   virtual std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
     CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({request.getCorrelationId()});
@@ -103,7 +103,7 @@ class ExecutionManagementService : public Service {
         std::string value = y.second.second == JsonDataType::STRING
                                 ? it->value.GetString()
                                 : y.second.second == JsonDataType::INTEGER
-                                      ? std::to_string(it->value.GetInt64())
+                                      ? std::string(it->value.GetString())
                                       : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) : "null";
         if (y.first == CCAPI_EM_ORDER_SIDE) {
           value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
@@ -131,7 +131,7 @@ class ExecutionManagementService : public Service {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     this->onTextMessage(wsConnection, subscription, textMessage, document, timeReceived);
     this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
   }

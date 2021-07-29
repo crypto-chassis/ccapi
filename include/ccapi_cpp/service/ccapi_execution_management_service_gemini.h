@@ -189,7 +189,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document["details"]["cancelledOrders"].GetArray()) {
         Element element;
-        element.insert(CCAPI_EM_ORDER_ID, std::to_string(x.GetInt64()));
+        element.insert(CCAPI_EM_ORDER_ID, std::string(x.GetString()));
         elementList.emplace_back(std::move(element));
       }
     } else if (document.IsObject()) {
@@ -316,7 +316,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
           if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
             auto it = x.FindMember("timestampms");
             if (it != x.MemberEnd()) {
-              message.setTime(TimePoint(std::chrono::milliseconds(it->value.GetInt64())));
+              message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(it->value.GetString()))));
             }
             if (type == "fill" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);

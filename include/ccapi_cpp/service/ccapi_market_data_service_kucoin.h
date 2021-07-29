@@ -64,7 +64,7 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
             std::string urlWebsocketBase;
             try {
               rj::Document document;
-              document.Parse(body.c_str());
+              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               const rj::Value& instanceServer = document["data"]["instanceServers"][0];
               urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
               urlWebsocketBase += "?token=";
@@ -76,8 +76,8 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
                 that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.group][instrument] = Subscription::Status::SUBSCRIBING;
               }
               that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                  {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
-                  {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
+                  {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},
+                  {"pingTimeout", std::string(instanceServer["pingInterval"].GetString())},
               });
               CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
               return;
@@ -147,7 +147,7 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsObject()) {
       auto it = document.FindMember("type");
       if (it != document.MemberEnd()) {
@@ -163,7 +163,7 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
             marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                               ? MarketDataMessage::RecapType::NONE
                                               : MarketDataMessage::RecapType::SOLICITED;
-            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(data["time"].GetInt64()));
+            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(data["time"].GetString())));
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             {
               MarketDataMessage::TypeForDataPoint dataPoint;
@@ -189,7 +189,7 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
             marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                               ? MarketDataMessage::RecapType::NONE
                                               : MarketDataMessage::RecapType::SOLICITED;
-            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(data["timestamp"].GetInt64()));
+            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(data["timestamp"].GetString())));
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
             const std::map<MarketDataMessage::DataType, const char*> bidAsk{{MarketDataMessage::DataType::BID, "bids"},
@@ -308,15 +308,15 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  }
+  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
+  // }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["data"].GetArray()) {

@@ -11,7 +11,7 @@ class MarketDataServiceErisx : public MarketDataService {
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
+    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceErisx() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -75,9 +75,9 @@ class MarketDataServiceErisx : public MarketDataService {
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    document.Parse(quotedTextMessage.c_str());
+    // std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+    // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     std::string type = document["type"].GetString();
     if (type == "MarketDataIncrementalRefresh" || type == "MarketDataIncrementalRefreshTrade") {
       std::string exchangeSubscriptionId = document["correlation"].GetString();

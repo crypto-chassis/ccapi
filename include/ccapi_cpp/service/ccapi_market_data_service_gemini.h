@@ -108,11 +108,11 @@ class MarketDataServiceGemini : public MarketDataService {
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
     if (this->sessionOptions.enableCheckSequence) {
-      int sequence = document["socket_sequence"].GetInt();
+      int sequence = std::stoi(document["socket_sequence"].GetString());
       if (!this->checkSequence(wsConnection, sequence)) {
         this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, "");
         return;
@@ -124,7 +124,7 @@ class MarketDataServiceGemini : public MarketDataService {
       TimePoint time = timeReceived;
       auto it = document.FindMember("timestampms");
       if (it != document.MemberEnd()) {
-        time = TimePoint(std::chrono::milliseconds(it->value.GetInt64()));
+        time = TimePoint(std::chrono::milliseconds(std::stoll(it->value.GetString())));
       }
       for (auto& event : document["events"].GetArray()) {
         auto gType = std::string(event["type"].GetString());
@@ -169,7 +169,7 @@ class MarketDataServiceGemini : public MarketDataService {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(event["price"].GetString()))});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(event["amount"].GetString()))});
-            dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(event["tid"].GetInt64())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(event["tid"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, makerSide == "bid" ? "1" : "0"});
             marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           }

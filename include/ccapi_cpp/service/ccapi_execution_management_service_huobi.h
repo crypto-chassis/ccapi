@@ -171,7 +171,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : data.GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_ACCOUNT_ID, std::to_string(x["id"].GetInt64()));
+          element.insert(CCAPI_EM_ACCOUNT_ID, std::string(x["id"].GetString()));
           element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
           elementList.emplace_back(std::move(element));
         }
@@ -232,7 +232,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     if (actionStr == "req") {
       std::string chStr = document["ch"].GetString();
       if (chStr == "auth") {
-        auto code = document["code"].GetInt();
+        int code = std::stoi(document["code"].GetString());
         if (code == 200) {
           std::set<std::string> symbols;
           if (instrumentSet.empty()) {
@@ -313,7 +313,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
               it = data.FindMember("tradeTime");
             }
           }
-          message.setTime(UtilTime::makeTimePointFromMilliseconds(it->value.GetInt64()));
+          message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(it->value.GetString())));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
@@ -340,16 +340,16 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         const rj::Value& data = document["data"];
         std::string instrument = data["symbol"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-          message.setTime(UtilTime::makeTimePointFromMilliseconds(data["tradeTime"].GetInt64()));
+          message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data["tradeTime"].GetString())));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
           std::vector<Element> elementList;
           Element element;
-          element.insert(CCAPI_TRADE_ID, std::to_string(data["tradeId"].GetInt64()));
+          element.insert(CCAPI_TRADE_ID, std::string(data["tradeId"].GetString()));
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["tradePrice"].GetString());
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["tradeVolume"].GetString());
           element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
           element.insert(CCAPI_IS_MAKER, data["aggressor"].GetBool() ? "0" : "1");
-          element.insert(CCAPI_EM_ORDER_ID, std::to_string(data["orderId"].GetInt64()));
+          element.insert(CCAPI_EM_ORDER_ID, std::string(data["orderId"].GetString()));
           element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(data["clientOrderId"].GetString()));
           element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
           element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(data["transactFee"].GetString()));
@@ -360,7 +360,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         }
       }
     } else if (actionStr == "sub") {
-      auto code = document["code"].GetInt();
+      int code = std::stoi(document["code"].GetString());
       if (code == 200) {
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         message.setType(Message::Type::SUBSCRIPTION_STARTED);

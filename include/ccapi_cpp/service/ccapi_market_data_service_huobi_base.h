@@ -14,7 +14,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
-    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceHuobiBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -103,9 +103,9 @@ class MarketDataServiceHuobiBase : public MarketDataService {
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    document.Parse(quotedTextMessage.c_str());
+    // std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+    // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
       std::string exchangeSubscriptionId = document["ch"].GetString();
       std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
