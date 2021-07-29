@@ -83,7 +83,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCreateOrder) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["price"].GetString()), "29999");
   EXPECT_EQ(std::string(document["volume"].GetString()), "1");
   EXPECT_EQ(std::string(document["direction"].GetString()), "buy");
@@ -130,7 +130,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCancelOrderByO
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["order_id"].GetString()), "59378");
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_cancel");
@@ -148,7 +148,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestCancelOrderByC
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["client_order_id"].GetString()), "a0001");
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_cancel");
@@ -196,7 +196,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOrderByOrde
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["order_id"].GetString()), "59378");
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_order_info");
@@ -214,7 +214,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOrderByClie
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["client_order_id"].GetString()), "a0001");
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_order_info");
@@ -288,7 +288,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetOpenOrdersO
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["contract_code"].GetString()), "btc-usdt");
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/linear-swap-api/v1/swap_cross_openorders");
@@ -529,7 +529,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventMatchOrderData) {
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -603,7 +603,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventOrderData) {
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "notify", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());

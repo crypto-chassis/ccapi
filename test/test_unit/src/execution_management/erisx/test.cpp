@@ -32,14 +32,14 @@ void verifyJwt(const http::request<http::string_body>& req, const std::string& a
   auto splitted = UtilString::split(authorizationHeader, ".");
   auto jwtHeader = UtilAlgorithm::base64UrlDecode(splitted.at(0));
   rj::Document documentHeader;
-  documentHeader.Parse(jwtHeader.c_str());
+  documentHeader.Parse<rj::kParseNumbersAsStringsFlag>(jwtHeader.c_str());
   EXPECT_EQ(std::string(documentHeader["alg"].GetString()), "HS256");
   EXPECT_EQ(std::string(documentHeader["typ"].GetString()), "JWT");
   auto jwtPayload = UtilAlgorithm::base64UrlDecode(splitted.at(1));
   rj::Document documentPayload;
-  documentPayload.Parse(jwtPayload.c_str());
+  documentPayload.Parse<rj::kParseNumbersAsStringsFlag>(jwtPayload.c_str());
   EXPECT_EQ(std::string(documentPayload["sub"].GetString()), apiKey);
-  EXPECT_EQ(documentPayload["iat"].GetInt64(), timestamp);
+  EXPECT_EQ(documentPayload["iat"].GetString(), std::to_string(timestamp));
 }
 
 TEST_F(ExecutionManagementServiceErisxTest, signRequest) {
@@ -59,7 +59,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCreateOrder) {
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target(), "/rest-api/new-order-single");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["clOrdID"].GetString()), "ENRY34D6CVV-a");
   EXPECT_EQ(std::string(document["currency"].GetString()), "BTC");
   EXPECT_EQ(std::string(document["side"].GetString()), "BUY");
@@ -159,7 +159,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOrderByOrderId) 
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target(), "/rest-api/cancel-order-single");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["clOrdID"].GetString()), "ENRY34D6CVV-b");
   EXPECT_EQ(std::string(document["origClOrdID"].GetString()), "ENRY34D6CVV-a");
   EXPECT_EQ(std::string(document["orderID"].GetString()), "281474982380221");
@@ -344,7 +344,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestGetOpenOrders) {
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target().to_string(), "/rest-api/order-mass-status");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["partyID"].GetString()), "ENRY34D6CVV");
   verifyJwt(req, this->credential.at(CCAPI_ERISX_API_KEY), this->credential.at(CCAPI_ERISX_API_SECRET), this->timestamp);
 }
@@ -445,7 +445,7 @@ TEST_F(ExecutionManagementServiceErisxTest, convertRequestCancelOpenOrders) {
   EXPECT_EQ(req.method(), http::verb::post);
   EXPECT_EQ(req.target().to_string(), "/rest-api/cancel-all");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["partyID"].GetString()), "ENRY34D6CVV");
   verifyJwt(req, this->credential.at(CCAPI_ERISX_API_KEY), this->credential.at(CCAPI_ERISX_API_SECRET), this->timestamp);
 }

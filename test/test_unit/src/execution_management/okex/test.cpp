@@ -67,7 +67,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/order");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
   EXPECT_EQ(std::string(document["side"].GetString()), "buy");
   EXPECT_EQ(std::string(document["sz"].GetString()), "2");
@@ -117,7 +117,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByOrderId) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
   EXPECT_EQ(std::string(document["ordId"].GetString()), "2510789768709120");
   verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
@@ -134,7 +134,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByClientOrde
   verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
   EXPECT_EQ(std::string(document["clOrdId"].GetString()), "oktswap6");
   verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
@@ -576,7 +576,7 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventFilled) {
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -653,7 +653,7 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventLive) {
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -691,7 +691,7 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradePlaceOrder) 
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -722,7 +722,7 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradeCancelOrder)
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());

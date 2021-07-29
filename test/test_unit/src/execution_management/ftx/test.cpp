@@ -324,7 +324,7 @@ TEST_F(ExecutionManagementServiceFtxTest, convertRequestCancelOpenOrders) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_FTX_API_KEY), "", this->timestamp);
   EXPECT_EQ(req.target().to_string(), "/api/orders");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["market"].GetString()), "BTC/USD");
   verifySignature(req, this->credential.at(CCAPI_FTX_API_SECRET));
 }
@@ -533,7 +533,7 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventFills) {
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -577,7 +577,7 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventOrders) {
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());

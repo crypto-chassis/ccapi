@@ -79,7 +79,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, convertRequestCreateOrder) {
                   this->credential.at(CCAPI_KUCOIN_API_PASSPHRASE), this->credential.at(CCAPI_KUCOIN_API_KEY_VERSION), this->timestamp);
   EXPECT_EQ(req.target(), "/api/v1/orders");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["clientOid"].GetString()), "a");
   EXPECT_EQ(std::string(document["symbol"].GetString()), "BTC-USDT");
   EXPECT_EQ(std::string(document["side"].GetString()), "buy");
@@ -479,7 +479,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventOpen) {
     }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -528,7 +528,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventMatch) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -572,7 +572,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventFilled) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -617,7 +617,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventCanceled) {
 }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -663,7 +663,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, createEventChange) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());

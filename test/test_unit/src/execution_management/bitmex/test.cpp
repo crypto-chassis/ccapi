@@ -61,7 +61,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestCreateOrder) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_BITMEX_API_KEY), this->timestamp);
   EXPECT_EQ(req.target().to_string(), "/api/v1/order");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["symbol"].GetString()), "XBTUSD");
   EXPECT_EQ(std::string(document["side"].GetString()), "Buy");
   EXPECT_EQ(std::string(document["price"].GetString()), "0.1");
@@ -760,7 +760,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, createEventPrivateTrade) {
 }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -826,7 +826,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, createEventOrderUpdate) {
 }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
