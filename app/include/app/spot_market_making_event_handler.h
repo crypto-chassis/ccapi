@@ -169,7 +169,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
       }
       if ((this->totalBalancePeak-totalBalance)/this->totalBalancePeak>this->killSwitchMaximumDrawdown){
         this->appLogger->log("Kill switch triggered - Maximum Drawdown. Exit.");
-        std::quick_exit(EXIT_SUCCESS);
+        std::exit(EXIT_SUCCESS);
       }
       double r = this->baseBalance* midPrice  / totalBalance;
       std::string orderQuantity =
@@ -204,7 +204,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   }
   std::string exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement, orderQuantityIncrement;
   double halfSpreadMinimum, halfSpreadMaximum, inventoryBasePortionTarget, baseBalance, quoteBalance, baseAvailableBalanceProportion,
-      quoteAvailableBalanceProportion, orderQuantityProportion, totalBalancePeak;
+      quoteAvailableBalanceProportion, orderQuantityProportion, totalBalancePeak,killSwitchMaximumDrawdown;
   int orderRefreshIntervalSeconds, orderRefreshIntervalOffsetSeconds, accountBalanceRefreshWaitSeconds;
   std::string bestBidPrice, bestAskPrice;
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}};

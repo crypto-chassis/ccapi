@@ -15,6 +15,9 @@ using ::ccapi::SpotMarketMakingEventHandler;
 using ::ccapi::Subscription;
 using ::ccapi::UtilSystem;
 using ::ccapi::UtilTime;
+using ::ccapi::UtilString;
+using ::ccapi::Queue;
+using ::ccapi::Event;
 int main(int argc, char** argv) {
   AppLogger appLogger;
   CcapiLogger ccapiLogger(&appLogger);
@@ -103,8 +106,8 @@ int main(int argc, char** argv) {
     for (const auto& event: eventList){
       if (event.getType()==Event::Type::RESPONSE){
         rj::Document document;
-        document.Parse(event.getMessageList.at(0).getElementList().at(0).getValue("HTTP_BODY"));
-        eventHandler.instrumentWebsocket= document["result"][instrumentRest]["wsname"].GetString();
+        document.Parse(event.getMessageList().at(0).getElementList().at(0).getValue("HTTP_BODY").c_str());
+        eventHandler.instrumentWebsocket= document["result"][instrumentRest.c_str()]["wsname"].GetString();
         break;
       }
     }
