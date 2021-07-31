@@ -39,7 +39,7 @@ void verifyJwt(const http::request<http::string_body>& req, const std::string& a
   rj::Document documentPayload;
   documentPayload.Parse<rj::kParseNumbersAsStringsFlag>(jwtPayload.c_str());
   EXPECT_EQ(std::string(documentPayload["sub"].GetString()), apiKey);
-  EXPECT_EQ(documentPayload["iat"].GetString(), std::to_string(timestamp));
+  EXPECT_EQ(std::string(documentPayload["iat"].GetString()), std::to_string(timestamp));
 }
 
 TEST_F(ExecutionManagementServiceErisxTest, signRequest) {

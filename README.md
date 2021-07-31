@@ -884,7 +884,7 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 * Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
 * Only enable the services and exchanges that you need.
 * Use FIX API instead of REST API.
-* Handle events in "batching" mode ([here](#handle-events-in-immediate-vs-batching-mode)) if your application (e.g. market data archiver) isn't latency sensitive.
+* Handle events in ["batching" mode](#handle-events-in-immediate-vs-batching-mode) if your application (e.g. market data archiver) isn't latency sensitive.
 
 ## Contributing
 * (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
