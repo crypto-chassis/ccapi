@@ -301,7 +301,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       const rj::Value& data = this->isDerivatives ? document["o"] : document;
       std::string executionType = data["x"].GetString();
       std::string instrument = data["s"].GetString();
-      if (instrumentSet.empty() || instrumentSet.find(UtilString::toUpper(instrument)) != instrumentSet.end()|| instrumentSet.find(UtilString::toLower(instrument)) != instrumentSet.end()) {
+      if (instrumentSet.empty() || instrumentSet.find(UtilString::toUpper(instrument)) != instrumentSet.end() ||
+          instrumentSet.find(UtilString::toLower(instrument)) != instrumentSet.end()) {
         message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
         if (executionType == "TRADE" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);

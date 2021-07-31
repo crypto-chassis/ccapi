@@ -26,9 +26,9 @@ class MarketDataServiceKucoin : public MarketDataService {
 
  private:
 #endif
-bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-  return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
-}
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+    return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
+  }
   void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -233,8 +233,10 @@ bool doesHttpBodyContainError(const Request& request, const std::string& body) o
               std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
           this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
               std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
-          if (this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]<=this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]){
-            this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]=this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]-1;
+          if (this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
+              this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
+            this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+                this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
           }
         } else if (type == "pong") {
           auto now = UtilTime::now();

@@ -6,18 +6,18 @@ Logger* Logger::logger = nullptr;  // This line is needed.
 using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
 using ::ccapi::CsvWriter;
+using ::ccapi::Event;
 using ::ccapi::Logger;
+using ::ccapi::Queue;
 using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::SpotMarketMakingEventHandler;
 using ::ccapi::Subscription;
+using ::ccapi::UtilString;
 using ::ccapi::UtilSystem;
 using ::ccapi::UtilTime;
-using ::ccapi::UtilString;
-using ::ccapi::Queue;
-using ::ccapi::Event;
 int main(int argc, char** argv) {
   AppLogger appLogger;
   CcapiLogger ccapiLogger(&appLogger);
@@ -93,26 +93,26 @@ int main(int argc, char** argv) {
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  if (exchange == "kraken"){
+  if (exchange == "kraken") {
     Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");
     request.appendParam({
         {"HTTP_METHOD", "GET"},
         {"HTTP_PATH", "/0/public/AssetPairs"},
-        {"HTTP_QUERY_STRING", "pair="+instrumentRest},
+        {"HTTP_QUERY_STRING", "pair=" + instrumentRest},
     });
     Queue<Event> eventQueue;
     session.sendRequest(request, &eventQueue);
     std::vector<Event> eventList = eventQueue.purge();
-    for (const auto& event: eventList){
-      if (event.getType()==Event::Type::RESPONSE){
+    for (const auto& event : eventList) {
+      if (event.getType() == Event::Type::RESPONSE) {
         rj::Document document;
         document.Parse(event.getMessageList().at(0).getElementList().at(0).getValue("HTTP_BODY").c_str());
-        eventHandler.instrumentWebsocket= document["result"][instrumentRest.c_str()]["wsname"].GetString();
+        eventHandler.instrumentWebsocket = document["result"][instrumentRest.c_str()]["wsname"].GetString();
         break;
       }
     }
-  } else if (exchange.rfind("binance", 0) == 0){
-    eventHandler.instrumentWebsocket=UtilString::toLower(instrumentRest);
+  } else if (exchange.rfind("binance", 0) == 0) {
+    eventHandler.instrumentWebsocket = UtilString::toLower(instrumentRest);
   }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
   session.sendRequest(request);

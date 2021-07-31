@@ -11,8 +11,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
         privateTradeCsvWriter(privateTradeCsvWriter),
         orderUpdateCsvWriter(orderUpdateCsvWriter),
         accountBalanceCsvWriter(accountBalanceCsvWriter) {
-          this->totalBalancePeak=0;
-        }
+    this->totalBalancePeak = 0;
+  }
   bool processEvent(const Event& event, Session* session) override {
     // this->appLogger->log("Received an event: " + event.toString());
     auto eventType = event.getType();
@@ -164,14 +164,14 @@ class SpotMarketMakingEventHandler : public EventHandler {
     }
     if (this->baseBalance > 0 || this->quoteBalance > 0) {
       double totalBalance = this->baseBalance * midPrice + this->quoteBalance;
-      if (totalBalance>this->totalBalancePeak){
-        this->totalBalancePeak=totalBalance;
+      if (totalBalance > this->totalBalancePeak) {
+        this->totalBalancePeak = totalBalance;
       }
-      if ((this->totalBalancePeak-totalBalance)/this->totalBalancePeak>this->killSwitchMaximumDrawdown){
+      if ((this->totalBalancePeak - totalBalance) / this->totalBalancePeak > this->killSwitchMaximumDrawdown) {
         this->appLogger->log("Kill switch triggered - Maximum Drawdown. Exit.");
         std::exit(EXIT_SUCCESS);
       }
-      double r = this->baseBalance* midPrice  / totalBalance;
+      double r = this->baseBalance * midPrice / totalBalance;
       std::string orderQuantity =
           AppUtil::roundInput((this->quoteBalance / midPrice + this->baseBalance) * this->orderQuantityProportion, this->orderQuantityIncrement, false);
       if (r < this->inventoryBasePortionTarget) {
@@ -204,7 +204,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   }
   std::string exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement, orderQuantityIncrement;
   double halfSpreadMinimum, halfSpreadMaximum, inventoryBasePortionTarget, baseBalance, quoteBalance, baseAvailableBalanceProportion,
-      quoteAvailableBalanceProportion, orderQuantityProportion, totalBalancePeak,killSwitchMaximumDrawdown;
+      quoteAvailableBalanceProportion, orderQuantityProportion, totalBalancePeak, killSwitchMaximumDrawdown;
   int orderRefreshIntervalSeconds, orderRefreshIntervalOffsetSeconds, accountBalanceRefreshWaitSeconds;
   std::string bestBidPrice, bestAskPrice;
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}};

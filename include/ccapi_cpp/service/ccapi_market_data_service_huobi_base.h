@@ -205,8 +205,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
-          if (this->isDerivatives){
-            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::to_string(std::stoi(x["amount"].GetString())/2)});
+          if (this->isDerivatives) {
+            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::to_string(std::stoi(x["amount"].GetString()) / 2)});
           } else {
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["amount"].GetString()))});
           }
@@ -297,9 +297,9 @@ class MarketDataServiceHuobiBase : public MarketDataService {
             marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(ts));
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
-            if (this->isDerivatives){
-              dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::to_string(std::stoi(x["amount"].GetString())/2)});
-            }else {
+            if (this->isDerivatives) {
+              dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, std::to_string(std::stoi(x["amount"].GetString()) / 2)});
+            } else {
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["amount"].GetString()))});
             }
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[this->isDerivatives ? "id" : "trade-id"].GetString())});

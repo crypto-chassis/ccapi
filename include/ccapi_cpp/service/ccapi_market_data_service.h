@@ -208,12 +208,14 @@ class MarketDataService : public Service {
     auto it = snapshot.find(price);
     if (it == snapshot.end()) {
       if ((!sizeMayHaveTrailingZero && size != "0") ||
-          (sizeMayHaveTrailingZero && ((size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0") || (size.find('.') == std::string::npos && size != "0")))) {
+          (sizeMayHaveTrailingZero && ((size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0") ||
+                                       (size.find('.') == std::string::npos && size != "0")))) {
         snapshot.emplace(std::move(price), std::move(size));
       }
     } else {
       if ((!sizeMayHaveTrailingZero && size != "0") ||
-          (sizeMayHaveTrailingZero && ((size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0") || (size.find('.') == std::string::npos && size != "0")))) {
+          (sizeMayHaveTrailingZero && ((size.find('.') != std::string::npos && UtilString::rtrim(UtilString::rtrim(size, "0"), ".") != "0") ||
+                                       (size.find('.') == std::string::npos && size != "0")))) {
         it->second = std::move(size);
       } else {
         snapshot.erase(price);
