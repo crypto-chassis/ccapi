@@ -227,7 +227,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string statusCodeStr = std::to_string(statusCode);
     CCAPI_LOGGER_ERROR("request = " + toString(request) + ", statusCode = " + statusCodeStr + ", errorMessage = " + errorMessage);
     Event event;
-    event.setType(Event::Type::REQUEST_STATUS);
+    event.setType(Event::Type::RESPONSE);
     Message message;
     auto now = UtilTime::now();
     message.setTimeReceived(now);
@@ -717,10 +717,10 @@ class Service : public std::enable_shared_from_this<Service> {
       queryString += "&";
     }
   }
-  virtual std::string convertNumberToStringInJson(const std::string& jsonString) {
-    auto quotedTextMessage = std::regex_replace(jsonString, this->convertNumberToStringInJsonRegex, this->convertNumberToStringInJsonRewrite);
-    return quotedTextMessage;
-  }
+  // virtual std::string convertNumberToStringInJson(const std::string& jsonString) {
+  //   auto quotedTextMessage = std::regex_replace(jsonString, this->convertNumberToStringInJsonRegex, this->convertNumberToStringInJsonRewrite);
+  //   return quotedTextMessage;
+  // }
   void setupCredential(std::vector<std::string> nameList) {
     for (const auto& x : nameList) {
       if (this->sessionConfigs.getCredential().find(x) != this->sessionConfigs.getCredential().end()) {
@@ -1079,8 +1079,8 @@ class Service : public std::enable_shared_from_this<Service> {
   bool enableCheckPingPongWebsocketProtocolLevel{};
   bool enableCheckPingPongWebsocketApplicationLevel{};
   std::map<Request::Operation, Message::Type> requestOperationToMessageTypeMap;
-  std::regex convertNumberToStringInJsonRegex{"(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"};
-  std::string convertNumberToStringInJsonRewrite{"$1\"$2\""};
+  // std::regex convertNumberToStringInJsonRegex{"(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"};
+  // std::string convertNumberToStringInJsonRewrite{"$1\"$2\""};
   bool needDecompressWebsocketMessage{};
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) && (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || \
                                                   defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)) || \

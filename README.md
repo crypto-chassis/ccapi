@@ -344,10 +344,11 @@ Subscription subscription("coinbase", "BTC-USD", "TRADE", "CONFLATE_INTERVAL_MIL
 
 Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (should be url-encoded), `HTTP_BODY`.
 ```
-Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "binance", "", "Check Server Time");
+Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");
 request.appendParam({
     {"HTTP_METHOD", "GET"},
-    {"HTTP_PATH", "/api/v3/time"},
+    {"HTTP_PATH", "/0/public/AssetPairs"},
+    {"HTTP_QUERY_STRING", "pair=XXBTZUSD"},
 });
 ```
 
@@ -882,6 +883,8 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 * Enable link time optimization (e.g. in CMakeLists.txt `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)` before a target is created). Note that link time optimization is only applicable to static linking.
 * Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
 * Only enable the services and exchanges that you need.
+* Use FIX API instead of REST API.
+* Handle events in ["batching" mode](#handle-events-in-immediate-vs-batching-mode) if your application (e.g. market data archiver) isn't latency sensitive.
 
 ## Contributing
 * (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.

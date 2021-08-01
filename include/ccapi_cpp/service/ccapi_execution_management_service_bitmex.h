@@ -241,11 +241,11 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     }
     return elementList;
   }
-  std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-    return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
-  }
+  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
+  //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
+  // }
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
@@ -431,11 +431,11 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-    ExecutionManagementService::onTextMessage(hdl, quotedTextMessage, timeReceived);
-  }
+  // void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
+  //   ExecutionManagementService::onTextMessage(hdl, quotedTextMessage, timeReceived);
+  // }
 };
 } /* namespace ccapi */
 #endif

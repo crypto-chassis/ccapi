@@ -32,6 +32,7 @@
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX_US)
 #
 # add_compile_definitions(CCAPI_ENABLE_LOG_TRACE)
 #

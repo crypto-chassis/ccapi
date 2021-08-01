@@ -17,7 +17,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/api/orders";
     this->getAccountsTarget = "/api/subaccounts";
     this->getAccountBalancesTarget = "/api/wallet/balances";
-    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceFtxBase() {}
@@ -224,11 +224,11 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     }
     return elementList;
   }
-  std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-    return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
-  }
+  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
+  //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
+  // }
   Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
     {
@@ -380,11 +380,11 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-    ExecutionManagementService::onTextMessage(hdl, quotedTextMessage, timeReceived);
-  }
+  // void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
+  //   ExecutionManagementService::onTextMessage(hdl, quotedTextMessage, timeReceived);
+  // }
   std::string apiSubaccountName;
   std::string ftx;
 };

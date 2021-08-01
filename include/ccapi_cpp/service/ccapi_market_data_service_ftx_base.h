@@ -12,7 +12,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
     this->shouldAlignSnapshot = true;
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
     this->getInstrumentTarget = "/api/markets/{market_name}";
-    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceFtxBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -84,9 +84,9 @@ class MarketDataServiceFtxBase : public MarketDataService {
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    document.Parse(quotedTextMessage.c_str());
+    // const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+    // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
     if (type == "update") {

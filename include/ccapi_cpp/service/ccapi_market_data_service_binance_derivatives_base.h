@@ -47,7 +47,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
     switch (request.getOperation()) {
       case Request::Operation::GET_INSTRUMENT: {
         rj::Document document;
-        document.Parse(textMessage.c_str());
+        document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));

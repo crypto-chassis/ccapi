@@ -27,6 +27,7 @@ class MarketDataServiceKraken : public MarketDataService {
 
  private:
 #endif
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("error":[])") == std::string::npos; }
   void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -109,7 +110,7 @@ class MarketDataServiceKraken : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsArray() && document.Size() >= 4 && document.Size() <= 5) {
       auto documentSize = document.Size();
       auto channelNameWithSuffix = std::string(document[documentSize - 2].GetString());
@@ -229,7 +230,7 @@ class MarketDataServiceKraken : public MarketDataService {
           std::vector<std::string> correlationIdList;
           std::string exchangeSubscriptionId = document["subscription"]["name"].GetString();
           if (exchangeSubscriptionId == CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK) {
-            exchangeSubscriptionId += "-" + std::to_string(document["subscription"]["depth"].GetInt());
+            exchangeSubscriptionId += "-" + std::string(document["subscription"]["depth"].GetString());
           }
           std::string symbolId = document["pair"].GetString();
           exchangeSubscriptionId += "|" + symbolId;
