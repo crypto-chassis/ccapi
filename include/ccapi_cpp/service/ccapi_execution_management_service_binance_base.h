@@ -202,7 +202,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
             std::string urlWebsocketBase;
             try {
               rj::Document document;
-              document.Parse(body.c_str());
+              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               std::string listenKey = document["listenKey"].GetString();
               std::string url = that->baseUrl + "/" + listenKey;
               thisWsConnection.url = url;
@@ -301,18 +301,19 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       const rj::Value& data = this->isDerivatives ? document["o"] : document;
       std::string executionType = data["x"].GetString();
       std::string instrument = data["s"].GetString();
-      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-        message.setTime(TimePoint(std::chrono::milliseconds((this->isDerivatives ? document : data)["E"].GetInt64())));
+      if (instrumentSet.empty() || instrumentSet.find(UtilString::toUpper(instrument)) != instrumentSet.end() ||
+          instrumentSet.find(UtilString::toLower(instrument)) != instrumentSet.end()) {
+        message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
         if (executionType == "TRADE" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
           std::vector<Element> elementList;
           Element element;
-          element.insert(CCAPI_TRADE_ID, std::to_string(data["t"].GetInt64()));
+          element.insert(CCAPI_TRADE_ID, std::string(data["t"].GetString()));
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(data["L"].GetString()));
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(data["l"].GetString()));
           element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["S"].GetString()) == "BUY" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
           element.insert(CCAPI_IS_MAKER, data["m"].GetBool() ? "1" : "0");
-          element.insert(CCAPI_EM_ORDER_ID, std::to_string(data["i"].GetInt64()));
+          element.insert(CCAPI_EM_ORDER_ID, std::string(data["i"].GetString()));
           element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
           {
             auto it = data.FindMember("n");

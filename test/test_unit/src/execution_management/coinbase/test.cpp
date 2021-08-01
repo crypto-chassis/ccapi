@@ -63,7 +63,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
   EXPECT_EQ(req.target(), "/orders");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["product_id"].GetString()), "BTC-USD");
   EXPECT_EQ(std::string(document["side"].GetString()), "buy");
   EXPECT_EQ(std::string(document["price"].GetString()), "0.1");
@@ -439,7 +439,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchTaker) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -479,7 +479,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchMaker) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -515,7 +515,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventReceived) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -549,7 +549,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventReceivedMarketOrder) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -581,7 +581,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventOpen) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -616,7 +616,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventDoneFilled) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -651,7 +651,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventChange) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -687,7 +687,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventActivate) {
   }
 )";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());

@@ -31,6 +31,7 @@ class MarketDataServiceOkex : public MarketDataService {
 
  private:
 #endif
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
   void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -112,7 +113,7 @@ class MarketDataServiceOkex : public MarketDataService {
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     if (textMessage != "pong") {
       rj::Document document;
-      document.Parse(textMessage.c_str());
+      document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
       if (document.IsObject() && document.HasMember("arg")) {
         const rj::Value& arg = document["arg"];
         std::string channelId = arg["channel"].GetString();
@@ -171,7 +172,7 @@ class MarketDataServiceOkex : public MarketDataService {
                 auto it = datum.FindMember("checksum");
                 if (it != datum.MemberEnd()) {
                   this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
-                      intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(it->value.GetInt())));
+                      intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoi(it->value.GetString()))));
                 }
               }
               CCAPI_LOGGER_TRACE("this->orderBookChecksumByConnectionIdSymbolIdMap = " + toString(this->orderBookChecksumByConnectionIdSymbolIdMap));
@@ -260,7 +261,7 @@ class MarketDataServiceOkex : public MarketDataService {
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {

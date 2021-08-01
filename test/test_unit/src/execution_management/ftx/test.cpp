@@ -324,7 +324,7 @@ TEST_F(ExecutionManagementServiceFtxTest, convertRequestCancelOpenOrders) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_FTX_API_KEY), "", this->timestamp);
   EXPECT_EQ(req.target().to_string(), "/api/orders");
   rj::Document document;
-  document.Parse(req.body().c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["market"].GetString()), "BTC/USD");
   verifySignature(req, this->credential.at(CCAPI_FTX_API_SECRET));
 }
@@ -511,7 +511,7 @@ TEST_F(ExecutionManagementServiceFtxTest, convertTextMessageToMessageRestGetAcco
 
 TEST_F(ExecutionManagementServiceFtxTest, createEventFills) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_FTX, "BTC-PERP", CCAPI_EM_PRIVATE_TRADE);
-  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+  std::string textMessage = R"(
     {
       "channel": "fills",
       "data": {
@@ -531,9 +531,9 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventFills) {
       },
       "type": "update"
     }
-)");
+)";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -554,7 +554,7 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventFills) {
 
 TEST_F(ExecutionManagementServiceFtxTest, createEventOrders) {
   Subscription subscription(CCAPI_EXCHANGE_NAME_FTX, "XRP-PERP", CCAPI_EM_ORDER_UPDATE);
-  std::string textMessage = this->service->convertNumberToStringInJson(R"(
+  std::string textMessage = R"(
     {
       "channel": "orders",
       "data": {
@@ -575,9 +575,9 @@ TEST_F(ExecutionManagementServiceFtxTest, createEventOrders) {
       },
       "type": "update"
     }
-)");
+)";
   rj::Document document;
-  document.Parse(textMessage.c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());

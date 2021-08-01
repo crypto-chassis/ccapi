@@ -20,7 +20,7 @@ class MarketDataServiceBitmex : public MarketDataService {
     }
     this->getRecentTradesTarget = "/api/v1/trade";
     this->getInstrumentTarget = "/api/v1/instrument";
-    this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
+    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceBitmex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -84,9 +84,9 @@ class MarketDataServiceBitmex : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (textMessage != "pong") {
       rj::Document document;
-      std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-      CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-      document.Parse(quotedTextMessage.c_str());
+      // std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+      // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+      document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
       if (document.IsObject() && document.HasMember("table")) {
         std::string channelId = document["table"].GetString();
         if (channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10 || channelId == CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE) {

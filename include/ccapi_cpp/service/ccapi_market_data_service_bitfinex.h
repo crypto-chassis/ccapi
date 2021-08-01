@@ -20,7 +20,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
     }
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
     this->getInstrumentTarget = "/v2/conf/pub:list:pair:exchange";
-    this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    // this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceBitfinex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -73,9 +73,9 @@ class MarketDataServiceBitfinex : public MarketDataService {
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    document.Parse(quotedTextMessage.c_str());
+    // std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+    // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     CCAPI_LOGGER_TRACE("document.IsObject() = " + toString(document.IsObject()));
     if (document.IsArray() && document.Size() >= 1) {
       auto exchangeSubscriptionId = std::string(document[0].GetString());
@@ -436,15 +436,15 @@ class MarketDataServiceBitfinex : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  }
+  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
+  // }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {

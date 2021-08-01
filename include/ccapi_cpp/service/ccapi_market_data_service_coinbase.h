@@ -68,7 +68,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
     CCAPI_LOGGER_TRACE("type = " + type);
     if (type == "l2update") {
@@ -103,7 +103,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       MarketDataMessage::TypeForDataPoint dataPoint;
       dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(document["price"].GetString()))});
       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(document["size"].GetString()))});
-      dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(document["trade_id"].GetInt64())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(document["trade_id"].GetString())});
       dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "buy" ? "1" : "0"});
       marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
       marketDataMessageList.push_back(std::move(marketDataMessage));
@@ -209,7 +209,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -219,7 +219,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["size"].GetString()))});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::to_string(x["trade_id"].GetInt64())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["trade_id"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "buy" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));

@@ -36,6 +36,16 @@ class Queue {
     std::swap(p, this->queue);
     return p;
   }
+  void removeAll(std::vector<T>& c) {
+    std::lock_guard<std::mutex> lock(this->m);
+    if (c.empty()) {
+      c = std::move(this->queue);
+    } else {
+      c.reserve(c.size() + this->queue.size());
+      std::move(std::begin(this->queue), std::end(this->queue), std::back_inserter(c));
+    }
+    this->queue.clear();
+  }
   size_t size() const {
     std::lock_guard<std::mutex> lock(this->m);
     return this->queue.size();

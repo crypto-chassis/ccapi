@@ -26,6 +26,9 @@ class MarketDataServiceKucoin : public MarketDataService {
 
  private:
 #endif
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+    return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
+  }
   void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -61,7 +64,7 @@ class MarketDataServiceKucoin : public MarketDataService {
             std::string urlWebsocketBase;
             try {
               rj::Document document;
-              document.Parse(body.c_str());
+              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               const rj::Value& instanceServer = document["data"]["instanceServers"][0];
               urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
               urlWebsocketBase += "?token=";
@@ -73,8 +76,8 @@ class MarketDataServiceKucoin : public MarketDataService {
                 that->subscriptionStatusByInstrumentGroupInstrumentMap[thisWsConnection.group][instrument] = Subscription::Status::SUBSCRIBING;
               }
               that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                  {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
-                  {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
+                  {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},
+                  {"pingTimeout", std::string(instanceServer["pingInterval"].GetString())},
               });
               CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
               return;
@@ -144,7 +147,7 @@ class MarketDataServiceKucoin : public MarketDataService {
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsObject()) {
       auto it = document.FindMember("type");
       if (it != document.MemberEnd()) {
@@ -160,7 +163,7 @@ class MarketDataServiceKucoin : public MarketDataService {
             marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                               ? MarketDataMessage::RecapType::NONE
                                               : MarketDataMessage::RecapType::SOLICITED;
-            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(data["time"].GetInt64()));
+            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(data["time"].GetString())));
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             {
               MarketDataMessage::TypeForDataPoint dataPoint;
@@ -186,7 +189,7 @@ class MarketDataServiceKucoin : public MarketDataService {
             marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                               ? MarketDataMessage::RecapType::NONE
                                               : MarketDataMessage::RecapType::SOLICITED;
-            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(data["timestamp"].GetInt64()));
+            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(data["timestamp"].GetString())));
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
             const std::map<MarketDataMessage::DataType, const char*> bidAsk{{MarketDataMessage::DataType::BID, "bids"},
@@ -230,6 +233,11 @@ class MarketDataServiceKucoin : public MarketDataService {
               std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
           this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
               std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
+          if (this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
+              this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
+            this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+                this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
+          }
         } else if (type == "pong") {
           auto now = UtilTime::now();
           this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = now;
@@ -305,15 +313,15 @@ class MarketDataServiceKucoin : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
-    const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-    MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  }
+  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
+  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
+  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
+  // }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document["data"].GetArray()) {

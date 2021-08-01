@@ -73,7 +73,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
             std::string urlWebsocketBase;
             try {
               rj::Document document;
-              document.Parse(body.c_str());
+              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               const rj::Value& instanceServer = document["data"]["instanceServers"][0];
               urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
               urlWebsocketBase += "?token=";
@@ -81,8 +81,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
               thisWsConnection.url = urlWebsocketBase;
               that->connect(thisWsConnection);
               that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                  {"pingInterval", std::to_string(instanceServer["pingInterval"].GetInt())},
-                  {"pingTimeout", std::to_string(instanceServer["pingTimeout"].GetInt())},
+                  {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},
+                  {"pingTimeout", std::string(instanceServer["pingTimeout"].GetString())},
               });
               return;
             } catch (const std::runtime_error& e) {
@@ -333,7 +333,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
-    document.Parse(textMessage.c_str());
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     Event event = this->createEvent(hdl, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event);
@@ -356,7 +356,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         const rj::Value& data = document["data"];
         std::string instrument = data["symbol"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-          std::string ts = std::to_string(data["ts"].GetInt64());
+          std::string ts = std::string(data["ts"].GetString());
           message.setTime(UtilTime::makeTimePoint({std::stoll(ts.substr(0, ts.length() - 9)), std::stoll(ts.substr(ts.length() - 9))}));
           std::string dataType = data["type"].GetString();
           if (dataType == "match" && (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end())) {
