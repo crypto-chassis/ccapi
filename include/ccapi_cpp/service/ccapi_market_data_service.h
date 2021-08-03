@@ -181,8 +181,9 @@ class MarketDataService : public Service {
         }
         if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end() ||
             marketDataMessage.data.find(MarketDataMessage::DataType::AGG_TRADE) != marketDataMessage.data.end()) {
+          bool isSolicited = marketDataMessage.recapType == MarketDataMessage::RecapType::SOLICITED;
           this->processTrade(wsConnection, channelId, symbolId, event, marketDataMessage.tp, timeReceived, marketDataMessage.data, field, optionMap,
-                             correlationIdList);
+                             correlationIdList, isSolicited);
         }
       } else {
         CCAPI_LOGGER_WARN("websocket event type is unknown!");
@@ -687,7 +688,7 @@ class MarketDataService : public Service {
   }
   void processTrade(const WsConnection& wsConnection, const std::string& channelId, const std::string& symbolId, Event& event, const TimePoint& tp,
                     const TimePoint& timeReceived, MarketDataMessage::TypeForData& input, const std::string& field,
-                    const std::map<std::string, std::string>& optionMap, const std::vector<std::string>& correlationIdList) {
+                    const std::map<std::string, std::string>& optionMap, const std::vector<std::string>& correlationIdList, bool isSolicited) {
     CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
     CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
     bool shouldConflate = optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
@@ -727,7 +728,7 @@ class MarketDataService : public Service {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(field == CCAPI_TRADE ? Message::Type::MARKET_DATA_EVENTS_TRADE : Message::Type::MARKET_DATA_EVENTS_AGG_TRADE);
-        message.setRecapType(Message::RecapType::NONE);
+        message.setRecapType(isSolicited ? Message::RecapType::SOLICITED : Message::RecapType::NONE);
         TimePoint time =
             shouldConflate ? this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) : conflateTp;
         message.setTime(time);
