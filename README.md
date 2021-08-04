@@ -1,7 +1,3 @@
-## Small Breaking Changes (v5.0.0)
-* `Message::Type::MARKET_DATA_EVENTS` has been replaced by `Message::Type::MARKET_DATA_EVENTS_MARKET_DEPTH`, `Message::Type::MARKET_DATA_EVENTS_TRADE`, and `Message::Type::MARKET_DATA_EVENTS_AGG_TRADE` to accommodate for Binance.
-* Exchange name "binance-futures" has been replaced by "binance-usds-futures" and "binance-coin-futures".
-
 ## Small Breaking Changes (v5.2.0)
 * "Normalize instrument name" (https://github.com/crypto-chassis/ccapi/tree/v5.1.0#normalize-instrument-name) has been removed to improve speed.
 
