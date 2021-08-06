@@ -90,6 +90,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_FTX_US
 #define CCAPI_EXCHANGE_NAME_FTX_US "ftx-us"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_DERIBIT
+#define CCAPI_EXCHANGE_NAME_DERIBIT "deribit"
+#endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -209,6 +212,10 @@
 #define CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH50 "/spotMarket/level2Depth50"
 #define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TRADES "trades"
 #define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS "orderbook"
+#define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES "trades.{instrument_name}.{interval}"
+#define CCAPI_WEBSOCKET_DERIBIT_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
+#define CCAPI_WEBSOCKET_DERIBIT_BOOK_TBT "book.{instrument_name}.{interval}"
+#define CCAPI_WEBSOCKET_DERIBIT_QUOTE "quote.{instrument_name}"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif
@@ -492,6 +499,9 @@
 #ifndef CCAPI_FTX_US_URL_REST_BASE
 #define CCAPI_FTX_US_URL_REST_BASE "https://ftx.us"
 #endif
+#ifndef CCAPI_DERIBIT_URL_REST_BASE
+#define CCAPI_DERIBIT_URL_REST_BASE "https://www.deribit.com"
+#endif
 // end: exchange REST urls
 
 // start: exchange WS urls
@@ -564,6 +574,9 @@
 #ifndef CCAPI_FTX_US_URL_WS_BASE
 #define CCAPI_FTX_US_URL_WS_BASE "wss://ftx.us"
 #endif
+#ifndef CCAPI_DERIBIT_URL_WS_BASE
+#define CCAPI_DERIBIT_URL_WS_BASE "wss://www.deribit.com"
+#endif
 // end: exchange WS urls
 
 // start: exchange FIX urls
@@ -581,6 +594,9 @@
 #endif
 #ifndef CCAPI_FTX_US_URL_FIX_BASE
 #define CCAPI_FTX_US_URL_FIX_BASE "tcp+ssl://fix.ftx.us:4363"
+#endif
+#ifndef CCAPI_DERIBIT_URL_FIX_BASE
+#define CCAPI_DERIBIT_URL_FIX_BASE "www.deribit.com:9883"
 #endif
 // end: exchange FIX urls
 
@@ -702,6 +718,12 @@
 #ifndef CCAPI_FTX_US_API_SUBACCOUNT
 #define CCAPI_FTX_US_API_SUBACCOUNT "FTX_US_API_SUBACCOUNT"
 #endif
+#ifndef CCAPI_DERIBIT_API_KEY
+#define CCAPI_DERIBIT_API_KEY "DERIBIT_API_KEY"
+#endif
+#ifndef CCAPI_DERIBIT_API_SECRET
+#define CCAPI_DERIBIT_API_SECRET "DERIBIT_API_SECRET"
+#endif
 // end: exchange API credentials
 
 #define CCAPI_HTTP_PORT_DEFAULT "80"
@@ -727,5 +749,8 @@
 #endif
 #ifndef CCAPI_FIX_PROTOCOL_VERSION_FTX_US
 #define CCAPI_FIX_PROTOCOL_VERSION_FTX_US "FIX.4.2"
+#endif
+#ifndef CCAPI_FIX_PROTOCOL_VERSION_DERIBIT
+#define CCAPI_FIX_PROTOCOL_VERSION_DERIBIT "FIX.4.4"
 #endif
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_MACRO_H_

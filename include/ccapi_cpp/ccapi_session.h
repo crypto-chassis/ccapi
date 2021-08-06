@@ -58,6 +58,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
 #include "ccapi_cpp/service/ccapi_market_data_service_ftx_us.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
+#include "ccapi_cpp/service/ccapi_market_data_service_deribit.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -108,6 +111,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
 #include "ccapi_cpp/service/ccapi_execution_management_service_ftx_us.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
+#include "ccapi_cpp/service/ccapi_execution_management_service_deribit.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -124,6 +130,9 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
 #include "ccapi_cpp/service/ccapi_fix_service_ftx_us.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
+#include "ccapi_cpp/service/ccapi_fix_service_deribit.h"
 #endif
 #endif
 // end: enable exchanges for FIX
@@ -250,6 +259,10 @@ class Session CCAPI_FINAL {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_FTX_US] =
         std::make_shared<MarketDataServiceFtxUs>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_DERIBIT] =
+        std::make_shared<MarketDataServiceDeribit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -312,6 +325,10 @@ class Session CCAPI_FINAL {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX_US] =
         std::make_shared<ExecutionManagementServiceFtxUs>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_DERIBIT] =
+        std::make_shared<ExecutionManagementServiceDeribit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -329,6 +346,10 @@ class Session CCAPI_FINAL {
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_FTX_US] =
         std::make_shared<FixServiceFtxUs>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
+    this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_DERIBIT] =
+        std::make_shared<FixServiceDeribit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
     for (const auto& x : this->serviceByServiceNameExchangeMap) {

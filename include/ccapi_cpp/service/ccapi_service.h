@@ -847,8 +847,8 @@ class Service : public std::enable_shared_from_this<Service> {
       }
       this->pongTimeOutTimerByMethodByConnectionIdMap.erase(wsConnection.id);
     }
-    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
-    this->connectNumRetryOnFailByConnectionUrlMap.erase(urlBase);
+    // auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    // this->connectNumRetryOnFailByConnectionUrlMap.erase(urlBase);
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(wsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
       this->connectRetryOnFailTimerByConnectionIdMap.at(wsConnection.id)->cancel();
       this->connectRetryOnFailTimerByConnectionIdMap.erase(wsConnection.id);
