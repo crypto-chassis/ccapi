@@ -213,9 +213,9 @@
 #define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TRADES "trades"
 #define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS "orderbook"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES "trades.{instrument_name}.{interval}"
-#define CCAPI_WEBSOCKET_DERIBIT_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
-#define CCAPI_WEBSOCKET_DERIBIT_BOOK_TBT "book.{instrument_name}.{interval}"
-#define CCAPI_WEBSOCKET_DERIBIT_QUOTE "quote.{instrument_name}"
+#define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
+#define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT "book.{instrument_name}.{interval}"
+#define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_QUOTE "quote.{instrument_name}"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif

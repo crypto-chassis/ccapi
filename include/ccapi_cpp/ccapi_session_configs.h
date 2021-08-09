@@ -106,7 +106,7 @@ class SessionConfigs CCAPI_FINAL {
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapDeribit = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_DERIBIT_BOOK_TBT},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT},
     };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);

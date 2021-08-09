@@ -74,30 +74,6 @@ class MarketDataServiceGemini : public MarketDataService {
     this->eventHandler(event);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  // void onFail_(WsConnection& wsConnection) override {
-  // std::vector<std::string> correlationIdList;
-  // for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
-  //   auto channelId = subscriptionListByChannelIdSymbolId.first;
-  //   for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
-  //     auto symbolId = subscriptionListByInstrument.first;
-  //     std::vector<std::string> correlationIdList_2 =
-  //     this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-  //     correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-  //   }
-  // }
-  //   auto timeReceived = UtilTime::now();
-  //   Event event;
-  //   event.setType(Event::Type::SUBSCRIPTION_STATUS);
-  //   std::vector<Message> messageList;
-  //   Message message;
-  //   message.setTimeReceived(timeReceived);
-  //   // message.setCorrelationIdList(correlationIdList);
-  //   message.setType(Message::Type::SUBSCRIPTION_FAILURE);
-  //   messageList.push_back(std::move(message));
-  //   event.setMessageList(messageList);
-  //   this->eventHandler(event);
-  //   MarketDataService::onFail_(wsConnection);
-  // }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
