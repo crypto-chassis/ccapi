@@ -53,7 +53,7 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us.
+  * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit.
   * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us.
   * FIX: coinbase, gemini, ftx, ftx-us.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
