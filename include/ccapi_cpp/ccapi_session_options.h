@@ -35,12 +35,12 @@ class SessionOptions CCAPI_FINAL {
   bool enableCheckPingPongWebsocketProtocolLevel{true};     // used to check ping-pong health for exchange connections on websocket protocol level
   bool enableCheckPingPongWebsocketApplicationLevel{true};  // used to check ping-pong health for exchange connections on websocket application level
   bool enableCheckHeartbeatFix{true};                       // used to check heartbeat health for exchange connections on FIX
-  long pingWebsocketProtocolLevelIntervalMilliSeconds{15000};
-  long pongWebsocketProtocolLevelTimeoutMilliSeconds{10000};  // should be less than pingWebsocketProtocolLevelIntervalMilliSeconds
-  long pingWebsocketApplicationLevelIntervalMilliSeconds{15000};
-  long pongWebsocketApplicationLevelTimeoutMilliSeconds{10000};  // should be less than pingWebsocketApplicationLevelIntervalMilliSeconds
-  long heartbeatFixIntervalMilliSeconds{15000};
-  long heartbeatFixTimeoutMilliSeconds{10000};  // should be less than heartbeatFixIntervalMilliSeconds
+  long pingWebsocketProtocolLevelIntervalMilliSeconds{60000};
+  long pongWebsocketProtocolLevelTimeoutMilliSeconds{30000};  // should be less than pingWebsocketProtocolLevelIntervalMilliSeconds
+  long pingWebsocketApplicationLevelIntervalMilliSeconds{60000};
+  long pongWebsocketApplicationLevelTimeoutMilliSeconds{30000};  // should be less than pingWebsocketApplicationLevelIntervalMilliSeconds
+  long heartbeatFixIntervalMilliSeconds{60000};
+  long heartbeatFixTimeoutMilliSeconds{30000};  // should be less than heartbeatFixIntervalMilliSeconds
   int maxEventQueueSize{0};                     // if set to a positive integer, the event queue will throw an exception when overflown
   int httpMaxNumRetry{1};
   int httpMaxNumRedirect{1};
