@@ -34,9 +34,10 @@ class MarketDataServiceDeribit : public MarketDataService {
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
-    this->appendParam(document, allocator, ++this->requestId, "public/set_heartbeat",
+    auto now = UtilTime::now();
+    this->appendParam(document, allocator, std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count(), "public/set_heartbeat",
                       {
-                          {"interval", std::to_string(this->sessionOptions.pingWebsocketApplicationLevelIntervalMilliSeconds / 1000)},
+                          {"interval", "10"},
                       });
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -73,8 +74,10 @@ class MarketDataServiceDeribit : public MarketDataService {
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("jsonrpc", rj::Value("2.0").Move(), allocator);
     document.AddMember("method", rj::Value("public/subscribe").Move(), allocator);
-    document.AddMember("id", rj::Value(++this->requestId).Move(), allocator);
-    this->subscriptionJsonrpcIdSetByConnectionIdMap[wsConnection.id].insert(this->requestId);
+    auto now = UtilTime::now();
+    int64_t requestId = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+    document.AddMember("id", rj::Value(requestId).Move(), allocator);
+    this->subscriptionJsonrpcIdSetByConnectionIdMap[wsConnection.id].insert(requestId);
     rj::Value channels(rj::kArrayType);
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
@@ -247,7 +250,8 @@ class MarketDataServiceDeribit : public MarketDataService {
           rj::Document document;
           document.SetObject();
           rj::Document::AllocatorType& allocator = document.GetAllocator();
-          this->appendParam(document, allocator, ++this->requestId, "/public/test", {});
+          auto now = UtilTime::now();
+          this->appendParam(document, allocator, std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count(), "/public/test", {});
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
           document.Accept(writer);
@@ -263,7 +267,7 @@ class MarketDataServiceDeribit : public MarketDataService {
     } else {
       auto it = document.FindMember("id");
       if (it != document.MemberEnd()) {
-        int id = std::stoi(it->value.GetString());
+        int id = std::stoll(it->value.GetString());
         if (this->subscriptionJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).find(id) !=
             this->subscriptionJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).end()) {
           if (document["result"].GetArray().Empty()) {
@@ -311,11 +315,12 @@ class MarketDataServiceDeribit : public MarketDataService {
             event.setMessageList(messageList);
           }
         }
+        this->subscriptionJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).erase(id);
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int requestId, const std::string& method,
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& method,
                    const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
     document.AddMember("jsonrpc", rj::Value("2.0").Move(), allocator);
     document.AddMember("id", rj::Value(requestId).Move(), allocator);
@@ -324,7 +329,13 @@ class MarketDataServiceDeribit : public MarketDataService {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
-      params.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+      if (value != "null") {
+        if (value == "true" || value == "false") {
+          params.AddMember(rj::Value(key.c_str(), allocator).Move(), value == "true", allocator);
+        } else {
+          params.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+        }
+      }
     }
     document.AddMember("params", params, allocator);
   }
@@ -333,6 +344,7 @@ class MarketDataServiceDeribit : public MarketDataService {
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
+    int64_t requestId = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PUBLIC_REQUEST: {
         MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
@@ -343,7 +355,7 @@ class MarketDataServiceDeribit : public MarketDataService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(document, allocator, ++this->requestId, this->getRecentTradesTarget, param,
+        this->appendParam(document, allocator, requestId, this->getRecentTradesTarget, param,
                           {
                               {CCAPI_LIMIT, "count"},
                           });
@@ -364,7 +376,7 @@ class MarketDataServiceDeribit : public MarketDataService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, ++this->requestId, this->getInstrumentTarget, {});
+        this->appendParam(document, allocator, requestId, this->getInstrumentTarget, {});
         this->appendSymbolId(document, allocator, symbolId);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -424,9 +436,8 @@ class MarketDataServiceDeribit : public MarketDataService {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 
-  std::map<std::string, std::set<int>> subscriptionJsonrpcIdSetByConnectionIdMap;
+  std::map<std::string, std::set<int64_t>> subscriptionJsonrpcIdSetByConnectionIdMap;
   std::string restTarget;
-  int requestId{};
 };
 } /* namespace ccapi */
 #endif
