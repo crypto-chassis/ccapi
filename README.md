@@ -40,6 +40,8 @@
       - [Set timer](#set-timer)
       - [Custom service class](#custom-service-class)
   - [Performance Tuning](#performance-tuning)
+  - [Application](#application)
+    - [Spot Market Making (Beta)](#spot-market-making-beta)
   - [Contributing](#contributing)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
