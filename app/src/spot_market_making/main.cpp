@@ -86,13 +86,16 @@ int main(int argc, char** argv) {
   eventHandler.accountBalanceRefreshWaitSeconds = UtilSystem::getEnvAsInt("ACCOUNT_BALANCE_REFRESH_WAIT_SECONDS");
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
-  if (eventHandler.exchange == "coinbase") {
+  eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
+  std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase","kucoin"};
+  if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange)!=useGetAccountsToGetAccountBalancesExchangeSet.end()) {
     eventHandler.useGetAccountsToGetAccountBalances = true;
   }
   SessionOptions sessionOptions;
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
+  // TODO(cryptochassis): come back to test kraken once its execution management is implemented
   if (exchange == "kraken") {
     Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");
     request.appendParam({

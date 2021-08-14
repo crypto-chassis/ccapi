@@ -1,7 +1,3 @@
-## Small Breaking Changes (v5.2.0)
-* "Normalize instrument name" (https://github.com/crypto-chassis/ccapi/tree/v5.1.0#normalize-instrument-name) has been removed to improve speed.
-
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -56,6 +52,7 @@
   * Market data: coinbase, gemini, kraken, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit.
   * Execution Management: coinbase, gemini, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit.
   * FIX: coinbase, gemini, ftx, ftx-us.
+* A spot market making application is also provided as an end-to-end solution for liquidity providers.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
@@ -628,7 +625,7 @@ std::vector<Event> eventList = eventQueue.purge();
 
 #### Provide API credentials for an exchange
 There are 3 ways to provide API credentials (listed with increasing priority).
-* Set the relevent environment variables (see section "exchange API credentials" in `include/ccapi_cpp/ccapi_macro.h`). Some exchanges might need additional credentials other than API keys and secrets: `COINBASE_API_PASSPHRASE`, `OKEX_API_PASSPHRASE`, `OKEX_API_X_SIMULATED_TRADING`, `KUCOIN_API_PASSPHRASE`, `KUCOIN_API_KEY_VERSION`, `FTX_API_SUBACCOUNT`.
+* Set the relevent environment variables. Some exchanges might need additional credentials other than API keys and secrets: e.g. `COINBASE_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`, `KUCOIN_API_KEY_VERSION`, `FTX_API_SUBACCOUNT`. See section "exchange API credentials" in `include/ccapi_cpp/ccapi_macro.h`.
 * Provide credentials to `SessionConfigs`.
 ```
 sessionConfigs.setCredential({
@@ -882,6 +879,22 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 * Only enable the services and exchanges that you need.
 * Use FIX API instead of REST API.
 * Handle events in ["batching" mode](#handle-events-in-immediate-vs-batching-mode) if your application (e.g. market data archiver) isn't latency sensitive.
+
+## Application
+
+### Spot Market Making (Beta)
+* The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file](app/src/spot_market_making/config.env.example) for more details.
+* Require CMake.
+  * CMake: https://cmake.org/download/.
+* Copy file `app/src/spot_market_making/user_specified_cmake_include.cmake.example` to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
+* Run the following commands.
+```
+mkdir app/build
+cd app/build
+cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
+cmake --build . -j
+```
+* The executable is `app/build/src/spot_market_making/spot_market_making`. Run it after setting relevant environment variables shown in `app/src/spot_market_making/config.env.example`. For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`.
 
 ## Contributing
 * (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
