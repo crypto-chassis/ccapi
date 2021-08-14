@@ -87,8 +87,8 @@ int main(int argc, char** argv) {
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
-  std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase","kucoin"};
-  if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange)!=useGetAccountsToGetAccountBalancesExchangeSet.end()) {
+  std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase", "kucoin"};
+  if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange) != useGetAccountsToGetAccountBalancesExchangeSet.end()) {
     eventHandler.useGetAccountsToGetAccountBalances = true;
   }
   SessionOptions sessionOptions;

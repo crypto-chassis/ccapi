@@ -71,7 +71,7 @@
 * Example CMake: example/CMakeLists.txt.
 * Require C++14 and OpenSSL.
 * Macros in the compiler command line:
-  * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of `include/ccapi_cpp/ccapi_session.h`.
+  * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of [`include/ccapi_cpp/ccapi_session.h`](include/ccapi_cpp/ccapi_session.h).
 * Include directories:
   * include.
   * dependency/websocketpp.
@@ -627,7 +627,7 @@ std::vector<Event> eventList = eventQueue.purge();
 
 #### Provide API credentials for an exchange
 There are 3 ways to provide API credentials (listed with increasing priority).
-* Set the relevent environment variables. Some exchanges might need additional credentials other than API keys and secrets: e.g. `COINBASE_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`, `KUCOIN_API_KEY_VERSION`, `FTX_API_SUBACCOUNT`. See section "exchange API credentials" in `include/ccapi_cpp/ccapi_macro.h`.
+* Set the relevent environment variables. Some exchanges might need additional credentials other than API keys and secrets: e.g. `COINBASE_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`, `KUCOIN_API_KEY_VERSION`, `FTX_API_SUBACCOUNT`. See section "exchange API credentials" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h).
 * Provide credentials to `SessionConfigs`.
 ```
 sessionConfigs.setCredential({
@@ -650,7 +650,7 @@ Subscription subscription("coinbase", "BTC-USD", "ORDER_UPDATE", "", "", {
 ```
 
 #### Override exchange urls
-See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in `include/ccapi_cpp/ccapi_macro.h`. This can be useful if you need to connect to test accounts (e.g. https://docs.pro.coinbase.com/#sandbox).
+See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). This can be useful if you need to connect to test accounts (e.g. https://docs.pro.coinbase.com/#sandbox).
 
 #### Complex request parameters
 Please follow the exchange's API documentations: e.g. https://github.com/binance-us/binance-official-api-docs/blob/master/rest-api.md#new-order--trade.

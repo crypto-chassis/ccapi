@@ -14,7 +14,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
     this->totalBalancePeak = 0;
   }
   bool processEvent(const Event& event, Session* session) override {
-    if (this->printDebug){
+    if (this->printDebug) {
       this->appLogger->log("Received an event: " + event.toStringPretty());
     }
     auto eventType = event.getType();
