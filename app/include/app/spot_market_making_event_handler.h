@@ -14,7 +14,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
     this->totalBalancePeak = 0;
   }
   bool processEvent(const Event& event, Session* session) override {
-    // this->appLogger->log("Received an event: " + event.toString());
+    if (this->printDebug) {
+      this->appLogger->log("Received an event: " + event.toStringPretty());
+    }
     auto eventType = event.getType();
     std::string output("Received an event: ");
     std::vector<Request> requestList;
@@ -168,7 +170,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
         this->totalBalancePeak = totalBalance;
       }
       if ((this->totalBalancePeak - totalBalance) / this->totalBalancePeak > this->killSwitchMaximumDrawdown) {
-        this->appLogger->log("Kill switch triggered - Maximum Drawdown. Exit.");
+        this->appLogger->log("Kill switch triggered - Maximum drawdown. Exit.");
         std::exit(EXIT_SUCCESS);
       }
       double r = this->baseBalance * midPrice / totalBalance;
@@ -211,7 +213,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   TimePoint cancelOpenOrdersLastTime{std::chrono::seconds{0}};
   TimePoint getAccountBalancesLastTime{std::chrono::seconds{0}};
   std::string cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
-  bool useGetAccountsToGetAccountBalances{};
+  bool useGetAccountsToGetAccountBalances{}, printDebug{};
 
  private:
   Request createRequestForCreateOrder(const std::string& side, const std::string& price, const std::string& quantity) {

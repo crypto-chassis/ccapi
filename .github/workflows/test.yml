@@ -6,11 +6,13 @@ on:
       - develop
     paths-ignore:
       - '**/README.md'
+      - '**.example'
   push:
     branches:
       - develop
     paths-ignore:
       - '**/README.md'
+      - '**.example'
 
 env:
   CMAKE_VERSION: 3.17.5
