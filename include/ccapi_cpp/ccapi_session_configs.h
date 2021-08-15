@@ -11,12 +11,12 @@ namespace ccapi {
 class SessionConfigs CCAPI_FINAL {
  public:
   explicit SessionConfigs(std::map<std::string, std::string> credential = {}) : credential(credential) {
-    this->updateExchangeInstrumentMap();
-    this->updateExchangeInstrumentMapRest();
+    this->updateExchange();
+    this->updateExchangeRest();
     this->initializUrlFixBase();
   }
-  const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const { return exchangeInstrumentMap; }
-  const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const { return exchangeInstrumentMapRest; }
+  // const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const { return exchangeInstrumentMap; }
+  // const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const { return exchangeInstrumentMapRest; }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const { return exchangeFieldMap; }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeFieldWebsocketChannelMap() const { return exchangeFieldWebsocketChannelMap; }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const { return urlWebsocketBase; }
@@ -29,7 +29,7 @@ class SessionConfigs CCAPI_FINAL {
 
  private:
 #endif
-  void updateExchangeInstrumentMap() {
+  void updateExchange() {
     std::map<std::string, std::string> fieldWebsocketChannelMapCoinbase = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_COINBASE_CHANNEL_MATCH},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2},
@@ -165,6 +165,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapDeribit) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_DERIBIT].push_back(fieldWebsocketChannel.first);
     }
+    for (auto& x : this->exchangeFieldMap) {
+      x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
+    }
     CCAPI_LOGGER_TRACE("this->exchangeFieldMap = " + toString(this->exchangeFieldMap));
     this->exchangeFieldWebsocketChannelMap = {
         {CCAPI_EXCHANGE_NAME_COINBASE, fieldWebsocketChannelMapCoinbase},
@@ -211,7 +214,7 @@ class SessionConfigs CCAPI_FINAL {
     };
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
-  void updateExchangeInstrumentMapRest() {
+  void updateExchangeRest() {
     this->urlRestBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_REST_BASE},
@@ -242,9 +245,9 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_FIX_BASE},
     };
   }
-  std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
+  // std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
   std::map<std::string, std::vector<std::string> > exchangeFieldMap;
-  std::map<std::string, std::vector<std::string> > exchangeInstrumentMapRest;
+  // std::map<std::string, std::vector<std::string> > exchangeInstrumentMapRest;
   std::map<std::string, std::map<std::string, std::string> > exchangeFieldWebsocketChannelMap;
   std::map<std::string, std::string> urlWebsocketBase;
   std::map<std::string, std::string> urlRestBase;

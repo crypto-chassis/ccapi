@@ -22,6 +22,7 @@
       - [Receive subscription trade events](#receive-subscription-trade-events)
       - [Receive subscription OHLC events at periodic intervals](#receive-subscription-ohlc-events-at-periodic-intervals)
       - [Send generic public requests](#send-generic-public-requests)
+      - [Make generic public subscriptions](#make-generic-public-subscriptions)
     - [Simple Execution Management](#simple-execution-management)
     - [Advanced Execution Management](#advanced-execution-management)
       - [Specify correlation id](#specify-correlation-id-1)
@@ -57,7 +58,7 @@
 * A spot market making application is also provided as an end-to-end solution for liquidity providers.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
-* Please contact us for general questions, issue reporting, consultative services, and/or custom engineering work. To subscribe to our mailing list, simply send us an email with subject "subscribe".
+* Please contact us for consultative services and custom engineering work. We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
 
 ## Branches
@@ -104,7 +105,7 @@
 ```
 mkdir binding/build
 cd binding/build
-cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> -DBUILD_VERSION=... -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON ..
+cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> -DBUILD_VERSION=<any-string-you-like> -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON ..
 cmake --build . -j
 cmake --install .
 ```
@@ -346,6 +347,13 @@ request.appendParam({
     {"HTTP_PATH", "/api/v3/historicalTrades"},
     {"HTTP_QUERY_STRING", "symbol=BTCUSDT"},
 });
+```
+
+#### Make generic public subscriptions
+
+Instantiate `Subscription` with empty instrument, field `GENERIC_PUBLIC_SUBSCRIPTION` and options set to be the desired websocket payload.
+```
+Subscription subscription("coinbase", "", "GENERIC_PUBLIC_SUBSCRIPTION", R"({"type":"subscribe","channels":[{"name":"status"}]})");
 ```
 
 ### Simple Execution Management
@@ -885,8 +893,8 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 ## Applications
 
 ### Spot Market Making (Beta)
-* [app/src/spot_market_making](app/src/spot_market_making)
-* The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file](app/src/spot_market_making/config.env.example) for more details.
+* Source code: [app](app)
+* The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details.
 * Require CMake.
   * CMake: https://cmake.org/download/.
 * Copy file [`app/src/spot_market_making/user_specified_cmake_include.cmake.example`](app/src/spot_market_making/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
