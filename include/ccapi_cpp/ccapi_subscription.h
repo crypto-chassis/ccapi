@@ -17,20 +17,26 @@ class Subscription CCAPI_FINAL {
     auto originalFieldSet = UtilString::splitToSet(field, ",");
     std::copy_if(originalFieldSet.begin(), originalFieldSet.end(), std::inserter(this->fieldSet, this->fieldSet.end()),
                  [](const std::string& value) { return !value.empty(); });
-    std::vector<std::string> optionList;
-    if (!options.empty()) {
-      optionList = UtilString::split(options, "&");
-    }
-    this->optionMap[CCAPI_MARKET_DEPTH_MAX] = CCAPI_MARKET_DEPTH_MAX_DEFAULT;
-    this->optionMap[CCAPI_CONFLATE_INTERVAL_MILLISECONDS] = CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
-    this->optionMap[CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS] = CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
-    this->optionMap[CCAPI_MARKET_DEPTH_RETURN_UPDATE] = CCAPI_MARKET_DEPTH_RETURN_UPDATE_DEFAULT;
-    for (const auto& option : optionList) {
-      auto optionKeyValue = UtilString::split(option, "=");
-      this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
+    if (field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
+      this->rawOptions = options;
+    } else {
+      std::vector<std::string> optionList;
+      if (!options.empty()) {
+        optionList = UtilString::split(options, "&");
+      }
+      this->optionMap[CCAPI_MARKET_DEPTH_MAX] = CCAPI_MARKET_DEPTH_MAX_DEFAULT;
+      this->optionMap[CCAPI_CONFLATE_INTERVAL_MILLISECONDS] = CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
+      this->optionMap[CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS] = CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS_DEFAULT;
+      this->optionMap[CCAPI_MARKET_DEPTH_RETURN_UPDATE] = CCAPI_MARKET_DEPTH_RETURN_UPDATE_DEFAULT;
+      for (const auto& option : optionList) {
+        auto optionKeyValue = UtilString::split(option, "=");
+        this->optionMap[optionKeyValue.at(0)] = optionKeyValue.at(1);
+      }
     }
     std::set<std::string> executionManagementSubscriptionFieldSet = {std::string(CCAPI_EM_ORDER_UPDATE), std::string(CCAPI_EM_PRIVATE_TRADE)};
-    if (field == CCAPI_FIX) {
+    if (field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
+      this->serviceName = CCAPI_MARKET_DATA;
+    } else if (field == CCAPI_FIX) {
       this->serviceName = CCAPI_FIX;
     } else if (std::includes(executionManagementSubscriptionFieldSet.begin(), executionManagementSubscriptionFieldSet.end(), this->fieldSet.begin(),
                              this->fieldSet.end())) {
@@ -57,6 +63,7 @@ class Subscription CCAPI_FINAL {
   const std::string& getExchange() const { return exchange; }
   const std::string& getInstrument() const { return instrument; }
   const std::string& getField() const { return field; }
+  const std::string& getRawOptions() const { return rawOptions; }
   const std::map<std::string, std::string>& getOptionMap() const { return optionMap; }
   const std::map<std::string, std::string>& getCredential() const { return credential; }
   const std::string& getServiceName() const { return serviceName; }
@@ -64,15 +71,19 @@ class Subscription CCAPI_FINAL {
   const std::set<std::string>& getFieldSet() const { return fieldSet; }
   const std::string getSerializedOptions() const {
     std::string output;
-    int i = 0;
-    for (const auto& option : this->optionMap) {
-      output += option.first;
-      output += "=";
-      output += option.second;
-      if (i < this->optionMap.size() - 1) {
-        output += "&";
+    if (this->rawOptions.empty()) {
+      int i = 0;
+      for (const auto& option : this->optionMap) {
+        output += option.first;
+        output += "=";
+        output += option.second;
+        if (i < this->optionMap.size() - 1) {
+          output += "&";
+        }
+        ++i;
       }
-      ++i;
+    } else {
+      output = this->rawOptions;
     }
     return output;
   }
@@ -113,6 +124,7 @@ class Subscription CCAPI_FINAL {
   std::string exchange;
   std::string instrument;
   std::string field;
+  std::string rawOptions;
   std::map<std::string, std::string> optionMap;
   std::string correlationId;
   std::map<std::string, std::string> credential;

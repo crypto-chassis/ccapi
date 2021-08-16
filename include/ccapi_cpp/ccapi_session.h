@@ -399,9 +399,9 @@ class Session CCAPI_FINAL {
         std::set<std::string> duplicateCorrelationIdSet;
         std::unordered_set<std::string> unsupportedExchangeFieldSet;
         std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
-        std::unordered_set<std::string> unsupportedExchangeMarketDepthSet;
-        auto exchangeInstrumentMap = this->sessionConfigs.getExchangeInstrumentMap();
-        CCAPI_LOGGER_DEBUG("exchangeInstrumentMap = " + toString(exchangeInstrumentMap));
+        // std::unordered_set<std::string> unsupportedExchangeMarketDepthSet;
+        // auto exchangeInstrumentMap = this->sessionConfigs.getExchangeInstrumentMap();
+        // CCAPI_LOGGER_DEBUG("exchangeInstrumentMap = " + toString(exchangeInstrumentMap));
         auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
         CCAPI_LOGGER_DEBUG("exchangeFieldMap = " + toString(exchangeFieldMap));
         for (const auto& subscription : subscriptionList) {
@@ -434,11 +434,11 @@ class Session CCAPI_FINAL {
                         "unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
           return;
         }
-        if (!unsupportedExchangeMarketDepthSet.empty()) {
-          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
-                        "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet) + ", exceeded max market depth available");
-          return;
-        }
+        // if (!unsupportedExchangeMarketDepthSet.empty()) {
+        //   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
+        //                 "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet) + ", exceeded max market depth available");
+        //   return;
+        // }
         CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = " + toString(subscriptionListByExchangeMap));
         for (auto& subscriptionListByExchange : subscriptionListByExchangeMap) {
           auto exchange = subscriptionListByExchange.first;

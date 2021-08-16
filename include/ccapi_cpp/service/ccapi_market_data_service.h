@@ -193,13 +193,27 @@ class MarketDataService : public Service {
   void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    Event event;
-    std::vector<MarketDataMessage> marketDataMessageList;
-    this->processTextMessage(wsConnection, hdl, textMessage, timeReceived, event, marketDataMessageList);
-    if (!marketDataMessageList.empty()) {
-      this->processMarketDataMessageList(wsConnection, hdl, textMessage, timeReceived, event, marketDataMessageList);
-    }
-    if (!event.getMessageList().empty()) {
+    if (this->correlationIdByConnectionIdMap.find(wsConnection.id) == this->correlationIdByConnectionIdMap.end()) {
+      Event event;
+      std::vector<MarketDataMessage> marketDataMessageList;
+      this->processTextMessage(wsConnection, hdl, textMessage, timeReceived, event, marketDataMessageList);
+      if (!marketDataMessageList.empty()) {
+        this->processMarketDataMessageList(wsConnection, hdl, textMessage, timeReceived, event, marketDataMessageList);
+      }
+      if (!event.getMessageList().empty()) {
+        this->eventHandler(event);
+      }
+    } else {
+      Event event;
+      event.setType(Event::Type::SUBSCRIPTION_DATA);
+      Message message;
+      message.setType(Message::Type::GENERIC_PUBLIC_SUBSCRIPTION);
+      message.setTimeReceived(timeReceived);
+      message.setCorrelationIdList({this->correlationIdByConnectionIdMap.at(wsConnection.id)});
+      Element element;
+      element.insert(CCAPI_WEBSOCKET_MESSAGE_PAYLOAD, textMessage);
+      message.setElementList({element});
+      event.setMessageList({message});
       this->eventHandler(event);
     }
     this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
@@ -928,7 +942,13 @@ class MarketDataService : public Service {
   }
   virtual void subscribeToExchange(const WsConnection& wsConnection) {
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-    std::vector<std::string> sendStringList = this->createSendStringList(wsConnection);
+    std::vector<std::string> sendStringList;
+    if (this->correlationIdByConnectionIdMap.find(wsConnection.id) == this->correlationIdByConnectionIdMap.end()) {
+      sendStringList = this->createSendStringList(wsConnection);
+    } else {
+      auto subscription = wsConnection.subscriptionList.at(0);
+      sendStringList = std::vector<std::string>(1, subscription.getRawOptions());
+    }
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
@@ -1029,7 +1049,11 @@ class MarketDataService : public Service {
     for (const auto& subscription : wsConnection.subscriptionList) {
       auto instrument = subscription.getInstrument();
       this->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
-      this->prepareSubscription(wsConnection, subscription);
+      if (subscription.getRawOptions().empty()) {
+        this->prepareSubscription(wsConnection, subscription);
+      } else {
+        this->correlationIdByConnectionIdMap.insert({wsConnection.id, subscription.getCorrelationId()});
+      }
     }
     CCAPI_LOGGER_INFO("about to subscribe to exchange");
     this->subscribeToExchange(wsConnection);
@@ -1075,6 +1099,7 @@ class MarketDataService : public Service {
     this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.erase(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]);
     this->exchangeJsonPayloadIdByConnectionIdMap.erase(wsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
+    this->correlationIdByConnectionIdMap.erase(wsConnection.id);
     Service::onClose(hdl);
   }
   void convertRequestForRestGenericPublicRequest(http::request<http::string_body>& req, const Request& request, const TimePoint& now,
@@ -1138,6 +1163,8 @@ class MarketDataService : public Service {
   std::string getInstrumentTarget;
   std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
   std::map<int, std::vector<std::string>> exchangeSubscriptionIdListByExchangeJsonPayloadIdMap;
+  // only needed for generic public subscription
+  std::map<std::string, std::string> correlationIdByConnectionIdMap;
 };
 } /* namespace ccapi */
 #endif
