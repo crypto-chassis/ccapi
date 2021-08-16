@@ -20,6 +20,7 @@ class MarketDataService : public Service {
         {Request::Operation::GET_RECENT_TRADES, Message::Type::GET_RECENT_TRADES},
         {Request::Operation::GET_RECENT_AGG_TRADES, Message::Type::GET_RECENT_AGG_TRADES},
         {Request::Operation::GET_INSTRUMENT, Message::Type::GET_INSTRUMENT},
+        {Request::Operation::GET_INSTRUMENTS, Message::Type::GET_INSTRUMENTS},
     };
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -1161,6 +1162,7 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> closeByConnectionIdChannelIdSymbolIdMap;
   std::string getRecentTradesTarget;
   std::string getInstrumentTarget;
+  std::string getInstrumentsTarget;
   std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
   std::map<int, std::vector<std::string>> exchangeSubscriptionIdListByExchangeJsonPayloadIdMap;
   // only needed for generic public subscription

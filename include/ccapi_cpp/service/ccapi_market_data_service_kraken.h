@@ -21,6 +21,7 @@ class MarketDataServiceKraken : public MarketDataService {
     }
     this->getRecentTradesTarget = "/0/public/Trades";
     this->getInstrumentTarget = "/0/public/AssetPairs";
+    this->getInstrumentsTarget = "/0/public/AssetPairs";
   }
   virtual ~MarketDataServiceKraken() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -281,9 +282,29 @@ class MarketDataServiceKraken : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "pair");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentsTarget;
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_BASE_ASSET, x["base"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quote"].GetString());
+    int pairDecimals = std::stoi(x["pair_decimals"].GetString());
+    if (pairDecimals > 0) {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pairDecimals - 1, '0') + "1");
+    } else {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "1");
+    }
+    int lotDecimals = std::stoi(x["lot_decimals"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(lotDecimals - 1, '0') + "1");
+    CCAPI_LOGGER_TRACE("element=" + toString(element));
+    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -313,14 +334,23 @@ class MarketDataServiceKraken : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         const rj::Value& x = document["result"][request.getInstrument().c_str()];
-        Element element;
-        element.insert(CCAPI_BASE_ASSET, x["base"].GetString());
-        element.insert(CCAPI_QUOTE_ASSET, x["quote"].GetString());
-        int pairDecimals = std::stoi(x["pair_decimals"].GetString());
-        element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pairDecimals - 1, '0') + "1");
-        int lotDecimals = std::stoi(x["lot_decimals"].GetString());
-        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(lotDecimals - 1, '0') + "1");
+        Element element = this->extractInstrumentInfo(x);
+        element.insert(CCAPI_INSTRUMENT, request.getInstrument());
         message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (auto itr = document["result"].MemberBegin(); itr != document["result"].MemberEnd(); ++itr) {
+          Element element = this->extractInstrumentInfo(itr->value);
+          element.insert(CCAPI_INSTRUMENT, itr->name.GetString());
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

@@ -12,6 +12,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
     this->shouldAlignSnapshot = true;
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";
     this->getInstrumentTarget = "/api/markets/{market_name}";
+    this->getInstrumentsTarget = "/api/markets";
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceFtxBase() {}
@@ -258,9 +259,34 @@ class MarketDataServiceFtxBase : public MarketDataService {
                                       });
         req.target(target);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentsTarget;
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
+    if (!x["baseCurrency"].IsNull()) {
+      element.insert(CCAPI_BASE_ASSET, x["baseCurrency"].GetString());
+    }
+    if (!x["quoteCurrency"].IsNull()) {
+      element.insert(CCAPI_QUOTE_ASSET, x["quoteCurrency"].GetString());
+    }
+    if (!x["priceIncrement"].IsNull()) {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["priceIncrement"].GetString());
+    }
+    if (!x["sizeIncrement"].IsNull()) {
+      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["sizeIncrement"].GetString());
+    }
+    if (!x["underlying"].IsNull()) {
+      element.insert(CCAPI_UNDERLYING_SYMBOL, x["underlying"].GetString());
+    }
+    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -286,23 +312,22 @@ class MarketDataServiceFtxBase : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         const rj::Value& result = document["result"];
-        Element element;
-        if (!result["baseCurrency"].IsNull()) {
-          element.insert(CCAPI_BASE_ASSET, result["baseCurrency"].GetString());
-        }
-        if (!result["quoteCurrency"].IsNull()) {
-          element.insert(CCAPI_QUOTE_ASSET, result["quoteCurrency"].GetString());
-        }
-        if (!result["priceIncrement"].IsNull()) {
-          element.insert(CCAPI_ORDER_PRICE_INCREMENT, result["priceIncrement"].GetString());
-        }
-        if (!result["sizeIncrement"].IsNull()) {
-          element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, result["sizeIncrement"].GetString());
-        }
-        if (!result["underlying"].IsNull()) {
-          element.insert(CCAPI_UNDERLYING_SYMBOL, result["underlying"].GetString());
-        }
+        Element element = this->extractInstrumentInfo(result);
         message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        const rj::Value& result = document["result"];
+        std::vector<Element> elementList;
+        for (const auto& x : result.GetArray()) {
+          Element element = this->extractInstrumentInfo(x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;
