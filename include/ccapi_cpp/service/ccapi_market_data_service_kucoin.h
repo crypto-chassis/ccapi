@@ -228,7 +228,6 @@ class MarketDataServiceKucoin : public MarketDataService {
             marketDataMessageList.push_back(std::move(marketDataMessage));
           }
         } else if (type == "welcome") {
-          MarketDataService::onOpen(hdl);
           this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
               std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
           this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
@@ -238,6 +237,7 @@ class MarketDataServiceKucoin : public MarketDataService {
             this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
                 this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
           }
+          MarketDataService::onOpen(hdl);
         } else if (type == "pong") {
           auto now = UtilTime::now();
           this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = now;
