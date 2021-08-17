@@ -23,9 +23,21 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
         this->appendSymbolId(queryString, symbolId, "contract_code");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentTarget;
+        req.target(target);
+      } break;
       default:
         MarketDataServiceHuobiBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
+  }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, UtilString::normalizeDecimalString(x["price_tick"].GetString()));
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, UtilString::normalizeDecimalString(x["contract_size"].GetString()));
+    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -38,13 +50,26 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["contract_code"].GetString()) == request.getInstrument()) {
-            Element element;
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, UtilString::normalizeDecimalString(x["price_tick"].GetString()));
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, UtilString::normalizeDecimalString(x["contract_size"].GetString()));
+            Element element = this->extractInstrumentInfo(x);
             message.setElementList({element});
             break;
           }
         }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        rj::Document document;
+        document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document["data"].GetArray()) {
+          Element element = this->extractInstrumentInfo(x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

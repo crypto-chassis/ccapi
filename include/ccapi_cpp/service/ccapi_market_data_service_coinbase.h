@@ -20,6 +20,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
     }
     this->getRecentTradesTarget = "/products/<product-id>/trades";
     this->getInstrumentTarget = "/products/<product-id>";
+    this->getInstrumentsTarget = "/products";
   }
   virtual ~MarketDataServiceCoinbase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -202,9 +203,22 @@ class MarketDataServiceCoinbase : public MarketDataService {
                                       });
         req.target(target);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        req.target(this->getInstrumentsTarget);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_INSTRUMENT, x["id"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["base_currency"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quote_currency"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["quote_increment"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["base_increment"].GetString());
+    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -229,12 +243,20 @@ class MarketDataServiceCoinbase : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        Element element;
-        element.insert(CCAPI_BASE_ASSET, document["base_currency"].GetString());
-        element.insert(CCAPI_QUOTE_ASSET, document["quote_currency"].GetString());
-        element.insert(CCAPI_ORDER_PRICE_INCREMENT, document["quote_increment"].GetString());
-        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, document["base_increment"].GetString());
+        Element element = this->extractInstrumentInfo(document);
         message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document.GetArray()) {
+          elementList.push_back(this->extractInstrumentInfo(x));
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

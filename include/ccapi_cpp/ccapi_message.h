@@ -54,6 +54,7 @@ class Message CCAPI_FINAL {
     GET_RECENT_TRADES,
     GET_RECENT_AGG_TRADES,
     GET_INSTRUMENT,
+    GET_INSTRUMENTS,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
@@ -137,6 +138,9 @@ class Message CCAPI_FINAL {
         break;
       case Type::GET_INSTRUMENT:
         output = "GET_INSTRUMENT";
+        break;
+      case Type::GET_INSTRUMENTS:
+        output = "GET_INSTRUMENTS";
         break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";

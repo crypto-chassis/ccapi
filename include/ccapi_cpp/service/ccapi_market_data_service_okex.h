@@ -25,6 +25,7 @@ class MarketDataServiceOkex : public MarketDataService {
     }
     this->getRecentTradesTarget = "/api/v5/market/trades";
     this->getInstrumentTarget = "/api/v5/public/instruments";
+    this->getInstrumentsTarget = "/api/v5/public/instruments";
   }
   virtual ~MarketDataServiceOkex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -254,9 +255,32 @@ class MarketDataServiceOkex : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "instId");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentsTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT_TYPE, "instType"},
+                          });
+        this->appendSymbolId(queryString, symbolId, "instId");
+        req.target(target + "?" + queryString);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_INSTRUMENT, x["instId"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["baseCcy"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quoteCcy"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSz"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSz"].GetString());
+    element.insert(CCAPI_MARGIN_ASSET, x["settleCcy"].GetString());
+    element.insert(CCAPI_UNDERLYING_SYMBOL, x["uly"].GetString());
+    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -283,17 +307,24 @@ class MarketDataServiceOkex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["instId"].GetString()) == request.getInstrument()) {
-            Element element;
-            element.insert(CCAPI_BASE_ASSET, x["baseCcy"].GetString());
-            element.insert(CCAPI_QUOTE_ASSET, x["quoteCcy"].GetString());
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSz"].GetString());
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSz"].GetString());
-            element.insert(CCAPI_MARGIN_ASSET, x["settleCcy"].GetString());
-            element.insert(CCAPI_UNDERLYING_SYMBOL, x["uly"].GetString());
+            Element element = this->extractInstrumentInfo(x);
             message.setElementList({element});
             break;
           }
         }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document["data"].GetArray()) {
+          Element element = this->extractInstrumentInfo(x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

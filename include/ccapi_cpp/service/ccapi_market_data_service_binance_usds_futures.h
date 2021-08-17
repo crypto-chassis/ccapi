@@ -23,6 +23,7 @@ class MarketDataServiceBinanceUsdsFutures : public MarketDataServiceBinanceDeriv
     this->getRecentTradesTarget = "/fapi/v1/trades";
     this->getRecentAggTradesTarget = "/fapi/v1/aggTrades";
     this->getInstrumentTarget = "/fapi/v1/exchangeInfo";
+    this->getInstrumentsTarget = "/fapi/v1/exchangeInfo";
   }
   virtual ~MarketDataServiceBinanceUsdsFutures() {}
 };

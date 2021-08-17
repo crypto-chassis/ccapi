@@ -23,6 +23,7 @@ class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDeriv
     this->getRecentTradesTarget = "/dapi/v1/trades";
     this->getRecentAggTradesTarget = "/dapi/v1/aggTrades";
     this->getInstrumentTarget = "/dapi/v1/exchangeInfo";
+    this->getInstrumentsTarget = "/dapi/v1/exchangeInfo";
   }
   virtual ~MarketDataServiceBinanceCoinFutures() {}
 };
