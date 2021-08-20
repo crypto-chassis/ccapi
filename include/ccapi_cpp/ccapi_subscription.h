@@ -56,7 +56,7 @@ class Subscription CCAPI_FINAL {
     }
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = " + field +
                          ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = " + correlationId +
-                         ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName + "]";
+                         ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName+ ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -87,6 +87,11 @@ class Subscription CCAPI_FINAL {
     }
     return output;
   }
+  // 'getTimeSent' only works in C++. For other languages, please use 'getTimeSentISO'.
+  TimePoint getTimeSent() const { return timeSent; }
+  std::string getTimeSentISO() const { return UtilTime::getISOTimestamp(timeSent); }
+  std::pair<long long, long long> getTimeSentPair() const { return UtilTime::divide(timeSent); }
+  void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
   enum class Status {
     UNKNOWN,
     SUBSCRIBING,
@@ -131,6 +136,7 @@ class Subscription CCAPI_FINAL {
   std::string serviceName;
   std::set<std::string> instrumentSet;
   std::set<std::string> fieldSet;
+  mutable TimePoint timeSent{std::chrono::seconds{0}};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_

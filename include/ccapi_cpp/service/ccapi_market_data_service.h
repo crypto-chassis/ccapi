@@ -43,6 +43,10 @@ class MarketDataService : public Service {
         auto subscriptionListGivenInstrumentGroup = x.second;
         wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<MarketDataService>(), instrumentGroup,
                                                                                         subscriptionListGivenInstrumentGroup]() {
+                                                                                          auto now=UtilTime::now();
+                                                                                          for (const auto& subscription : subscriptionListGivenInstrumentGroup) {
+                                                                                            subscription.setTimeSent(now);
+                                                                                          }
           std::map<std::string, std::vector<std::string>> wsConnectionIdListByInstrumentGroupMap = invertMapMulti(that->instrumentGroupByWsConnectionIdMap);
           if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end() &&
               that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()) {

@@ -182,11 +182,14 @@ class Service : public std::enable_shared_from_this<Service> {
               that->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "timer", {request.getCorrelationId()});
             } else {
               auto thatReq = req;
+              auto now=UtilTime::now();
+              request.setTimeSent(now);
               that->tryRequest(request, thatReq, retry);
             }
             that->sendRequestDelayTimerByCorrelationIdMap.erase(request.getCorrelationId());
           });
     } else {
+      request.setTimeSent(now);
       this->tryRequest(request, req, retry);
     }
     std::shared_ptr<std::future<void>> futurePtr(nullptr);

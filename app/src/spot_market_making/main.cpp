@@ -78,6 +78,7 @@ int main(int argc, char** argv) {
   eventHandler.quoteAvailableBalanceProportion = UtilSystem::getEnvAsDouble("QUOTE_AVAILABLE_BALANCE_PROPORTION");
   double a = UtilSystem::getEnvAsDouble("INVENTORY_BASE_QUOTE_RATIO_TARGET");
   eventHandler.inventoryBasePortionTarget = a / (a + 1);
+  eventHandler.useWeightedMidPrice = UtilString::toLower(UtilSystem::getEnvAsString("USE_WEIGHTED_MID_PRICE")) == "true";
   eventHandler.halfSpreadMinimum = UtilSystem::getEnvAsDouble("SPREAD_PROPORTION_MINIMUM") / 2;
   eventHandler.halfSpreadMaximum = UtilSystem::getEnvAsDouble("SPREAD_PROPORTION_MAXIMUM") / 2;
   eventHandler.orderQuantityProportion = UtilSystem::getEnvAsDouble("ORDER_QUANTITY_PROPORTION");
@@ -87,6 +88,15 @@ int main(int argc, char** argv) {
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
+  std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
+  eventHandler.isPaperTrade = tradingMode=="paper";
+  if (eventHandler.isPaperTrade){
+    eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
+    eventHandler.makerBuyerFeeAsset=UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
+    eventHandler.makerSellerFeeAsset=UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
+    eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE");
+    eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE");
+  }
   std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase", "kucoin"};
   if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange) != useGetAccountsToGetAccountBalancesExchangeSet.end()) {
     eventHandler.useGetAccountsToGetAccountBalances = true;
@@ -94,7 +104,7 @@ int main(int argc, char** argv) {
   SessionOptions sessionOptions;
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
-  Session session(sessionOptions, sessionConfigs, &eventHandler);
+  std::shared_ptr<Session> sessionPtr(new Session(sessionOptions, sessionConfigs, &eventHandler));
   // TODO(cryptochassis): come back to test kraken once its execution management is implemented
   if (exchange == "kraken") {
     Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");

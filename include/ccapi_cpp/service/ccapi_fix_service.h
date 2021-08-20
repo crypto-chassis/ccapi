@@ -35,7 +35,9 @@ class FixService : public Service {
     CCAPI_LOGGER_DEBUG("this->baseUrlFix = " + this->baseUrlFix);
     if (this->shouldContinue.load()) {
       wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixService>(), subscription]() {
+        auto now=UtilTime::now();
         auto thatSubscription = subscription;
+        thatSubscription.setTimeSent(now);
         that->connect(thatSubscription);
       });
     }
@@ -373,6 +375,7 @@ class FixService : public Service {
       auto now = UtilTime::now();
       CCAPI_LOGGER_DEBUG("request = " + toString(request));
       CCAPI_LOGGER_TRACE("now = " + toString(now));
+      request.setTimeSent(now);
       auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
       auto& connectionId = request.getCorrelationId();
       auto it = that->fixConnectionPtrByIdMap.find(connectionId);

@@ -42,6 +42,8 @@ class ExecutionManagementService : public Service {
     if (this->shouldContinue.load()) {
       for (const auto& subscription : subscriptionList) {
         wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<ExecutionManagementService>(), subscription]() {
+          auto now=UtilTime::now();
+          subscription.setTimeSent(now);
           WsConnection wsConnection(that->baseUrl, "", {subscription});
           that->prepareConnect(wsConnection);
         });
@@ -166,6 +168,7 @@ class ExecutionManagementService : public Service {
       auto now = UtilTime::now();
       CCAPI_LOGGER_DEBUG("request = " + toString(request));
       CCAPI_LOGGER_TRACE("now = " + toString(now));
+      request.setTimeSent(now);
       auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
       auto& correlationId = request.getCorrelationId();
       auto it = that->wsConnectionByCorrelationIdMap.find(correlationId);

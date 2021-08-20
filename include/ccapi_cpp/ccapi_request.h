@@ -111,7 +111,7 @@ class Request CCAPI_FINAL {
     std::string output =
         "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName + ", correlationId = " + correlationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
-        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) + "]";
+        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation)+ ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -133,6 +133,11 @@ class Request CCAPI_FINAL {
       return this->paramList.front();
     }
   }
+  // 'getTimeSent' only works in C++. For other languages, please use 'getTimeSentISO'.
+  TimePoint getTimeSent() const { return timeSent; }
+  std::string getTimeSentISO() const { return UtilTime::getISOTimestamp(timeSent); }
+  std::pair<long long, long long> getTimeSentPair() const { return UtilTime::divide(timeSent); }
+  void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -145,6 +150,7 @@ class Request CCAPI_FINAL {
   std::map<std::string, std::string> credential;
   Operation operation;
   std::vector<std::vector<std::pair<int, std::string> > > paramListFix;
+  mutable TimePoint timeSent{std::chrono::seconds{0}};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
