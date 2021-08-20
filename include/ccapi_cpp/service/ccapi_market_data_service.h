@@ -772,7 +772,7 @@ class MarketDataService : public Service {
       for (const auto& x : input) {
         auto type = x.first;
         auto detail = x.second;
-        if (type == MarketDataMessage::DataType::AGG_TRADE) {
+        if (type == MarketDataMessage::DataType::TRADE || type == MarketDataMessage::DataType::AGG_TRADE) {
           for (const auto& y : detail) {
             auto price = y.at(MarketDataMessage::DataFieldType::PRICE);
             if (this->openByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].empty()) {
