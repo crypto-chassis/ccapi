@@ -91,6 +91,7 @@
   * Linux: GCC.
   * Windows: MinGW.
 * Troubleshoot:
+  * Try to remove all build artifacts and start from scratch (e.g. for cmake remove all the contents inside your build directory).
   * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
   * "Fatal error: can't write \<a> bytes to section .text of \<b>: 'File too big'". Try to add compiler flag `-Wa,-mbig-obj`. See https://github.com/assimp/assimp/issues/2067.
   * "string table overflow at offset \<a>". Try to add optimization flag `-O1` or `-O2`. See https://stackoverflow.com/questions/14125007/gcc-string-table-overflow-error-during-compilation.
@@ -105,6 +106,7 @@
 ```
 mkdir binding/build
 cd binding/build
+rm -rf * (if rebuild)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> -DBUILD_VERSION=<any-string-you-like> -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON ..
 cmake --build . -j
 cmake --install .
@@ -902,6 +904,7 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 ```
 mkdir app/build
 cd app/build
+rm -rf * (if rebuild)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
 cmake --build . -j
 ```
