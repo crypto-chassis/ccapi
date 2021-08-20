@@ -282,6 +282,24 @@ class MarketDataServiceHuobiBase : public MarketDataService {
   //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   // }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
+    int pricePrecision = std::stoi(x["price-precision"].GetString());
+    if (pricePrecision > 0) {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePrecision - 1, '0') + "1");
+    } else {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "1");
+    }
+    int amountPrecision = std::stoi(x["amount-precision"].GetString());
+    if (amountPrecision > 0) {
+      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
+    } else {
+      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
+    }
+    return element;
+  }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -315,17 +333,24 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            Element element;
-            element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
-            element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
-            int pricePrecision = std::stoi(x["price-precision"].GetString());
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePrecision - 1, '0') + "1");
-            int amountPrecision = std::stoi(x["amount-precision"].GetString());
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
+            Element element = this->extractInstrumentInfo(x);
             message.setElementList({element});
             break;
           }
         }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document["data"].GetArray()) {
+          Element element = this->extractInstrumentInfo(x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

@@ -21,6 +21,7 @@ class MarketDataServiceDeribit : public MarketDataService {
     this->restTarget = "/api/v2";
     this->getRecentTradesTarget = "/public/get_last_trades_by_instrument";
     this->getInstrumentTarget = "/public/get_instrument";
+    this->getInstrumentsTarget = "/public/get_instruments";
   }
   virtual ~MarketDataServiceDeribit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -386,9 +387,36 @@ class MarketDataServiceDeribit : public MarketDataService {
         req.prepare_payload();
         req.target(this->restTarget);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::post);
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(document, allocator, requestId, this->getInstrumentsTarget, param,
+                          {
+                              {CCAPI_EM_ASSET, "currency"},
+                          });
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        auto body = stringBuffer.GetString();
+        req.body() = body;
+        req.prepare_payload();
+        req.target(this->restTarget);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_INSTRUMENT, x["instrument_name"].GetString());
+    element.insert(CCAPI_MARGIN_ASSET, x["base_currency"].GetString());
+    element.insert(CCAPI_UNDERLYING_SYMBOL, x["base_currency"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tick_size"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["contract_size"].GetString());
+    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -414,13 +442,23 @@ class MarketDataServiceDeribit : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        Element element;
         const rj::Value& result = document["result"];
-        element.insert(CCAPI_MARGIN_ASSET, result["base_currency"].GetString());
-        element.insert(CCAPI_UNDERLYING_SYMBOL, result["base_currency"].GetString());
-        element.insert(CCAPI_ORDER_PRICE_INCREMENT, result["tick_size"].GetString());
-        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, result["contract_size"].GetString());
+        Element element = this->extractInstrumentInfo(result);
         message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        const rj::Value& result = document["result"];
+        std::vector<Element> elementList;
+        for (const auto& x : result.GetArray()) {
+          Element element = this->extractInstrumentInfo(x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

@@ -20,6 +20,7 @@ class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiDerivativesB
     }
     this->getRecentTradesTarget = CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_PATH;
     this->getInstrumentTarget = "/linear-swap-api/v1/swap_contract_info";
+    this->getInstrumentsTarget = "/linear-swap-api/v1/swap_contract_info";
   }
   virtual ~MarketDataServiceHuobiUsdtSwap() {}
 };

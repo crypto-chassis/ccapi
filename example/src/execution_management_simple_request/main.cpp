@@ -39,9 +39,9 @@ int main(int argc, char** argv) {
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   if (mode == "create_order") {
     if (argc != 6) {
-      std::cerr << "Usage: <program name> create_order <symbol> <buy or sell> <order quantity> <limit price>\n"
+      std::cerr << "Usage: "<< argv[0] <<" create_order <symbol> <buy or sell> <order quantity> <limit price>\n"
                 << "Example:\n"
-                << "    main create_order BTCUSD buy 0.001 20000" << std::endl;
+                << "    "<< argv[0] <<" create_order BTCUSD buy 0.001 20000" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
@@ -54,9 +54,9 @@ int main(int argc, char** argv) {
     session.sendRequest(request);
   } else if (mode == "cancel_order") {
     if (argc != 4) {
-      std::cerr << "Usage: <program name> cancel_order <symbol> <order id>\n"
+      std::cerr << "Usage: "<< argv[0] <<" cancel_order <symbol> <order id>\n"
                 << "Example:\n"
-                << "    main cancel_order BTCUSD 4" << std::endl;
+                << "    "<< argv[0] <<" cancel_order BTCUSD 4" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
@@ -67,9 +67,9 @@ int main(int argc, char** argv) {
     session.sendRequest(request);
   } else if (mode == "get_order") {
     if (argc != 4) {
-      std::cerr << "Usage: <program name> get_order <symbol> <order id>\n"
+      std::cerr << "Usage: "<< argv[0] <<" get_order <symbol> <order id>\n"
                 << "Example:\n"
-                << "    main get_order BTCUSD 4" << std::endl;
+                << "    "<< argv[0] <<" get_order BTCUSD 4" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
@@ -80,9 +80,9 @@ int main(int argc, char** argv) {
     session.sendRequest(request);
   } else if (mode == "get_open_orders") {
     if (argc != 3) {
-      std::cerr << "Usage: <program name> get_open_orders <symbol>\n"
+      std::cerr << "Usage: "<< argv[0] <<" get_open_orders <symbol>\n"
                 << "Example:\n"
-                << "    main get_open_orders BTCUSD" << std::endl;
+                << "    "<< argv[0] <<" get_open_orders BTCUSD" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
@@ -90,9 +90,9 @@ int main(int argc, char** argv) {
     session.sendRequest(request);
   } else if (mode == "cancel_open_orders") {
     if (argc != 3) {
-      std::cerr << "Usage: <program name> cancel_open_orders <symbol>\n"
+      std::cerr << "Usage: "<< argv[0] <<" cancel_open_orders <symbol>\n"
                 << "Example:\n"
-                << "    main cancel_open_orders BTCUSD" << std::endl;
+                << "    "<< argv[0] <<" cancel_open_orders BTCUSD" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }

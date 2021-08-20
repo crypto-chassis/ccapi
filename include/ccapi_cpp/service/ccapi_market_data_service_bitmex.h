@@ -20,6 +20,7 @@ class MarketDataServiceBitmex : public MarketDataService {
     }
     this->getRecentTradesTarget = "/api/v1/trade";
     this->getInstrumentTarget = "/api/v1/instrument";
+    this->getInstrumentsTarget = "/api/v1/instrument";
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
   virtual ~MarketDataServiceBitmex() {}
@@ -263,6 +264,11 @@ class MarketDataServiceBitmex : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentsTarget;
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -272,6 +278,14 @@ class MarketDataServiceBitmex : public MarketDataService {
   //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   // }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
+    element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSize"].GetString());
+    return element;
+  }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -295,17 +309,24 @@ class MarketDataServiceBitmex : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        Element element;
         for (const auto& x : document.GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
-            element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSize"].GetString());
-            message.setElementList({element});
+            message.setElementList({this->extractInstrumentInfo(x)});
             break;
           }
         }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document.GetArray()) {
+          elementList.push_back(this->extractInstrumentInfo(x));
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

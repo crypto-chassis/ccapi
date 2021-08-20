@@ -193,7 +193,7 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `GET_INSTRUMENT`, `GET_RECENT_TRADES`, `GET_RECENT_AGG_TRADES`(only applicable to binance family).
+* Request operation types: `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_RECENT_TRADES`, `GET_RECENT_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list).
 * Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
 * Message's `time` represents the exchange's reported timestamp. Its `timeReceived` represents the library's receiving timestamp. `time` can be retrieved by `getTime` method and `timeReceived` can be retrieved by `getTimeReceived` method. (For Python, please use `getTimeISO` method and `getTimeReceivedISO` method).
 
@@ -252,7 +252,7 @@ Best bid and ask at 2020-07-27T23:56:51.884855000Z are:
 Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
   ...
 ```
-* Subscription fields: `MARKET_DEPTH`, `TRADE`, `AGG_TRADE`(only applicable to binance family).
+* Subscription fields: `MARKET_DEPTH`, `TRADE`, `AGG_TRADE`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#aggregate-trade-streams).
 
 ### Advanced Market Data
 
@@ -894,7 +894,7 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 
 ### Spot Market Making (Beta)
 * Source code: [app](app)
-* The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details.
+* The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details. And read more at https://medium.com/open-crypto-market-data-initiative/simplified-avellaneda-stoikov-market-making-608b9d437403.
 * Require CMake.
   * CMake: https://cmake.org/download/.
 * Copy file [`app/src/spot_market_making/user_specified_cmake_include.cmake.example`](app/src/spot_market_making/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.

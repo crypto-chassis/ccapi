@@ -20,6 +20,7 @@ class MarketDataServiceGemini : public MarketDataService {
     }
     this->getRecentTradesTarget = "/v1/trades/:symbol";
     this->getInstrumentTarget = "/v1/symbols/details/:symbol";
+    this->getInstrumentsTarget = "/v1/symbols";
   }
   virtual ~MarketDataServiceGemini() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -246,6 +247,10 @@ class MarketDataServiceGemini : public MarketDataService {
                                       });
         req.target(target);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        req.target(this->getInstrumentTarget);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -274,11 +279,26 @@ class MarketDataServiceGemini : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         Element element;
+        element.insert(CCAPI_INSTRUMENT, document["symbol"].GetString());
         element.insert(CCAPI_BASE_ASSET, document["base_currency"].GetString());
         element.insert(CCAPI_QUOTE_ASSET, document["quote_currency"].GetString());
         element.insert(CCAPI_ORDER_PRICE_INCREMENT, Decimal(document["quote_increment"].GetString()).toString());
         element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, Decimal(document["tick_size"].GetString()).toString());
         message.setElementList({element});
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document.GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x.GetString());
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

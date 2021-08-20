@@ -23,6 +23,7 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
     this->getRecentTradesTarget = "/api/v3/trades";
     this->getRecentAggTradesTarget = "/api/v3/aggTrades";
     this->getInstrumentTarget = "/api/v3/exchangeInfo";
+    this->getInstrumentsTarget = "/api/v3/exchangeInfo";
   }
   virtual ~MarketDataServiceBinance() {}
 };

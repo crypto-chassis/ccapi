@@ -19,7 +19,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
-    this->getInstrumentTarget = "/v2/conf/pub:list:pair:exchange";
+    // this->getInstrumentTarget = "/v2/conf/pub:list:pair:exchange";
+    this->getInstrumentsTarget = "/v2/conf/pub:list:pair:exchange";
     // this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
   virtual ~MarketDataServiceBitfinex() {}
@@ -427,9 +428,14 @@ class MarketDataServiceBitfinex : public MarketDataService {
                           });
         req.target(target + "?" + queryString);
       } break;
-      case Request::Operation::GET_INSTRUMENT: {
+      // case Request::Operation::GET_INSTRUMENT: {
+      //   req.method(http::verb::get);
+      //   auto target = this->getInstrumentTarget;
+      //   req.target(target);
+      // } break;
+      case Request::Operation::GET_INSTRUMENTS: {
         req.method(http::verb::get);
-        auto target = this->getInstrumentTarget;
+        auto target = this->getInstrumentsTarget;
         req.target(target);
       } break;
       default:
@@ -462,28 +468,44 @@ class MarketDataServiceBitfinex : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
-      case Request::Operation::GET_INSTRUMENT: {
+      // case Request::Operation::GET_INSTRUMENT: {
+      //   Message message;
+      //   message.setTimeReceived(timeReceived);
+      //   message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+      //   for (const auto& x : document[0].GetArray()) {
+      //     std::string pair = x.GetString();
+      //     if (pair == request.getInstrument().substr(1)) {
+      //       Element element;
+      //       element.insert(CCAPI_INSTRUMENT, pair);
+      //       auto splitted = UtilString::split(pair, ":");
+      //       if (splitted.size() == 1) {
+      //         element.insert(CCAPI_BASE_ASSET, pair.substr(0, 3));
+      //         element.insert(CCAPI_QUOTE_ASSET, pair.substr(3, 6));
+      //       } else {
+      //         element.insert(CCAPI_BASE_ASSET, splitted.at(0));
+      //         element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
+      //       }
+      //       element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(8 - 1, '0') + "1");
+      //       element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(8 - 1, '0') + "1");
+      //       message.setElementList({element});
+      //       break;
+      //     }
+      //   }
+      //   message.setCorrelationIdList({request.getCorrelationId()});
+      //   event.addMessages({message});
+      // } break;
+      case Request::Operation::GET_INSTRUMENTS: {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
         for (const auto& x : document[0].GetArray()) {
           std::string pair = x.GetString();
-          if (pair == request.getInstrument().substr(1)) {
-            Element element;
-            auto splitted = UtilString::split(pair, ":");
-            if (splitted.size() == 1) {
-              element.insert(CCAPI_BASE_ASSET, pair.substr(0, 3));
-              element.insert(CCAPI_QUOTE_ASSET, pair.substr(3, 6));
-            } else {
-              element.insert(CCAPI_BASE_ASSET, splitted.at(0));
-              element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
-            }
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(8 - 1, '0') + "1");
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(8 - 1, '0') + "1");
-            message.setElementList({element});
-            break;
-          }
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, pair);
+          elementList.push_back(element);
         }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;

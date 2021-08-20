@@ -20,6 +20,7 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
     }
     this->getRecentTradesTarget = "/market/history/trade";
     this->getInstrumentTarget = "/v1/common/symbols";
+    this->getInstrumentsTarget = "/v1/common/symbols";
   }
   virtual ~MarketDataServiceHuobi() {}
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }
@@ -31,9 +32,33 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
         auto target = this->getInstrumentTarget;
         req.target(target);
       } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentsTarget;
+        req.target(target);
+      } break;
       default:
         MarketDataServiceHuobiBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
+  }
+  Element extractInstrumentInfo(const rj::Value& x) {
+    Element element;
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
+    int pricePrecision = std::stoi(x["price-precision"].GetString());
+    if (pricePrecision > 0) {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePrecision - 1, '0') + "1");
+    } else {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "1");
+    }
+    int amountPrecision = std::stoi(x["amount-precision"].GetString());
+    if (amountPrecision > 0) {
+      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
+    } else {
+      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
+    }
+    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -46,17 +71,26 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            Element element;
-            element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
-            element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
-            int pricePrecision = std::stoi(x["price-precision"].GetString());
-            element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePrecision - 1, '0') + "1");
-            int amountPrecision = std::stoi(x["amount-precision"].GetString());
-            element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
+            Element element = this->extractInstrumentInfo(x);
             message.setElementList({element});
             break;
           }
         }
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENTS: {
+        rj::Document document;
+        document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document["data"].GetArray()) {
+          Element element = this->extractInstrumentInfo(x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
       } break;
