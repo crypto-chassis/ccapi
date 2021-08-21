@@ -3,7 +3,7 @@
 #include "ccapi_cpp/ccapi_decimal.h"
 namespace ccapi {
 class Order {
-public:
+ public:
   std::string orderId;
   std::string side;
   Decimal limitPrice;

@@ -111,7 +111,8 @@ class Request CCAPI_FINAL {
     std::string output =
         "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName + ", correlationId = " + correlationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
-        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation)+ ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
+        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
+        ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }

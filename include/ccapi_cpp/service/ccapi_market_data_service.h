@@ -34,19 +34,19 @@ class MarketDataService : public Service {
     }
   }
   // subscriptions are grouped and each group creates a unique websocket connection
-  void subscribe( std::vector<Subscription>& subscriptionList) override {
+  void subscribe(std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrl = " + this->baseUrl);
     if (this->shouldContinue.load()) {
-      for ( auto& x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
+      for (auto& x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
         auto instrumentGroup = x.first;
         auto subscriptionListGivenInstrumentGroup = x.second;
         wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<MarketDataService>(), instrumentGroup,
-                                                                                        subscriptionListGivenInstrumentGroup]() mutable{
-                                                                                          auto now=UtilTime::now();
-                                                                                          for ( auto& subscription : subscriptionListGivenInstrumentGroup) {
-                                                                                            subscription.setTimeSent(now);
-                                                                                          }
+                                                                                        subscriptionListGivenInstrumentGroup]() mutable {
+          auto now = UtilTime::now();
+          for (auto& subscription : subscriptionListGivenInstrumentGroup) {
+            subscription.setTimeSent(now);
+          }
           std::map<std::string, std::vector<std::string>> wsConnectionIdListByInstrumentGroupMap = invertMapMulti(that->instrumentGroupByWsConnectionIdMap);
           if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end() &&
               that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()) {

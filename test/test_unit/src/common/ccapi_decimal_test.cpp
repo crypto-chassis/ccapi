@@ -15,22 +15,22 @@ TEST(DecimalTest, scientificNotation) {
     Decimal x("1.51e-6");
     EXPECT_EQ(x.toString(), "0.00000151");
   }
-{
-  Decimal x("1.51E-6");
-  EXPECT_EQ(x.toString(), "0.00000151");
-}
-{
-  Decimal x("3.14159e+000");
-  EXPECT_EQ(x.toString(), "3.14159");
-}
-{
-  Decimal x("2.00600e+003");
-  EXPECT_EQ(x.toString(), "2006");
-}
-{
-  Decimal x("1.00000e-010");
-  EXPECT_EQ(x.toString(), "0.0000000001");
-}
+  {
+    Decimal x("1.51E-6");
+    EXPECT_EQ(x.toString(), "0.00000151");
+  }
+  {
+    Decimal x("3.14159e+000");
+    EXPECT_EQ(x.toString(), "3.14159");
+  }
+  {
+    Decimal x("2.00600e+003");
+    EXPECT_EQ(x.toString(), "2006");
+  }
+  {
+    Decimal x("1.00000e-010");
+    EXPECT_EQ(x.toString(), "0.0000000001");
+  }
 }
 TEST(DecimalTest, trailingZero) {
   Decimal bid_1("0.10");

@@ -56,7 +56,8 @@ class Subscription CCAPI_FINAL {
     }
     std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = " + field +
                          ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = " + correlationId +
-                         ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName+ ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
+                         ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName +
+                         ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -136,7 +137,7 @@ class Subscription CCAPI_FINAL {
   std::string serviceName;
   std::set<std::string> instrumentSet;
   std::set<std::string> fieldSet;
-   TimePoint timeSent{std::chrono::seconds{0}};
+  TimePoint timeSent{std::chrono::seconds{0}};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_

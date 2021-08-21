@@ -28,7 +28,7 @@ class Decimal CCAPI_FINAL {
         exponent.erase(0, 1);
       }
       exponent = UtilString::ltrim(exponent, "0");
-      if (exponent.empty()){
+      if (exponent.empty()) {
         exponent = "0";
       }
       if (exponent != "0") {
@@ -36,11 +36,10 @@ class Decimal CCAPI_FINAL {
           std::vector<std::string> splittedByDecimal = UtilString::split(fixedPointValue, ".");
           if (exponent.at(0) != '-') {
             if (std::stoi(exponent) < splittedByDecimal.at(1).length()) {
-              fixedPointValue = splittedByDecimal.at(0) + splittedByDecimal.at(1).substr(0, std::stoi(exponent)) + "." +
-                                splittedByDecimal.at(1).substr(std::stoi(exponent));
-            } else {
               fixedPointValue =
-                  splittedByDecimal.at(0) + splittedByDecimal.at(1) + std::string(std::stoi(exponent) - splittedByDecimal.at(1).length(), '0');
+                  splittedByDecimal.at(0) + splittedByDecimal.at(1).substr(0, std::stoi(exponent)) + "." + splittedByDecimal.at(1).substr(std::stoi(exponent));
+            } else {
+              fixedPointValue = splittedByDecimal.at(0) + splittedByDecimal.at(1) + std::string(std::stoi(exponent) - splittedByDecimal.at(1).length(), '0');
             }
           } else {
             fixedPointValue = "0." + std::string(-std::stoi(exponent) - 1, '0') + splittedByDecimal.at(0) + splittedByDecimal.at(1);
@@ -76,9 +75,7 @@ class Decimal CCAPI_FINAL {
     }
     return stringValue;
   }
-  double toDouble() const {
-    return std::stod(this->toString());
-  }
+  double toDouble() const { return std::stod(this->toString()); }
   friend bool operator<(const Decimal& l, const Decimal& r) {
     if (l.sign && r.sign) {
       if (l.before < r.before) {
