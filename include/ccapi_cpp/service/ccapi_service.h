@@ -136,11 +136,11 @@ class Service : public std::enable_shared_from_this<Service> {
     auto errorMessage = "REST unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
     throw std::runtime_error(errorMessage);
   }
-  virtual void subscribe(const std::vector<Subscription>& subscriptionList) {}
+  virtual void subscribe( std::vector<Subscription>& subscriptionList) {}
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                                      const std::map<std::string, std::string>& credential) {}
   virtual void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {}
-  std::shared_ptr<std::future<void>> sendRequest(const Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
+  std::shared_ptr<std::future<void>> sendRequest( Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = " + toString(useFuture));
@@ -176,7 +176,7 @@ class Service : public std::enable_shared_from_this<Service> {
     HttpRetry retry(0, 0, "", promisePtr);
     if (delayMilliSeconds > 0) {
       this->sendRequestDelayTimerByCorrelationIdMap[request.getCorrelationId()] =
-          this->serviceContextPtr->tlsClientPtr->set_timer(delayMilliSeconds, [that = shared_from_this(), request, req, retry](ErrorCode const& ec) {
+          this->serviceContextPtr->tlsClientPtr->set_timer(delayMilliSeconds, [that = shared_from_this(), request, req, retry](ErrorCode const& ec) mutable{
             if (ec) {
               CCAPI_LOGGER_ERROR("request = " + toString(request) + ", sendRequest timer error: " + ec.message());
               that->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, ec, "timer", {request.getCorrelationId()});
@@ -199,9 +199,9 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_FUNCTION_EXIT;
     return futurePtr;
   }
-  virtual void sendRequestByWebsocket(const Request& request, const TimePoint& now) {}
-  virtual void sendRequestByFix(const Request& request, const TimePoint& now) {}
-  virtual void subscribeByFix(const Subscription& subscription) {}
+  virtual void sendRequestByWebsocket( Request& request, const TimePoint& now) {}
+  virtual void sendRequestByFix( Request& request, const TimePoint& now) {}
+  virtual void subscribeByFix( Subscription& subscription) {}
   void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage,
                const std::vector<std::string> correlationIdList = {}) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);

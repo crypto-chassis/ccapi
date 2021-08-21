@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
   SessionOptions sessionOptions;
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
-  std::shared_ptr<Session> sessionPtr(new Session(sessionOptions, sessionConfigs, &eventHandler));
+  Session session(sessionOptions, sessionConfigs, &eventHandler);
   // TODO(cryptochassis): come back to test kraken once its execution management is implemented
   if (exchange == "kraken") {
     Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");

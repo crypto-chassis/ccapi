@@ -36,12 +36,12 @@ class ExecutionManagementService : public Service {
   }
   virtual ~ExecutionManagementService() {}
   // each subscription creates a unique websocket connection
-  void subscribe(const std::vector<Subscription>& subscriptionList) override {
+  void subscribe( std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrl = " + this->baseUrl);
     if (this->shouldContinue.load()) {
-      for (const auto& subscription : subscriptionList) {
-        wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<ExecutionManagementService>(), subscription]() {
+      for ( auto& subscription : subscriptionList) {
+        wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<ExecutionManagementService>(), subscription]()mutable {
           auto now=UtilTime::now();
           subscription.setTimeSent(now);
           WsConnection wsConnection(that->baseUrl, "", {subscription});
@@ -161,10 +161,10 @@ class ExecutionManagementService : public Service {
     this->wsRequestIdByConnectionIdMap.erase(wsConnection.id);
     Service::onClose(hdl);
   }
-  void sendRequestByWebsocket(const Request& request, const TimePoint& now) override {
+  void sendRequestByWebsocket( Request& request, const TimePoint& now) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("now = " + toString(now));
-    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<ExecutionManagementService>(), request]() {
+    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<ExecutionManagementService>(), request]()mutable {
       auto now = UtilTime::now();
       CCAPI_LOGGER_DEBUG("request = " + toString(request));
       CCAPI_LOGGER_TRACE("now = " + toString(now));

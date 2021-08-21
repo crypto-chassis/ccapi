@@ -374,12 +374,12 @@ class Session  {
     this->serviceContextPtr->stop();
     this->t.join();
   }
-  virtual void subscribe(const Subscription& subscription) {
+  virtual void subscribe( Subscription& subscription) {
     std::vector<Subscription> subscriptionList;
     subscriptionList.push_back(subscription);
     this->subscribe(subscriptionList);
   }
-  virtual void subscribe(const std::vector<Subscription>& subscriptionList) {
+  virtual void subscribe( std::vector<Subscription>& subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::map<std::string, std::vector<Subscription> > subscriptionListByServiceNameMap;
     for (const auto& subscription : subscriptionList) {
@@ -463,7 +463,7 @@ class Session  {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void subscribeByFix(const Subscription& subscription) {
+  virtual void subscribeByFix( Subscription& subscription) {
     auto serviceName = subscription.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
     if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
@@ -478,8 +478,8 @@ class Session  {
     }
     serviceByExchangeMap.at(exchange)->subscribeByFix(subscription);
   }
-  virtual void subscribeByFix(const std::vector<Subscription>& subscriptionList) {
-    for (const auto& x : subscriptionList) {
+  virtual void subscribeByFix( std::vector<Subscription>& subscriptionList) {
+    for ( auto& x : subscriptionList) {
       this->subscribeByFix(x);
     }
   }
@@ -510,7 +510,7 @@ class Session  {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequestByFix(const Request& request) {
+  virtual void sendRequestByFix( Request& request) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto serviceName = request.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
@@ -529,12 +529,12 @@ class Session  {
     servicePtr->sendRequestByFix(request, now);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequestByFix(const std::vector<Request>& requestList) {
-    for (const auto& x : requestList) {
+  virtual void sendRequestByFix( std::vector<Request>& requestList) {
+    for ( auto& x : requestList) {
       this->sendRequestByFix(x);
     }
   }
-  virtual void sendRequestByWebsocket(const Request& request) {
+  virtual void sendRequestByWebsocket( Request& request) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto serviceName = request.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
@@ -553,22 +553,22 @@ class Session  {
     servicePtr->sendRequestByWebsocket(request, now);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequestByWebsocket(const std::vector<Request>& requestList) {
-    for (const auto& x : requestList) {
+  virtual void sendRequestByWebsocket( std::vector<Request>& requestList) {
+    for ( auto& x : requestList) {
       this->sendRequestByWebsocket(x);
     }
   }
-  virtual void sendRequest(const Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest( Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList({request});
     this->sendRequest(requestList, eventQueuePtr, delayMilliSeconds);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequest(const std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest( std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     std::set<std::string> serviceNameExchangeSet;
-    for (const auto& request : requestList) {
+    for ( auto& request : requestList) {
       auto serviceName = request.getServiceName();
       CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {

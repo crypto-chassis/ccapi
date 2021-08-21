@@ -23,7 +23,7 @@ class Decimal CCAPI_FINAL {
       if (fixedPointValue.find(".") != std::string::npos) {
         fixedPointValue = UtilString::rtrim(UtilString::rtrim(fixedPointValue, "0"), ".");
       }
-      exponent = splitted.at(1);
+      auto exponent = splitted.at(1);
       if (exponent.at(0) == '+') {
         exponent.erase(0, 1);
       }
@@ -75,6 +75,9 @@ class Decimal CCAPI_FINAL {
       stringValue += this->frac;
     }
     return stringValue;
+  }
+  double toDouble() const {
+    return std::stod(this->toString());
   }
   friend bool operator<(const Decimal& l, const Decimal& r) {
     if (l.sign && r.sign) {

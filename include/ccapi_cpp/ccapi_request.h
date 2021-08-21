@@ -150,7 +150,7 @@ class Request CCAPI_FINAL {
   std::map<std::string, std::string> credential;
   Operation operation;
   std::vector<std::vector<std::pair<int, std::string> > > paramListFix;
-  mutable TimePoint timeSent{std::chrono::seconds{0}};
+  TimePoint timeSent{std::chrono::seconds{0}};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_

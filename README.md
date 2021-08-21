@@ -106,7 +106,7 @@
 ```
 mkdir binding/build
 cd binding/build
-rm -rf * (if rebuild)
+rm -rf * (if rebuild from scratch)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> -DBUILD_VERSION=<any-string-you-like> -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON ..
 cmake --build . -j
 cmake --install .
@@ -904,7 +904,7 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 ```
 mkdir app/build
 cd app/build
-rm -rf * (if rebuild)
+rm -rf * (if rebuild from scratch)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
 cmake --build . -j
 ```

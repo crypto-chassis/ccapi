@@ -1,5 +1,6 @@
 #ifndef APP_INCLUDE_APP_ORDER_H_
 #define APP_INCLUDE_APP_ORDER_H_
+#include "ccapi_cpp/ccapi_decimal.h"
 namespace ccapi {
 class Order {
 public:

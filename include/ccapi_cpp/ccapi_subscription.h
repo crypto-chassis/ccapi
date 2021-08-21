@@ -136,7 +136,7 @@ class Subscription CCAPI_FINAL {
   std::string serviceName;
   std::set<std::string> instrumentSet;
   std::set<std::string> fieldSet;
-  mutable TimePoint timeSent{std::chrono::seconds{0}};
+   TimePoint timeSent{std::chrono::seconds{0}};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_

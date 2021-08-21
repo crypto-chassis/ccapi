@@ -34,17 +34,17 @@ class MarketDataService : public Service {
     }
   }
   // subscriptions are grouped and each group creates a unique websocket connection
-  void subscribe(const std::vector<Subscription>& subscriptionList) override {
+  void subscribe( std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrl = " + this->baseUrl);
     if (this->shouldContinue.load()) {
-      for (const auto& x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
+      for ( auto& x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
         auto instrumentGroup = x.first;
         auto subscriptionListGivenInstrumentGroup = x.second;
         wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<MarketDataService>(), instrumentGroup,
-                                                                                        subscriptionListGivenInstrumentGroup]() {
+                                                                                        subscriptionListGivenInstrumentGroup]() mutable{
                                                                                           auto now=UtilTime::now();
-                                                                                          for (const auto& subscription : subscriptionListGivenInstrumentGroup) {
+                                                                                          for ( auto& subscription : subscriptionListGivenInstrumentGroup) {
                                                                                             subscription.setTimeSent(now);
                                                                                           }
           std::map<std::string, std::vector<std::string>> wsConnectionIdListByInstrumentGroupMap = invertMapMulti(that->instrumentGroupByWsConnectionIdMap);
