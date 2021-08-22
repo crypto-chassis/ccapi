@@ -17,8 +17,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
     this->totalBalancePeak = 0;
   }
   bool processEvent(const Event& event, Session* session) override {
-    this->appLogger->log("********");
     if (this->printDebug) {
+      this->appLogger->log("********");
       this->appLogger->log("Received an event: " + event.toStringPretty());
       if (this->openBuyOrder) {
         this->appLogger->log("Open buy order is " + this->openBuyOrder->toString() + ".");
@@ -125,11 +125,13 @@ class SpotMarketMakingEventHandler : public EventHandler {
                   this->baseBalance -= lastFilledQuantity.toDouble();
                   this->quoteBalance += order.limitPrice.toDouble() * lastFilledQuantity.toDouble();
                 }
-                double feeQuantity;
-                if (UtilString::toLower(this->makerBuyerFeeAsset) == UtilString::toLower(this->baseAsset)) {
+                double feeQuantity = 0;
+                if ((isBuyerMaker && UtilString::toLower(this->makerBuyerFeeAsset) == UtilString::toLower(this->baseAsset)) ||
+                    (!isBuyerMaker && UtilString::toLower(this->makerSellerFeeAsset) == UtilString::toLower(this->baseAsset))) {
                   feeQuantity = lastFilledQuantity.toDouble() * this->makerFee;
                   this->baseBalance -= feeQuantity;
-                } else if (UtilString::toLower(this->makerBuyerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
+                } else if ((isBuyerMaker && UtilString::toLower(this->makerBuyerFeeAsset) == UtilString::toLower(this->quoteAsset)) ||
+                           (!isBuyerMaker && UtilString::toLower(this->makerSellerFeeAsset) == UtilString::toLower(this->quoteAsset))) {
                   feeQuantity = order.limitPrice.toDouble() * lastFilledQuantity.toDouble() * this->makerFee;
                   this->quoteBalance -= feeQuantity;
                 }
@@ -142,14 +144,14 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 messagePrivateTrade.setCorrelationIdList({this->privateSubscriptionDataCorrelationId});
                 Element elementPrivateTrade;
                 elementPrivateTrade.insert("TRADE_ID", UtilTime::getISOTimestamp(messageTime) + "__" + order.side + "__" + order.limitPrice.toString() + "__" +
-                                                           order.quantity.toString());
+                                                           lastFilledQuantity.toString());
                 elementPrivateTrade.insert("LAST_EXECUTED_PRICE", order.limitPrice.toString());
-                elementPrivateTrade.insert("LAST_EXECUTED_SIZE", order.cumulativeFilledQuantity.toString());
+                elementPrivateTrade.insert("LAST_EXECUTED_SIZE", lastFilledQuantity.toString());
                 elementPrivateTrade.insert("SIDE", order.side);
                 elementPrivateTrade.insert("IS_MAKER", "1");
                 elementPrivateTrade.insert("ORDER_ID", order.orderId);
                 elementPrivateTrade.insert("FEE_QUANTITY", Decimal(AppUtil::printDoubleScientific(feeQuantity)).toString());
-                elementPrivateTrade.insert("FEE_ASSET", this->makerBuyerFeeAsset);
+                elementPrivateTrade.insert("FEE_ASSET", isBuyerMaker ? this->makerBuyerFeeAsset : this->makerSellerFeeAsset);
                 messagePrivateTrade.setElementList({elementPrivateTrade});
                 Message messageOrderUpdate;
                 messageOrderUpdate.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
@@ -166,10 +168,10 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 elementOrderUpdate.insert("STATUS", order.status);
                 messageOrderUpdate.setElementList({elementOrderUpdate});
                 paperTradeEvent.setMessageList({messagePrivateTrade, messageOrderUpdate});
-                this->processEvent(paperTradeEvent, session);
                 if (this->printDebug) {
                   this->appLogger->log("Generated a paper trade event: " + paperTradeEvent.toStringPretty());
                 }
+                this->processEvent(paperTradeEvent, session);
               }
             }
           }
@@ -383,20 +385,22 @@ class SpotMarketMakingEventHandler : public EventHandler {
             std::string quantity = param.at("QUANTITY");
             bool sufficientBalance = false;
             if (side == "BUY") {
+              double transactedAmount = std::stod(price) * std::stod(quantity);
               if (UtilString::toLower(this->makerBuyerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
-                newQuoteBalance *= 1 - this->makerFee;
+                transactedAmount *= 1 + this->makerFee;
               }
-              newQuoteBalance -= std::stod(price) * std::stod(quantity);
+              newQuoteBalance -= transactedAmount;
               if (newQuoteBalance >= 0) {
                 sufficientBalance = true;
               } else {
                 this->appLogger->log("Insufficient quote balance.");
               }
             } else if (side == "SELL") {
+              double transactedAmount = std::stod(quantity);
               if (UtilString::toLower(this->makerSellerFeeAsset) == UtilString::toLower(this->baseAsset)) {
-                newBaseBalance *= 1 - this->makerFee;
+                transactedAmount *= 1 + this->makerFee;
               }
-              newBaseBalance -= std::stod(quantity);
+              newBaseBalance -= transactedAmount;
               if (newBaseBalance >= 0) {
                 sufficientBalance = true;
               } else {
@@ -455,16 +459,16 @@ class SpotMarketMakingEventHandler : public EventHandler {
             paperTradeEvent_2.setMessageList({message_2});
           }
           if (!paperTradeEvent.getMessageList().empty()) {
-            this->processEvent(paperTradeEvent, session);
             if (this->printDebug) {
               this->appLogger->log("Generated a paper trade event: " + paperTradeEvent.toStringPretty());
             }
+            this->processEvent(paperTradeEvent, session);
           }
           if (!paperTradeEvent_2.getMessageList().empty()) {
-            this->processEvent(paperTradeEvent_2, session);
             if (this->printDebug) {
               this->appLogger->log("Generated a paper trade event: " + paperTradeEvent_2.toStringPretty());
             }
+            this->processEvent(paperTradeEvent_2, session);
           }
         }
       } else {

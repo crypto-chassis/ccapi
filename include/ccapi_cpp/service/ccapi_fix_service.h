@@ -30,7 +30,7 @@ class FixService : public Service {
     this->hostFix = hostPort.first;
     this->portFix = hostPort.second;
   }
-  void subscribeByFix(const Subscription& subscription) override {
+  void subscribeByFix(Subscription& subscription) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrlFix = " + this->baseUrlFix);
     if (this->shouldContinue.load()) {
@@ -368,10 +368,10 @@ class FixService : public Service {
     this->lastPongTpByMethodByConnectionIdMap[fixConnectionPtr->id][method] = timeReceived;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequestByFix(const Request& request, const TimePoint& now) override {
+  void sendRequestByFix(Request& request, const TimePoint& now) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("now = " + toString(now));
-    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixService>(), request]() {
+    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<FixService>(), request]() mutable {
       auto now = UtilTime::now();
       CCAPI_LOGGER_DEBUG("request = " + toString(request));
       CCAPI_LOGGER_TRACE("now = " + toString(now));
