@@ -273,10 +273,14 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseAsset"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quoteAsset"].GetString());
-    int quoteAssetPrecision = std::stoi(x["quoteAssetPrecision"].GetString());
-    element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(quoteAssetPrecision - 1, '0') + "1");
-    int baseAssetPrecision = std::stoi(x["baseAssetPrecision"].GetString());
-    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseAssetPrecision - 1, '0') + "1");
+    for (const auto& y : x["filters"].GetArray()) {
+      std::string filterType = y["filterType"].GetString();
+      if (filterType == "PRICE_FILTER") {
+        element.insert(CCAPI_ORDER_PRICE_INCREMENT, y["tickSize"].GetString());
+      } else if (filterType == "LOT_SIZE") {
+        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, y["stepSize"].GetString());
+      }
+    }
     return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,

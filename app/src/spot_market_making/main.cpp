@@ -22,11 +22,9 @@ int main(int argc, char** argv) {
   AppLogger appLogger;
   CcapiLogger ccapiLogger(&appLogger);
   Logger::logger = &ccapiLogger;
-
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
-
   SpotMarketMakingEventHandler eventHandler(&appLogger);
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
@@ -47,6 +45,7 @@ int main(int argc, char** argv) {
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
+  std::cout << "******** Trading mode is " + tradingMode + "! ********" << std::endl;
   eventHandler.isPaperTrade = tradingMode == "paper";
   if (eventHandler.isPaperTrade) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
