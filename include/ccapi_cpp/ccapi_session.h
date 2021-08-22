@@ -151,7 +151,7 @@
 #include "ccapi_cpp/service/ccapi_service_context.h"
 using steady_timer = boost::asio::steady_timer;
 namespace ccapi {
-class Session CCAPI_FINAL {
+class Session {
  public:
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
@@ -177,11 +177,11 @@ class Session CCAPI_FINAL {
     this->start();
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  ~Session() {
+  virtual ~Session() {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void start() {
+  virtual void start() {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::thread t([this]() { this->serviceContextPtr->start(); });
     this->t = std::move(t);
@@ -361,7 +361,7 @@ class Session CCAPI_FINAL {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void stop() {
+  virtual void stop() {
     if (this->useInternalEventDispatcher) {
       this->eventDispatcher->stop();
       delete this->eventDispatcher;
@@ -374,12 +374,12 @@ class Session CCAPI_FINAL {
     this->serviceContextPtr->stop();
     this->t.join();
   }
-  void subscribe(const Subscription& subscription) {
+  virtual void subscribe(Subscription& subscription) {
     std::vector<Subscription> subscriptionList;
     subscriptionList.push_back(subscription);
     this->subscribe(subscriptionList);
   }
-  void subscribe(const std::vector<Subscription>& subscriptionList) {
+  virtual void subscribe(std::vector<Subscription>& subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::map<std::string, std::vector<Subscription> > subscriptionListByServiceNameMap;
     for (const auto& subscription : subscriptionList) {
@@ -399,9 +399,6 @@ class Session CCAPI_FINAL {
         std::set<std::string> duplicateCorrelationIdSet;
         std::unordered_set<std::string> unsupportedExchangeFieldSet;
         std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
-        // std::unordered_set<std::string> unsupportedExchangeMarketDepthSet;
-        // auto exchangeInstrumentMap = this->sessionConfigs.getExchangeInstrumentMap();
-        // CCAPI_LOGGER_DEBUG("exchangeInstrumentMap = " + toString(exchangeInstrumentMap));
         auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
         CCAPI_LOGGER_DEBUG("exchangeFieldMap = " + toString(exchangeFieldMap));
         for (const auto& subscription : subscriptionList) {
@@ -434,11 +431,6 @@ class Session CCAPI_FINAL {
                         "unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
           return;
         }
-        // if (!unsupportedExchangeMarketDepthSet.empty()) {
-        //   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
-        //                 "unsupported exchange market depth: " + toString(unsupportedExchangeMarketDepthSet) + ", exceeded max market depth available");
-        //   return;
-        // }
         CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = " + toString(subscriptionListByExchangeMap));
         for (auto& subscriptionListByExchange : subscriptionListByExchangeMap) {
           auto exchange = subscriptionListByExchange.first;
@@ -471,7 +463,7 @@ class Session CCAPI_FINAL {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void subscribeByFix(const Subscription& subscription) {
+  virtual void subscribeByFix(Subscription& subscription) {
     auto serviceName = subscription.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
     if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
@@ -486,12 +478,12 @@ class Session CCAPI_FINAL {
     }
     serviceByExchangeMap.at(exchange)->subscribeByFix(subscription);
   }
-  void subscribeByFix(const std::vector<Subscription>& subscriptionList) {
-    for (const auto& x : subscriptionList) {
+  virtual void subscribeByFix(std::vector<Subscription>& subscriptionList) {
+    for (auto& x : subscriptionList) {
       this->subscribeByFix(x);
     }
   }
-  void onEvent(Event& event, Queue<Event>* eventQueue) {
+  virtual void onEvent(Event& event, Queue<Event>* eventQueue) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = " + toString(event));
     if (this->eventHandler) {
@@ -518,7 +510,7 @@ class Session CCAPI_FINAL {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequestByFix(const Request& request) {
+  virtual void sendRequestByFix(Request& request) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto serviceName = request.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
@@ -537,12 +529,12 @@ class Session CCAPI_FINAL {
     servicePtr->sendRequestByFix(request, now);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequestByFix(const std::vector<Request>& requestList) {
-    for (const auto& x : requestList) {
+  virtual void sendRequestByFix(std::vector<Request>& requestList) {
+    for (auto& x : requestList) {
       this->sendRequestByFix(x);
     }
   }
-  void sendRequestByWebsocket(const Request& request) {
+  virtual void sendRequestByWebsocket(Request& request) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto serviceName = request.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
@@ -561,22 +553,22 @@ class Session CCAPI_FINAL {
     servicePtr->sendRequestByWebsocket(request, now);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequestByWebsocket(const std::vector<Request>& requestList) {
-    for (const auto& x : requestList) {
+  virtual void sendRequestByWebsocket(std::vector<Request>& requestList) {
+    for (auto& x : requestList) {
       this->sendRequestByWebsocket(x);
     }
   }
-  void sendRequest(const Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest(Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList({request});
     this->sendRequest(requestList, eventQueuePtr, delayMilliSeconds);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  void sendRequest(const std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest(std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     std::set<std::string> serviceNameExchangeSet;
-    for (const auto& request : requestList) {
+    for (auto& request : requestList) {
       auto serviceName = request.getServiceName();
       CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
@@ -611,8 +603,8 @@ class Session CCAPI_FINAL {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  Queue<Event>& getEventQueue() { return eventQueue; }
-  void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage, Queue<Event>* eventQueuePtr = nullptr) {
+  virtual Queue<Event>& getEventQueue() { return eventQueue; }
+  virtual void onError(const Event::Type eventType, const Message::Type messageType, const std::string& errorMessage, Queue<Event>* eventQueuePtr = nullptr) {
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
     Event event;
     event.setType(eventType);
@@ -628,8 +620,8 @@ class Session CCAPI_FINAL {
     this->onEvent(event, eventQueuePtr);
   }
 #ifndef SWIG
-  void setTimer(const std::string& id, long delayMilliSeconds, std::function<void(const boost::system::error_code&)> errorHandler,
-                std::function<void()> successHandler) {
+  virtual void setTimer(const std::string& id, long delayMilliSeconds, std::function<void(const boost::system::error_code&)> errorHandler,
+                        std::function<void()> successHandler) {
     wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [this, id, delayMilliSeconds, errorHandler, successHandler]() {
       std::shared_ptr<steady_timer> timerPtr(new steady_timer(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliSeconds)));
       timerPtr->async_wait([this, id, errorHandler, successHandler](const boost::system::error_code& ec) {
@@ -647,7 +639,7 @@ class Session CCAPI_FINAL {
       this->delayTimerByIdMap[id] = timerPtr;
     });
   }
-  void cancelTimer(const std::string& id) {
+  virtual void cancelTimer(const std::string& id) {
     wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [this, id]() {
       if (this->delayTimerByIdMap.find(id) != this->delayTimerByIdMap.end()) {
         this->delayTimerByIdMap[id]->cancel();

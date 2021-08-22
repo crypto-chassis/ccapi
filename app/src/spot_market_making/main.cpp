@@ -22,55 +22,10 @@ int main(int argc, char** argv) {
   AppLogger appLogger;
   CcapiLogger ccapiLogger(&appLogger);
   Logger::logger = &ccapiLogger;
-  std::string saveCsvDirectory = UtilSystem::getEnvAsString("SAVE_CSV_DIRECTORY");
-  std::string nowISO = UtilTime::getISOTimestamp(UtilTime::now());
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
-  std::string privateTradeCsvFilename(nowISO + "__private_trade__" + exchange + "__" + instrumentRest + ".csv"),
-      orderUpdateCsvFilename(nowISO + "__order_update__" + exchange + "__" + instrumentRest + ".csv"),
-      accountBalanceCsvFilename(nowISO + "__account_balance__" + exchange + "__" + instrumentRest + ".csv");
-  if (!saveCsvDirectory.empty()) {
-    privateTradeCsvFilename = saveCsvDirectory + "/" + privateTradeCsvFilename;
-    orderUpdateCsvFilename = saveCsvDirectory + "/" + orderUpdateCsvFilename;
-    accountBalanceCsvFilename = saveCsvDirectory + "/" + accountBalanceCsvFilename;
-  }
-  CsvWriter privateTradeCsvWriter(privateTradeCsvFilename), orderUpdateCsvWriter(orderUpdateCsvFilename), accountBalanceCsvWriter(accountBalanceCsvFilename);
-  privateTradeCsvWriter.writeRow({
-      "TIME",
-      "TRADE_ID",
-      "LAST_EXECUTED_PRICE",
-      "LAST_EXECUTED_SIZE",
-      "SIDE",
-      "IS_MAKER",
-      "ORDER_ID",
-      "CLIENT_ORDER_ID",
-      "FEE_QUANTITY",
-      "FEE_ASSET",
-  });
-  privateTradeCsvWriter.flush();
-  orderUpdateCsvWriter.writeRow({
-      "TIME",
-      "ORDER_ID",
-      "CLIENT_ORDER_ID",
-      "SIDE",
-      "LIMIT_PRICE",
-      "QUANTITY",
-      "REMAINING_QUANTITY",
-      "CUMULATIVE_FILLED_QUANTITY",
-      "CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY",
-      "STATUS",
-  });
-  orderUpdateCsvWriter.flush();
-  accountBalanceCsvWriter.writeRow({
-      "TIME",
-      "BASE_AVAILABLE_BALANCE",
-      "QUOTE_AVAILABLE_BALANCE",
-      "BEST_BID_PRICE",
-      "BEST_ASK_PRICE",
-  });
-  accountBalanceCsvWriter.flush();
-  SpotMarketMakingEventHandler eventHandler(&appLogger, &privateTradeCsvWriter, &orderUpdateCsvWriter, &accountBalanceCsvWriter);
+  SpotMarketMakingEventHandler eventHandler(&appLogger);
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
@@ -78,6 +33,7 @@ int main(int argc, char** argv) {
   eventHandler.quoteAvailableBalanceProportion = UtilSystem::getEnvAsDouble("QUOTE_AVAILABLE_BALANCE_PROPORTION");
   double a = UtilSystem::getEnvAsDouble("INVENTORY_BASE_QUOTE_RATIO_TARGET");
   eventHandler.inventoryBasePortionTarget = a / (a + 1);
+  eventHandler.useWeightedMidPrice = UtilString::toLower(UtilSystem::getEnvAsString("USE_WEIGHTED_MID_PRICE")) == "true";
   eventHandler.halfSpreadMinimum = UtilSystem::getEnvAsDouble("SPREAD_PROPORTION_MINIMUM") / 2;
   eventHandler.halfSpreadMaximum = UtilSystem::getEnvAsDouble("SPREAD_PROPORTION_MAXIMUM") / 2;
   eventHandler.orderQuantityProportion = UtilSystem::getEnvAsDouble("ORDER_QUANTITY_PROPORTION");
@@ -85,8 +41,19 @@ int main(int argc, char** argv) {
   eventHandler.orderRefreshIntervalOffsetSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_OFFSET_SECONDS") % eventHandler.orderRefreshIntervalSeconds;
   eventHandler.accountBalanceRefreshWaitSeconds = UtilSystem::getEnvAsInt("ACCOUNT_BALANCE_REFRESH_WAIT_SECONDS");
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
+  eventHandler.saveCsvDirectory = UtilSystem::getEnvAsString("SAVE_CSV_DIRECTORY");
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
+  std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
+  std::cout << "******** Trading mode is " + tradingMode + "! ********" << std::endl;
+  eventHandler.isPaperTrade = tradingMode == "paper";
+  if (eventHandler.isPaperTrade) {
+    eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
+    eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
+    eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
+    eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE");
+    eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE");
+  }
   std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase", "kucoin"};
   if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange) != useGetAccountsToGetAccountBalancesExchangeSet.end()) {
     eventHandler.useGetAccountsToGetAccountBalances = true;

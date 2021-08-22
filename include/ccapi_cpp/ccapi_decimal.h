@@ -23,25 +23,32 @@ class Decimal CCAPI_FINAL {
       if (fixedPointValue.find(".") != std::string::npos) {
         fixedPointValue = UtilString::rtrim(UtilString::rtrim(fixedPointValue, "0"), ".");
       }
-      if (splitted.at(1) != "0") {
+      auto exponent = splitted.at(1);
+      if (exponent.at(0) == '+') {
+        exponent.erase(0, 1);
+      }
+      exponent = UtilString::ltrim(exponent, "0");
+      if (exponent.empty()) {
+        exponent = "0";
+      }
+      if (exponent != "0") {
         if (fixedPointValue.find(".") != std::string::npos) {
           std::vector<std::string> splittedByDecimal = UtilString::split(fixedPointValue, ".");
-          if (splitted.at(1).at(0) != '-') {
-            if (std::stoi(splitted.at(1)) < splittedByDecimal.at(1).length()) {
-              fixedPointValue = splittedByDecimal.at(0) + splittedByDecimal.at(1).substr(0, std::stoi(splitted.at(1))) + "." +
-                                splittedByDecimal.at(1).substr(std::stoi(splitted.at(1)));
-            } else {
+          if (exponent.at(0) != '-') {
+            if (std::stoi(exponent) < splittedByDecimal.at(1).length()) {
               fixedPointValue =
-                  splittedByDecimal.at(0) + splittedByDecimal.at(1) + std::string(std::stoi(splitted.at(1)) - splittedByDecimal.at(1).length(), '0');
+                  splittedByDecimal.at(0) + splittedByDecimal.at(1).substr(0, std::stoi(exponent)) + "." + splittedByDecimal.at(1).substr(std::stoi(exponent));
+            } else {
+              fixedPointValue = splittedByDecimal.at(0) + splittedByDecimal.at(1) + std::string(std::stoi(exponent) - splittedByDecimal.at(1).length(), '0');
             }
           } else {
-            fixedPointValue = "0." + std::string(-std::stoi(splitted.at(1)) - 1, '0') + splittedByDecimal.at(0) + splittedByDecimal.at(1);
+            fixedPointValue = "0." + std::string(-std::stoi(exponent) - 1, '0') + splittedByDecimal.at(0) + splittedByDecimal.at(1);
           }
         } else {
-          if (splitted.at(1).at(0) != '-') {
-            fixedPointValue += std::string(std::stoi(splitted.at(1)), '0');
+          if (exponent.at(0) != '-') {
+            fixedPointValue += std::string(std::stoi(exponent), '0');
           } else {
-            fixedPointValue = "0." + std::string(-std::stoi(splitted.at(1)) - 1, '0') + fixedPointValue;
+            fixedPointValue = "0." + std::string(-std::stoi(exponent) - 1, '0') + fixedPointValue;
           }
         }
       }
@@ -68,6 +75,7 @@ class Decimal CCAPI_FINAL {
     }
     return stringValue;
   }
+  double toDouble() const { return std::stod(this->toString()); }
   friend bool operator<(const Decimal& l, const Decimal& r) {
     if (l.sign && r.sign) {
       if (l.before < r.before) {

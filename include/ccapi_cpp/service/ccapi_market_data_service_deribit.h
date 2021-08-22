@@ -232,7 +232,7 @@ class MarketDataServiceDeribit : public MarketDataService {
           for (const auto& x : data.GetArray()) {
             MarketDataMessage marketDataMessage;
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
+            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
             marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
             marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(x["timestamp"].GetString())));
             MarketDataMessage::TypeForDataPoint dataPoint;

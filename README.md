@@ -106,7 +106,7 @@
 ```
 mkdir binding/build
 cd binding/build
-rm -rf * (if rebuild)
+rm -rf * (if rebuild from scratch)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> -DBUILD_VERSION=<any-string-you-like> -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON ..
 cmake --build . -j
 cmake --install .
@@ -904,11 +904,12 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 ```
 mkdir app/build
 cd app/build
-rm -rf * (if rebuild)
+rm -rf * (if rebuild from scratch)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
 cmake --build . -j
 ```
 * The executable is `app/build/src/spot_market_making/spot_market_making`. Run it after setting relevant environment variables shown in [`app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`.
+* For paper trading, please see the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) to set additional parameters.
 
 ## Contributing
 * (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
