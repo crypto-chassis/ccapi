@@ -44,6 +44,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
   }
   Element extractInstrumentInfo(const rj::Value& x) {
     Element element;
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["marginAsset"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["pair"].GetString());
     for (const auto& y : x["filters"].GetArray()) {

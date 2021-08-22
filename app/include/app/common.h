@@ -35,7 +35,6 @@ class AppUtil {
       } else {
         output = "0." + UtilString::leftPadTo(output, splitted_1.length(), '0');
       }
-
     } else {
       output = std::to_string(x * std::stoll(inputIncrement));
     }
