@@ -203,10 +203,10 @@ class SpotMarketMakingEventHandler : public EventHandler {
               orderUpdateCsvFilename(messageTimeISO + "__order_update__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate + ".csv"),
               accountBalanceCsvFilename(messageTimeISO + "__account_balance__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate +
                                         ".csv");
-          if (!this->saveCsvDirectory.empty()) {
-            privateTradeCsvFilename = this->saveCsvDirectory + "/" + privateTradeCsvFilename;
-            orderUpdateCsvFilename = this->saveCsvDirectory + "/" + orderUpdateCsvFilename;
-            accountBalanceCsvFilename = this->saveCsvDirectory + "/" + accountBalanceCsvFilename;
+          if (!this->privateDataDirectory.empty()) {
+            privateTradeCsvFilename = this->privateDataDirectory + "/" + privateTradeCsvFilename;
+            orderUpdateCsvFilename = this->privateDataDirectory + "/" + orderUpdateCsvFilename;
+            accountBalanceCsvFilename = this->privateDataDirectory + "/" + accountBalanceCsvFilename;
           }
           auto privateTradeCsvWriter = new CsvWriter(privateTradeCsvFilename);
           auto orderUpdateCsvWriter = new CsvWriter(orderUpdateCsvFilename);
@@ -539,7 +539,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
     }
   }
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
-      orderQuantityIncrement, saveCsvDirectory, publicSubscriptionDataMareketDepthCorrelationId{"MARKET_DEPTH"},
+      orderQuantityIncrement, privateDataDirectory, publicSubscriptionDataMareketDepthCorrelationId{"MARKET_DEPTH"},
       publicSubscriptionDataTradeCorrelationId{"TRADE"}, privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize,
       bestAskPrice, bestAskSize, cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
   double halfSpreadMinimum, halfSpreadMaximum, inventoryBasePortionTarget, baseBalance, quoteBalance, baseAvailableBalanceProportion,

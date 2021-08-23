@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
   eventHandler.orderRefreshIntervalOffsetSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_OFFSET_SECONDS") % eventHandler.orderRefreshIntervalSeconds;
   eventHandler.accountBalanceRefreshWaitSeconds = UtilSystem::getEnvAsInt("ACCOUNT_BALANCE_REFRESH_WAIT_SECONDS");
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
-  eventHandler.saveCsvDirectory = UtilSystem::getEnvAsString("SAVE_CSV_DIRECTORY");
+  eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
