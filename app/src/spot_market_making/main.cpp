@@ -46,13 +46,23 @@ int main(int argc, char** argv) {
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   std::cout << "******** Trading mode is " + tradingMode + "! ********" << std::endl;
-  eventHandler.isPaperTrade = tradingMode == "paper";
-  if (eventHandler.isPaperTrade) {
+  if (tradingMode=="paper"){
+    eventHandler.tradingMode = SpotMarketMakingEventHandler::TradingMode::PAPER;
+  }else if (tradingMode=="backtest"){
+    eventHandler.tradingMode = SpotMarketMakingEventHandler::TradingMode::BACKTEST;
+  }
+
+  if (eventHandler.tradingMode!=SpotMarketMakingEventHandler::TradingMode::LIVE) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
     eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
     eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
     eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE");
     eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE");
+  }
+  if (eventHandler.tradingMode==SpotMarketMakingEventHandler::TradingMode::BACKTEST) {
+    eventHandler.startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE"));
+    eventHandler.endDateTp = UtilTime::parse(UtilSystem::getEnvAsString("END_DATE"));
+    eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsDouble("HISTORICAL_MARKET_DATA_DIRECTORY");
   }
   std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase", "kucoin"};
   if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange) != useGetAccountsToGetAccountBalancesExchangeSet.end()) {
@@ -86,8 +96,12 @@ int main(int argc, char** argv) {
   }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
   session.sendRequest(request);
-  while (true) {
-    std::this_thread::sleep_for(std::chrono::seconds(INT_MAX));
+  if (eventHandler.tradingMode!=SpotMarketMakingEventHandler::TradingMode::BACKTEST){
+    while (true) {
+      std::this_thread::sleep_for(std::chrono::seconds(INT_MAX));
+    }
   }
+
+  session.stop();
   return EXIT_SUCCESS;
 }

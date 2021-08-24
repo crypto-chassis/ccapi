@@ -1,12 +1,18 @@
 #ifndef APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
 #define APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
 #include "app/common.h"
+#include "app/historical_market_data_event_processor.h"
 #include "app/order.h"
 #include "boost/optional/optional.hpp"
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
 class SpotMarketMakingEventHandler : public EventHandler {
  public:
+   enum class TradingMode {
+     LIVE,
+     PAPER,
+     BACKTEST,
+   };
   SpotMarketMakingEventHandler(AppLogger* appLogger, CsvWriter* privateTradeCsvWriter = nullptr, CsvWriter* orderUpdateCsvWriter = nullptr,
                                CsvWriter* accountBalanceCsvWriter = nullptr)
       : EventHandler(),
@@ -82,7 +88,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
           this->orderUpdateCsvWriter->writeRows(rows);
           this->orderUpdateCsvWriter->flush();
         } else if (message.getType() == Message::Type::MARKET_DATA_EVENTS_TRADE || message.getType() == Message::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-          if (this->isPaperTrade) {
+          if (this->tradingMode == TradingMode::PAPER) {
             auto messageTime = message.getTime();
             for (const auto& element : message.getElementList()) {
               bool isBuyerMaker = element.getValue("IS_BUYER_MAKER") == "1";
@@ -295,7 +301,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
       auto messageTimeReceived = firstMessage.getTimeReceived();
       std::string messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
       if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
-        if (!this->isPaperTrade) {
+        if (this->tradingMode == TradingMode::LIVE) {
           for (const auto& element : firstMessage.getElementList()) {
             auto asset = element.getValue("ASSET");
             if (asset == this->baseAsset) {
@@ -325,25 +331,35 @@ class SpotMarketMakingEventHandler : public EventHandler {
         this->quoteAsset = element.getValue("QUOTE_ASSET");
         this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue("PRICE_INCREMENT"));
         this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue("QUANTITY_INCREMENT"));
-        std::vector<Subscription> subscriptionList;
-        subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH",
-                                      "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0",
-                                      this->publicSubscriptionDataMareketDepthCorrelationId);
-        if (this->isPaperTrade) {
-          std::string field = "TRADE";
-          if (this->exchange.rfind("binance", 0) == 0) {
-            field = "AGG_TRADE";
+        if (this->tradingMode==TradingMode::BACKTEST){
+          HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(std::bind(&SpotMarketMakingEventHandler::processEvent, this, std::placeholders::_1, nullptr));
+          historicalMarketDataEventProcessor.exchange=this->exchange;
+          historicalMarketDataEventProcessor.baseAsset=UtilString::toLower(this->baseAsset);
+          historicalMarketDataEventProcessor.quoteAsset=UtilString::toLower(this->quoteAsset);
+          historicalMarketDataEventProcessor.startDateTp = this->startDateTp;
+          historicalMarketDataEventProcessor.endDateTp = this->endDateTp;
+          historicalMarketDataEventProcessor.processEvent();
+        }else {
+          std::vector<Subscription> subscriptionList;
+          subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH",
+                                        "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0",
+                                        "MARKET_DEPTH");
+          if (this->tradingMode == TradingMode::PAPER) {
+            std::string field = "TRADE";
+            if (this->exchange.rfind("binance", 0) == 0) {
+              field = "AGG_TRADE";
+            }
+            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", "TRADE");
+          }else{
+            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "PRIVATE_TRADE,ORDER_UPDATE", "",
+                                          this->privateSubscriptionDataCorrelationId);
           }
-          subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", this->publicSubscriptionDataTradeCorrelationId);
-        } else {
-          subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "PRIVATE_TRADE,ORDER_UPDATE", "",
-                                        this->privateSubscriptionDataCorrelationId);
+          session->subscribe(subscriptionList);
         }
-        session->subscribe(subscriptionList);
       }
     }
     if (!requestList.empty()) {
-      if (this->isPaperTrade) {
+      if (this->tradingMode == TradingMode::PAPER || this->tradingMode==TradingMode::BACKTEST) {
         for (const auto& request : requestList) {
           auto now = request.getTimeSent();
           Event paperTradeEvent;
@@ -539,21 +555,29 @@ class SpotMarketMakingEventHandler : public EventHandler {
     }
   }
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
-      orderQuantityIncrement, privateDataDirectory, publicSubscriptionDataMareketDepthCorrelationId{"MARKET_DEPTH"},
-      publicSubscriptionDataTradeCorrelationId{"TRADE"}, privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize,
+      orderQuantityIncrement, privateDataDirectory,
+      // publicSubscriptionDataMareketDepthCorrelationId{"MARKET_DEPTH"},
+      // publicSubscriptionDataTradeCorrelationId{"TRADE"},
+      privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize,
       bestAskPrice, bestAskSize, cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
   double halfSpreadMinimum, halfSpreadMaximum, inventoryBasePortionTarget, baseBalance, quoteBalance, baseAvailableBalanceProportion,
       quoteAvailableBalanceProportion, orderQuantityProportion, totalBalancePeak, killSwitchMaximumDrawdown;
   int orderRefreshIntervalSeconds, orderRefreshIntervalOffsetSeconds, accountBalanceRefreshWaitSeconds;
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}}, cancelOpenOrdersLastTime{std::chrono::seconds{0}},
       getAccountBalancesLastTime{std::chrono::seconds{0}};
-  bool useGetAccountsToGetAccountBalances{}, printDebug{}, useWeightedMidPrice{}, isPaperTrade{};
+  bool useGetAccountsToGetAccountBalances{}, printDebug{}, useWeightedMidPrice{};
+  TradingMode tradingMode{TradingMode::LIVE};
 
-  // start: only applicable to paper trade
+  // start: only applicable to paper trade and backtest
   double makerFee;
   std::string makerBuyerFeeAsset, makerSellerFeeAsset;
   boost::optional<Order> openBuyOrder, openSellOrder;
-  // end: only applicable to paper trade
+  // end: only applicable to paper trade and backtest
+
+    // start: only applicable to backtest
+    TimePoint startDateTp,endDateTp;
+    std::string historicalMarketDataDirectory;
+    // end: only applicable to backtest
 
  private:
   Request createRequestForCreateOrder(const std::string& side, const std::string& price, const std::string& quantity, const TimePoint& now) {

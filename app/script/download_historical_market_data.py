@@ -60,16 +60,16 @@ baseAsset = args.base_asset.lower()
 quoteAsset = args.quote_asset.lower()
 startDate = datetime.strptime(args.start_date, '%Y-%m-%d').date()
 endDate = datetime.strptime(args.end_date, '%Y-%m-%d').date()
-downloadDate = startDate
+currentDate = startDate
 historicalMarketDataDirectory = args.historical_market_data_directory
 urlBase='https://api.cryptochassis.com/v1'
 session = requests.Session()
 retries = Retry(total=10, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
 session.mount('https://', TimeoutHTTPAdapter(max_retries=retries))
 tradeCsvHeader = 'time_seconds,price,size,is_buyer_maker\n'
-while downloadDate < endDate:
+while currentDate < endDate:
     for dataType in ['market-depth', 'trade']:
-        fileName = f'{exchange}__{baseAsset}-{quoteAsset}__{downloadDate.isoformat()}__{dataType}'
+        fileName = f'{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}'
 
         fileNameWithDir = f'{historicalMarketDataDirectory}/{fileName}'
         tmpFileNameWithDir = f'{historicalMarketDataDirectory}/tmp__{fileName}'
@@ -78,17 +78,20 @@ while downloadDate < endDate:
         # print(f"{fileNameWithDir}.csv.gz")
         # print(pathlib.Path(f"{fileNameWithDir}.csv.gz").is_file())
         # print()
-        if not pathlib.Path(f"{fileNameWithDir}.csv").is_file() and not pathlib.Path(f"{fileNameWithDir}.csv.gz").is_file():
+        if not pathlib.Path(f"{fileNameWithDir}.csv").is_file():
             # print(f'File {fileName}.csv already exists. Skip download.')
             # continue
-            print(f'Start download data for {dataType}, {exchange}, {baseAsset}-{quoteAsset}, {downloadDate.isoformat()}.')
-            urls = session.get(f'{urlBase}/{dataType}/{exchange}/{baseAsset}-{quoteAsset}?startTime={downloadDate.isoformat()}').json()['urls']
+            print(f'Start download data for {dataType}, {exchange}, {baseAsset}-{quoteAsset}, {currentDate.isoformat()}.')
+            requestUrl = f'{urlBase}/{dataType}/{exchange}/{baseAsset}-{quoteAsset}?startTime={currentDate.isoformat()}'
+            if dataType == 'market-depth':
+                requestUrl+='&depth=1'
+            urls = session.get(requestUrl).json()['urls']
 
             if not urls:
                 print(f'Data cannot be found on server. Skip download.')
                 continue
-
-            with session.get(urls[0]['url'], stream=True) as r:
+            fileUrl = urls[0]['url']
+            with session.get(fileUrl, stream=True) as r:
                 with open(f'{fileNameWithDir}.csv.gz', 'wb') as f:
                     for chunk in r.iter_content(chunk_size=1024):
                         f.write(chunk)
@@ -114,4 +117,4 @@ while downloadDate < endDate:
                                 splitted = tuple(line.split(','))
                                 fOut.write(','.join((splitted[0]+'.'+splitted[1].zfill(9).rstrip('0') if splitted[1]!='0' else splitted[0],)+splitted[2:5])+'\n')
                     os.remove(f'{tmpFileNameWithDir}.csv')
-    downloadDate += timedelta(days=1)
+    currentDate += timedelta(days=1)
