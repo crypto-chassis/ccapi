@@ -26,23 +26,19 @@ class TimeoutHTTPAdapter(HTTPAdapter):
 
 
 argumentParser = argparse.ArgumentParser()
+
+
 argumentParser.add_argument("--exchange", required=True, type=str, help="The exchange, e.g. coinbase.")
 argumentParser.add_argument("--base-asset", required=True, type=str, help="The base asset, e.g. btc.")
 argumentParser.add_argument("--quote-asset", required=True, type=str, help="The quote asset, e.g. usd.")
 argumentParser.add_argument("--start-date", required=True, type=str, help="The start date, e.g. 2021-08-22.")
+argumentParser.add_argument("--end-date", required=True, type=str, help="The end date, e.g. 2021-08-23. Exclusive.")
 argumentParser.add_argument(
-    "--end-date",
-    required=True,
-    type=str,
-    help="The end date, e.g. 2021-08-23. Exclusive.",
+    "--historical-market-data-directory", required=True, type=str, help="The directory in which historical market data files are saved."
 )
-argumentParser.add_argument(
-    "--historical-market-data-directory",
-    required=True,
-    type=str,
-    help="The directory in which historical market data files are saved.",
-)
+
 args = argumentParser.parse_args()
+
 exchange = args.exchange
 baseAsset = args.base_asset.lower()
 quoteAsset = args.quote_asset.lower()
@@ -59,14 +55,18 @@ tradeCsvHeader = "time_seconds,price,size,is_buyer_maker\n"
 while currentDate < endDate:
     for dataType in ["market-depth", "trade"]:
         fileName = f"{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}"
+
         fileNameWithDir = f"{historicalMarketDataDirectory}/{fileName}"
         tmpFileNameWithDir = f"{historicalMarketDataDirectory}/tmp__{fileName}"
+
         if not pathlib.Path(f"{fileNameWithDir}.csv").is_file():
+
             print(f"Start download data for {dataType}, {exchange}, {baseAsset}-{quoteAsset}, {currentDate.isoformat()}.")
             requestUrl = f"{urlBase}/{dataType}/{exchange}/{baseAsset}-{quoteAsset}?startTime={currentDate.isoformat()}"
             if dataType == "market-depth":
                 requestUrl += "&depth=1"
             urls = session.get(requestUrl).json()["urls"]
+
             if not urls:
                 print(f"Data cannot be found on server. Skip download.")
                 continue
