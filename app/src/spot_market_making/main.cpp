@@ -41,23 +41,38 @@ int main(int argc, char** argv) {
   eventHandler.orderRefreshIntervalOffsetSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_OFFSET_SECONDS") % eventHandler.orderRefreshIntervalSeconds;
   eventHandler.accountBalanceRefreshWaitSeconds = UtilSystem::getEnvAsInt("ACCOUNT_BALANCE_REFRESH_WAIT_SECONDS");
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
-  eventHandler.saveCsvDirectory = UtilSystem::getEnvAsString("SAVE_CSV_DIRECTORY");
+  eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
+  eventHandler.privateDataFilePrefix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_PREFIX");
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
+  eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   std::cout << "******** Trading mode is " + tradingMode + "! ********" << std::endl;
-  eventHandler.isPaperTrade = tradingMode == "paper";
-  if (eventHandler.isPaperTrade) {
+  if (tradingMode == "paper") {
+    eventHandler.tradingMode = SpotMarketMakingEventHandler::TradingMode::PAPER;
+  } else if (tradingMode == "backtest") {
+    eventHandler.tradingMode = SpotMarketMakingEventHandler::TradingMode::BACKTEST;
+  }
+  if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::PAPER ||
+      eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
     eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
     eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
     eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE");
     eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE");
   }
+  if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST) {
+    eventHandler.startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE"), "%F");
+
+    eventHandler.endDateTp = UtilTime::parse(UtilSystem::getEnvAsString("END_DATE"), "%F");
+    eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY");
+  }
   std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase", "kucoin"};
   if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange) != useGetAccountsToGetAccountBalancesExchangeSet.end()) {
     eventHandler.useGetAccountsToGetAccountBalances = true;
   }
+  std::shared_ptr<std::promise<void>> promisePtr(new std::promise<void>());
+  eventHandler.promisePtr = promisePtr;
   SessionOptions sessionOptions;
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
@@ -86,8 +101,7 @@ int main(int argc, char** argv) {
   }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
   session.sendRequest(request);
-  while (true) {
-    std::this_thread::sleep_for(std::chrono::seconds(INT_MAX));
-  }
+  promisePtr->get_future().wait();
+  session.stop();
   return EXIT_SUCCESS;
 }
