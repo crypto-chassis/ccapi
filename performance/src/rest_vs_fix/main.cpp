@@ -46,7 +46,8 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   if (UtilSystem::getEnvAsString("TIME_SLEEP_MILLISECONDS_BETWEEN_REQUESTS").empty()) {
-    std::cerr << "Please set environment variable TIME_SLEEP_MILLISECONDS_BETWEEN_REQUESTS. Allowed values: any positive integer to avoid exchange request "
+    std::cerr << "Please set environment variable TIME_SLEEP_MILLISECONDS_BETWEEN_REQUESTS. Allowed values: any positive "
+                 "integer to avoid exchange request "
                  "rate limit."
               << std::endl;
     return EXIT_FAILURE;

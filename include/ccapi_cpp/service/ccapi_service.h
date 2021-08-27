@@ -721,8 +721,8 @@ class Service : public std::enable_shared_from_this<Service> {
     }
   }
   // virtual std::string convertNumberToStringInJson(const std::string& jsonString) {
-  //   auto quotedTextMessage = std::regex_replace(jsonString, this->convertNumberToStringInJsonRegex, this->convertNumberToStringInJsonRewrite);
-  //   return quotedTextMessage;
+  //   auto quotedTextMessage = std::regex_replace(jsonString, this->convertNumberToStringInJsonRegex,
+  //   this->convertNumberToStringInJsonRewrite); return quotedTextMessage;
   // }
   void setupCredential(std::vector<std::string> nameList) {
     for (const auto& x : nameList) {

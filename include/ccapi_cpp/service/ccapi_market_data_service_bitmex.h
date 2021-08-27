@@ -273,7 +273,8 @@ class MarketDataServiceBitmex : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const
+  // TimePoint& timeReceived) override {
   //   std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
   //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);

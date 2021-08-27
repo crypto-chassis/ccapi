@@ -1,18 +1,25 @@
 #ifndef APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
 #define APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
+#include <random>
+#include <sstream>
 #include "app/common.h"
 #include "app/historical_market_data_event_processor.h"
 #include "app/order.h"
 #include "boost/optional/optional.hpp"
 #include "ccapi_cpp/ccapi_session.h"
+// #include "boost/uuid/uuid.hpp"
+// #include "boost/uuid/uuid_generators.hpp"
+// #include "boost/uuid/uuid_io.hpp"
+// #include <filesystem>
+
 namespace ccapi {
 class SpotMarketMakingEventHandler : public EventHandler {
  public:
-   enum class TradingMode {
-     LIVE,
-     PAPER,
-     BACKTEST,
-   };
+  enum class TradingMode {
+    LIVE,
+    PAPER,
+    BACKTEST,
+  };
   SpotMarketMakingEventHandler(AppLogger* appLogger, CsvWriter* privateTradeCsvWriter = nullptr, CsvWriter* orderUpdateCsvWriter = nullptr,
                                CsvWriter* accountBalanceCsvWriter = nullptr)
       : EventHandler(),
@@ -23,19 +30,18 @@ class SpotMarketMakingEventHandler : public EventHandler {
     this->totalBalancePeak = 0;
   }
   bool processEvent(const Event& event, Session* session) override {
-    if (this->printDebug) {
-      this->appLogger->log("********");
-      this->appLogger->log("Received an event: " + event.toStringPretty());
-      if (this->openBuyOrder) {
-        this->appLogger->log("Open buy order is " + this->openBuyOrder->toString() + ".");
-      }
-      if (this->openSellOrder) {
-        this->appLogger->log("Open sell order is " + this->openSellOrder->toString() + ".");
-      }
-      std::string baseBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->baseBalance)).toString();
-      std::string quoteBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->quoteBalance)).toString();
-      this->appLogger->log("Base asset balance is " + baseBalanceDecimalNotation + ", quote asset balance is " + quoteBalanceDecimalNotation + ".");
+    this->appLogger->logDebug("********", this->printDebug);
+    this->appLogger->logDebug("Received an event: " + event.toStringPretty(), this->printDebug);
+    if (this->openBuyOrder) {
+      this->appLogger->logDebug("Open buy order is " + this->openBuyOrder->toString() + ".", this->printDebug);
     }
+    if (this->openSellOrder) {
+      this->appLogger->logDebug("Open sell order is " + this->openSellOrder->toString() + ".", this->printDebug);
+    }
+    std::string baseBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->baseBalance)).toString();
+    std::string quoteBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->quoteBalance)).toString();
+    this->appLogger->logDebug("Base asset balance is " + baseBalanceDecimalNotation + ", quote asset balance is " + quoteBalanceDecimalNotation + ".",
+                              this->printDebug);
     auto eventType = event.getType();
     std::vector<Request> requestList;
     if (eventType == Event::Type::SUBSCRIPTION_DATA) {
@@ -88,11 +94,11 @@ class SpotMarketMakingEventHandler : public EventHandler {
           this->orderUpdateCsvWriter->writeRows(rows);
           this->orderUpdateCsvWriter->flush();
         } else if (message.getType() == Message::Type::MARKET_DATA_EVENTS_TRADE || message.getType() == Message::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-          if (this->tradingMode == TradingMode::PAPER) {
+          if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
             auto messageTime = message.getTime();
             for (const auto& element : message.getElementList()) {
-              bool isBuyerMaker = element.getValue("IS_BUYER_MAKER") == "1";
-              auto takerPrice = Decimal(element.getValue("LAST_PRICE"));
+              bool isBuyerMaker = element.getValue(CCAPI_IS_BUYER_MAKER) == "1";
+              auto takerPrice = Decimal(element.getValue(CCAPI_LAST_PRICE));
               Order order;
               if (isBuyerMaker && this->openBuyOrder) {
                 order = this->openBuyOrder.get();
@@ -101,7 +107,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
               }
               if ((isBuyerMaker && this->openBuyOrder && takerPrice <= this->openBuyOrder.get().limitPrice) ||
                   (!isBuyerMaker && this->openSellOrder && takerPrice >= this->openSellOrder.get().limitPrice)) {
-                auto takerQuantity = Decimal(element.getValue("LAST_SIZE"));
+                auto takerQuantity = Decimal(element.getValue(CCAPI_LAST_SIZE));
                 Decimal lastFilledQuantity;
                 if (takerQuantity < order.remainingQuantity) {
                   lastFilledQuantity = takerQuantity;
@@ -141,21 +147,21 @@ class SpotMarketMakingEventHandler : public EventHandler {
                   feeQuantity = order.limitPrice.toDouble() * lastFilledQuantity.toDouble() * this->makerFee;
                   this->quoteBalance -= feeQuantity;
                 }
-                Event paperTradeEvent;
-                paperTradeEvent.setType(Event::Type::SUBSCRIPTION_DATA);
+                Event virtualEvent;
+                virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
                 Message messagePrivateTrade;
                 messagePrivateTrade.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
                 messagePrivateTrade.setTime(messageTime);
                 messagePrivateTrade.setTimeReceived(messageTime);
                 messagePrivateTrade.setCorrelationIdList({this->privateSubscriptionDataCorrelationId});
                 Element elementPrivateTrade;
-                elementPrivateTrade.insert("TRADE_ID", UtilTime::getISOTimestamp(messageTime) + "__" + order.side + "__" + order.limitPrice.toString() + "__" +
-                                                           lastFilledQuantity.toString());
+                elementPrivateTrade.insert("TRADE_ID", std::to_string(++this->virtualTradeId));
                 elementPrivateTrade.insert("LAST_EXECUTED_PRICE", order.limitPrice.toString());
                 elementPrivateTrade.insert("LAST_EXECUTED_SIZE", lastFilledQuantity.toString());
                 elementPrivateTrade.insert("SIDE", order.side);
                 elementPrivateTrade.insert("IS_MAKER", "1");
                 elementPrivateTrade.insert("ORDER_ID", order.orderId);
+                elementPrivateTrade.insert("CLIENT_ORDER_ID", order.clientOrderId);
                 elementPrivateTrade.insert("FEE_QUANTITY", Decimal(AppUtil::printDoubleScientific(feeQuantity)).toString());
                 elementPrivateTrade.insert("FEE_ASSET", isBuyerMaker ? this->makerBuyerFeeAsset : this->makerSellerFeeAsset);
                 messagePrivateTrade.setElementList({elementPrivateTrade});
@@ -166,6 +172,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 messageOrderUpdate.setCorrelationIdList({this->privateSubscriptionDataCorrelationId});
                 Element elementOrderUpdate;
                 elementOrderUpdate.insert("ORDER_ID", order.orderId);
+                elementOrderUpdate.insert("CLIENT_ORDER_ID", order.clientOrderId);
                 elementOrderUpdate.insert("SIDE", order.side);
                 elementOrderUpdate.insert("LIMIT_PRICE", order.limitPrice.toString());
                 elementOrderUpdate.insert("QUANTITY", order.quantity.toString());
@@ -173,11 +180,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 elementOrderUpdate.insert("REMAINING_QUANTITY", order.remainingQuantity.toString());
                 elementOrderUpdate.insert("STATUS", order.status);
                 messageOrderUpdate.setElementList({elementOrderUpdate});
-                paperTradeEvent.setMessageList({messagePrivateTrade, messageOrderUpdate});
-                if (this->printDebug) {
-                  this->appLogger->log("Generated a paper trade event: " + paperTradeEvent.toStringPretty());
-                }
-                this->processEvent(paperTradeEvent, session);
+                virtualEvent.setMessageList({messagePrivateTrade, messageOrderUpdate});
+                this->appLogger->logDebug("Generated a virtual event: " + virtualEvent.toStringPretty(), this->printDebug);
+                this->processEvent(virtualEvent, session);
               }
             }
           }
@@ -188,28 +193,31 @@ class SpotMarketMakingEventHandler : public EventHandler {
         TimePoint messageTime{std::chrono::seconds{0}};
         messageTime = message.getTime();
         for (const auto& element : message.getElementList()) {
-          if (element.has("BID_PRICE")) {
-            bestBidPrice = element.getValue("BID_PRICE");
+          if (element.has(CCAPI_BEST_BID_N_PRICE)) {
+            bestBidPrice = element.getValue(CCAPI_BEST_BID_N_PRICE);
           }
-          if (element.has("ASK_PRICE")) {
-            bestAskPrice = element.getValue("ASK_PRICE");
+          if (element.has(CCAPI_BEST_ASK_N_PRICE)) {
+            bestAskPrice = element.getValue(CCAPI_BEST_ASK_N_PRICE);
           }
-          if (element.has("BID_SIZE")) {
-            bestBidSize = element.getValue("BID_SIZE");
+          if (element.has(CCAPI_BEST_BID_N_SIZE)) {
+            bestBidSize = element.getValue(CCAPI_BEST_BID_N_SIZE);
           }
-          if (element.has("ASK_SIZE")) {
-            bestAskSize = element.getValue("ASK_SIZE");
+          if (element.has(CCAPI_BEST_ASK_N_SIZE)) {
+            bestAskSize = element.getValue(CCAPI_BEST_ASK_N_SIZE);
           }
         }
         std::string messageTimeISO = UtilTime::getISOTimestamp(messageTime);
         std::string messageTimeISODate = messageTimeISO.substr(0, 10);
         if (this->previousMessageTimeISODate.empty() || messageTimeISODate != previousMessageTimeISODate) {
-          std::string privateTradeCsvFilename(messageTimeISO + "__private_trade__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate +
-                                              ".csv"),
-              orderUpdateCsvFilename(messageTimeISO + "__order_update__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate + ".csv"),
-              accountBalanceCsvFilename(messageTimeISO + "__account_balance__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate +
-                                        ".csv");
+          std::string prefix;
+          if (!this->privateDataFilePrefix.empty()) {
+            prefix = this->privateDataFilePrefix + "__";
+          }
+          std::string privateTradeCsvFilename(prefix + "private_trade__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate + ".csv"),
+              orderUpdateCsvFilename(prefix + "order_update__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate + ".csv"),
+              accountBalanceCsvFilename(prefix + "account_balance__" + this->exchange + "__" + this->instrumentRest + "__" + messageTimeISODate + ".csv");
           if (!this->privateDataDirectory.empty()) {
+            // std::filesystem::create_directory(std::filesystem::path(this->privateDataDirectory.c_str()));
             privateTradeCsvFilename = this->privateDataDirectory + "/" + privateTradeCsvFilename;
             orderUpdateCsvFilename = this->privateDataDirectory + "/" + orderUpdateCsvFilename;
             accountBalanceCsvFilename = this->privateDataDirectory + "/" + accountBalanceCsvFilename;
@@ -281,7 +289,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                        this->accountBalanceRefreshWaitSeconds &&
                    this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
                    this->cancelOpenOrdersLastTime + std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) > this->orderRefreshLastTime) {
-          this->getAccountBalancesRequestCorrelationId = UtilTime::getISOTimestamp(messageTime) + "-GET_ACCOUNT_BALANCES";
+          this->getAccountBalancesRequestCorrelationId = messageTimeISO + "-GET_ACCOUNT_BALANCES";
           Request request(this->useGetAccountsToGetAccountBalances ? Request::Operation::GET_ACCOUNTS : Request::Operation::GET_ACCOUNT_BALANCES,
                           this->exchange, "", this->getAccountBalancesRequestCorrelationId);
           request.setTimeSent(messageTime);
@@ -331,26 +339,32 @@ class SpotMarketMakingEventHandler : public EventHandler {
         this->quoteAsset = element.getValue("QUOTE_ASSET");
         this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue("PRICE_INCREMENT"));
         this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue("QUANTITY_INCREMENT"));
-        if (this->tradingMode==TradingMode::BACKTEST){
-          HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(std::bind(&SpotMarketMakingEventHandler::processEvent, this, std::placeholders::_1, nullptr));
-          historicalMarketDataEventProcessor.exchange=this->exchange;
-          historicalMarketDataEventProcessor.baseAsset=UtilString::toLower(this->baseAsset);
-          historicalMarketDataEventProcessor.quoteAsset=UtilString::toLower(this->quoteAsset);
+        if (this->tradingMode == TradingMode::BACKTEST) {
+          HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(
+              this->appLogger, std::bind(&SpotMarketMakingEventHandler::processEvent, this, std::placeholders::_1, nullptr));
+          historicalMarketDataEventProcessor.exchange = this->exchange;
+          historicalMarketDataEventProcessor.baseAsset = UtilString::toLower(this->baseAsset);
+          historicalMarketDataEventProcessor.quoteAsset = UtilString::toLower(this->quoteAsset);
           historicalMarketDataEventProcessor.startDateTp = this->startDateTp;
           historicalMarketDataEventProcessor.endDateTp = this->endDateTp;
+          historicalMarketDataEventProcessor.historicalMarketDataDirectory = this->historicalMarketDataDirectory;
+          historicalMarketDataEventProcessor.printDebug = this->printDebug;
+          historicalMarketDataEventProcessor.clockStepSeconds = this->clockStepSeconds;
           historicalMarketDataEventProcessor.processEvent();
-        }else {
+          this->promisePtr->set_value();
+        } else {
           std::vector<Subscription> subscriptionList;
           subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH",
-                                        "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0",
-                                        "MARKET_DEPTH");
+                                        std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepSeconds * 1000) + "&" +
+                                            CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0",
+                                        PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID);
           if (this->tradingMode == TradingMode::PAPER) {
             std::string field = "TRADE";
             if (this->exchange.rfind("binance", 0) == 0) {
               field = "AGG_TRADE";
             }
-            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", "TRADE");
-          }else{
+            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID);
+          } else {
             subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "PRIVATE_TRADE,ORDER_UPDATE", "",
                                           this->privateSubscriptionDataCorrelationId);
           }
@@ -359,21 +373,23 @@ class SpotMarketMakingEventHandler : public EventHandler {
       }
     }
     if (!requestList.empty()) {
-      if (this->tradingMode == TradingMode::PAPER || this->tradingMode==TradingMode::BACKTEST) {
+      if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
         for (const auto& request : requestList) {
           auto now = request.getTimeSent();
-          Event paperTradeEvent;
-          Event paperTradeEvent_2;
+          Event virtualEvent;
+          Event virtualEvent_2;
           Message message;
           Message message_2;
+          message.setTime(now);
           message.setTimeReceived(now);
           message.setCorrelationIdList({request.getCorrelationId()});
+          message_2.setTime(now);
           message_2.setTimeReceived(now);
           message_2.setCorrelationIdList({request.getCorrelationId()});
           std::vector<Element> elementList;
           auto operation = request.getOperation();
           if (operation == Request::Operation::GET_ACCOUNT_BALANCES || operation == Request::Operation::GET_ACCOUNTS) {
-            paperTradeEvent.setType(Event::Type::RESPONSE);
+            virtualEvent.setType(Event::Type::RESPONSE);
             message.setType(operation == Request::Operation::GET_ACCOUNT_BALANCES ? Message::Type::GET_ACCOUNT_BALANCES : Message::Type::GET_ACCOUNTS);
             std::vector<Element> elementList;
             {
@@ -391,7 +407,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
               elementList.push_back(element);
             }
             message.setElementList(elementList);
-            paperTradeEvent.setMessageList({message});
+            virtualEvent.setMessageList({message});
           } else if (operation == Request::Operation::CREATE_ORDER) {
             auto newBaseBalance = this->baseBalance;
             auto newQuoteBalance = this->quoteBalance;
@@ -399,6 +415,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
             auto side = param.at("SIDE");
             std::string price = param.at("LIMIT_PRICE");
             std::string quantity = param.at("QUANTITY");
+            std::string clientOrderId = param.at("CLIENT_ORDER_ID");
             bool sufficientBalance = false;
             if (side == "BUY") {
               double transactedAmount = std::stod(price) * std::stod(quantity);
@@ -424,10 +441,11 @@ class SpotMarketMakingEventHandler : public EventHandler {
               }
             }
             if (sufficientBalance) {
-              paperTradeEvent.setType(Event::Type::SUBSCRIPTION_DATA);
+              virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
               Order order;
-              order.orderId = UtilTime::getISOTimestamp(now) + "__" + side + "__" + price + "__" + quantity;
+              order.orderId = std::to_string(++this->virtualOrderId);
+              order.clientOrderId = clientOrderId;
               order.side = side;
               order.limitPrice = Decimal(price);
               order.quantity = Decimal(quantity);
@@ -441,21 +459,21 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 this->openSellOrder = order;
               }
               message.setElementList({element});
-              paperTradeEvent.setMessageList({message});
-              paperTradeEvent_2.setType(Event::Type::RESPONSE);
+              virtualEvent.setMessageList({message});
+              virtualEvent_2.setType(Event::Type::RESPONSE);
               message_2.setType(Message::Type::CREATE_ORDER);
               message_2.setElementList({element});
-              paperTradeEvent_2.setMessageList({message_2});
+              virtualEvent_2.setMessageList({message_2});
             } else {
-              paperTradeEvent_2.setType(Event::Type::RESPONSE);
+              virtualEvent_2.setType(Event::Type::RESPONSE);
               message_2.setType(Message::Type::RESPONSE_ERROR);
               Element element;
               element.insert("ERROR_MESSAGE", "Insufficient balance.");
               message_2.setElementList({element});
-              paperTradeEvent_2.setMessageList({message_2});
+              virtualEvent_2.setMessageList({message_2});
             }
           } else if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
-            paperTradeEvent.setType(Event::Type::SUBSCRIPTION_DATA);
+            virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
             if (this->openBuyOrder) {
               elementList.push_back(this->extractOrderInfo(this->openBuyOrder.get()));
@@ -467,24 +485,20 @@ class SpotMarketMakingEventHandler : public EventHandler {
             }
             if (!elementList.empty()) {
               message.setElementList(elementList);
-              paperTradeEvent.setMessageList({message});
+              virtualEvent.setMessageList({message});
             }
-            paperTradeEvent_2.setType(Event::Type::RESPONSE);
+            virtualEvent_2.setType(Event::Type::RESPONSE);
             message_2.setType(Message::Type::CANCEL_OPEN_ORDERS);
             message_2.setElementList(elementList);
-            paperTradeEvent_2.setMessageList({message_2});
+            virtualEvent_2.setMessageList({message_2});
           }
-          if (!paperTradeEvent.getMessageList().empty()) {
-            if (this->printDebug) {
-              this->appLogger->log("Generated a paper trade event: " + paperTradeEvent.toStringPretty());
-            }
-            this->processEvent(paperTradeEvent, session);
+          if (!virtualEvent.getMessageList().empty()) {
+            this->appLogger->logDebug("Generated a virtual event: " + virtualEvent.toStringPretty(), this->printDebug);
+            this->processEvent(virtualEvent, session);
           }
-          if (!paperTradeEvent_2.getMessageList().empty()) {
-            if (this->printDebug) {
-              this->appLogger->log("Generated a paper trade event: " + paperTradeEvent_2.toStringPretty());
-            }
-            this->processEvent(paperTradeEvent_2, session);
+          if (!virtualEvent_2.getMessageList().empty()) {
+            this->appLogger->logDebug("Generated a virtual event: " + virtualEvent_2.toStringPretty(), this->printDebug);
+            this->processEvent(virtualEvent_2, session);
           }
         }
       } else {
@@ -555,18 +569,19 @@ class SpotMarketMakingEventHandler : public EventHandler {
     }
   }
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
-      orderQuantityIncrement, privateDataDirectory,
+      orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix,
       // publicSubscriptionDataMareketDepthCorrelationId{"MARKET_DEPTH"},
       // publicSubscriptionDataTradeCorrelationId{"TRADE"},
-      privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize,
-      bestAskPrice, bestAskSize, cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
+      privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
+      cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
   double halfSpreadMinimum, halfSpreadMaximum, inventoryBasePortionTarget, baseBalance, quoteBalance, baseAvailableBalanceProportion,
       quoteAvailableBalanceProportion, orderQuantityProportion, totalBalancePeak, killSwitchMaximumDrawdown;
-  int orderRefreshIntervalSeconds, orderRefreshIntervalOffsetSeconds, accountBalanceRefreshWaitSeconds;
+  int orderRefreshIntervalSeconds, orderRefreshIntervalOffsetSeconds, accountBalanceRefreshWaitSeconds, clockStepSeconds;
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}}, cancelOpenOrdersLastTime{std::chrono::seconds{0}},
       getAccountBalancesLastTime{std::chrono::seconds{0}};
   bool useGetAccountsToGetAccountBalances{}, printDebug{}, useWeightedMidPrice{};
   TradingMode tradingMode{TradingMode::LIVE};
+  std::shared_ptr<std::promise<void>> promisePtr{nullptr};
 
   // start: only applicable to paper trade and backtest
   double makerFee;
@@ -574,18 +589,67 @@ class SpotMarketMakingEventHandler : public EventHandler {
   boost::optional<Order> openBuyOrder, openSellOrder;
   // end: only applicable to paper trade and backtest
 
-    // start: only applicable to backtest
-    TimePoint startDateTp,endDateTp;
-    std::string historicalMarketDataDirectory;
-    // end: only applicable to backtest
+  // start: only applicable to backtest
+  TimePoint startDateTp, endDateTp;
+  std::string historicalMarketDataDirectory;
+  // end: only applicable to backtest
 
  private:
+  static std::string generateUuidV4() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis2(8, 11);
+    std::stringstream ss;
+    int i;
+    ss << std::hex;
+    for (i = 0; i < 8; i++) {
+      ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 4; i++) {
+      ss << dis(gen);
+    }
+    ss << "-4";
+    for (i = 0; i < 3; i++) {
+      ss << dis(gen);
+    }
+    ss << "-";
+    ss << dis2(gen);
+    for (i = 0; i < 3; i++) {
+      ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 12; i++) {
+      ss << dis(gen);
+    };
+    return ss.str();
+  }
+  std::string createClientOrderId(const std::string& exchange, const std::string& instrument, const std::string& side, const std::string& price,
+                                  const std::string& quantity, const TimePoint& now) {
+    std::string clientOrderId;
+    if (exchange == "coinbase") {
+      clientOrderId = SpotMarketMakingEventHandler::generateUuidV4();
+    } else {
+      clientOrderId += instrument;
+      clientOrderId += "_";
+      clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now), "%F%T");
+      clientOrderId += "_";
+      clientOrderId += side;
+      clientOrderId += "_";
+      clientOrderId += price;
+      clientOrderId += "_";
+      clientOrderId += quantity;
+    }
+    return clientOrderId;
+  }
   Request createRequestForCreateOrder(const std::string& side, const std::string& price, const std::string& quantity, const TimePoint& now) {
     Request request(Request::Operation::CREATE_ORDER, this->exchange, this->instrumentRest);
     request.appendParam({
         {"SIDE", side},
         {"QUANTITY", quantity},
         {"LIMIT_PRICE", price},
+        {"CLIENT_ORDER_ID", this->createClientOrderId(this->exchange, this->instrumentRest, side, price, quantity, now)},
     });
     request.setTimeSent(now);
     this->appLogger->log("Place order - side: " + side + ", price: " + price + ", quantity: " + quantity + ".");
@@ -594,6 +658,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   Element extractOrderInfo(const Order& order) {
     Element element;
     element.insert("ORDER_ID", order.orderId);
+    element.insert("CLIENT_ORDER_ID", order.clientOrderId);
     element.insert("SIDE", order.side);
     element.insert("LIMIT_PRICE", order.limitPrice.toString());
     element.insert("QUANTITY", order.quantity.toString());
@@ -606,6 +671,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
   CsvWriter* privateTradeCsvWriter;
   CsvWriter* orderUpdateCsvWriter;
   CsvWriter* accountBalanceCsvWriter;
+  int64_t virtualTradeId;
+  int64_t virtualOrderId;
 };
 } /* namespace ccapi */
 #endif  // APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_

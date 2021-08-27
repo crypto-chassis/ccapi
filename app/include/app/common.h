@@ -1,5 +1,11 @@
 #ifndef APP_INCLUDE_APP_COMMON_H_
 #define APP_INCLUDE_APP_COMMON_H_
+#ifndef PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID
+#define PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID "MARKET_DEPTH"
+#endif
+#ifndef PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID
+#define PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID "TRADE"
+#endif
 #include <cmath>
 #include <fstream>
 #include <mutex>
@@ -54,6 +60,22 @@ class AppLogger {
   void log(const TimePoint& now, const std::string& fileName, const std::string& lineNumber, const std::string& message) {
     std::lock_guard<std::mutex> lock(m);
     std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << fileName << ":" << lineNumber << "} " << message << std::endl;
+  }
+  void logDebug(const std::string& message, bool printDebug) { this->logDebug(std::chrono::system_clock::now(), message, printDebug); }
+  void logDebug(const std::string& fileName, const std::string& lineNumber, const std::string& message, bool printDebug) {
+    this->logDebug(std::chrono::system_clock::now(), fileName, lineNumber, message, printDebug);
+  }
+  void logDebug(const TimePoint& now, const std::string& message, bool printDebug) {
+    if (printDebug) {
+      std::lock_guard<std::mutex> lock(m);
+      std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << message << std::endl;
+    }
+  }
+  void logDebug(const TimePoint& now, const std::string& fileName, const std::string& lineNumber, const std::string& message, bool printDebug) {
+    if (printDebug) {
+      std::lock_guard<std::mutex> lock(m);
+      std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << fileName << ":" << lineNumber << "} " << message << std::endl;
+    }
   }
 
  private:
