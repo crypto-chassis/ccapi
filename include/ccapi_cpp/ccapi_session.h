@@ -179,6 +179,7 @@ class Session {
   }
   virtual ~Session() {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    delete this->eventDispatcher;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void start() {
@@ -364,7 +365,6 @@ class Session {
   virtual void stop() {
     if (this->useInternalEventDispatcher) {
       this->eventDispatcher->stop();
-      delete this->eventDispatcher;
     }
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
       for (const auto& y : x.second) {

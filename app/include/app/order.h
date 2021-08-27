@@ -11,6 +11,7 @@ class Order {
     return output;
   }
   std::string orderId;
+  std::string clientOrderId;
   std::string side;
   Decimal limitPrice;
   Decimal quantity;

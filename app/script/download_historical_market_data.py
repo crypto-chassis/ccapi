@@ -62,6 +62,7 @@ startDate = datetime.strptime(args.start_date, '%Y-%m-%d').date()
 endDate = datetime.strptime(args.end_date, '%Y-%m-%d').date()
 currentDate = startDate
 historicalMarketDataDirectory = args.historical_market_data_directory
+pathlib.Path(historicalMarketDataDirectory).mkdir(parents=True, exist_ok=True)
 urlBase='https://api.cryptochassis.com/v1'
 session = requests.Session()
 retries = Retry(total=10, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
