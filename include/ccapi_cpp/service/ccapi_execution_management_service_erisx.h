@@ -210,7 +210,8 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     std::vector<Element> elementList;
     return elementList;
   }
-  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const
+  // TimePoint& timeReceived) override {
   //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
   //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   // }

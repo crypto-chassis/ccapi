@@ -46,9 +46,9 @@ class SessionOptions CCAPI_FINAL {
   int httpMaxNumRedirect{1};
   long httpRequestTimeoutMilliSeconds{10000};
   int httpConnectionPoolMaxSize{1};  // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
-  long httpConnectionPoolIdleTimeoutMilliSeconds{
-      0};  // used to purge the http connection pool if all connections in the pool have stayed idle for at least this amount of time
-  bool enableOneHttpConnectionPerRequest{};  // create a new http connection for each request
+  long httpConnectionPoolIdleTimeoutMilliSeconds{0};  // used to purge the http connection pool if all connections in the
+                                                      // pool have stayed idle for at least this amount of time
+  bool enableOneHttpConnectionPerRequest{};           // create a new http connection for each request
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_

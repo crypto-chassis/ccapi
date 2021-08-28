@@ -15,8 +15,9 @@ class SessionConfigs CCAPI_FINAL {
     this->updateExchangeRest();
     this->initializUrlFixBase();
   }
-  // const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const { return exchangeInstrumentMap; }
-  // const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const { return exchangeInstrumentMapRest; }
+  // const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const { return exchangeInstrumentMap;
+  // } const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const { return
+  // exchangeInstrumentMapRest; }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const { return exchangeFieldMap; }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeFieldWebsocketChannelMap() const { return exchangeFieldWebsocketChannelMap; }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const { return urlWebsocketBase; }

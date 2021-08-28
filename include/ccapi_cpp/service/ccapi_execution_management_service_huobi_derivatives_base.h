@@ -193,7 +193,8 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     }
     return elementList;
   }
-  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const
+  // TimePoint& timeReceived) override {
   //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
   //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
   //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
@@ -241,10 +242,10 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     return sendStringList;
   }
   // void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-  //   WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-  //   auto subscription = wsConnection.subscriptionList.at(0);
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
+  //   WsConnection& wsConnection =
+  //   this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl)); auto
+  //   subscription = wsConnection.subscriptionList.at(0); const std::string& quotedTextMessage =
+  //   this->convertNumberToStringInJson(textMessage); CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
   //   rj::Document document;
   //   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
   //   this->onTextMessage(wsConnection, subscription, textMessage, document, timeReceived);
