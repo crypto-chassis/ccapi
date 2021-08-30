@@ -14,6 +14,36 @@
 namespace ccapi {
 class AppUtil {
  public:
+  static std::string generateUuidV4() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_int_distribution<> dis(0, 15);
+    static std::uniform_int_distribution<> dis2(8, 11);
+    std::stringstream ss;
+    int i;
+    ss << std::hex;
+    for (i = 0; i < 8; i++) {
+      ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 4; i++) {
+      ss << dis(gen);
+    }
+    ss << "-4";
+    for (i = 0; i < 3; i++) {
+      ss << dis(gen);
+    }
+    ss << "-";
+    ss << dis2(gen);
+    for (i = 0; i < 3; i++) {
+      ss << dis(gen);
+    }
+    ss << "-";
+    for (i = 0; i < 12; i++) {
+      ss << dis(gen);
+    };
+    return ss.str();
+  }
   static std::string printDoubleScientific(double number) {
     std::stringstream ss;
     ss << std::scientific;
@@ -50,20 +80,20 @@ class AppUtil {
 class AppLogger {
  public:
   void log(const std::string& message) { this->log(std::chrono::system_clock::now(), message); }
-  void log(const std::string& fileName, const std::string& lineNumber, const std::string& message) {
-    this->log(std::chrono::system_clock::now(), fileName, lineNumber, message);
+  void log(const std::string& filename, const std::string& lineNumber, const std::string& message) {
+    this->log(std::chrono::system_clock::now(), filename, lineNumber, message);
   }
   void log(const TimePoint& now, const std::string& message) {
     std::lock_guard<std::mutex> lock(m);
     std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << message << std::endl;
   }
-  void log(const TimePoint& now, const std::string& fileName, const std::string& lineNumber, const std::string& message) {
+  void log(const TimePoint& now, const std::string& filename, const std::string& lineNumber, const std::string& message) {
     std::lock_guard<std::mutex> lock(m);
-    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << fileName << ":" << lineNumber << "} " << message << std::endl;
+    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << message << std::endl;
   }
   void logDebug(const std::string& message, bool printDebug) { this->logDebug(std::chrono::system_clock::now(), message, printDebug); }
-  void logDebug(const std::string& fileName, const std::string& lineNumber, const std::string& message, bool printDebug) {
-    this->logDebug(std::chrono::system_clock::now(), fileName, lineNumber, message, printDebug);
+  void logDebug(const std::string& filename, const std::string& lineNumber, const std::string& message, bool printDebug) {
+    this->logDebug(std::chrono::system_clock::now(), filename, lineNumber, message, printDebug);
   }
   void logDebug(const TimePoint& now, const std::string& message, bool printDebug) {
     if (printDebug) {
@@ -71,10 +101,10 @@ class AppLogger {
       std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << message << std::endl;
     }
   }
-  void logDebug(const TimePoint& now, const std::string& fileName, const std::string& lineNumber, const std::string& message, bool printDebug) {
+  void logDebug(const TimePoint& now, const std::string& filename, const std::string& lineNumber, const std::string& message, bool printDebug) {
     if (printDebug) {
       std::lock_guard<std::mutex> lock(m);
-      std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << fileName << ":" << lineNumber << "} " << message << std::endl;
+      std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << message << std::endl;
     }
   }
 
@@ -84,11 +114,11 @@ class AppLogger {
 class CcapiLogger : public Logger {
  public:
   explicit CcapiLogger(AppLogger* appLogger) : Logger(), appLogger(appLogger) {}
-  void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
+  void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& filename,
                   const std::string& lineNumber, const std::string& message) override {
     std::ostringstream oss;
-    oss << threadId << ": {" << fileName << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message;
-    this->appLogger->log(fileName, lineNumber, oss.str());
+    oss << threadId << ": {" << filename << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message;
+    this->appLogger->log(filename, lineNumber, oss.str());
   }
 
  private:
@@ -96,7 +126,8 @@ class CcapiLogger : public Logger {
 };
 class CsvWriter {
  public:
-  explicit CsvWriter(const std::string& filename) : f(filename) {}
+  CsvWriter() {}
+  void open(const string& filename) { this->f.open(filename); }
   void close() {
     std::lock_guard<std::mutex> lock(m);
     this->f.close();
@@ -106,13 +137,13 @@ class CsvWriter {
     size_t numCol = row.size();
     int i = 0;
     for (const auto& column : row) {
-      f << column;
+      this->f << column;
       if (i < numCol - 1) {
-        f << ",";
+        this->f << ",";
       }
       ++i;
     }
-    f << "\n";
+    this->f << "\n";
   }
   void writeRows(const std::vector<std::vector<std::string>>& rows) {
     std::lock_guard<std::mutex> lock(m);
@@ -120,13 +151,13 @@ class CsvWriter {
       size_t numCol = row.size();
       int i = 0;
       for (const auto& column : row) {
-        f << column;
+        this->f << column;
         if (i < numCol - 1) {
-          f << ",";
+          this->f << ",";
         }
         ++i;
       }
-      f << "\n";
+      this->f << "\n";
     }
   }
   void flush() {

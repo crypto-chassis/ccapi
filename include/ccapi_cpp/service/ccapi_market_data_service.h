@@ -95,7 +95,7 @@ class MarketDataService : public Service {
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
     CCAPI_LOGGER_TRACE("instrument = " + instrument);
-    const std::string& symbolId = instrument;
+    std::string symbolId = instrument;
     CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
     auto field = subscription.getField();
     CCAPI_LOGGER_TRACE("field = " + field);
@@ -104,7 +104,7 @@ class MarketDataService : public Service {
     std::string channelId = this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->exchangeName).at(field);
     CCAPI_LOGGER_TRACE("channelId = " + channelId);
     CCAPI_LOGGER_TRACE("this->exchangeName = " + this->exchangeName);
-    this->prepareSubscriptionDetail(channelId, field, wsConnection, symbolId, optionMap);
+    this->prepareSubscriptionDetail(channelId, symbolId, field, wsConnection, optionMap);
     CCAPI_LOGGER_TRACE("channelId = " + channelId);
     this->correlationIdListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(subscription.getCorrelationId());
     this->subscriptionListByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].push_back(subscription);
@@ -129,6 +129,7 @@ class MarketDataService : public Service {
           CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp) +
                             ", wsConnection = " + toString(wsConnection));
         }
+
         std::string& exchangeSubscriptionId = marketDataMessage.exchangeSubscriptionId;
         std::string& channelId =
             this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
@@ -1137,7 +1138,7 @@ class MarketDataService : public Service {
     return {};
   }
   virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
-  virtual void prepareSubscriptionDetail(std::string& channelId, const std::string& field, const WsConnection& wsConnection, const std::string& symbolId,
+  virtual void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                          const std::map<std::string, std::string> optionMap) {}
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> optionMapByConnectionIdChannelIdSymbolIdMap;
