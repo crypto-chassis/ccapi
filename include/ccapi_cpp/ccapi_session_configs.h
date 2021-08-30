@@ -43,6 +43,10 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapKrakenFutures = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_KRAKEN_FUTURES_CHANNEL_TRADE},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KRAKEN_FUTURES_CHANNEL_BOOK},
+    };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitstamp = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_LIVE_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITSTAMP_CHANNEL_ORDER_BOOK},
@@ -118,6 +122,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapKraken) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_KRAKEN].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapKrakenFutures) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES].push_back(fieldWebsocketChannel.first);
+    }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitstamp) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITSTAMP].push_back(fieldWebsocketChannel.first);
     }
@@ -174,6 +181,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_COINBASE, fieldWebsocketChannelMapCoinbase},
         {CCAPI_EXCHANGE_NAME_GEMINI, fieldWebsocketChannelMapGemini},
         {CCAPI_EXCHANGE_NAME_KRAKEN, fieldWebsocketChannelMapKraken},
+        {CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES, fieldWebsocketChannelMapKrakenFutures},
         {CCAPI_EXCHANGE_NAME_BITSTAMP, fieldWebsocketChannelMapBitstamp},
         {CCAPI_EXCHANGE_NAME_BITFINEX, fieldWebsocketChannelMapBitfinex},
         {CCAPI_EXCHANGE_NAME_BITMEX, fieldWebsocketChannelMapBitmex},
@@ -195,6 +203,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_KRAKEN, CCAPI_KRAKEN_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES, CCAPI_KRAKEN_FUTURES_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITSTAMP, CCAPI_BITSTAMP_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITFINEX, CCAPI_BITFINEX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_WS_BASE},
@@ -220,6 +229,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_GEMINI, CCAPI_GEMINI_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_KRAKEN, CCAPI_KRAKEN_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES, CCAPI_KRAKEN_FUTURES_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITSTAMP, CCAPI_BITSTAMP_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITFINEX, CCAPI_BITFINEX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_REST_BASE},

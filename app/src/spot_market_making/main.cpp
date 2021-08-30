@@ -43,6 +43,7 @@ int main(int argc, char** argv) {
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
   eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
   eventHandler.privateDataFilePrefix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_PREFIX");
+  eventHandler.privateDataOnlySaveFinalBalance = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_BALANCE")) == "true";
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
   eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);

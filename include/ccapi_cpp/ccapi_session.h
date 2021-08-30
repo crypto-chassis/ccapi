@@ -13,6 +13,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
 #include "ccapi_cpp/service/ccapi_market_data_service_kraken.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES
+#include "ccapi_cpp/service/ccapi_market_data_service_kraken_futures.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITSTAMP
 #include "ccapi_cpp/service/ccapi_market_data_service_bitstamp.h"
 #endif
@@ -199,6 +202,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KRAKEN] =
         std::make_shared<MarketDataServiceKraken>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES] =
+        std::make_shared<MarketDataServiceKrakenFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITSTAMP
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITSTAMP] =
