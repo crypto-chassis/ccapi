@@ -127,7 +127,7 @@ class CcapiLogger : public Logger {
 class CsvWriter {
  public:
   CsvWriter() {}
-  void open(const string& filename) { this->f.open(filename); }
+  void open(const std::string& filename) { this->f.open(filename); }
   void close() {
     std::lock_guard<std::mutex> lock(m);
     this->f.close();

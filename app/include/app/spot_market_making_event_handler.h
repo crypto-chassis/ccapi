@@ -223,7 +223,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
             orderUpdateCsvFilename = this->privateDataDirectory + "/" + orderUpdateCsvFilename;
             accountBalanceCsvFilename = this->privateDataDirectory + "/" + accountBalanceCsvFilename;
           }
-          CsvWriter *privateTradeCsvWriter = nullptr, orderUpdateCsvWriter = nullptr, accountBalanceCsvWriter = nullptr;
+          CsvWriter *privateTradeCsvWriter = nullptr;
+          CsvWriter *orderUpdateCsvWriter = nullptr;
+          CsvWriter *accountBalanceCsvWriter = nullptr;
           if (!privateDataOnlySaveFinalBalance) {
             privateTradeCsvWriter = new CsvWriter();
             privateTradeCsvWriter->open(privateTradeCsvFilename);
