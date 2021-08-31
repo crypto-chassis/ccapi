@@ -10,7 +10,7 @@ class HistoricalMarketDataEventProcessor {
   HistoricalMarketDataEventProcessor(AppLogger* appLogger, std::function<bool(const Event& event)> eventHandler)
       : appLogger(appLogger), eventHandler(eventHandler) {}
   void processEvent() {
-    int clockSeconds = 0;
+    this->clockSeconds = 0;
     auto currentDateTp = this->startDateTp;
     std::string lineMarketDepth;
     std::string lineTrade;
@@ -26,7 +26,9 @@ class HistoricalMarketDataEventProcessor {
       std::ifstream fMarketDepth;
       std::ifstream fTrade;
       fMarketDepth.open(fileNameWithDirBase + "market-depth.csv");
+      this->appLogger->log("Opening file " + fileNameWithDirBase + "market-depth.csv.");
       fTrade.open(fileNameWithDirBase + "trade.csv");
+      this->appLogger->log("Opening file " + fileNameWithDirBase + "trade.csv.");
       if (fMarketDepth && fTrade) {
         this->appLogger->log("Opened file " + fileNameWithDirBase + "market-depth.csv.");
         this->appLogger->log("Opened file " + fileNameWithDirBase + "trade.csv.");
@@ -36,37 +38,37 @@ class HistoricalMarketDataEventProcessor {
           this->appLogger->logDebug("File market-depth next line is " + lineMarketDepth + ".", this->printDebug);
           auto splittedMarketDepth = UtilString::split(lineMarketDepth, ",");
           int currentSecondsMarketDepth = std::stoi(splittedMarketDepth.at(0));
-          if (clockSeconds == 0) {
-            clockSeconds = currentSecondsMarketDepth;
-            this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(clockSeconds) + " seconds.", this->printDebug);
-            this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade, clockSeconds);
+          if (this->clockSeconds == 0) {
+            this->clockSeconds = currentSecondsMarketDepth;
+            this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+            this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
             this->processMarketDataEventMarketDepth(splittedMarketDepth);
           } else {
-            clockSeconds += this->clockStepSeconds;
-            this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(clockSeconds) + " seconds.", this->printDebug);
-            while (clockSeconds < currentSecondsMarketDepth) {
-              this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade, clockSeconds);
-              previousSplittedMarketDepth[0] = std::to_string(clockSeconds);
+            this->clockSeconds += this->clockStepSeconds;
+            this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+            while (this->clockSeconds < currentSecondsMarketDepth) {
+              this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
+              previousSplittedMarketDepth[0] = std::to_string(this->clockSeconds);
               this->processMarketDataEventMarketDepth(previousSplittedMarketDepth);
-              clockSeconds += this->clockStepSeconds;
-              this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(clockSeconds) + " seconds.", this->printDebug);
+              this->clockSeconds += this->clockStepSeconds;
+              this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
             }
-            this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade, clockSeconds);
+            this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
             this->processMarketDataEventMarketDepth(splittedMarketDepth);
           }
           previousSplittedMarketDepth = std::move(splittedMarketDepth);
         }
-        clockSeconds += this->clockStepSeconds;
-        this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(clockSeconds) + " seconds.", this->printDebug);
-        while (clockSeconds < std::chrono::duration_cast<std::chrono::seconds>((currentDateTp + std::chrono::hours(24)).time_since_epoch()).count()) {
-          this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade, clockSeconds);
-          previousSplittedMarketDepth[0] = std::to_string(clockSeconds);
+        this->clockSeconds += this->clockStepSeconds;
+        this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+        while (this->clockSeconds < std::chrono::duration_cast<std::chrono::seconds>((currentDateTp + std::chrono::hours(24)).time_since_epoch()).count()) {
+          this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
+          previousSplittedMarketDepth[0] = std::to_string(this->clockSeconds);
           this->processMarketDataEventMarketDepth(previousSplittedMarketDepth);
-          clockSeconds += this->clockStepSeconds;
-          this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(clockSeconds) + " seconds.", this->printDebug);
+          this->clockSeconds += this->clockStepSeconds;
+          this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
         }
-        this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade, clockSeconds);
-        clockSeconds -= this->clockStepSeconds;
+        this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
+        this->clockSeconds -= this->clockStepSeconds;
       } else {
         this->appLogger->log("Warning: unable to open file for date " + UtilTime::getISOTimestamp(currentDateTp));
       }
@@ -78,13 +80,14 @@ class HistoricalMarketDataEventProcessor {
   std::string exchange, baseAsset, quoteAsset, historicalMarketDataDirectory;
   bool printDebug{};
   int clockStepSeconds;
+  int clockSeconds;
 
  private:
-  void advanceTradeIterator(bool& shouldContinueTrade, std::ifstream& fTrade, std::string& lineTrade, int clockSeconds) {
+  void advanceTradeIterator(bool& shouldContinueTrade, std::ifstream& fTrade, std::string& lineTrade) {
     if (!shouldContinueTrade && !lineTrade.empty()) {
       auto splittedTrade = UtilString::split(lineTrade, ",");
       int currentSecondsTrade = std::stoi(splittedTrade.at(0));
-      if (currentSecondsTrade < clockSeconds) {
+      if (currentSecondsTrade < this->clockSeconds) {
         this->processMarketDataEventTrade(splittedTrade);
         shouldContinueTrade = true;
       }
@@ -93,7 +96,7 @@ class HistoricalMarketDataEventProcessor {
       this->appLogger->logDebug("File trade next line is " + lineTrade + ".", this->printDebug);
       auto splittedTrade = UtilString::split(lineTrade, ",");
       int currentSecondsTrade = std::stoi(splittedTrade.at(0));
-      if (currentSecondsTrade < clockSeconds) {
+      if (currentSecondsTrade < this->clockSeconds) {
         this->processMarketDataEventTrade(splittedTrade);
       } else {
         shouldContinueTrade = false;
