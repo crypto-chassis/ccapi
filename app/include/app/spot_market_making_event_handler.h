@@ -258,16 +258,18 @@ class SpotMarketMakingEventHandler : public EventHandler {
             });
             orderUpdateCsvWriter->flush();
           }
-          accountBalanceCsvWriter = new CsvWriter();
-          accountBalanceCsvWriter->open(accountBalanceCsvFilename);
-          accountBalanceCsvWriter->writeRow({
-              "TIME",
-              "BASE_AVAILABLE_BALANCE",
-              "QUOTE_AVAILABLE_BALANCE",
-              "BEST_BID_PRICE",
-              "BEST_ASK_PRICE",
-          });
-          accountBalanceCsvWriter->flush();
+          if (!this->privateDataOnlySaveFinalBalance || UtilTime::parse(messageTimeISODate, "%F") + std::chrono::hours(24) == this->endDateTp) {
+            accountBalanceCsvWriter = new CsvWriter();
+            accountBalanceCsvWriter->open(accountBalanceCsvFilename);
+            accountBalanceCsvWriter->writeRow({
+                "TIME",
+                "BASE_AVAILABLE_BALANCE",
+                "QUOTE_AVAILABLE_BALANCE",
+                "BEST_BID_PRICE",
+                "BEST_ASK_PRICE",
+            });
+            accountBalanceCsvWriter->flush();
+          }
           if (this->privateTradeCsvWriter) {
             delete this->privateTradeCsvWriter;
           }
@@ -363,18 +365,16 @@ class SpotMarketMakingEventHandler : public EventHandler {
           historicalMarketDataEventProcessor.clockStepSeconds = this->clockStepSeconds;
           historicalMarketDataEventProcessor.processEvent();
           this->promisePtr->set_value();
-          if (this->privateDataOnlySaveFinalBalance) {
-            std::string baseBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->baseBalance)).toString();
-            std::string quoteBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->quoteBalance)).toString();
-            this->accountBalanceCsvWriter->writeRow({
-                UtilTime::getISOTimestamp(UtilTime::makeTimePointFromSeconds(historicalMarketDataEventProcessor.clockStepSeconds)),
-                baseBalanceDecimalNotation,
-                quoteBalanceDecimalNotation,
-                this->bestBidPrice,
-                this->bestAskPrice,
-            });
-            this->accountBalanceCsvWriter->flush();
-          }
+          std::string baseBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->baseBalance)).toString();
+          std::string quoteBalanceDecimalNotation = Decimal(AppUtil::printDoubleScientific(this->quoteBalance)).toString();
+          this->accountBalanceCsvWriter->writeRow({
+              UtilTime::getISOTimestamp(this->endDateTp),
+              baseBalanceDecimalNotation,
+              quoteBalanceDecimalNotation,
+              this->bestBidPrice,
+              this->bestAskPrice,
+          });
+          this->accountBalanceCsvWriter->flush();
         } else {
           std::vector<Subscription> subscriptionList;
           subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH",
