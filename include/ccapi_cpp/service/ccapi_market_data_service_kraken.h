@@ -291,7 +291,7 @@ class MarketDataServiceKraken : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     Element element;
     element.insert(CCAPI_BASE_ASSET, x["base"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quote"].GetString());

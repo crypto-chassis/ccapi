@@ -75,6 +75,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 #include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
+#include "ccapi_cpp/service/ccapi_execution_management_service_kraken.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
 #endif
@@ -280,6 +283,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_GEMINI] =
         std::make_shared<ExecutionManagementServiceGemini>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KRAKEN] =
+        std::make_shared<ExecutionManagementServiceKraken>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITMEX] =

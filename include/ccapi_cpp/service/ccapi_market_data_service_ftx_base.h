@@ -268,7 +268,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     Element element;
     element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
     if (!x["baseCurrency"].IsNull()) {

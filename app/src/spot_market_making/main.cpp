@@ -1,7 +1,10 @@
 #include "app/spot_market_making_event_handler.h"
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-Logger* Logger::logger = nullptr;  // This line is needed.
+AppLogger appLogger;
+AppLogger* AppLogger::logger = &appLogger;
+CcapiLogger ccapiLogger;
+Logger* Logger::logger = &ccapiLogger;
 } /* namespace ccapi */
 using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
@@ -19,13 +22,10 @@ using ::ccapi::UtilString;
 using ::ccapi::UtilSystem;
 using ::ccapi::UtilTime;
 int main(int argc, char** argv) {
-  AppLogger appLogger;
-  CcapiLogger ccapiLogger(&appLogger);
-  Logger::logger = &ccapiLogger;
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
-  SpotMarketMakingEventHandler eventHandler(&appLogger);
+  SpotMarketMakingEventHandler eventHandler;
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
@@ -43,9 +43,9 @@ int main(int argc, char** argv) {
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
   eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
   eventHandler.privateDataFilePrefix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_PREFIX");
+  eventHandler.privateDataFileSuffix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_SUFFIX");
   eventHandler.privateDataOnlySaveFinalBalance = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_BALANCE")) == "true";
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
-  eventHandler.printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG")) == "true";
   eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   std::cout << "******** Trading mode is " + tradingMode + "! ********" << std::endl;
@@ -64,7 +64,6 @@ int main(int argc, char** argv) {
   }
   if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST) {
     eventHandler.startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE"), "%F");
-
     eventHandler.endDateTp = UtilTime::parse(UtilSystem::getEnvAsString("END_DATE"), "%F");
     eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY");
   }

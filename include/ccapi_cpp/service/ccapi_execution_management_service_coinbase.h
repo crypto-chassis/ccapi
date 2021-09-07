@@ -179,11 +179,13 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       }
     } else {
       if (document.IsObject()) {
-        auto element = this->extractOrderInfo(document, extractionFieldNameMap);
+        Element element;
+        this->extractOrderInfo(element, document, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       } else {
         for (const auto& x : document.GetArray()) {
-          auto element = this->extractOrderInfo(x, extractionFieldNameMap);
+          Element element;
+          this->extractOrderInfo(element, x, extractionFieldNameMap);
           elementList.emplace_back(std::move(element));
         }
       }
@@ -213,9 +215,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     }
     return elementList;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+                                                                  auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
@@ -331,7 +333,8 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             } else {
               extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)});
             }
-            auto info = this->extractOrderInfo(document, extractionFieldNameMap);
+            Element info;
+            this->extractOrderInfo(info, document, extractionFieldNameMap);
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);

@@ -259,9 +259,9 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     }
     return element;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-    std::vector<std::string> sendStringList;
+                                                                  std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     auto& allocator = document.GetAllocator();

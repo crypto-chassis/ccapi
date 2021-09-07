@@ -303,9 +303,9 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     }
     return elementList;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-    std::string topic;
+                                                                  std::string topic;
     auto fieldSet = subscription.getFieldSet();
     if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
       topic = "/spotMarket/tradeOrders";

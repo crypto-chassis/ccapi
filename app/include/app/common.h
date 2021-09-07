@@ -6,6 +6,22 @@
 #ifndef PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID
 #define PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID "TRADE"
 #endif
+#if defined(APP_ENABLE_LOG_INFO) || defined(APP_ENABLE_LOG_DEBUG)
+#define APP_LOGGER_INFO(message) \
+  if (::ccapi::AppLogger::logger) { \
+    ::ccapi::AppLogger::logger->log(message); \
+  }
+#else
+#define APP_LOGGER_INFO(message)
+#endif
+#if defined(APP_ENABLE_LOG_DEBUG)
+#define APP_LOGGER_DEBUG(message) \
+  if (::ccapi::AppLogger::logger) { \
+    ::ccapi::AppLogger::logger->log(message); \
+  }
+#else
+#define APP_LOGGER_DEBUG(message)
+#endif
 #include <cmath>
 #include <fstream>
 #include <mutex>
@@ -44,12 +60,6 @@ class AppUtil {
     };
     return ss.str();
   }
-  static std::string printDoubleScientific(double number) {
-    std::stringstream ss;
-    ss << std::scientific;
-    ss << number;
-    return ss.str();
-  }
   static double linearInterpolate(double x1, double y1, double x2, double y2, double x) { return y1 + (y2 - y1) / (x2 - x1) * (x - x1); }
   static std::string roundInput(double input, const std::string& inputIncrement, bool roundUp) {
     int64_t x = std::floor(input / std::stod(inputIncrement));
@@ -58,9 +68,9 @@ class AppUtil {
     }
     std::string output;
     if (inputIncrement.find('.') != std::string::npos) {
-      auto splitted = UtilString::split(inputIncrement, ".");
-      auto splitted_0 = splitted.at(0);
-      auto splitted_1 = splitted.at(1);
+      const auto& splitted = UtilString::split(inputIncrement, ".");
+      const auto& splitted_0 = splitted.at(0);
+      const auto& splitted_1 = splitted.at(1);
       if (splitted_0 == "0") {
         output = std::to_string(x * std::stoll(splitted_1));
       } else {
@@ -91,43 +101,27 @@ class AppLogger {
     std::lock_guard<std::mutex> lock(m);
     std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << message << std::endl;
   }
-  void logDebug(const std::string& message, bool printDebug) { this->logDebug(std::chrono::system_clock::now(), message, printDebug); }
-  void logDebug(const std::string& filename, const std::string& lineNumber, const std::string& message, bool printDebug) {
-    this->logDebug(std::chrono::system_clock::now(), filename, lineNumber, message, printDebug);
-  }
-  void logDebug(const TimePoint& now, const std::string& message, bool printDebug) {
-    if (printDebug) {
-      std::lock_guard<std::mutex> lock(m);
-      std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << message << std::endl;
-    }
-  }
-  void logDebug(const TimePoint& now, const std::string& filename, const std::string& lineNumber, const std::string& message, bool printDebug) {
-    if (printDebug) {
-      std::lock_guard<std::mutex> lock(m);
-      std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << message << std::endl;
-    }
-  }
+  static AppLogger* logger;
 
  private:
   std::mutex m;
 };
 class CcapiLogger : public Logger {
  public:
-  explicit CcapiLogger(AppLogger* appLogger) : Logger(), appLogger(appLogger) {}
+  // explicit CcapiLogger(AppLogger* appLogger) : Logger(), appLogger(appLogger) {}
   void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& filename,
                   const std::string& lineNumber, const std::string& message) override {
     std::ostringstream oss;
     oss << threadId << ": {" << filename << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message;
-    this->appLogger->log(filename, lineNumber, oss.str());
+    AppLogger::logger->log(filename, lineNumber, oss.str());
   }
-
- private:
-  AppLogger* appLogger;
+ // private:
+ //  AppLogger* appLogger;
 };
 class CsvWriter {
  public:
   CsvWriter() {}
-  void open(const std::string& filename) { this->f.open(filename); }
+  void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out) { this->f.open(filename,mode); }
   void close() {
     std::lock_guard<std::mutex> lock(m);
     this->f.close();
@@ -164,6 +158,7 @@ class CsvWriter {
     std::lock_guard<std::mutex> lock(m);
     this->f.flush();
   }
+  std::ofstream& getFileStream() { return f; }
 
  private:
   std::ofstream f;

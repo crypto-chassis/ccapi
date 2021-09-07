@@ -7,51 +7,49 @@
 namespace ccapi {
 class HistoricalMarketDataEventProcessor {
  public:
-  HistoricalMarketDataEventProcessor(AppLogger* appLogger, std::function<bool(const Event& event)> eventHandler)
-      : appLogger(appLogger), eventHandler(eventHandler) {}
+  explicit HistoricalMarketDataEventProcessor(std::function<bool(const Event& event)> eventHandler)
+      : eventHandler(eventHandler) {}
   void processEvent() {
     this->clockSeconds = 0;
     auto currentDateTp = this->startDateTp;
     std::string lineMarketDepth;
     std::string lineTrade;
-    Event previousEventMarketDepth;
-    Event previousEventTrade;
     bool shouldContinueTrade{true};
     std::vector<std::string> previousSplittedMarketDepth;
     while (currentDateTp < this->endDateTp) {
-      auto currentDateISO = UtilTime::getISOTimestamp(currentDateTp, "%F");
-      this->appLogger->log("Start processing " + currentDateISO + ".");
+      const auto& currentDateISO = UtilTime::getISOTimestamp(currentDateTp, "%F");
+      APP_LOGGER_INFO("Start processing " + currentDateISO + ".");
       std::string fileNameWithDirBase =
           this->historicalMarketDataDirectory + "/" + this->exchange + "__" + this->baseAsset + "-" + this->quoteAsset + "__" + currentDateISO + "__";
       std::ifstream fMarketDepth;
       std::ifstream fTrade;
       fMarketDepth.open(fileNameWithDirBase + "market-depth.csv");
-      this->appLogger->log("Opening file " + fileNameWithDirBase + "market-depth.csv.");
+      APP_LOGGER_INFO("Opening file " + fileNameWithDirBase + "market-depth.csv.");
       fTrade.open(fileNameWithDirBase + "trade.csv");
-      this->appLogger->log("Opening file " + fileNameWithDirBase + "trade.csv.");
+      APP_LOGGER_INFO("Opening file " + fileNameWithDirBase + "trade.csv.");
       if (fMarketDepth && fTrade) {
-        this->appLogger->log("Opened file " + fileNameWithDirBase + "market-depth.csv.");
-        this->appLogger->log("Opened file " + fileNameWithDirBase + "trade.csv.");
+        APP_LOGGER_INFO("Opened file " + fileNameWithDirBase + "market-depth.csv.");
+        APP_LOGGER_INFO("Opened file " + fileNameWithDirBase + "trade.csv.");
         fMarketDepth.ignore(INT_MAX, '\n');
         fTrade.ignore(INT_MAX, '\n');
         while (std::getline(fMarketDepth, lineMarketDepth) && !lineMarketDepth.empty()) {
-          this->appLogger->logDebug("File market-depth next line is " + lineMarketDepth + ".", this->printDebug);
+          APP_LOGGER_DEBUG("File market-depth next line is " + lineMarketDepth + ".");
           auto splittedMarketDepth = UtilString::split(lineMarketDepth, ",");
           int currentSecondsMarketDepth = std::stoi(splittedMarketDepth.at(0));
           if (this->clockSeconds == 0) {
             this->clockSeconds = currentSecondsMarketDepth;
-            this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+            APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
             this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
             this->processMarketDataEventMarketDepth(splittedMarketDepth);
           } else {
             this->clockSeconds += this->clockStepSeconds;
-            this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+            APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
             while (this->clockSeconds < currentSecondsMarketDepth) {
               this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
               previousSplittedMarketDepth[0] = std::to_string(this->clockSeconds);
               this->processMarketDataEventMarketDepth(previousSplittedMarketDepth);
               this->clockSeconds += this->clockStepSeconds;
-              this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+              APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
             }
             this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
             this->processMarketDataEventMarketDepth(splittedMarketDepth);
@@ -59,26 +57,25 @@ class HistoricalMarketDataEventProcessor {
           previousSplittedMarketDepth = std::move(splittedMarketDepth);
         }
         this->clockSeconds += this->clockStepSeconds;
-        this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+        APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
         while (this->clockSeconds < std::chrono::duration_cast<std::chrono::seconds>((currentDateTp + std::chrono::hours(24)).time_since_epoch()).count()) {
           this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
           previousSplittedMarketDepth[0] = std::to_string(this->clockSeconds);
           this->processMarketDataEventMarketDepth(previousSplittedMarketDepth);
           this->clockSeconds += this->clockStepSeconds;
-          this->appLogger->logDebug("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.", this->printDebug);
+          APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
         }
         this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
         this->clockSeconds -= this->clockStepSeconds;
       } else {
-        this->appLogger->log("Warning: unable to open file for date " + UtilTime::getISOTimestamp(currentDateTp));
+        APP_LOGGER_INFO("Warning: unable to open file for date " + UtilTime::getISOTimestamp(currentDateTp));
       }
-      this->appLogger->log("End processing " + currentDateISO + ".");
+      APP_LOGGER_INFO("End processing " + currentDateISO + ".");
       currentDateTp += std::chrono::hours(24);
     }
   }
   TimePoint startDateTp, endDateTp;
   std::string exchange, baseAsset, quoteAsset, historicalMarketDataDirectory;
-  bool printDebug{};
   int clockStepSeconds;
   int clockSeconds;
 
@@ -93,7 +90,7 @@ class HistoricalMarketDataEventProcessor {
       }
     }
     while (shouldContinueTrade && std::getline(fTrade, lineTrade) && !lineTrade.empty()) {
-      this->appLogger->logDebug("File trade next line is " + lineTrade + ".", this->printDebug);
+      APP_LOGGER_DEBUG("File trade next line is " + lineTrade + ".");
       auto splittedTrade = UtilString::split(lineTrade, ",");
       int currentSecondsTrade = std::stoi(splittedTrade.at(0));
       if (currentSecondsTrade < this->clockSeconds) {
@@ -118,10 +115,10 @@ class HistoricalMarketDataEventProcessor {
     element.insert(CCAPI_LAST_PRICE, splittedLine.at(1));
     element.insert(CCAPI_LAST_SIZE, splittedLine.at(2));
     element.insert(CCAPI_IS_BUYER_MAKER, splittedLine.at(3));
-    elementList.push_back(std::move(element));
+    elementList.emplace_back(std::move(element));
     message.setElementList(elementList);
     event.addMessage(message);
-    this->appLogger->logDebug("Generated a backtest event: " + event.toStringPretty(), this->printDebug);
+    APP_LOGGER_DEBUG("Generated a backtest event: " + event.toStringPretty());
     this->eventHandler(event);
   }
   void processMarketDataEventMarketDepth(const std::vector<std::string>& splittedLine) {
@@ -146,15 +143,14 @@ class HistoricalMarketDataEventProcessor {
       element.insert(CCAPI_BEST_ASK_N_PRICE, priceSize.at(0));
       element.insert(CCAPI_BEST_ASK_N_SIZE, priceSize.at(1));
     }
-    elementList.push_back(std::move(element));
+    elementList.emplace_back(std::move(element));
     message.setElementList(elementList);
     event.addMessage(message);
-    this->appLogger->logDebug("Generated a backtest event: " + event.toStringPretty(), this->printDebug);
+    APP_LOGGER_DEBUG("Generated a backtest event: " + event.toStringPretty());
     this->eventHandler(event);
   }
 
   std::function<bool(const Event& event)> eventHandler;
-  AppLogger* appLogger;
 };
 } /* namespace ccapi */
 #endif  // APP_INCLUDE_APP_HISTORICAL_MARKET_DATA_EVENT_PROCESSOR_H_

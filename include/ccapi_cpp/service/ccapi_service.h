@@ -19,6 +19,7 @@
 #include "boost/beast/version.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_macro.h"
+#include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/ccapi_market_data_message.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"

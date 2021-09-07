@@ -325,7 +325,7 @@ class MarketDataServiceKucoin : public MarketDataService {
   //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   // }
-  Element extractInstrumentInfo(const rj::Value& x) {
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     Element element;
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseCurrency"].GetString());

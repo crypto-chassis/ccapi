@@ -5,7 +5,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 #include "ccapi_cpp/service/ccapi_service.h"

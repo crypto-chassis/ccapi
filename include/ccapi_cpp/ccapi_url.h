@@ -64,6 +64,19 @@ class Url CCAPI_FINAL {
     }
     return output;
   }
+  static std::string convertMapToFormUrlEncoded(const std::map<std::string, std::string> &input) {
+    std::string output;
+    int i = 0;
+    for (const auto &x : input) {
+      output += Url::urlEncode(x.first);
+      output += "=";
+      output += Url::urlEncode(x.second);
+      if (i < input.size() - 1) {
+        output += "&";
+      }
+    }
+    return output;
+  }
   std::string protocol;
   std::string host;
   std::string port;

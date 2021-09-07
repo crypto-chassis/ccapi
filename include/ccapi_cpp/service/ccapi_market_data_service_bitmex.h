@@ -279,7 +279,7 @@ class MarketDataServiceBitmex : public MarketDataService {
   //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   // }
-  Element extractInstrumentInfo(const rj::Value& x) {
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     Element element;
     element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());

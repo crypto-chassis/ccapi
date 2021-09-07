@@ -250,23 +250,23 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     }
     return element;
   }
-  void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) override {
-    CCAPI_LOGGER_INFO("about to logon to exchange");
-    CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-    auto subscription = wsConnection.subscriptionList.at(0);
-    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnection, subscription, now, credential);
-    for (const auto& sendString : sendStringList) {
-      CCAPI_LOGGER_INFO("sendString = " + sendString);
-      ErrorCode ec;
-      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-      if (ec) {
-        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
-      }
-    }
-  }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) {
-    std::vector<std::string> sendStringList;
+  // void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) override {
+  //   CCAPI_LOGGER_INFO("about to logon to exchange");
+  //   CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
+  //   auto subscription = wsConnection.subscriptionList.at(0);
+  //   std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnection, subscription, now, credential);
+  //   for (const auto& sendString : sendStringList) {
+  //     CCAPI_LOGGER_INFO("sendString = " + sendString);
+  //     ErrorCode ec;
+  //     this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+  //     if (ec) {
+  //       this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+  //     }
+  //   }
+  // }
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
+                                                                const std::map<std::string, std::string>& credential) override {
+                                                                  std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();

@@ -211,14 +211,12 @@ class MarketDataServiceCoinbase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["id"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["base_currency"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quote_currency"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["quote_increment"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["base_increment"].GetString());
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -243,7 +241,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        Element element = this->extractInstrumentInfo(document);
+        Element element;  this->extractInstrumentInfo(element,document);
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
@@ -254,7 +252,9 @@ class MarketDataServiceCoinbase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document.GetArray()) {
-          elementList.push_back(this->extractInstrumentInfo(x));
+          Element element;
+          this->extractInstrumentInfo(element, x);
+          elementList.emplace_back(std::move(element));
         }
         message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});

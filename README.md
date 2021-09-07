@@ -58,7 +58,7 @@
 * A spot market making application is also provided as an end-to-end solution for liquidity providers.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
-* Please contact us for consultative services and custom engineering work. We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making.
+* We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
 
 ## Branches

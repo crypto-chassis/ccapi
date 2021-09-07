@@ -32,7 +32,7 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
         MarketDataServiceHuobiBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     Element element;
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, UtilString::normalizeDecimalString(x["price_tick"].GetString()));

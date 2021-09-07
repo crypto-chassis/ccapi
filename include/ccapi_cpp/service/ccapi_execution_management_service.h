@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sys/stat.h>
 #include "boost/shared_ptr.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_hmac.h"
@@ -98,8 +99,7 @@ class ExecutionManagementService : public Service {
       this->eventHandler(event);
     }
   }
-  virtual Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
-    Element element;
+  virtual void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
       if (it != x.MemberEnd() && !it->value.IsNull()) {
@@ -114,13 +114,12 @@ class ExecutionManagementService : public Service {
         element.insert(y.first, value);
       }
     }
-    return element;
   }
   virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     CCAPI_LOGGER_INFO("about to logon to exchange");
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
     auto subscription = wsConnection.subscriptionList.at(0);
-    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(subscription, now, credential);
+    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnection,subscription, now, credential);
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
@@ -223,7 +222,7 @@ class ExecutionManagementService : public Service {
   virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
   }
-  virtual std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+  virtual std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
                                                                         const std::map<std::string, std::string>& credential) {
     return {};
   }
