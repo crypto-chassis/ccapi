@@ -4,6 +4,8 @@ include_guard(DIRECTORY)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GEMINI)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN)
+#
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
 #

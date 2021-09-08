@@ -122,9 +122,9 @@ class MarketDataService : public Service {
       if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-        if (marketDataMessage.recapType == MarketDataMessage::RecapType::NONE && this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+        if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
             std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
-                this->sessionOptions.warnLateEventMaxMilliSeconds) {
+                this->sessionOptions.warnLateEventMaxMilliSeconds && marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
           CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp) +
                             ", wsConnection = " + toString(wsConnection));
         }

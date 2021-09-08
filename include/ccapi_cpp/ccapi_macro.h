@@ -99,6 +99,15 @@
 #ifndef CCAPI_EXCHANGE_NAME_DERIBIT
 #define CCAPI_EXCHANGE_NAME_DERIBIT "deribit"
 #endif
+// #ifndef CCAPI_EXCHANGE_NAME_BYBIT
+// #define CCAPI_EXCHANGE_NAME_BYBIT "bybit"
+// #endif
+// #ifndef CCAPI_EXCHANGE_NAME_BYBIT_USDT_PERPETUAL
+// #define CCAPI_EXCHANGE_NAME_BYBIT_USDT_PERPETUAL "bybit-usdt-perpetual"
+// #endif
+// #ifndef CCAPI_EXCHANGE_NAME_BYBIT_INVERSE_PERPETUAL
+// #define CCAPI_EXCHANGE_NAME_BYBIT_INVERSE_PERPETUAL "bybit-inverse-perpetual"
+// #endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -224,6 +233,15 @@
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT "book.{instrument_name}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_QUOTE "quote.{instrument_name}"
+// #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_TRADE "trade"
+// #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_BOOK_TICKER "bookTicker"
+// #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH "depth"
+// #define CCAPI_WEBSOCKET_BYBIT_USDT_PERPETUAL_CHANNEL_TRADE "trade"
+// #define CCAPI_WEBSOCKET_BYBIT_USDT_PERPETUAL_CHANNEL_ORDER_BOOK_L2_25 "orderBookL2_25"
+// #define CCAPI_WEBSOCKET_BYBIT_USDT_PERPETUAL_CHANNEL_ORDER_BOOK_L2_200 "orderBookL2_200"
+// #define CCAPI_WEBSOCKET_BYBIT_INVERSE_PERPETUAL_CHANNEL_TRADE "trade"
+// #define CCAPI_WEBSOCKET_BYBIT_INVERSE_PERPETUAL_CHANNEL_ORDER_BOOK_L2_25 "orderBookL2_25"
+// #define CCAPI_WEBSOCKET_BYBIT_INVERSE_PERPETUAL_CHANNEL_ORDER_BOOK_L2_200 "orderBookL2_200"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif
@@ -519,6 +537,15 @@
 #ifndef CCAPI_DERIBIT_URL_REST_BASE
 #define CCAPI_DERIBIT_URL_REST_BASE "https://www.deribit.com"
 #endif
+// #ifndef CCAPI_BYBIT_URL_REST_BASE
+// #define CCAPI_BYBIT_URL_REST_BASE "https://api.bybit.com"
+// #endif
+// #ifndef CCAPI_BYBIT_USDT_PERPETUAL_URL_REST_BASE
+// #define CCAPI_BYBIT_USDT_PERPETUAL_URL_REST_BASE "https://api.bybit.com"
+// #endif
+// #ifndef CCAPI_BYBIT_INVERSE_PERPETUAL_URL_REST_BASE
+// #define CCAPI_BYBIT_INVERSE_PERPETUAL_URL_REST_BASE "https://api.bybit.com"
+// #endif
 // end: exchange REST urls
 
 // start: exchange WS urls
@@ -530,6 +557,9 @@
 #endif
 #ifndef CCAPI_KRAKEN_URL_WS_BASE
 #define CCAPI_KRAKEN_URL_WS_BASE "wss://ws.kraken.com"
+#endif
+#ifndef CCAPI_KRAKEN_URL_WS_BASE_PRIVATE
+#define CCAPI_KRAKEN_URL_WS_BASE_PRIVATE "wss://ws-auth.kraken.com"
 #endif
 #ifndef CCAPI_KRAKEN_FUTURES_URL_WS_BASE
 #define CCAPI_KRAKEN_FUTURES_URL_WS_BASE "wss://futures.kraken.com"
@@ -597,6 +627,15 @@
 #ifndef CCAPI_DERIBIT_URL_WS_BASE
 #define CCAPI_DERIBIT_URL_WS_BASE "wss://www.deribit.com"
 #endif
+// #ifndef CCAPI_BYBIT_URL_WS_BASE
+// #define CCAPI_BYBIT_URL_WS_BASE "https://api.bybit.com"
+// #endif
+// #ifndef CCAPI_BYBIT_USDT_PERPETUAL_URL_WS_BASE
+// #define CCAPI_BYBIT_USDT_PERPETUAL_URL_WS_BASE "https://api.bybit.com"
+// #endif
+// #ifndef CCAPI_BYBIT_INVERSE_PERPETUAL_URL_WS_BASE
+// #define CCAPI_BYBIT_INVERSE_PERPETUAL_URL_WS_BASE "https://api.bybit.com"
+// #endif
 // end: exchange WS urls
 
 // start: exchange FIX urls
@@ -750,6 +789,24 @@
 #ifndef CCAPI_DERIBIT_CLIENT_SECRET
 #define CCAPI_DERIBIT_CLIENT_SECRET "DERIBIT_CLIENT_SECRET"
 #endif
+// #ifndef CCAPI_BYBIT_API_KEY
+// #define CCAPI_BYBIT_API_KEY "BYBIT_API_KEY"
+// #endif
+// #ifndef CCAPI_BYBIT_API_SECRET
+// #define CCAPI_BYBIT_API_SECRET "BYBIT_API_SECRET"
+// #endif
+// #ifndef CCAPI_BYBIT_USDT_PERPETUAL_API_KEY
+// #define CCAPI_BYBIT_USDT_PERPETUAL_API_KEY "BYBIT_USDT_PERPETUAL_API_KEY"
+// #endif
+// #ifndef CCAPI_BYBIT_USDT_PERPETUAL_API_SECRET
+// #define CCAPI_BYBIT_USDT_PERPETUAL_API_SECRET "BYBIT_USDT_PERPETUAL_API_SECRET"
+// #endif
+// #ifndef CCAPI_BYBIT_INVERSE_PERPETUAL_API_KEY
+// #define CCAPI_BYBIT_INVERSE_PERPETUAL_API_KEY "BYBIT_INVERSE_PERPETUAL_API_KEY"
+// #endif
+// #ifndef CCAPI_BYBIT_INVERSE_PERPETUAL_API_SECRET
+// #define CCAPI_BYBIT_INVERSE_PERPETUAL_API_SECRET "BYBIT_INVERSE_PERPETUAL_API_SECRET"
+// #endif
 // end: exchange API credentials
 
 #define CCAPI_HTTP_PORT_DEFAULT "80"

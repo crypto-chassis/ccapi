@@ -60,7 +60,7 @@ class Url CCAPI_FINAL {
     std::map<std::string, std::string> output;
     for (const auto &x : UtilString::split(input, "&")) {
       auto y = UtilString::split(x, "=");
-      output.insert(std::make_pair(y.at(0), y.at(1)));
+      output.insert(std::make_pair(y.at(0), Url::urlDecode(y.at(1))));
     }
     return output;
   }
@@ -74,6 +74,14 @@ class Url CCAPI_FINAL {
       if (i < input.size() - 1) {
         output += "&";
       }
+    }
+    return output;
+  }
+  static std::map<std::string, std::string> convertFormUrlEncodedToMap(const std::string &input) {
+    std::map<std::string, std::string> output;
+    for (const auto &x : UtilString::split(input, "&")) {
+      auto y = UtilString::split(x, "=");
+      output.insert(std::make_pair(Url::urlDecode(y.at(0)), Url::urlDecode(y.at(1))));
     }
     return output;
   }
