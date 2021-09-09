@@ -9,7 +9,7 @@ class ExecutionManagementServiceHuobiCoinSwapTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceHuobiCoinSwap>([](Event& event) {}, SessionOptions(), SessionConfigs(),
+    this->service = std::make_shared<ExecutionManagementServiceHuobiCoinSwap>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
                                                                               wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_HUOBI_COIN_SWAP_API_KEY, "b33ff154-e02e01af-mjlpdje3ld-87508"},

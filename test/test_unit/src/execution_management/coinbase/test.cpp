@@ -10,7 +10,7 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceCoinbase>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceCoinbase>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
         {CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},

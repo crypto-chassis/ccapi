@@ -210,13 +210,11 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
     }
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
-    Element element;
     // element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["underlying"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["contractSize"].GetString());
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -250,7 +248,7 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         for (const auto& x : document["instruments"].GetArray()) {
           if (x["tradeable"].GetBool()) {
             if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-              Element element = this->extractInstrumentInfo(x);
+              Element element;  this->extractInstrumentInfo(element,x);
               elementList.push_back(element);
               break;
             }
@@ -267,7 +265,7 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         std::vector<Element> elementList;
         for (const auto& x : document["instruments"].GetArray()) {
           if (x["tradeable"].GetBool()) {
-            Element element = this->extractInstrumentInfo(x);
+            Element element;  this->extractInstrumentInfo(element,x);
             elementList.push_back(element);
           }
         }

@@ -280,12 +280,10 @@ class MarketDataServiceBitmex : public MarketDataService {
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   // }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
-    Element element;
     element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSize"].GetString());
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -312,7 +310,9 @@ class MarketDataServiceBitmex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document.GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            message.setElementList({this->extractInstrumentInfo(x)});
+            Element element;
+            this->extractInstrumentInfo(element,x);
+            message.setElementList({element});
             break;
           }
         }
@@ -325,7 +325,9 @@ class MarketDataServiceBitmex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document.GetArray()) {
-          elementList.push_back(this->extractInstrumentInfo(x));
+          Element element;
+          this->extractInstrumentInfo(element,x);
+          elementList.emplace_back(std::move(element));
         }
         message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});

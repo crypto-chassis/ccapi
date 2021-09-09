@@ -156,10 +156,12 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       element.insert(CCAPI_EM_ORDER_ID, std::string(data.GetString()));
       elementList.emplace_back(std::move(element));
     } else if (data.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(data, extractionFieldNameMap));
+      Element element;
+      this->extractOrderInfo(element,data, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : data.GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -326,7 +328,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
               {CCAPI_EM_ORDER_STATUS, std::make_pair("orderStatus", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
           };
-          Element info = this->extractOrderInfo(data, extractionFieldNameMap);
+          Element info; this->extractOrderInfo(info,data, extractionFieldNameMap);
           std::string dataEventType = data["eventType"].GetString();
           if (dataEventType == "trigger" || dataEventType == "deletion") {
             info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);

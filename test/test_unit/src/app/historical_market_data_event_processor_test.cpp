@@ -6,8 +6,7 @@ class HistoricalMarketDataEventProcessorTest : public ::testing::Test {
  public:
   void SetUp() override {
     this->eventList.clear();
-    this->appLogger = new AppLogger();
-    this->historicalMarketDataEventProcessor = new HistoricalMarketDataEventProcessor(this->appLogger, [that = this](const Event& event) -> bool {
+    this->historicalMarketDataEventProcessor = new HistoricalMarketDataEventProcessor([that = this](const Event& event) -> bool {
       that->eventList.push_back(event);
       return true;
     });
@@ -18,15 +17,12 @@ class HistoricalMarketDataEventProcessorTest : public ::testing::Test {
     this->historicalMarketDataEventProcessor->startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE", splitted.at(3)), "%F");
     this->historicalMarketDataEventProcessor->endDateTp = UtilTime::parse(UtilSystem::getEnvAsString("END_DATE", splitted.at(4)), "%F");
     this->historicalMarketDataEventProcessor->historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY", splitted.at(5));
-    this->historicalMarketDataEventProcessor->printDebug = UtilString::toLower(UtilSystem::getEnvAsString("PRINT_DEBUG", splitted.at(6))) == "true";
     this->historicalMarketDataEventProcessor->clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   }
   void TearDown() override {
-    delete this->appLogger;
     delete this->historicalMarketDataEventProcessor;
   }
   std::vector<Event> eventList;
-  AppLogger* appLogger;
   HistoricalMarketDataEventProcessor* historicalMarketDataEventProcessor;
 };
 

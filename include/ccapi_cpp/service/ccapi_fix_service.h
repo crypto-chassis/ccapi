@@ -390,7 +390,7 @@ class FixService : public Service {
         element.insert(CCAPI_ERROR_MESSAGE, "FIX connection was not found");
         message.setElementList({element});
         event.setMessageList({message});
-        that->eventHandler(event);
+        that->eventHandler(event,nullptr);
         return;
       }
       auto& fixConnectionPtr = it->second;

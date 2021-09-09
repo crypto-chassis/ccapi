@@ -10,7 +10,7 @@ class ExecutionManagementServiceKrakenTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceKraken>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceKraken>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_KRAKEN_API_KEY, "uvgK51G7bnksHUgrU++Cib03e15cCRJQA9e1f30TPuhZ+BagVrb2WUNi"},
         {CCAPI_KRAKEN_API_SECRET, "q+INlIikVemcqFtJu9CZk0QIXBMYRFpwKblA/N9iP61uGCMpsMa06ycI8VuwdxeqAvXnGPAnMIBYeiY1AoG67w=="},

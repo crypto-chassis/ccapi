@@ -202,12 +202,14 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_name", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     if (operation == Request::Operation::CREATE_ORDER) {
-      elementList.emplace_back(this->extractOrderInfo(document["result"]["order"], extractionFieldNameMap));
+      Element element;this->extractOrderInfo(element,document["result"]["order"], extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::GET_ORDER) {
-      elementList.emplace_back(this->extractOrderInfo(document["result"], extractionFieldNameMap));
+      Element element;this->extractOrderInfo(element,document["result"], extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : document["result"].GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -238,8 +240,8 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     }
     return elementList;
   }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("filled_amount");
       auto it2 = x.FindMember("average_price");
@@ -248,7 +250,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
                        std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
-    return element;
   }
   // void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) override {
   //   CCAPI_LOGGER_INFO("about to logon to exchange");
@@ -438,7 +439,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
               };
               const rj::Value& x = params["data"];
               message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(x["last_update_timestamp"].GetString()))));
-              Element info = this->extractOrderInfo(x, extractionFieldNameMap);
+              Element info; this->extractOrderInfo(info,x, extractionFieldNameMap);
               auto it1 = x.FindMember("filled_amount");
               auto it2 = x.FindMember("average_price");
               if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {

@@ -4,7 +4,7 @@
 namespace ccapi {
 class MarketDataServiceGeneric final : public MarketDataService {
  public:
-  MarketDataServiceGeneric(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceGeneric(std::function<void(Event&, Queue<Event>*)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                            std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   using MarketDataService::updateOrderBook;

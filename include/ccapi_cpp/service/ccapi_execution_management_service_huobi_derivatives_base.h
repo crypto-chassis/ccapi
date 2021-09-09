@@ -148,16 +148,20 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER) {
-      elementList.emplace_back(ExecutionManagementServiceHuobiDerivativesBase::extractOrderInfo(data, extractionFieldNameMap));
+      Element element;
+      ExecutionManagementServiceHuobiDerivativesBase::extractOrderInfo(element,data, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, std::string(data["successes"].GetString()));
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_ORDER) {
-      elementList.emplace_back(ExecutionManagementServiceHuobiDerivativesBase::extractOrderInfo(data[0], extractionFieldNameMap));
+      Element element;ExecutionManagementServiceHuobiDerivativesBase::extractOrderInfo(element,data[0], extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : data["orders"].GetArray()) {
-        elementList.emplace_back(ExecutionManagementServiceHuobiDerivativesBase::extractOrderInfo(x, extractionFieldNameMap));
+        Element element;ExecutionManagementServiceHuobiDerivativesBase::extractOrderInfo(element,x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -199,8 +203,8 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
   //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
   //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   // }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("trade_volume");
       auto it2 = x.FindMember("trade_avg_price");
@@ -209,7 +213,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
                        std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
-    return element;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -334,7 +337,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
               {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("contract_code", JsonDataType::STRING)},
           };
-          Element info = this->extractOrderInfo(document, extractionFieldNameMap);
+          Element info; this->extractOrderInfo(info,document, extractionFieldNameMap);
           {
             auto it1 = document.FindMember("trade_volume");
             auto it2 = document.FindMember("trade_avg_price");

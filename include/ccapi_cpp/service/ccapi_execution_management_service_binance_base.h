@@ -144,10 +144,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     if (document.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
+      Element element;this->extractOrderInfo(element,document, extractionFieldNameMap);elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -343,7 +343,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
               {CCAPI_EM_ORDER_STATUS, std::make_pair("X", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("s", JsonDataType::STRING)},
           };
-          Element info = this->extractOrderInfo(data, extractionFieldNameMap);
+          Element info; this->extractOrderInfo(info,data, extractionFieldNameMap);
           auto it = data.FindMember("ap");
           if (it != data.MemberEnd() && !it->value.IsNull()) {
             info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,

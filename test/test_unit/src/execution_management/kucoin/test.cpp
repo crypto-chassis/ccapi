@@ -10,7 +10,7 @@ class ExecutionManagementServiceKucoinTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceKucoin>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceKucoin>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_KUCOIN_API_KEY, "60bb01032f6e210006b760a9"},
         {CCAPI_KUCOIN_API_SECRET, "2ebbd3aa-35af-4b5e-b2e5-df94bb940f83"},

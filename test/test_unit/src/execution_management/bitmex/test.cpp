@@ -10,7 +10,7 @@ class ExecutionManagementServiceBitmexTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceBitmex>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceBitmex>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_BITMEX_API_KEY, "LAqUlngMIQkIUjXMUreyu3qn"},
         {CCAPI_BITMEX_API_SECRET, "chNOOS4KvNXR_Xq4k4c9qsfoKWvnDecLATCRlcBwyKDYnWgO"},
@@ -213,7 +213,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOrderByOrderId) {
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v1/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("filter"), Url::urlEncode("{\"orderID\":\"string\"}"));
+  EXPECT_EQ(paramMap.at("filter"), "{\"orderID\":\"string\"}");
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
@@ -229,7 +229,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOrderByClientOrder
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v1/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("filter"), Url::urlEncode("{\"clOrdID\":\"string\"}"));
+  EXPECT_EQ(paramMap.at("filter"), "{\"clOrdID\":\"string\"}");
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
@@ -300,7 +300,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOpenOrdersOneInstr
   EXPECT_EQ(splitted.at(0), "/api/v1/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("symbol"), "XBTUSD");
-  EXPECT_EQ(paramMap.at("filter"), Url::urlEncode("{\"open\": true}"));
+  EXPECT_EQ(paramMap.at("filter"), "{\"open\": true}");
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 
@@ -312,7 +312,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertRequestGetOpenOrdersAllInstr
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v1/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("filter"), Url::urlEncode("{\"open\": true}"));
+  EXPECT_EQ(paramMap.at("filter"), "{\"open\": true}");
   verifySignature(req, this->credential.at(CCAPI_BITMEX_API_SECRET));
 }
 

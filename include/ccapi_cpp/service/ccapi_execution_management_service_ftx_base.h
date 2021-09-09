@@ -194,10 +194,10 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     const auto& result = document["result"];
     if (result.IsArray()) {
       for (const auto& x : result.GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
       }
     } else if (result.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(result, extractionFieldNameMap));
+      Element element;this->extractOrderInfo(element,result, extractionFieldNameMap);elementList.emplace_back(std::move(element));
     }
     return elementList;
   }
@@ -230,8 +230,8 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
   //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
   //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   // }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("filledSize");
       auto it2 = x.FindMember("avgFillPrice");
@@ -240,7 +240,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
                        std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
       }
     }
-    return element;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -351,7 +350,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
               {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
           };
-          Element info = this->extractOrderInfo(data, extractionFieldNameMap);
+          Element info; this->extractOrderInfo(info,data, extractionFieldNameMap);
           auto it = data.FindMember("avgFillPrice");
           if (it != data.MemberEnd()) {
             info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,

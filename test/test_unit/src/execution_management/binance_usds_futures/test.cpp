@@ -9,7 +9,7 @@ class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test 
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceBinanceUsdsFutures>([](Event& event) {}, SessionOptions(), SessionConfigs(),
+    this->service = std::make_shared<ExecutionManagementServiceBinanceUsdsFutures>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
                                                                                    wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_BINANCE_USDS_FUTURES_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"},

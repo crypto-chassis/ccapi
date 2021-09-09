@@ -10,7 +10,7 @@ class ExecutionManagementServiceHuobiTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceHuobi>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceHuobi>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_HUOBI_API_KEY, "7f72bbdb-d3fa3d40-uymylwhfeg-17388"},
         {CCAPI_HUOBI_API_SECRET, "3e02e507-e8f8f2ae-a543363d-d2037"},
@@ -42,13 +42,13 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   preSignedText += "\n";
   std::map<std::string, std::string> queryParamMap = Url::convertQueryStringToMap(splitted.at(1));
   std::string queryString;
-  std::string signature = Url::urlDecode(queryParamMap.at("Signature"));
+  std::string signature = queryParamMap.at("Signature");
   queryParamMap.erase("Signature");
   int i = 0;
   for (const auto& kv : queryParamMap) {
     queryString += kv.first;
     queryString += "=";
-    queryString += kv.second;
+    queryString += Url::urlEncode(kv.second);
     if (i < queryParamMap.size() - 1) {
       queryString += "&";
     }

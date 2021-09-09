@@ -12,7 +12,7 @@ class MarketDataServiceTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<MarketDataServiceGeneric>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<MarketDataServiceGeneric>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
   }
   std::shared_ptr<MarketDataServiceGeneric> service{nullptr};
 };

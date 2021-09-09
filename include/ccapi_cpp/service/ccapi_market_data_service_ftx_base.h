@@ -269,7 +269,6 @@ class MarketDataServiceFtxBase : public MarketDataService {
     }
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
-    Element element;
     element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
     if (!x["baseCurrency"].IsNull()) {
       element.insert(CCAPI_BASE_ASSET, x["baseCurrency"].GetString());
@@ -286,7 +285,6 @@ class MarketDataServiceFtxBase : public MarketDataService {
     if (!x["underlying"].IsNull()) {
       element.insert(CCAPI_UNDERLYING_SYMBOL, x["underlying"].GetString());
     }
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -312,7 +310,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         const rj::Value& result = document["result"];
-        Element element = this->extractInstrumentInfo(result);
+        Element element ; this->extractInstrumentInfo(element,result);
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
@@ -324,7 +322,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
         const rj::Value& result = document["result"];
         std::vector<Element> elementList;
         for (const auto& x : result.GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;  this->extractInstrumentInfo(element,x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

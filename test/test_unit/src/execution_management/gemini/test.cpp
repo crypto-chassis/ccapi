@@ -10,7 +10,7 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceGemini>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceGemini>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"},
         {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},

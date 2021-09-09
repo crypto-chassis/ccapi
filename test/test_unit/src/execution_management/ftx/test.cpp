@@ -10,7 +10,7 @@ class ExecutionManagementServiceFtxTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceFtx>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceFtx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_FTX_API_KEY, "h3Pc-sRGCtWQANSbWi-6TzoOsLIkHD2_KbRvLULr"},
         {CCAPI_FTX_API_SECRET, "aJj_9jfURAz6JFtVKklvIIrvNRMIRfKUshUjfcYB"},
@@ -247,7 +247,7 @@ TEST_F(ExecutionManagementServiceFtxTest, convertRequestGetOpenOrdersOneInstrume
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/orders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("market"), Url::urlEncode("BTC/USD"));
+  EXPECT_EQ(paramMap.at("market"), "BTC/USD");
   verifySignature(req, this->credential.at(CCAPI_FTX_API_SECRET));
 }
 

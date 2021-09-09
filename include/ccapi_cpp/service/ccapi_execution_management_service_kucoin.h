@@ -259,24 +259,23 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : data["items"].GetArray()) {
-        auto element = this->extractOrderInfo(x, extractionFieldNameMap);
+        Element element ; this->extractOrderInfo(element,x, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       }
     } else if (operation == Request::Operation::GET_ORDER) {
-      auto element = this->extractOrderInfo(data, extractionFieldNameMap);
+      Element element ; this->extractOrderInfo(element,data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     }
     return elementList;
   }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
     {
       auto it = x.FindMember("isActive");
       if (it != x.MemberEnd()) {
         element.insert("isActive", it->value.GetBool() ? "true" : "false");
       }
     }
-    return element;
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
@@ -387,7 +386,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
                 {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
             };
             extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)});
-            auto info = this->extractOrderInfo(data, extractionFieldNameMap);
+            Element info;
+             this->extractOrderInfo(info,data, extractionFieldNameMap);
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);

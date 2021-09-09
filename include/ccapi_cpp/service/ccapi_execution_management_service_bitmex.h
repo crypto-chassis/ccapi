@@ -206,10 +206,10 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     if (document.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
+      Element element;this->extractOrderInfo(element,document, extractionFieldNameMap);elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -247,8 +247,8 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
   //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
   //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   // }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("cumQty");
       auto it2 = x.FindMember("avgPx");
@@ -257,7 +257,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
                        std::to_string(std::stod(it1->value.GetString()) * (it2->value.IsNull() ? 0 : std::stod(it2->value.GetString()))));
       }
     }
-    return element;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -411,7 +410,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
                         {CCAPI_EM_ORDER_STATUS, std::make_pair("ordStatus", JsonDataType::STRING)},
                         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
                     };
-                    Element info = this->extractOrderInfo(x, extractionFieldNameMap);
+                    Element info; this->extractOrderInfo(info,x, extractionFieldNameMap);
                     auto it = x.FindMember("avgPx");
                     if (it != x.MemberEnd() && !it->value.IsNull()) {
                       info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
