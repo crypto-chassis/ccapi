@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceBitmex : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceBitmex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceBitmex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -291,7 +291,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     if (textMessage != "pong") {
       Event event = this->createEvent(wsConnection.hdl, subscription, textMessage, document, timeReceived);
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event);
+        this->eventHandler(event,nullptr);
       }
     }
   }

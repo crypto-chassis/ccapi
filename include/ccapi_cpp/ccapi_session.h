@@ -192,7 +192,7 @@ class Session {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::thread t([this]() { this->serviceContextPtr->start(); });
     this->t = std::move(t);
-    this->internalEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, &this->eventQueue);
+    this->internalEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, std::placeholders::_2);
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_COINBASE] =
@@ -500,26 +500,26 @@ class Session {
   virtual void onEvent(Event& event, Queue<Event>* eventQueue) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = " + toString(event));
-    if (this->eventHandler) {
-      CCAPI_LOGGER_TRACE("handle event in immediate mode");
-      this->eventDispatcher->dispatch([that = this, event = std::move(event)] {
-        bool shouldContinue = true;
-        try {
-          shouldContinue = that->eventHandler->processEvent(event, that);
-        } catch (const std::runtime_error& e) {
-          CCAPI_LOGGER_ERROR(e.what());
-        }
-        if (!shouldContinue) {
-          CCAPI_LOGGER_DEBUG("about to pause the event dispatcher");
-          that->eventDispatcher->pause();
-        }
-      });
+    if (eventQueue){
+      eventQueue->pushBack(std::move(event));
     } else {
-      CCAPI_LOGGER_TRACE("handle event in batching mode");
-      if (eventQueue) {
-        eventQueue->pushBack(std::move(event));
+      if (this->eventHandler) {
+        CCAPI_LOGGER_TRACE("handle event in immediate mode");
+        this->eventDispatcher->dispatch([that = this, event = std::move(event)] {
+          bool shouldContinue = true;
+          try {
+            shouldContinue = that->eventHandler->processEvent(event, that);
+          } catch (const std::runtime_error& e) {
+            CCAPI_LOGGER_ERROR(e.what());
+          }
+          if (!shouldContinue) {
+            CCAPI_LOGGER_DEBUG("about to pause the event dispatcher");
+            that->eventDispatcher->pause();
+          }
+        });
       } else {
-        this->eventQueue.pushBack(std::move(event));
+        CCAPI_LOGGER_TRACE("handle event in batching mode");
+          this->eventQueue.pushBack(std::move(event));
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -581,7 +581,7 @@ class Session {
   virtual void sendRequest(std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
-    std::set<std::string> serviceNameExchangeSet;
+    // std::set<std::string> serviceNameExchangeSet;
     for (auto& request : requestList) {
       auto serviceName = request.getServiceName();
       CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
@@ -598,12 +598,12 @@ class Session {
       }
       std::shared_ptr<Service>& servicePtr = serviceByExchangeMap.at(exchange);
       std::string key = serviceName + exchange;
-      if (eventQueuePtr && serviceNameExchangeSet.find(key) == serviceNameExchangeSet.end()) {
-        servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
-        serviceNameExchangeSet.insert(key);
-      }
+      // if (eventQueuePtr && serviceNameExchangeSet.find(key) == serviceNameExchangeSet.end()) {
+      //   // servicePtr->setEventHandler(std::bind(&Session::onEvent, this, std::placeholders::_1, eventQueuePtr));
+      //   serviceNameExchangeSet.insert(key);
+      // }
       auto now = UtilTime::now();
-      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now, delayMilliSeconds);
+      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now, delayMilliSeconds, eventQueuePtr);
       if (eventQueuePtr) {
         futurePtrList.push_back(futurePtr);
       }
@@ -675,7 +675,7 @@ class Session {
   std::map<std::string, std::map<std::string, wspp::lib::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
   std::thread t;
   Queue<Event> eventQueue;
-  std::function<void(Event& event)> internalEventHandler;
+  std::function<void(Event& event, Queue<Event>* eventQueue)> internalEventHandler;
   std::map<std::string, std::shared_ptr<steady_timer> > delayTimerByIdMap;
 };
 } /* namespace ccapi */

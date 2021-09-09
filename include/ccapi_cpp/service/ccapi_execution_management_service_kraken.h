@@ -7,7 +7,7 @@
 namespace ccapi {
 class ExecutionManagementServiceKraken : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceKraken(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceKraken(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -210,22 +210,28 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     std::vector<Element> elementList;
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        const rj::Value& result = document["result"];
-        for (auto itr = result.MemberBegin(); itr != result.MemberEnd(); ++itr) {
-          Element element;
-          element.insert(CCAPI_EM_ASSET, itr->name.GetString());
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, itr->value.GetString());
-          elementList.emplace_back(std::move(element));
+        auto resultItr = document.FindMember("result");
+        if (resultItr!=document.MemberEnd()){
+          const rj::Value& result = resultItr->value;
+          for (auto itr = result.MemberBegin(); itr != result.MemberEnd(); ++itr) {
+            Element element;
+            element.insert(CCAPI_EM_ASSET, itr->name.GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, itr->value.GetString());
+            elementList.emplace_back(std::move(element));
+          }
         }
       } break;
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
-        const rj::Value& result = document["result"];
-        for (auto itr = result.MemberBegin(); itr != result.MemberEnd(); ++itr) {
-          Element element;
-          element.insert(CCAPI_EM_SYMBOL, itr->value["pair"].GetString());
-          element.insert(CCAPI_EM_POSITION_QUANTITY, Decimal(itr->value["vol"].GetString()).subtract(Decimal(itr->value["vol_closed"].GetString())).toString());
-          element.insert(CCAPI_EM_POSITION_COST, itr->value["cost"].GetString());
-          elementList.emplace_back(std::move(element));
+        auto resultItr = document.FindMember("result");
+        if (resultItr!=document.MemberEnd()){
+          const rj::Value& result = resultItr->value;
+          for (auto itr = result.MemberBegin(); itr != result.MemberEnd(); ++itr) {
+            Element element;
+            element.insert(CCAPI_EM_SYMBOL, itr->value["pair"].GetString());
+            element.insert(CCAPI_EM_POSITION_QUANTITY, Decimal(itr->value["vol"].GetString()).subtract(Decimal(itr->value["vol_closed"].GetString())).toString());
+            element.insert(CCAPI_EM_POSITION_COST, itr->value["cost"].GetString());
+            elementList.emplace_back(std::move(element));
+          }
         }
       } break;
       default:
@@ -316,7 +322,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event,nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {

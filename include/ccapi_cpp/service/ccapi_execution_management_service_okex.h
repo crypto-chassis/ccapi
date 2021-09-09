@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceOkex : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceOkex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceOkex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -369,7 +369,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     } else {
       Event event = this->createEvent(subscription, textMessage, document, eventStr, timeReceived);
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event);
+        this->eventHandler(event,nullptr);
       }
     }
   }

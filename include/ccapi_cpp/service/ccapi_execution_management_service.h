@@ -21,7 +21,7 @@ class ExecutionManagementService : public Service {
     BOOLEAN,
     // DOUBLE, shouldn't be needed because double in a json response needs to parsed as string to preserve its precision
   };
-  ExecutionManagementService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->requestOperationToMessageTypeMap = {
@@ -77,7 +77,7 @@ class ExecutionManagementService : public Service {
     messageList.push_back(std::move(message));
     return messageList;
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Queue<Event>* eventQueuePtr) override {
     Event event;
     if (this->doesHttpBodyContainError(request, textMessage)) {
       event.setType(Event::Type::RESPONSE);
@@ -96,7 +96,7 @@ class ExecutionManagementService : public Service {
       event.addMessages(messageList);
     }
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event, eventQueuePtr);
     }
   }
   virtual void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {

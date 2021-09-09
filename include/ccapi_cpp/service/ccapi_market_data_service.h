@@ -11,7 +11,7 @@
 namespace ccapi {
 class MarketDataService : public Service {
  public:
-  MarketDataService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                     std::shared_ptr<ServiceContext> serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -206,7 +206,7 @@ class MarketDataService : public Service {
         this->processMarketDataMessageList(wsConnection, hdl, textMessage, timeReceived, event, marketDataMessageList);
       }
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event);
+        this->eventHandler(event,nullptr);
       }
     } else {
       Event event;
@@ -219,7 +219,7 @@ class MarketDataService : public Service {
       element.insert(CCAPI_WEBSOCKET_MESSAGE_PAYLOAD, textMessage);
       message.setElementList({element});
       event.setMessageList({message});
-      this->eventHandler(event);
+      this->eventHandler(event,nullptr);
     }
     this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -928,7 +928,7 @@ class MarketDataService : public Service {
                       }
                       if (!messageList.empty()) {
                         event.addMessages(messageList);
-                        this->eventHandler(event);
+                        this->eventHandler(event,nullptr);
                       }
                     }
                     auto now = UtilTime::now();
@@ -963,7 +963,7 @@ class MarketDataService : public Service {
       }
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Queue<Event>* eventQueuePtr) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     Event event;
     if (this->doesHttpBodyContainError(request, textMessage)) {
@@ -1000,7 +1000,7 @@ class MarketDataService : public Service {
       }
     }
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event,eventQueuePtr);
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

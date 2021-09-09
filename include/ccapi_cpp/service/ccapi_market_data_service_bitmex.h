@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceBitmex : public MarketDataService {
  public:
-  MarketDataServiceBitmex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceBitmex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/realtime";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);

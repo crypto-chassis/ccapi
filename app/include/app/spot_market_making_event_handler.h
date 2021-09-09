@@ -8,7 +8,6 @@
 #include "boost/optional/optional.hpp"
 #include "ccapi_cpp/ccapi_session.h"
 // #include <filesystem>
-
 namespace ccapi {
 class SpotMarketMakingEventHandler : public EventHandler {
  public:
@@ -37,6 +36,10 @@ class SpotMarketMakingEventHandler : public EventHandler {
     std::string baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
     std::string quoteBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString();
     APP_LOGGER_DEBUG("Base asset balance is " + baseBalanceDecimalNotation + ", quote asset balance is " + quoteBalanceDecimalNotation + ".");
+    this->beforeProcessEvent(event,session);
+    if (!this->shouldContinue){
+      return true;
+    }
     auto eventType = event.getType();
     std::vector<Request> requestList;
     if (eventType == Event::Type::SUBSCRIPTION_DATA) {
@@ -648,6 +651,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
       return;
     }
   }
+  virtual void beforeProcessEvent(const Event& event, Session* session)  {
+  }
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
       orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix,privateDataFileSuffix,
       privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
@@ -672,7 +677,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   std::string historicalMarketDataDirectory;
   // end: only applicable to backtest
 
- private:
+protected:
   std::string createClientOrderId(const std::string& exchange, const std::string& instrument, const std::string& side, const std::string& price,
                                   const std::string& quantity, const TimePoint& now) {
     std::string clientOrderId;
@@ -720,6 +725,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   CsvWriter* accountBalanceCsvWriter;
   int64_t virtualTradeId;
   int64_t virtualOrderId;
+  bool shouldContinue{true};
 };
 } /* namespace ccapi */
 #endif  // APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_

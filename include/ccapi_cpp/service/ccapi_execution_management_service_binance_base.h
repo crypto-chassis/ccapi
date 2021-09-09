@@ -7,7 +7,7 @@
 namespace ccapi {
 class ExecutionManagementServiceBinanceBase : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceBinanceBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceBinanceBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                         ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->enableCheckPingPongWebsocketApplicationLevel = false;
@@ -230,7 +230,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     message.setTimeReceived(now);
     message.setType(Message::Type::SUBSCRIPTION_STARTED);
     event.setMessageList({message});
-    this->eventHandler(event);
+    this->eventHandler(event,nullptr);
     this->pingListenKeyTimerMapByConnectionIdMap[wsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         this->pingListenKeyIntervalSeconds * 1000, [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](ErrorCode const& ec) {
           http::request<http::string_body> req;
@@ -284,7 +284,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event,nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {

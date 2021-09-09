@@ -7,7 +7,7 @@
 namespace ccapi {
 class FixServiceFtxBase : public FixService<beast::ssl_stream<beast::tcp_stream>> {
  public:
-  FixServiceFtxBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  FixServiceFtxBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                     ServiceContextPtr serviceContextPtr)
       : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~FixServiceFtxBase() {}

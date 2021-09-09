@@ -7,7 +7,7 @@
 namespace ccapi {
 class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagementServiceHuobiBase {
  public:
-  ExecutionManagementServiceHuobiDerivativesBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceHuobiDerivativesBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -300,7 +300,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     } else {
       Event event = this->createEvent(subscription, textMessage, document, op, timeReceived);
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event);
+        this->eventHandler(event,nullptr);
       }
     }
   }

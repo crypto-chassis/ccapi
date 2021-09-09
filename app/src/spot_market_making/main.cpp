@@ -1,5 +1,8 @@
 #include "app/spot_market_making_event_handler.h"
 #include "ccapi_cpp/ccapi_session.h"
+#ifdef APP_USE_SPOT_MARKET_MAKING_EVENT_HANDLER_ADVANCED
+#include "ccapi_advanced/spot_market_making_event_handler_advanced.h"
+#endif
 namespace ccapi {
 AppLogger appLogger;
 AppLogger* AppLogger::logger = &appLogger;
@@ -25,7 +28,11 @@ int main(int argc, char** argv) {
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
+  #ifdef APP_USE_SPOT_MARKET_MAKING_EVENT_HANDLER_ADVANCED
+  SpotMarketMakingEventHandlerAdvanced eventHandler;
+  #else
   SpotMarketMakingEventHandler eventHandler;
+  #endif
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
@@ -48,7 +55,7 @@ int main(int argc, char** argv) {
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
-  std::cout << "******** Trading mode is " + tradingMode + "! ********" << std::endl;
+  APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
     eventHandler.tradingMode = SpotMarketMakingEventHandler::TradingMode::PAPER;
   } else if (tradingMode == "backtest") {
