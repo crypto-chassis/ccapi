@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_decimal.h"
+
+#include "gtest/gtest.h"
 namespace ccapi {
 TEST(DecimalTest, compareScientificNotation) {
   Decimal bid_1("1.51e-6");

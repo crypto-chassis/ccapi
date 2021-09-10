@@ -28,11 +28,11 @@ int main(int argc, char** argv) {
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
-  #ifdef APP_USE_SPOT_MARKET_MAKING_EVENT_HANDLER_ADVANCED
+#ifdef APP_USE_SPOT_MARKET_MAKING_EVENT_HANDLER_ADVANCED
   SpotMarketMakingEventHandlerAdvanced eventHandler;
-  #else
+#else
   SpotMarketMakingEventHandler eventHandler;
-  #endif
+#endif
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;

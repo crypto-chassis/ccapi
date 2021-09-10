@@ -320,7 +320,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["symbols"].GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            Element element;  this->extractInstrumentInfo(element,x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -334,7 +335,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document["symbols"].GetArray()) {
-          Element element;  this->extractInstrumentInfo(element,x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

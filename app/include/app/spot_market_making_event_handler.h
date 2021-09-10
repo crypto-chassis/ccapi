@@ -2,6 +2,7 @@
 #define APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
 #include <random>
 #include <sstream>
+
 #include "app/common.h"
 #include "app/historical_market_data_event_processor.h"
 #include "app/order.h"
@@ -36,8 +37,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
     std::string baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
     std::string quoteBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString();
     APP_LOGGER_DEBUG("Base asset balance is " + baseBalanceDecimalNotation + ", quote asset balance is " + quoteBalanceDecimalNotation + ".");
-    this->beforeProcessEvent(event,session);
-    if (!this->shouldContinue){
+    this->beforeProcessEvent(event, session);
+    if (!this->shouldContinue) {
       return true;
     }
     auto eventType = event.getType();
@@ -66,7 +67,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
                   element.getValue("FEE_QUANTITY"),
                   element.getValue("FEE_ASSET"),
               };
-              APP_LOGGER_INFO("Private trade - side: " + element.getValue("SIDE") + ", price: " + element.getValue("LAST_EXECUTED_PRICE") +", quantity: " + element.getValue("LAST_EXECUTED_SIZE") + ".");
+              APP_LOGGER_INFO("Private trade - side: " + element.getValue("SIDE") + ", price: " + element.getValue("LAST_EXECUTED_PRICE") +
+                              ", quantity: " + element.getValue("LAST_EXECUTED_SIZE") + ".");
               rows.emplace_back(std::move(row));
             }
             this->privateTradeCsvWriter->writeRows(rows);
@@ -200,7 +202,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
         const auto& message = messageList.at(index);
         const auto& messageTime = message.getTime();
         for (const auto& element : message.getElementList()) {
-          const auto &elementNameValueMap = element.getNameValueMap();
+          const auto& elementNameValueMap = element.getNameValueMap();
           {
             auto it = elementNameValueMap.find(CCAPI_BEST_BID_N_PRICE);
             if (it != elementNameValueMap.end()) {
@@ -235,25 +237,28 @@ class SpotMarketMakingEventHandler : public EventHandler {
           }
           std::string suffix;
           if (!this->privateDataFileSuffix.empty()) {
-            suffix = "__"+this->privateDataFileSuffix;
+            suffix = "__" + this->privateDataFileSuffix;
           }
-          std::string privateTradeCsvFilename(prefix + "private_trade__" + this->exchange + "__" + UtilString::toLower(this->baseAsset)+"-"+UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate+suffix + ".csv"),
-              orderUpdateCsvFilename(prefix + "order_update__" + this->exchange + "__" + UtilString::toLower(this->baseAsset)+"-"+UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate+suffix + ".csv"),
-              accountBalanceCsvFilename(prefix + "account_balance__" + this->exchange + "__" + UtilString::toLower(this->baseAsset)+"-"+UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate+suffix + ".csv");
+          std::string privateTradeCsvFilename(prefix + "private_trade__" + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
+                                              UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate + suffix + ".csv"),
+              orderUpdateCsvFilename(prefix + "order_update__" + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
+                                     UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate + suffix + ".csv"),
+              accountBalanceCsvFilename(prefix + "account_balance__" + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
+                                        UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate + suffix + ".csv");
           if (!this->privateDataDirectory.empty()) {
             // std::filesystem::create_directory(std::filesystem::path(this->privateDataDirectory.c_str()));
             privateTradeCsvFilename = this->privateDataDirectory + "/" + privateTradeCsvFilename;
             orderUpdateCsvFilename = this->privateDataDirectory + "/" + orderUpdateCsvFilename;
             accountBalanceCsvFilename = this->privateDataDirectory + "/" + accountBalanceCsvFilename;
           }
-          CsvWriter *privateTradeCsvWriter = nullptr;
-          CsvWriter *orderUpdateCsvWriter = nullptr;
-          CsvWriter *accountBalanceCsvWriter = nullptr;
+          CsvWriter* privateTradeCsvWriter = nullptr;
+          CsvWriter* orderUpdateCsvWriter = nullptr;
+          CsvWriter* accountBalanceCsvWriter = nullptr;
           if (!privateDataOnlySaveFinalBalance) {
             privateTradeCsvWriter = new CsvWriter();
             {
               struct stat buffer;
-              if (stat (privateTradeCsvFilename.c_str(), &buffer) != 0) {
+              if (stat(privateTradeCsvFilename.c_str(), &buffer) != 0) {
                 privateTradeCsvWriter->open(privateTradeCsvFilename, std::ios_base::app);
                 privateTradeCsvWriter->writeRow({
                     "TIME",
@@ -275,7 +280,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
             orderUpdateCsvWriter = new CsvWriter();
             {
               struct stat buffer;
-              if (stat (orderUpdateCsvFilename.c_str(), &buffer) != 0) {
+              if (stat(orderUpdateCsvFilename.c_str(), &buffer) != 0) {
                 orderUpdateCsvWriter->open(orderUpdateCsvFilename, std::ios_base::app);
                 orderUpdateCsvWriter->writeRow({
                     "TIME",
@@ -290,7 +295,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                     "STATUS",
                 });
                 orderUpdateCsvWriter->flush();
-              } else{
+              } else {
                 orderUpdateCsvWriter->open(orderUpdateCsvFilename, std::ios_base::app);
               }
             }
@@ -299,7 +304,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
             accountBalanceCsvWriter = new CsvWriter();
             {
               struct stat buffer;
-              if (stat (accountBalanceCsvFilename.c_str(), &buffer) != 0) {
+              if (stat(accountBalanceCsvFilename.c_str(), &buffer) != 0) {
                 accountBalanceCsvWriter->open(accountBalanceCsvFilename, std::ios_base::app);
                 accountBalanceCsvWriter->writeRow({
                     "TIME",
@@ -309,7 +314,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                     "BEST_ASK_PRICE",
                 });
                 accountBalanceCsvWriter->flush();
-              }else {
+              } else {
                 accountBalanceCsvWriter->open(accountBalanceCsvFilename, std::ios_base::app);
               }
             }
@@ -342,8 +347,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
           APP_LOGGER_INFO("Cancel open orders.");
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
-                   this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
-                   this->cancelOpenOrdersLastTime + std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) > this->orderRefreshLastTime) {
+                   this->getAccountBalancesLastTime<this->cancelOpenOrdersLastTime&& this->cancelOpenOrdersLastTime +
+                                                    std::chrono::seconds(this->accountBalanceRefreshWaitSeconds)> this->orderRefreshLastTime) {
           this->getAccountBalancesRequestCorrelationId = messageTimeISO + "-GET_ACCOUNT_BALANCES";
           Request request(this->useGetAccountsToGetAccountBalances ? Request::Operation::GET_ACCOUNTS : Request::Operation::GET_ACCOUNT_BALANCES,
                           this->exchange, "", this->getAccountBalancesRequestCorrelationId);
@@ -386,7 +391,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
           });
           this->accountBalanceCsvWriter->flush();
         }
-        APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " +quoteBalanceDecimalNotation + ".");
+        APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " + quoteBalanceDecimalNotation +
+                        ".");
         APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best ask price is " + this->bestAskPrice + ".");
         this->placeOrders(requestList, messageTimeReceived);
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
@@ -476,8 +482,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
             messageList.emplace_back(std::move(message));
             virtualEvent.setMessageList(messageList);
           } else if (operation == Request::Operation::CREATE_ORDER) {
-             auto newBaseBalance = this->baseBalance;
-             auto newQuoteBalance = this->quoteBalance;
+            auto newBaseBalance = this->baseBalance;
+            auto newQuoteBalance = this->quoteBalance;
             const auto& param = request.getParamList().at(0);
             const auto& side = param.at("SIDE");
             const auto& price = param.at("LIMIT_PRICE");
@@ -529,7 +535,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
               elementList.emplace_back(std::move(element));
               message.setElementList(elementList);
               std::vector<Message> messageList;
-              messageList.emplace_back(std::move(message));;
+              messageList.emplace_back(std::move(message));
+              ;
               virtualEvent.setMessageList(messageList);
               virtualEvent_2.setType(Event::Type::RESPONSE);
               message_2.setType(Message::Type::CREATE_ORDER);
@@ -651,10 +658,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
       return;
     }
   }
-  virtual void beforeProcessEvent(const Event& event, Session* session)  {
-  }
+  virtual void beforeProcessEvent(const Event& event, Session* session) {}
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
-      orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix,privateDataFileSuffix,
+      orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix, privateDataFileSuffix,
       privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
       cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
   double halfSpreadMinimum, halfSpreadMaximum, inventoryBasePortionTarget, baseBalance, quoteBalance, baseAvailableBalanceProportion,
@@ -677,7 +683,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   std::string historicalMarketDataDirectory;
   // end: only applicable to backtest
 
-protected:
+ protected:
   std::string createClientOrderId(const std::string& exchange, const std::string& instrument, const std::string& side, const std::string& price,
                                   const std::string& quantity, const TimePoint& now) {
     std::string clientOrderId;

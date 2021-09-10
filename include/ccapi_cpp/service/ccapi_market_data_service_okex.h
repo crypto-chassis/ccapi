@@ -305,7 +305,8 @@ class MarketDataServiceOkex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["instId"].GetString()) == request.getInstrument()) {
-            Element element;  this->extractInstrumentInfo(element,x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -319,7 +320,8 @@ class MarketDataServiceOkex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document["data"].GetArray()) {
-          Element element;  this->extractInstrumentInfo(element,x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

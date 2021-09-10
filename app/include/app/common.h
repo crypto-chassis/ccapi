@@ -7,16 +7,16 @@
 #define PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID "TRADE"
 #endif
 #if defined(APP_ENABLE_LOG_INFO) || defined(APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_INFO(message) \
-  if (::ccapi::AppLogger::logger) { \
+#define APP_LOGGER_INFO(message)              \
+  if (::ccapi::AppLogger::logger) {           \
     ::ccapi::AppLogger::logger->log(message); \
   }
 #else
 #define APP_LOGGER_INFO(message)
 #endif
 #if defined(APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_DEBUG(message) \
-  if (::ccapi::AppLogger::logger) { \
+#define APP_LOGGER_DEBUG(message)             \
+  if (::ccapi::AppLogger::logger) {           \
     ::ccapi::AppLogger::logger->log(message); \
   }
 #else
@@ -26,6 +26,7 @@
 #include <fstream>
 #include <mutex>
 #include <string>
+
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class AppUtil {
@@ -115,13 +116,13 @@ class CcapiLogger : public Logger {
     oss << threadId << ": {" << filename << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message;
     AppLogger::logger->log(filename, lineNumber, oss.str());
   }
- // private:
- //  AppLogger* appLogger;
+  // private:
+  //  AppLogger* appLogger;
 };
 class CsvWriter {
  public:
   CsvWriter() {}
-  void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out) { this->f.open(filename,mode); }
+  void open(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out) { this->f.open(filename, mode); }
   void close() {
     std::lock_guard<std::mutex> lock(m);
     this->f.close();

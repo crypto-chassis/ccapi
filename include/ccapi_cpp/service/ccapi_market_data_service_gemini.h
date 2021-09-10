@@ -72,7 +72,7 @@ class MarketDataServiceGemini : public MarketDataService {
     message.setType(Message::Type::SUBSCRIPTION_STARTED);
     messageList.push_back(std::move(message));
     event.setMessageList(messageList);
-    this->eventHandler(event,nullptr);
+    this->eventHandler(event, nullptr);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onClose(wspp::connection_hdl hdl) override {

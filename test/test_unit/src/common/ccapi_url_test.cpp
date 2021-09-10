@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_url.h"
+
+#include "gtest/gtest.h"
 namespace ccapi {
 TEST(UrlTest, urlEncode) {
   auto result = Url::urlEncode("12!@&34?=");

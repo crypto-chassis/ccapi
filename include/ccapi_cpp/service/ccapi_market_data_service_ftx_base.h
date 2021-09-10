@@ -310,7 +310,8 @@ class MarketDataServiceFtxBase : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         const rj::Value& result = document["result"];
-        Element element ; this->extractInstrumentInfo(element,result);
+        Element element;
+        this->extractInstrumentInfo(element, result);
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
@@ -322,7 +323,8 @@ class MarketDataServiceFtxBase : public MarketDataService {
         const rj::Value& result = document["result"];
         std::vector<Element> elementList;
         for (const auto& x : result.GetArray()) {
-          Element element;  this->extractInstrumentInfo(element,x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

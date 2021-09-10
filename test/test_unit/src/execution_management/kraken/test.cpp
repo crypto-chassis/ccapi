@@ -1,16 +1,15 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_kraken.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceKrakenTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<ExecutionManagementServiceKraken>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceKraken>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
+                                                                       wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_KRAKEN_API_KEY, "uvgK51G7bnksHUgrU++Cib03e15cCRJQA9e1f30TPuhZ+BagVrb2WUNi"},
         {CCAPI_KRAKEN_API_SECRET, "q+INlIikVemcqFtJu9CZk0QIXBMYRFpwKblA/N9iP61uGCMpsMa06ycI8VuwdxeqAvXnGPAnMIBYeiY1AoG67w=="},
@@ -24,9 +23,7 @@ class ExecutionManagementServiceKrakenTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey) {
-  EXPECT_EQ(req.base().at("API-Key").to_string(), apiKey);
-}
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(req.base().at("API-Key").to_string(), apiKey); }
 
 void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
   std::string preSignedText = req.target().to_string();
@@ -117,7 +114,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestCancelOrderByOrderId)
 
 TEST_F(ExecutionManagementServiceKrakenTest, convertTextMessageToMessageRestCancelOrder) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_KRAKEN, "XXBTZUSD", "foo", this->credential);
-  std::string textMessage =R"(
+  std::string textMessage = R"(
     {
       "error": [],
       "result": {
@@ -235,7 +232,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertTextMessageToMessageRestGetO
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "37500.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.25000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "1.25000000");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 30021.0*1.25000000);
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 30021.0 * 1.25000000);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "closed");
 }
 
@@ -413,7 +410,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, verifyconvertTextMessageToMessageRe
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.25000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "30010.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.37500000");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0.37500000*30010.0);
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0.37500000 * 30010.0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "XBTUSD");
 }
 

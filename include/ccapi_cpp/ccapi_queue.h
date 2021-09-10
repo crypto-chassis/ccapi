@@ -3,6 +3,7 @@
 #include <mutex>
 #include <queue>
 #include <vector>
+
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
 template <class T>

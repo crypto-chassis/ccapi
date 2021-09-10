@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
 #include <string>
+
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {

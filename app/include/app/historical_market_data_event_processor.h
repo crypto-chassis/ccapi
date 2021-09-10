@@ -2,13 +2,13 @@
 #define APP_INCLUDE_APP_HISTORICAL_MARKET_DATA_EVENT_PROCESSOR_H_
 #include <fstream>
 #include <iostream>
+
 #include "app/common.h"
 #include "ccapi_cpp/ccapi_event.h"
 namespace ccapi {
 class HistoricalMarketDataEventProcessor {
  public:
-  explicit HistoricalMarketDataEventProcessor(std::function<bool(const Event& event)> eventHandler)
-      : eventHandler(eventHandler) {}
+  explicit HistoricalMarketDataEventProcessor(std::function<bool(const Event& event)> eventHandler) : eventHandler(eventHandler) {}
   void processEvent() {
     this->clockSeconds = 0;
     auto currentDateTp = this->startDateTp;

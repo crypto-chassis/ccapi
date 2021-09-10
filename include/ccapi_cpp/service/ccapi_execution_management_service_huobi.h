@@ -74,8 +74,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         auto shouldUseOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
-        std::string id = shouldUseOrderId ? param.at(CCAPI_EM_ORDER_ID)
-                                          : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = shouldUseOrderId                                      ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target =
             shouldUseOrderId ? std::regex_replace(this->cancelOrderTarget, std::regex("\\{order\\-id\\}"), id) : this->cancelOrderByClientOrderIdTarget;
         if (!shouldUseOrderId) {
@@ -99,8 +100,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         auto shouldUseOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
-        std::string id =
-            shouldUseOrderId ? param.at(CCAPI_EM_ORDER_ID) : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = shouldUseOrderId                                      ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target = shouldUseOrderId ? std::regex_replace(this->getOrderTarget, std::regex("\\{order\\-id\\}"), id) : this->getOrderByClientOrderIdTarget;
         req.target(target);
         if (!shouldUseOrderId) {
@@ -157,11 +159,13 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       elementList.emplace_back(std::move(element));
     } else if (data.IsObject()) {
       Element element;
-      this->extractOrderInfo(element,data, extractionFieldNameMap);
+      this->extractOrderInfo(element, data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : data.GetArray()) {
-        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -193,9 +197,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     }
     return elementList;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-                                                                  auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
     std::string signature;
     std::string queryString;
@@ -285,7 +289,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     } else {
       Event event = this->createEvent(subscription, textMessage, document, actionStr, timeReceived);
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event,nullptr);
+        this->eventHandler(event, nullptr);
       }
     }
   }
@@ -328,7 +332,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
               {CCAPI_EM_ORDER_STATUS, std::make_pair("orderStatus", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
           };
-          Element info; this->extractOrderInfo(info,data, extractionFieldNameMap);
+          Element info;
+          this->extractOrderInfo(info, data, extractionFieldNameMap);
           std::string dataEventType = data["eventType"].GetString();
           if (dataEventType == "trigger" || dataEventType == "deletion") {
             info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);

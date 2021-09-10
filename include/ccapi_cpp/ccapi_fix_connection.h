@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_FIX_CONNECTION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_FIX_CONNECTION_H_
 #include <string>
+
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_subscription.h"
 namespace beast = boost::beast;

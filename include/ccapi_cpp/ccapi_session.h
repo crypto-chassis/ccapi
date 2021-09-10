@@ -147,6 +147,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_event_dispatcher.h"
 #include "ccapi_cpp/ccapi_event_handler.h"
@@ -500,7 +501,7 @@ class Session {
   virtual void onEvent(Event& event, Queue<Event>* eventQueue) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("event = " + toString(event));
-    if (eventQueue){
+    if (eventQueue) {
       eventQueue->pushBack(std::move(event));
     } else {
       if (this->eventHandler) {
@@ -519,7 +520,7 @@ class Session {
         });
       } else {
         CCAPI_LOGGER_TRACE("handle event in batching mode");
-          this->eventQueue.pushBack(std::move(event));
+        this->eventQueue.pushBack(std::move(event));
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;

@@ -70,6 +70,7 @@
 #include <cstring>
 #include <string>
 #include <thread>
+
 #include "ccapi_cpp/ccapi_date.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util.h"

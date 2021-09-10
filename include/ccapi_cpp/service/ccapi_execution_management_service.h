@@ -1,12 +1,14 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
+#include <sys/stat.h>
+
 #include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
-#include <sys/stat.h>
+
 #include "boost/shared_ptr.hpp"
 #include "ccapi_cpp/ccapi_event.h"
 #include "ccapi_cpp/ccapi_hmac.h"
@@ -77,7 +79,8 @@ class ExecutionManagementService : public Service {
     messageList.push_back(std::move(message));
     return messageList;
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Queue<Event>* eventQueuePtr) override {
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived,
+                                        Queue<Event>* eventQueuePtr) override {
     Event event;
     if (this->doesHttpBodyContainError(request, textMessage)) {
       event.setType(Event::Type::RESPONSE);
@@ -99,15 +102,15 @@ class ExecutionManagementService : public Service {
       this->eventHandler(event, eventQueuePtr);
     }
   }
-  virtual void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
+  virtual void extractOrderInfo(Element& element, const rj::Value& x,
+                                const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
       if (it != x.MemberEnd() && !it->value.IsNull()) {
-        std::string value = y.second.second == JsonDataType::STRING
-                                ? it->value.GetString()
-                                : y.second.second == JsonDataType::INTEGER
-                                      ? std::string(it->value.GetString())
-                                      : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool())) : "null";
+        std::string value = y.second.second == JsonDataType::STRING    ? it->value.GetString()
+                            : y.second.second == JsonDataType::INTEGER ? std::string(it->value.GetString())
+                            : y.second.second == JsonDataType::BOOLEAN ? std::to_string(static_cast<int>(it->value.GetBool()))
+                                                                       : "null";
         if (y.first == CCAPI_EM_ORDER_SIDE) {
           value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
         }
@@ -119,7 +122,7 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_INFO("about to logon to exchange");
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
     auto subscription = wsConnection.subscriptionList.at(0);
-    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnection,subscription, now, credential);
+    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnection, subscription, now, credential);
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
@@ -222,8 +225,8 @@ class ExecutionManagementService : public Service {
   virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
     return {};
   }
-  virtual std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
-                                                                        const std::map<std::string, std::string>& credential) {
+  virtual std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription,
+                                                                        const TimePoint& now, const std::map<std::string, std::string>& credential) {
     return {};
   }
   std::string createOrderTarget;

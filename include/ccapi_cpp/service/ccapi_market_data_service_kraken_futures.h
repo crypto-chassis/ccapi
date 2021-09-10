@@ -248,7 +248,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         for (const auto& x : document["instruments"].GetArray()) {
           if (x["tradeable"].GetBool()) {
             if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-              Element element;  this->extractInstrumentInfo(element,x);
+              Element element;
+              this->extractInstrumentInfo(element, x);
               elementList.push_back(element);
               break;
             }
@@ -265,7 +266,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         std::vector<Element> elementList;
         for (const auto& x : document["instruments"].GetArray()) {
           if (x["tradeable"].GetBool()) {
-            Element element;  this->extractInstrumentInfo(element,x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             elementList.push_back(element);
           }
         }

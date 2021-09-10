@@ -332,7 +332,7 @@ class MarketDataServiceKraken : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         const rj::Value& x = document["result"][request.getInstrument().c_str()];
         Element element;
-        this->extractInstrumentInfo(element,x);
+        this->extractInstrumentInfo(element, x);
         element.insert(CCAPI_INSTRUMENT, request.getInstrument());
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
@@ -345,7 +345,7 @@ class MarketDataServiceKraken : public MarketDataService {
         std::vector<Element> elementList;
         for (auto itr = document["result"].MemberBegin(); itr != document["result"].MemberEnd(); ++itr) {
           Element element;
-          this->extractInstrumentInfo(element,itr->value);
+          this->extractInstrumentInfo(element, itr->value);
           element.insert(CCAPI_INSTRUMENT, itr->name.GetString());
           elementList.push_back(element);
         }

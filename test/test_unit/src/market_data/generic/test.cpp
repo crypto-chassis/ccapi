@@ -1,9 +1,8 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_market_data_helper.h"
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 using ::testing::ElementsAre;
 using ::testing::Pair;
 namespace ccapi {

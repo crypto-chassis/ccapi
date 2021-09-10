@@ -2,6 +2,7 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_ELEMENT_H_
 #include <map>
 #include <string>
+
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class Element CCAPI_FINAL {

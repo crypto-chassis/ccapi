@@ -1,7 +1,7 @@
+#include "ccapi_cpp/ccapi_event.h"
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-
-#include "ccapi_cpp/ccapi_event.h"
 using ::testing::ElementsAre;
 namespace ccapi {
 TEST(EventTest, addMessagesZeroAddZero) {

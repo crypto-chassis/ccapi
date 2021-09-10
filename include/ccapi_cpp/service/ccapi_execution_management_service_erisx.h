@@ -195,13 +195,19 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     std::vector<Element> elementList;
     if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : document["orderStatuses"].GetArray()) {
-        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     } else if (document.IsObject()) {
-      Element element;this->extractOrderInfo(element,document, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+      Element element;
+      this->extractOrderInfo(element, document, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
-        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -215,8 +221,9 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
   //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
   //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   // }
-  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("cumQty");
       auto it2 = x.FindMember("avgPrice");

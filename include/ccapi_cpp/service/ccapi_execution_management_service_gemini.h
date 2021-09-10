@@ -193,10 +193,14 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     } else if (document.IsObject()) {
-      Element element;this->extractOrderInfo(element,document, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+      Element element;
+      this->extractOrderInfo(element, document, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
-        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -225,8 +229,9 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     }
     return elementList;
   }
-  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("executed_amount");
       auto it2 = x.FindMember("avg_execution_price");
@@ -282,7 +287,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event,nullptr);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
@@ -348,7 +353,8 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                   {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executed_amount", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
               };
-              Element info ;this->extractOrderInfo(info,x, extractionFieldNameMap);
+              Element info;
+              this->extractOrderInfo(info, x, extractionFieldNameMap);
               {
                 auto it1 = x.FindMember("executed_amount");
                 auto it2 = x.FindMember("avg_execution_price");

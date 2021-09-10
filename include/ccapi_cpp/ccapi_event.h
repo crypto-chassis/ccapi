@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_EVENT_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_EVENT_H_
 #include <vector>
+
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_message.h"
 namespace ccapi {
@@ -78,7 +79,7 @@ class Event CCAPI_FINAL {
   void addMessage(const Message& newMessage) { this->messageList.push_back(newMessage); }
   void addMessage(Message& newMessage) { this->messageList.emplace_back(std::move(newMessage)); }
   void setMessageList(const std::vector<Message>& messageList) { this->messageList = messageList; }
-  void setMessageList( std::vector<Message>& messageList) { this->messageList = std::move(messageList); }
+  void setMessageList(std::vector<Message>& messageList) { this->messageList = std::move(messageList); }
   Type getType() const { return type; }
   void setType(Type type) { this->type = type; }
 #ifndef CCAPI_EXPOSE_INTERNAL

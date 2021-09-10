@@ -247,11 +247,14 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (data.IsObject()) {
-      Element element;this->extractOrderInfo(element,data, extractionFieldNameMap);
+      Element element;
+      this->extractOrderInfo(element, data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : data.GetArray()) {
-        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -286,8 +289,9 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     }
     return elementList;
   }
-  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("accFillSz");
       auto it2 = x.FindMember("avgPx");
@@ -302,9 +306,9 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       }
     }
   }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-                                                                  std::vector<std::string> sendStringList;
+    std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     auto& allocator = document.GetAllocator();
@@ -369,7 +373,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     } else {
       Event event = this->createEvent(subscription, textMessage, document, eventStr, timeReceived);
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event,nullptr);
+        this->eventHandler(event, nullptr);
       }
     }
   }
@@ -454,7 +458,8 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
                   {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
               };
-              Element info; this->extractOrderInfo(info,x, extractionFieldNameMap);
+              Element info;
+              this->extractOrderInfo(info, x, extractionFieldNameMap);
               info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));

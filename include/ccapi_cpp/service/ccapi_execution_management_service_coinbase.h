@@ -94,9 +94,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
-                             ? param.at(CCAPI_EM_ORDER_ID)
-                             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target = std::regex_replace(this->cancelOrderTarget, std::regex("<id>"), id);
         if (!symbolId.empty()) {
           target += "?product_id=";
@@ -108,9 +108,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
-                             ? param.at(CCAPI_EM_ORDER_ID)
-                             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target = std::regex_replace(this->getOrderTarget, std::regex("<id>"), id);
         req.target(target);
         this->signRequest(req, "", credential);
@@ -215,9 +215,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     }
     return elementList;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-                                                                  auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto timestamp = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
@@ -271,7 +271,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event,nullptr);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {

@@ -1,16 +1,15 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceHuobiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<ExecutionManagementServiceHuobi>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceHuobi>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
+                                                                      wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_HUOBI_API_KEY, "7f72bbdb-d3fa3d40-uymylwhfeg-17388"},
         {CCAPI_HUOBI_API_SECRET, "3e02e507-e8f8f2ae-a543363d-d2037"},

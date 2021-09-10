@@ -202,14 +202,18 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_name", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     if (operation == Request::Operation::CREATE_ORDER) {
-      Element element;this->extractOrderInfo(element,document["result"]["order"], extractionFieldNameMap);
+      Element element;
+      this->extractOrderInfo(element, document["result"]["order"], extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::GET_ORDER) {
-      Element element;this->extractOrderInfo(element,document["result"], extractionFieldNameMap);
+      Element element;
+      this->extractOrderInfo(element, document["result"], extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : document["result"].GetArray()) {
-        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -240,8 +244,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     }
     return elementList;
   }
-  void extractOrderInfo(Element& element,const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap) override {
-    ExecutionManagementService::extractOrderInfo(element,x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("filled_amount");
       auto it2 = x.FindMember("average_price");
@@ -265,9 +270,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
   //     }
   //   }
   // }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-                                                                  std::vector<std::string> sendStringList;
+    std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -298,7 +303,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(wsConnection, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event,nullptr);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
@@ -439,7 +444,8 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
               };
               const rj::Value& x = params["data"];
               message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(x["last_update_timestamp"].GetString()))));
-              Element info; this->extractOrderInfo(info,x, extractionFieldNameMap);
+              Element info;
+              this->extractOrderInfo(info, x, extractionFieldNameMap);
               auto it1 = x.FindMember("filled_amount");
               auto it2 = x.FindMember("average_price");
               if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {

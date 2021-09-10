@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_subscription.h"
+
+#include "gtest/gtest.h"
 namespace ccapi {
 TEST(SubscriptionTest, marketDepth) {
   Subscription subscription("", "", CCAPI_MARKET_DEPTH);

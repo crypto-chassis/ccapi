@@ -217,7 +217,8 @@ class MarketDataServiceBitstamp : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document.GetArray()) {
           if (std::string(x["url_symbol"].GetString()) == request.getInstrument()) {
-            Element element;  this->extractInstrumentInfo(element,x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -231,7 +232,8 @@ class MarketDataServiceBitstamp : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document.GetArray()) {
-          Element element;  this->extractInstrumentInfo(element,x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

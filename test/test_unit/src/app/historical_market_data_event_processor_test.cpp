@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-
 #include "app/historical_market_data_event_processor.h"
+
+#include "gtest/gtest.h"
 namespace ccapi {
 class HistoricalMarketDataEventProcessorTest : public ::testing::Test {
  public:
@@ -19,9 +19,7 @@ class HistoricalMarketDataEventProcessorTest : public ::testing::Test {
     this->historicalMarketDataEventProcessor->historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY", splitted.at(5));
     this->historicalMarketDataEventProcessor->clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   }
-  void TearDown() override {
-    delete this->historicalMarketDataEventProcessor;
-  }
+  void TearDown() override { delete this->historicalMarketDataEventProcessor; }
   std::vector<Event> eventList;
   HistoricalMarketDataEventProcessor* historicalMarketDataEventProcessor;
 };

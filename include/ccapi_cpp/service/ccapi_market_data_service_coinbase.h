@@ -241,7 +241,8 @@ class MarketDataServiceCoinbase : public MarketDataService {
         Message message;
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-        Element element;  this->extractInstrumentInfo(element,document);
+        Element element;
+        this->extractInstrumentInfo(element, document);
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});

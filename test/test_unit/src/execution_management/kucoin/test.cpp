@@ -1,16 +1,15 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_kucoin.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceKucoinTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<ExecutionManagementServiceKucoin>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceKucoin>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
+                                                                       wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_KUCOIN_API_KEY, "60bb01032f6e210006b760a9"},
         {CCAPI_KUCOIN_API_SECRET, "2ebbd3aa-35af-4b5e-b2e5-df94bb940f83"},

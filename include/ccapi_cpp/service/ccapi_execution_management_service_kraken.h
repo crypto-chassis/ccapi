@@ -8,7 +8,7 @@ namespace ccapi {
 class ExecutionManagementServiceKraken : public ExecutionManagementService {
  public:
   ExecutionManagementServiceKraken(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                     ServiceContextPtr serviceContextPtr)
+                                   ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
@@ -40,7 +40,8 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
  protected:
 #endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("error":[])") == std::string::npos; }
-  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential, const std::string& nonce) {
+  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential,
+                   const std::string& nonce) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto noncePlusBody = nonce + body;
     std::string preSignedText = req.target().to_string();
@@ -52,7 +53,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
-  std::string generateNonce(const TimePoint& now){
+  std::string generateNonce(const TimePoint& now) {
     int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     return std::to_string(nonce);
   }
@@ -66,9 +67,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                        {CCAPI_EM_ORDER_LEVERAGE, "leverage"},
                        {CCAPI_EM_ORDER_ID, "txid"},
                    }) {
-                     body += "nonce=";
-                     body += nonce;
-                     body += "&";
+    body += "nonce=";
+    body += nonce;
+    body += "&";
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
@@ -88,7 +89,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-                               req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
+    req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("API-Key", apiKey);
     switch (request.getOperation()) {
@@ -176,16 +177,16 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("vol", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("vol_exec", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-      };
+    };
     std::vector<Element> elementList;
     if (operation == Request::Operation::CREATE_ORDER) {
-      for (const auto& x: document["result"]["txid"].GetArray()){
+      for (const auto& x : document["result"]["txid"].GetArray()) {
         Element element;
         element.insert(CCAPI_EM_ORDER_ID, x.GetString());
         elementList.emplace_back(std::move(element));
       }
-    }else if (operation == Request::Operation::GET_ORDER || operation == Request::Operation::GET_OPEN_ORDERS) {
-      const rj::Value& orders = operation == Request::Operation::GET_ORDER? document["result"]:document["result"]["open"];
+    } else if (operation == Request::Operation::GET_ORDER || operation == Request::Operation::GET_OPEN_ORDERS) {
+      const rj::Value& orders = operation == Request::Operation::GET_ORDER ? document["result"] : document["result"]["open"];
       for (auto itr = orders.MemberBegin(); itr != orders.MemberEnd(); ++itr) {
         Element element;
         this->extractOrderInfo(element, itr->value, extractionFieldNameMap);
@@ -211,7 +212,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         auto resultItr = document.FindMember("result");
-        if (resultItr!=document.MemberEnd()){
+        if (resultItr != document.MemberEnd()) {
           const rj::Value& result = resultItr->value;
           for (auto itr = result.MemberBegin(); itr != result.MemberEnd(); ++itr) {
             Element element;
@@ -223,12 +224,13 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
       } break;
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         auto resultItr = document.FindMember("result");
-        if (resultItr!=document.MemberEnd()){
+        if (resultItr != document.MemberEnd()) {
           const rj::Value& result = resultItr->value;
           for (auto itr = result.MemberBegin(); itr != result.MemberEnd(); ++itr) {
             Element element;
             element.insert(CCAPI_EM_SYMBOL, itr->value["pair"].GetString());
-            element.insert(CCAPI_EM_POSITION_QUANTITY, Decimal(itr->value["vol"].GetString()).subtract(Decimal(itr->value["vol_closed"].GetString())).toString());
+            element.insert(CCAPI_EM_POSITION_QUANTITY,
+                           Decimal(itr->value["vol"].GetString()).subtract(Decimal(itr->value["vol_closed"].GetString())).toString());
             element.insert(CCAPI_EM_POSITION_COST, itr->value["cost"].GetString());
             elementList.emplace_back(std::move(element));
           }
@@ -291,15 +293,15 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         },
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection,const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     auto fieldSet = subscription.getFieldSet();
     std::vector<std::string> sendStringList;
-    for (const auto& field : fieldSet){
+    for (const auto& field : fieldSet) {
       std::string name;
-      if (field == CCAPI_EM_ORDER_UPDATE)  {
+      if (field == CCAPI_EM_ORDER_UPDATE) {
         name = "openOrders";
-      } else if (field == CCAPI_EM_PRIVATE_TRADE){
+      } else if (field == CCAPI_EM_PRIVATE_TRADE) {
         name = "ownTrades";
       }
       rj::Document document;
@@ -322,7 +324,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event,nullptr);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
@@ -330,12 +332,12 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     std::vector<Message> messageList;
     if (document.IsArray() && document.Size() == 3) {
       std::string channelName = document[1].GetString();
-      if (channelName=="ownTrades"||channelName=="openOrders"){
+      if (channelName == "ownTrades" || channelName == "openOrders") {
         event.setType(Event::Type::SUBSCRIPTION_DATA);
         auto fieldSet = subscription.getFieldSet();
         auto instrumentSet = subscription.getInstrumentSet();
-        if (channelName=="ownTrades" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-          for (const auto&x : document[0].GetArray()){
+        if (channelName == "ownTrades" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+          for (const auto& x : document[0].GetArray()) {
             for (auto itr = x.MemberBegin(); itr != x.MemberEnd(); ++itr) {
               std::string instrument = itr->value["pair"].GetString();
               if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
@@ -362,7 +364,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
             }
           }
         }
-        if (channelName=="openOrders" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+        if (channelName == "openOrders" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
           Message message;
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           message.setTime(timeReceived);
@@ -374,31 +376,31 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
               {CCAPI_EM_ORDER_QUANTITY, std::make_pair("vol", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("vol_exec", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-            };
-          for (const auto&x : document[0].GetArray()){
+          };
+          for (const auto& x : document[0].GetArray()) {
             for (auto itr = x.MemberBegin(); itr != x.MemberEnd(); ++itr) {
               const rj::Value& descr = itr->value["descr"];
               std::string instrument = descr["pair"].GetString();
               if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-                  Element element;
-                  this->extractOrderInfo(element, itr->value, extractionFieldNameMap);
-                  const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionMoreFieldNameMap = {
-                      {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
-                      {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-                      {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("pair", JsonDataType::STRING)}};
-                  this->extractOrderInfo(element, descr, extractionMoreFieldNameMap);
-                  auto it1 = itr->value.FindMember("vol_exec");
-                  auto it2 = itr->value.FindMember("avg_price");
-                  if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
-                    element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                                   std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
-                  }
-                  element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
-                  elementList.emplace_back(std::move(element));
+                Element element;
+                this->extractOrderInfo(element, itr->value, extractionFieldNameMap);
+                const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionMoreFieldNameMap = {
+                    {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("pair", JsonDataType::STRING)}};
+                this->extractOrderInfo(element, descr, extractionMoreFieldNameMap);
+                auto it1 = itr->value.FindMember("vol_exec");
+                auto it2 = itr->value.FindMember("avg_price");
+                if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
+                  element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                                 std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                }
+                element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
+                elementList.emplace_back(std::move(element));
               }
             }
           }
-          if (!elementList.empty()){
+          if (!elementList.empty()) {
             message.setElementList(elementList);
             messageList.emplace_back(std::move(message));
           }
@@ -426,39 +428,33 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
-  static bool computeHash(const std::string& unhashed, std::string& hashed, bool returnHex = false)
-  {
-      bool success = false;
-      EVP_MD_CTX* context = EVP_MD_CTX_new();
-      if(context != NULL)
-      {
-          if(EVP_DigestInit_ex(context, EVP_sha256(), NULL))
-          {
-              if(EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length()))
-              {
-                  unsigned char hash[EVP_MAX_MD_SIZE];
-                  unsigned int lengthOfHash = 0;
-                  if(EVP_DigestFinal_ex(context, hash, &lengthOfHash))
-                  {
-                    std::stringstream ss;
-                    if (returnHex) {
-                      for(unsigned int i = 0; i < lengthOfHash; ++i)
-                      {
-                          ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
-                      }
-                    } else {
-                      for (unsigned int i = 0; i < lengthOfHash; ++i) {
-                        ss << (char)hash[i];
-                      }
-                    }
-                      hashed = ss.str();
-                      success = true;
-                  }
+  static bool computeHash(const std::string& unhashed, std::string& hashed, bool returnHex = false) {
+    bool success = false;
+    EVP_MD_CTX* context = EVP_MD_CTX_new();
+    if (context != NULL) {
+      if (EVP_DigestInit_ex(context, EVP_sha256(), NULL)) {
+        if (EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length())) {
+          unsigned char hash[EVP_MAX_MD_SIZE];
+          unsigned int lengthOfHash = 0;
+          if (EVP_DigestFinal_ex(context, hash, &lengthOfHash)) {
+            std::stringstream ss;
+            if (returnHex) {
+              for (unsigned int i = 0; i < lengthOfHash; ++i) {
+                ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
               }
+            } else {
+              for (unsigned int i = 0; i < lengthOfHash; ++i) {
+                ss << (char)hash[i];
+              }
+            }
+            hashed = ss.str();
+            success = true;
           }
-          EVP_MD_CTX_free(context);
+        }
       }
-      return success;
+      EVP_MD_CTX_free(context);
+    }
+    return success;
   }
   std::string getWebSocketsTokenTarget;
 };

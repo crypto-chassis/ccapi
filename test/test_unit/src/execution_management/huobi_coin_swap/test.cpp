@@ -1,9 +1,8 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_coin_swap.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceHuobiCoinSwapTest : public ::testing::Test {
  public:

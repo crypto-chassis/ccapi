@@ -311,7 +311,7 @@ class MarketDataServiceBitmex : public MarketDataService {
         for (const auto& x : document.GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
             Element element;
-            this->extractInstrumentInfo(element,x);
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -326,7 +326,7 @@ class MarketDataServiceBitmex : public MarketDataService {
         std::vector<Element> elementList;
         for (const auto& x : document.GetArray()) {
           Element element;
-          this->extractInstrumentInfo(element,x);
+          this->extractInstrumentInfo(element, x);
           elementList.emplace_back(std::move(element));
         }
         message.setElementList(elementList);

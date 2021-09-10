@@ -144,10 +144,14 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     std::vector<Element> elementList;
     if (document.IsObject()) {
-      Element element;this->extractOrderInfo(element,document, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+      Element element;
+      this->extractOrderInfo(element, document, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
-        Element element;this->extractOrderInfo(element,x, extractionFieldNameMap);elementList.emplace_back(std::move(element));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -230,7 +234,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     message.setTimeReceived(now);
     message.setType(Message::Type::SUBSCRIPTION_STARTED);
     event.setMessageList({message});
-    this->eventHandler(event,nullptr);
+    this->eventHandler(event, nullptr);
     this->pingListenKeyTimerMapByConnectionIdMap[wsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         this->pingListenKeyIntervalSeconds * 1000, [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](ErrorCode const& ec) {
           http::request<http::string_body> req;
@@ -284,7 +288,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event,nullptr);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
@@ -343,7 +347,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
               {CCAPI_EM_ORDER_STATUS, std::make_pair("X", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("s", JsonDataType::STRING)},
           };
-          Element info; this->extractOrderInfo(info,data, extractionFieldNameMap);
+          Element info;
+          this->extractOrderInfo(info, data, extractionFieldNameMap);
           auto it = data.FindMember("ap");
           if (it != data.MemberEnd() && !it->value.IsNull()) {
             info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,

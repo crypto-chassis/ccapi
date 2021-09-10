@@ -1,16 +1,15 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceGeminiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<ExecutionManagementServiceGemini>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceGemini>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
+                                                                       wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"},
         {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},

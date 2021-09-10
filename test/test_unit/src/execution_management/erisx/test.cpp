@@ -1,16 +1,15 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 class ExecutionManagementServiceErisxTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<ExecutionManagementServiceErisx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceErisx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
+                                                                      wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4"},
         {CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},
