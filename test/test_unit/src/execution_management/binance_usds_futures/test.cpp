@@ -1,8 +1,10 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
+// clang-format off
+#include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_usds_futures.h"
-#include "gtest/gtest.h"
+// clang-format on
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test {
  public:

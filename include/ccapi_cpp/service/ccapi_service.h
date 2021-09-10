@@ -25,10 +25,12 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+// clang-format off
+#include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/client.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
 #include "websocketpp/config/asio_client.hpp"
-#include "websocketpp/config/boost_config.hpp"
+// clang-format on
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) && (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || \
                                                   defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_OKEX)) || \
     defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) && (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))
