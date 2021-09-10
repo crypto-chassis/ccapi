@@ -2,7 +2,7 @@
 #define APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
 #include <random>
 #include <sstream>
-
+#include <sys/stat.h>
 #include "app/common.h"
 #include "app/historical_market_data_event_processor.h"
 #include "app/order.h"
