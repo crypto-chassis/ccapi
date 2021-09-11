@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_EVENT_DISPATCHER_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_EVENT_DISPATCHER_H_
 #include <stddef.h>
+
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -8,6 +9,7 @@
 #include <queue>
 #include <thread>
 #include <vector>
+
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {

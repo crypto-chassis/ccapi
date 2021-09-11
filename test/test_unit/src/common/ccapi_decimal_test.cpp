@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_decimal.h"
+
+#include "gtest/gtest.h"
 namespace ccapi {
 TEST(DecimalTest, compareScientificNotation) {
   Decimal bid_1("1.51e-6");
@@ -46,4 +46,9 @@ TEST(DecimalTest, subtract_21) { EXPECT_EQ(Decimal("0.020411").subtract(Decimal(
 TEST(DecimalTest, subtract_22) { EXPECT_EQ(Decimal("0.020411").subtract(Decimal("0.003884")).toString(), "0.016527"); }
 TEST(DecimalTest, subtract_31) { EXPECT_EQ(Decimal("15120.014").subtract(Decimal("0.908")).toString(), "15119.106"); }
 TEST(DecimalTest, subtract_32) { EXPECT_EQ(Decimal("15120.014").subtract(Decimal("15119.106")).toString(), "0.908"); }
+TEST(DecimalTest, subtract_41) { EXPECT_EQ(Decimal("8.82412861").subtract(Decimal("0.20200000")).toString(), "8.62212861"); }
+TEST(DecimalTest, subtract_42) { EXPECT_EQ(Decimal("8.00000000").subtract(Decimal("0.00000000")).toString(), "8"); }
+TEST(DecimalTest, subtract_43) { EXPECT_EQ(Decimal("0.00000010").subtract(Decimal("0.00000000")).toString(), "0.0000001"); }
+TEST(DecimalTest, subtract_44) { EXPECT_EQ(Decimal("0.00010000").subtract(Decimal("0.00000000")).toString(), "0.0001"); }
+TEST(DecimalTest, subtract_45) { EXPECT_EQ(Decimal("0.00089990").subtract(Decimal("0.00000000")).toString(), "0.0008999"); }
 } /* namespace ccapi */

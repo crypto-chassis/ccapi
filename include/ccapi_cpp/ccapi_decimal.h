@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #include <string>
+
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 // minimalistic just for the purpose of being used as the key of a map
@@ -178,9 +179,10 @@ class Decimal CCAPI_FINAL {
         auto l1 = this->frac.length();
         auto l2 = x.frac.length();
         auto lmax = std::max(l1, l2);
-        auto a = std::to_string(std::stoull(UtilString::rightPadTo(this->frac, lmax, '0')) +
-                                (this->frac >= x.frac ? (unsigned)0 : std::stoull(UtilString::rightPadTo("1", 1 + lmax, '0'))) -
-                                std::stoull(UtilString::rightPadTo(x.frac, lmax, '0')));
+        auto a = lmax > 0 ? std::to_string(std::stoull(UtilString::rightPadTo(this->frac, lmax, '0')) +
+                                           (this->frac >= x.frac ? (unsigned)0 : std::stoull(UtilString::rightPadTo("1", 1 + lmax, '0'))) -
+                                           std::stoull(UtilString::rightPadTo(x.frac, lmax, '0')))
+                          : "";
         if (a.length() < lmax) {
           a = UtilString::leftPadTo(a, lmax, '0');
         }

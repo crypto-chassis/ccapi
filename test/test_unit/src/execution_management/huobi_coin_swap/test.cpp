@@ -1,15 +1,16 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP
+// clang-format off
 #include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_coin_swap.h"
+// clang-format on
 namespace ccapi {
 class ExecutionManagementServiceHuobiCoinSwapTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceHuobiCoinSwap>([](Event& event) {}, SessionOptions(), SessionConfigs(),
+    this->service = std::make_shared<ExecutionManagementServiceHuobiCoinSwap>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
                                                                               wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_HUOBI_COIN_SWAP_API_KEY, "b33ff154-e02e01af-mjlpdje3ld-87508"},

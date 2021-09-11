@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceBase {
  public:
-  MarketDataServiceBinanceDerivativesBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceBinanceDerivativesBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                           std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataServiceBinanceBase(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }
   virtual ~MarketDataServiceBinanceDerivativesBase() {}
@@ -42,8 +42,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
       }
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["marginAsset"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["pair"].GetString());
@@ -55,7 +54,6 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, y["stepSize"].GetString());
       }
     }
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -68,7 +66,8 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["symbols"].GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            Element element = this->extractInstrumentInfo(x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -84,7 +83,8 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document["symbols"].GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

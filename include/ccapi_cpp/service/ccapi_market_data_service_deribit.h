@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceDeribit : public MarketDataService {
  public:
-  MarketDataServiceDeribit(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceDeribit(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                            std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_DERIBIT;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/api/v2";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -409,14 +409,12 @@ class MarketDataServiceDeribit : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["instrument_name"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["base_currency"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["base_currency"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tick_size"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["contract_size"].GetString());
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -443,7 +441,8 @@ class MarketDataServiceDeribit : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         const rj::Value& result = document["result"];
-        Element element = this->extractInstrumentInfo(result);
+        Element element;
+        this->extractInstrumentInfo(element, result);
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
@@ -455,7 +454,8 @@ class MarketDataServiceDeribit : public MarketDataService {
         const rj::Value& result = document["result"];
         std::vector<Element> elementList;
         for (const auto& x : result.GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

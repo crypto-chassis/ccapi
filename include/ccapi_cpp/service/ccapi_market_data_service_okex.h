@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceOkex : public MarketDataService {
  public:
-  MarketDataServiceOkex(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceOkex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                         std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKEX_PUBLIC_WS_PATH;
     this->needDecompressWebsocketMessage = true;
@@ -271,8 +271,7 @@ class MarketDataServiceOkex : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["instId"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseCcy"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quoteCcy"].GetString());
@@ -280,7 +279,6 @@ class MarketDataServiceOkex : public MarketDataService {
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSz"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["settleCcy"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["uly"].GetString());
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -307,7 +305,8 @@ class MarketDataServiceOkex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["instId"].GetString()) == request.getInstrument()) {
-            Element element = this->extractInstrumentInfo(x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -321,7 +320,8 @@ class MarketDataServiceOkex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document["data"].GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

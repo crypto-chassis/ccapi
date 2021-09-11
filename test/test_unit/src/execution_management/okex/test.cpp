@@ -1,16 +1,17 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_OKEX
+// clang-format off
 #include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_okex.h"
+// clang-format on
 namespace ccapi {
 class ExecutionManagementServiceOkexTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<ExecutionManagementServiceOkex>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceOkex>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
+                                                                     wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_OKEX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
         {CCAPI_OKEX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},

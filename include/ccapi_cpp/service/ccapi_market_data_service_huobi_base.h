@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceHuobiBase : public MarketDataService {
  public:
-  MarketDataServiceHuobiBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceHuobiBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                              std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->needDecompressWebsocketMessage = true;
     ErrorCode ec = this->inflater.init(false, 31);
     if (ec) {
@@ -283,8 +283,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
   //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   // }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
     int pricePrecision = std::stoi(x["price-precision"].GetString());
@@ -299,7 +298,6 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     } else {
       element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
     }
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -334,7 +332,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            Element element = this->extractInstrumentInfo(x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -348,7 +347,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document["data"].GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

@@ -1,15 +1,16 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
+// clang-format off
 #include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_usds_futures.h"
+// clang-format on
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceBinanceUsdsFutures>([](Event& event) {}, SessionOptions(), SessionConfigs(),
+    this->service = std::make_shared<ExecutionManagementServiceBinanceUsdsFutures>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
                                                                                    wspp::lib::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_BINANCE_USDS_FUTURES_API_KEY, "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"},

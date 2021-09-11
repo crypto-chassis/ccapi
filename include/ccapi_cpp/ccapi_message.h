@@ -2,6 +2,7 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_MESSAGE_H_
 #include <chrono>
 #include <vector>
+
 #include "ccapi_cpp/ccapi_element.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {

@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_HTTP_CONNECTION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_HTTP_CONNECTION_H_
 #include <string>
+
 #include "ccapi_cpp/ccapi_logger.h"
 namespace beast = boost::beast;
 namespace ccapi {

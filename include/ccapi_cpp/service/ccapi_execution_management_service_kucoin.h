@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceKucoin : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceKucoin(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceKucoin(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -171,8 +171,9 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         req.method(http::verb::delete_);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         bool useOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
-        std::string id = useOrderId ? param.at(CCAPI_EM_ORDER_ID)
-                                    : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = useOrderId                                            ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target =
             useOrderId ? std::regex_replace(this->cancelOrderTarget, std::regex("<id>"), id) : std::regex_replace("/api/v1/order/<id>", std::regex("<id>"), id);
         req.target(target);
@@ -182,8 +183,9 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         bool useOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
-        std::string id = useOrderId ? param.at(CCAPI_EM_ORDER_ID)
-                                    : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = useOrderId                                            ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target =
             useOrderId ? std::regex_replace(this->getOrderTarget, std::regex("<id>"), id) : std::regex_replace("/api/v1/order/<id>", std::regex("<id>"), id);
         req.target(target);
@@ -259,24 +261,26 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : data["items"].GetArray()) {
-        auto element = this->extractOrderInfo(x, extractionFieldNameMap);
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       }
     } else if (operation == Request::Operation::GET_ORDER) {
-      auto element = this->extractOrderInfo(data, extractionFieldNameMap);
+      Element element;
+      this->extractOrderInfo(element, data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     }
     return elementList;
   }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it = x.FindMember("isActive");
       if (it != x.MemberEnd()) {
         element.insert("isActive", it->value.GetBool() ? "true" : "false");
       }
     }
-    return element;
   }
   std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     std::vector<Element> elementList;
@@ -303,7 +307,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     }
     return elementList;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::string topic;
     auto fieldSet = subscription.getFieldSet();
@@ -336,7 +340,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     Event event = this->createEvent(hdl, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
@@ -387,7 +391,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
                 {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
             };
             extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)});
-            auto info = this->extractOrderInfo(data, extractionFieldNameMap);
+            Element info;
+            this->extractOrderInfo(info, data, extractionFieldNameMap);
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);

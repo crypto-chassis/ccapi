@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceOkex : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceOkex(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceOkex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -247,10 +247,14 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (data.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(data, extractionFieldNameMap));
+      Element element;
+      this->extractOrderInfo(element, data, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : data.GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -285,8 +289,9 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     }
     return elementList;
   }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("accFillSz");
       auto it2 = x.FindMember("avgPx");
@@ -300,9 +305,8 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         }
       }
     }
-    return element;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
@@ -369,7 +373,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     } else {
       Event event = this->createEvent(subscription, textMessage, document, eventStr, timeReceived);
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event);
+        this->eventHandler(event, nullptr);
       }
     }
   }
@@ -454,7 +458,8 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
                   {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
               };
-              Element info = this->extractOrderInfo(x, extractionFieldNameMap);
+              Element info;
+              this->extractOrderInfo(info, x, extractionFieldNameMap);
               info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));

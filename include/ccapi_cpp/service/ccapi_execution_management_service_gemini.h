@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceGemini : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceGemini(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceGemini(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -193,10 +193,14 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     } else if (document.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
+      Element element;
+      this->extractOrderInfo(element, document, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -225,8 +229,9 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     }
     return elementList;
   }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("executed_amount");
       auto it2 = x.FindMember("avg_execution_price");
@@ -247,7 +252,6 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         element.insert("is_cancelled", it->value.GetBool() ? "true" : "false");
       }
     }
-    return element;
   }
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
@@ -283,7 +287,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
@@ -349,7 +353,8 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                   {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executed_amount", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
               };
-              auto info = this->extractOrderInfo(x, extractionFieldNameMap);
+              Element info;
+              this->extractOrderInfo(info, x, extractionFieldNameMap);
               {
                 auto it1 = x.FindMember("executed_amount");
                 auto it2 = x.FindMember("avg_execution_price");

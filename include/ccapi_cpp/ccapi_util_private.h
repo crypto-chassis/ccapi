@@ -1,6 +1,7 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
 #include <unistd.h>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -19,12 +20,19 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
 #include "ccapi_cpp/ccapi_date.h"
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util.h"
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
+  static std::string printDoubleScientific(double number) {
+    std::stringstream ss;
+    ss << std::scientific;
+    ss << number;
+    return ss.str();
+  }
   static bool isNumber(const std::string& s) {
     return !s.empty() && std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
   }
