@@ -3,6 +3,7 @@ import argparse
 import gzip
 import os
 import pathlib
+import time
 from datetime import datetime, timedelta
 
 import requests
@@ -66,6 +67,7 @@ while currentDate < endDate:
             if dataType == "market-depth":
                 requestUrl += "&depth=1"
             urls = session.get(requestUrl).json()["urls"]
+            time.sleep(0.1)
 
             if not urls:
                 print(f"Data cannot be found on server. Skip download.")
