@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceHuobiBase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceHuobiBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                       ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~ExecutionManagementServiceHuobiBase() {}

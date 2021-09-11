@@ -10,8 +10,8 @@ class MyEventHandler : public EventHandler {
 };
 class ExecutionManagementServiceCoinbaseCustom : public ExecutionManagementServiceCoinbase {
  public:
-  ExecutionManagementServiceCoinbaseCustom(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                           ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceCoinbaseCustom(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions,
+                                           SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceCoinbase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
 
  protected:
@@ -29,7 +29,8 @@ class ExecutionManagementServiceCoinbaseCustom : public ExecutionManagementServi
         ExecutionManagementServiceCoinbase::convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived,
+                                        Queue<Event>* eventQueuePtr) override {
     switch (request.getOperation()) {
       case Request::Operation::CUSTOM: {
         if (request.getParamList().at(0).at("CUSTOM_OPERATION") == "LIST_PROFILES") {
@@ -51,11 +52,11 @@ class ExecutionManagementServiceCoinbaseCustom : public ExecutionManagementServi
           Event event;
           event.setType(Event::Type::RESPONSE);
           event.addMessages(messageList);
-          this->eventHandler(event);
+          this->eventHandler(event, eventQueuePtr);
         }
       } break;
       default:
-        ExecutionManagementServiceCoinbase::processSuccessfulTextMessageRest(statusCode, request, textMessage, timeReceived);
+        ExecutionManagementServiceCoinbase::processSuccessfulTextMessageRest(statusCode, request, textMessage, timeReceived, eventQueuePtr);
     }
   }
 };

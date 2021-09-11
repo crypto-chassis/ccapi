@@ -1,6 +1,5 @@
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_util_private.h"
+#include "gtest/gtest.h"
 namespace ccapi {
 TEST(UtilAlgorithmTest, base64) {
   std::string original("+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ==");

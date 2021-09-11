@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceGemini : public MarketDataService {
  public:
-  MarketDataServiceGemini(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceGemini(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v1/marketdata";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -72,7 +72,7 @@ class MarketDataServiceGemini : public MarketDataService {
     message.setType(Message::Type::SUBSCRIPTION_STARTED);
     messageList.push_back(std::move(message));
     event.setMessageList(messageList);
-    this->eventHandler(event);
+    this->eventHandler(event, nullptr);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onClose(wspp::connection_hdl hdl) override {

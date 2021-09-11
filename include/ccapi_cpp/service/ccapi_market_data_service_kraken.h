@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceKraken : public MarketDataService {
  public:
-  MarketDataServiceKraken(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceKraken(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->shouldAlignSnapshot = true;
@@ -291,8 +291,7 @@ class MarketDataServiceKraken : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_BASE_ASSET, x["base"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quote"].GetString());
     int pairDecimals = std::stoi(x["pair_decimals"].GetString());
@@ -303,8 +302,6 @@ class MarketDataServiceKraken : public MarketDataService {
     }
     int lotDecimals = std::stoi(x["lot_decimals"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(lotDecimals - 1, '0') + "1");
-    CCAPI_LOGGER_TRACE("element=" + toString(element));
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -334,7 +331,8 @@ class MarketDataServiceKraken : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         const rj::Value& x = document["result"][request.getInstrument().c_str()];
-        Element element = this->extractInstrumentInfo(x);
+        Element element;
+        this->extractInstrumentInfo(element, x);
         element.insert(CCAPI_INSTRUMENT, request.getInstrument());
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
@@ -346,7 +344,8 @@ class MarketDataServiceKraken : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (auto itr = document["result"].MemberBegin(); itr != document["result"].MemberEnd(); ++itr) {
-          Element element = this->extractInstrumentInfo(itr->value);
+          Element element;
+          this->extractInstrumentInfo(element, itr->value);
           element.insert(CCAPI_INSTRUMENT, itr->name.GetString());
           elementList.push_back(element);
         }

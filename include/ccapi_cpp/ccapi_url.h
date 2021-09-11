@@ -2,6 +2,7 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_URL_H_
 #include <regex>
 #include <string>
+
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
@@ -60,7 +61,28 @@ class Url CCAPI_FINAL {
     std::map<std::string, std::string> output;
     for (const auto &x : UtilString::split(input, "&")) {
       auto y = UtilString::split(x, "=");
-      output.insert(std::make_pair(y.at(0), y.at(1)));
+      output.insert(std::make_pair(y.at(0), Url::urlDecode(y.at(1))));
+    }
+    return output;
+  }
+  static std::string convertMapToFormUrlEncoded(const std::map<std::string, std::string> &input) {
+    std::string output;
+    int i = 0;
+    for (const auto &x : input) {
+      output += Url::urlEncode(x.first);
+      output += "=";
+      output += Url::urlEncode(x.second);
+      if (i < input.size() - 1) {
+        output += "&";
+      }
+    }
+    return output;
+  }
+  static std::map<std::string, std::string> convertFormUrlEncodedToMap(const std::string &input) {
+    std::map<std::string, std::string> output;
+    for (const auto &x : UtilString::split(input, "&")) {
+      auto y = UtilString::split(x, "=");
+      output.insert(std::make_pair(Url::urlDecode(y.at(0)), Url::urlDecode(y.at(1))));
     }
     return output;
   }

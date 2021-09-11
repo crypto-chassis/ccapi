@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceBitstamp : public MarketDataService {
  public:
-  MarketDataServiceBitstamp(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceBitstamp(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                             std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITSTAMP;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->enableCheckPingPongWebsocketApplicationLevel = false;
@@ -181,8 +181,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["url_symbol"].GetString());
     std::string name = x["name"].GetString();
     auto splitted = UtilString::split(name, "/");
@@ -192,7 +191,6 @@ class MarketDataServiceBitstamp : public MarketDataService {
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
     int baseDecimals = std::stoi(x["base_decimals"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseDecimals - 1, '0') + "1");
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -219,7 +217,8 @@ class MarketDataServiceBitstamp : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document.GetArray()) {
           if (std::string(x["url_symbol"].GetString()) == request.getInstrument()) {
-            Element element = this->extractInstrumentInfo(x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -233,7 +232,8 @@ class MarketDataServiceBitstamp : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document.GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

@@ -8,7 +8,8 @@ namespace ccapi {
 template <class T>
 class FixService : public Service {
  public:
-  FixService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
+  FixService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+             ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
   virtual ~FixService() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -157,7 +158,7 @@ class FixService : public Service {
       element.insert(CCAPI_CONNECTION_ID, connectionId);
       message.setElementList({element});
       event.setMessageList({message});
-      this->eventHandler(event);
+      this->eventHandler(event, nullptr);
     }
     this->fixConnectionPtrByIdMap.insert({connectionId, fixConnectionPtr});
     auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
@@ -288,7 +289,7 @@ class FixService : public Service {
       if (shouldEmitEvent) {
         message.setElementList({element});
         event.setMessageList({message});
-        this->eventHandler(event);
+        this->eventHandler(event, nullptr);
       }
     }
     readMessageBufferReadLength = reader.buffer_end() - reader.buffer_begin();
@@ -390,7 +391,7 @@ class FixService : public Service {
         element.insert(CCAPI_ERROR_MESSAGE, "FIX connection was not found");
         message.setElementList({element});
         event.setMessageList({message});
-        that->eventHandler(event);
+        that->eventHandler(event, nullptr);
         return;
       }
       auto& fixConnectionPtr = it->second;

@@ -7,7 +7,7 @@
 namespace ccapi {
 class ExecutionManagementServiceErisx : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceErisx(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceErisx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -195,13 +195,19 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     std::vector<Element> elementList;
     if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : document["orderStatuses"].GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     } else if (document.IsObject()) {
-      elementList.emplace_back(this->extractOrderInfo(document, extractionFieldNameMap));
+      Element element;
+      this->extractOrderInfo(element, document, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
-        elementList.emplace_back(this->extractOrderInfo(x, extractionFieldNameMap));
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
       }
     }
     return elementList;
@@ -215,8 +221,9 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
   //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
   //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
   // }
-  Element extractOrderInfo(const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
-    Element element = ExecutionManagementService::extractOrderInfo(x, extractionFieldNameMap);
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("cumQty");
       auto it2 = x.FindMember("avgPrice");
@@ -225,7 +232,6 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
                        std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
       }
     }
-    return element;
   }
 };
 } /* namespace ccapi */

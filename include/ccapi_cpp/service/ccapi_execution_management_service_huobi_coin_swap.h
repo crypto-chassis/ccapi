@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceHuobiCoinSwap : public ExecutionManagementServiceHuobiDerivativesBase {
  public:
-  ExecutionManagementServiceHuobiCoinSwap(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceHuobiCoinSwap(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiDerivativesBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;

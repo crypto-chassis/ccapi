@@ -5,14 +5,14 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "ccapi_cpp/ccapi_decimal.h"
+
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 namespace ccapi {
 class MarketDataService : public Service {
  public:
-  MarketDataService(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                     std::shared_ptr<ServiceContext> serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -123,9 +123,10 @@ class MarketDataService : public Service {
       if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-        if (marketDataMessage.recapType == MarketDataMessage::RecapType::NONE && this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+        if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
             std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
-                this->sessionOptions.warnLateEventMaxMilliSeconds) {
+                this->sessionOptions.warnLateEventMaxMilliSeconds &&
+            marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
           CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp) +
                             ", wsConnection = " + toString(wsConnection));
         }
@@ -207,7 +208,7 @@ class MarketDataService : public Service {
         this->processMarketDataMessageList(wsConnection, hdl, textMessage, timeReceived, event, marketDataMessageList);
       }
       if (!event.getMessageList().empty()) {
-        this->eventHandler(event);
+        this->eventHandler(event, nullptr);
       }
     } else {
       Event event;
@@ -220,7 +221,7 @@ class MarketDataService : public Service {
       element.insert(CCAPI_WEBSOCKET_MESSAGE_PAYLOAD, textMessage);
       message.setElementList({element});
       event.setMessageList({message});
-      this->eventHandler(event);
+      this->eventHandler(event, nullptr);
     }
     this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -929,7 +930,7 @@ class MarketDataService : public Service {
                       }
                       if (!messageList.empty()) {
                         event.addMessages(messageList);
-                        this->eventHandler(event);
+                        this->eventHandler(event, nullptr);
                       }
                     }
                     auto now = UtilTime::now();
@@ -964,7 +965,8 @@ class MarketDataService : public Service {
       }
     }
   }
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived) override {
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived,
+                                        Queue<Event>* eventQueuePtr) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     Event event;
     if (this->doesHttpBodyContainError(request, textMessage)) {
@@ -1001,7 +1003,7 @@ class MarketDataService : public Service {
       }
     }
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event, eventQueuePtr);
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }

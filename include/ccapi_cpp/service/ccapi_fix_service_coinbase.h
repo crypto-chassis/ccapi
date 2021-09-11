@@ -7,7 +7,7 @@
 namespace ccapi {
 class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream>> {
  public:
-  FixServiceCoinbase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  FixServiceCoinbase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                      ServiceContextPtr serviceContextPtr)
       : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;

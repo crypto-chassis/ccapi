@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
   std::vector<std::string> modeList = {
-      "create_order", "cancel_order", "get_order", "get_open_orders", "cancel_open_orders",
+      "create_order", "cancel_order", "get_order", "get_open_orders", "cancel_open_orders", "get_account_balances",
   };
   if (argc < 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
     std::cerr << "Please provide the first command line argument from this list: " + toString(modeList) << std::endl;
@@ -97,6 +97,9 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
     Request request(Request::Operation::CANCEL_OPEN_ORDERS, "binance", argv[2]);
+    session.sendRequest(request);
+  } else if (mode == "get_account_balances") {
+    Request request(Request::Operation::GET_ACCOUNT_BALANCES, "binance");
     session.sendRequest(request);
   }
   std::this_thread::sleep_for(std::chrono::seconds(10));

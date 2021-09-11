@@ -6,9 +6,9 @@
 namespace ccapi {
 class MarketDataServiceKucoin : public MarketDataService {
  public:
-  MarketDataServiceKucoin(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceKucoin(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                           std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -325,14 +325,12 @@ class MarketDataServiceKucoin : public MarketDataService {
   //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
   //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
   // }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseCurrency"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quoteCurrency"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["priceIncrement"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["baseIncrement"].GetString());
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -361,7 +359,8 @@ class MarketDataServiceKucoin : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            Element element = this->extractInstrumentInfo(x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -375,7 +374,8 @@ class MarketDataServiceKucoin : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document["data"].GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

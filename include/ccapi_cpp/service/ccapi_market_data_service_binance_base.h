@@ -7,9 +7,9 @@
 namespace ccapi {
 class MarketDataServiceBinanceBase : public MarketDataService {
  public:
-  MarketDataServiceBinanceBase(std::function<void(Event& event)> wsEventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceBinanceBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(wsEventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->enableCheckPingPongWebsocketApplicationLevel = false;
   }
   virtual ~MarketDataServiceBinanceBase() {}
@@ -268,8 +268,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  Element extractInstrumentInfo(const rj::Value& x) {
-    Element element;
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseAsset"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quoteAsset"].GetString());
@@ -281,7 +280,6 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, y["stepSize"].GetString());
       }
     }
-    return element;
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -322,7 +320,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["symbols"].GetArray()) {
           if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
-            Element element = this->extractInstrumentInfo(x);
+            Element element;
+            this->extractInstrumentInfo(element, x);
             message.setElementList({element});
             break;
           }
@@ -336,7 +335,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document["symbols"].GetArray()) {
-          Element element = this->extractInstrumentInfo(x);
+          Element element;
+          this->extractInstrumentInfo(element, x);
           elementList.push_back(element);
         }
         message.setElementList(elementList);

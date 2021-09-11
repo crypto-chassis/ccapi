@@ -1,9 +1,8 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-
 #include "ccapi_cpp/ccapi_test_market_data_helper.h"
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 using ::testing::ElementsAre;
 using ::testing::Pair;
 namespace ccapi {
@@ -12,7 +11,7 @@ class MarketDataServiceTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<MarketDataServiceGeneric>([](Event& event) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
+        std::make_shared<MarketDataServiceGeneric>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), wspp::lib::make_shared<ServiceContext>());
   }
   std::shared_ptr<MarketDataServiceGeneric> service{nullptr};
 };

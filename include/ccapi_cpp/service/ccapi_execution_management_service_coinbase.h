@@ -6,7 +6,7 @@
 namespace ccapi {
 class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceCoinbase(std::function<void(Event& event)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceCoinbase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -94,9 +94,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
-                             ? param.at(CCAPI_EM_ORDER_ID)
-                             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target = std::regex_replace(this->cancelOrderTarget, std::regex("<id>"), id);
         if (!symbolId.empty()) {
           target += "?product_id=";
@@ -108,9 +108,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::get);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()
-                             ? param.at(CCAPI_EM_ORDER_ID)
-                             : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID) : "";
+        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client:" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : "";
         auto target = std::regex_replace(this->getOrderTarget, std::regex("<id>"), id);
         req.target(target);
         this->signRequest(req, "", credential);
@@ -179,11 +179,13 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       }
     } else {
       if (document.IsObject()) {
-        auto element = this->extractOrderInfo(document, extractionFieldNameMap);
+        Element element;
+        this->extractOrderInfo(element, document, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       } else {
         for (const auto& x : document.GetArray()) {
-          auto element = this->extractOrderInfo(x, extractionFieldNameMap);
+          Element element;
+          this->extractOrderInfo(element, x, extractionFieldNameMap);
           elementList.emplace_back(std::move(element));
         }
       }
@@ -213,7 +215,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     }
     return elementList;
   }
-  std::vector<std::string> createSendStringListFromSubscription(const Subscription& subscription, const TimePoint& now,
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
@@ -269,7 +271,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
                      const TimePoint& timeReceived) override {
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
-      this->eventHandler(event);
+      this->eventHandler(event, nullptr);
     }
   }
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
@@ -331,7 +333,8 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             } else {
               extractionFieldNameMap.insert({CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)});
             }
-            auto info = this->extractOrderInfo(document, extractionFieldNameMap);
+            Element info;
+            this->extractOrderInfo(info, document, extractionFieldNameMap);
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);
