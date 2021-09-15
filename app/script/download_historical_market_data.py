@@ -37,6 +37,12 @@ argumentParser.add_argument("--end-date", required=True, type=str, help="The end
 argumentParser.add_argument(
     "--historical-market-data-directory", required=True, type=str, help="The directory in which historical market data files are saved."
 )
+argumentParser.add_argument(
+    "--historical-market-data-file-prefix", required=False, type=str, default='',help="This value specifies the name prefix of the files in which historical market data are saved."
+)
+argumentParser.add_argument(
+    "--historical-market-data-file-suffix", required=False, type=str, default='',help="This value specifies the name suffix of the files in which historical market data are saved."
+)
 
 args = argumentParser.parse_args()
 
@@ -47,6 +53,8 @@ startDate = datetime.strptime(args.start_date, "%Y-%m-%d").date()
 endDate = datetime.strptime(args.end_date, "%Y-%m-%d").date()
 currentDate = startDate
 historicalMarketDataDirectory = args.historical_market_data_directory
+historicalMarketDataFilePrefix = args.historical_market_data_file_prefix
+historicalMarketDataFileSuffix = args.historical_market_data_file_suffix
 pathlib.Path(historicalMarketDataDirectory).mkdir(parents=True, exist_ok=True)
 urlBase = "https://api.cryptochassis.com/v1"
 session = requests.Session()
@@ -55,20 +63,16 @@ session.mount("https://", TimeoutHTTPAdapter(max_retries=retries))
 tradeCsvHeader = "time_seconds,price,size,is_buyer_maker\n"
 while currentDate < endDate:
     for dataType in ["market-depth", "trade"]:
-        fileName = f"{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}"
-
+        fileName = f"{historicalMarketDataFilePrefix}{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}{historicalMarketDataFileSuffix}"
         fileNameWithDir = f"{historicalMarketDataDirectory}/{fileName}"
         tmpFileNameWithDir = f"{historicalMarketDataDirectory}/tmp__{fileName}"
-
         if not pathlib.Path(f"{fileNameWithDir}.csv").is_file():
-
             print(f"Start download data for {dataType}, {exchange}, {baseAsset}-{quoteAsset}, {currentDate.isoformat()}.")
             requestUrl = f"{urlBase}/{dataType}/{exchange}/{baseAsset}-{quoteAsset}?startTime={currentDate.isoformat()}"
             if dataType == "market-depth":
                 requestUrl += "&depth=1"
             urls = session.get(requestUrl).json()["urls"]
             time.sleep(0.1)
-
             if not urls:
                 print(f"Data cannot be found on server. Skip download.")
                 continue
@@ -77,7 +81,6 @@ while currentDate < endDate:
                 with open(f"{fileNameWithDir}.csv.gz", "wb") as f:
                     for chunk in r.iter_content(chunk_size=1024):
                         f.write(chunk)
-        if not pathlib.Path(f"{fileNameWithDir}.csv").is_file():
             with open(f"{tmpFileNameWithDir}.csv", "wb+") as fOut:
                 with gzip.open(f"{fileNameWithDir}.csv.gz", "rb") as fIn:
                     fOut.writelines(fIn)

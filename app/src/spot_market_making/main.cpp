@@ -54,6 +54,19 @@ int main(int argc, char** argv) {
   eventHandler.privateDataOnlySaveFinalBalance = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_BALANCE")) == "true";
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
+  eventHandler.enableAdverseSelectionGuardByInventoryLimit = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_LIMIT")) == "true";
+  a = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_INVENTORY_BASE_QUOTE_RATIO_MINIMUM");
+  eventHandler.adverseSelectionGuardTriggerInventoryBasePortionMinimum=a / (a + 1);
+  a = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_INVENTORY_BASE_QUOTE_RATIO_MAXIMUM");
+  eventHandler.adverseSelectionGuardTriggerInventoryBasePortionMaximum=a / (a + 1);
+  eventHandler.enableAdverseSelectionGuardByInventoryDepletion=UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_DEPLETION")) == "true";
+  std::string adverseSelectionGuardActionType=UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_ACTION_TYPE");
+  if (adverseSelectionGuardActionType=="take"){
+    eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::TAKE;
+  } else {
+    eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::MAKE;
+  }
+  eventHandler.adverseSelectionGuardActionOrderQuantityProportion=UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_ACTION_ORDER_QUANTITY_PROPORTION");
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
@@ -73,6 +86,8 @@ int main(int argc, char** argv) {
     eventHandler.startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE"), "%F");
     eventHandler.endDateTp = UtilTime::parse(UtilSystem::getEnvAsString("END_DATE"), "%F");
     eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY");
+    eventHandler.historicalMarketDataFilePrefix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_PREFIX");
+    eventHandler.historicalMarketDataFileSuffix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_SUFFIX");
   }
   std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase", "kucoin"};
   if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange) != useGetAccountsToGetAccountBalancesExchangeSet.end()) {
