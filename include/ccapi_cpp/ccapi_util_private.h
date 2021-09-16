@@ -594,6 +594,18 @@ typename std::enable_if<std::is_same<T, TimePoint>::value, std::string>::type to
   auto timePair = UtilTime::divide(t);
   return "(" + std::to_string(timePair.first) + "," + std::to_string(timePair.second) + ")";
 }
+template <typename T>
+typename std::string toString(const T* a, const size_t n) {
+  std::string output = "[";
+  for (int i = 0; i < n; i++) {
+    output += toString(a[i]);
+    if (i < n - 1) {
+      output += ", ";
+    }
+  }
+  output += "]";
+  return output;
+}
 template <typename T, typename... Args>
 std::string toString(const std::unordered_set<T, Args...>& c);
 template <typename T, typename... Args>

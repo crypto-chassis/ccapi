@@ -1,8 +1,10 @@
 #ifndef APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
 #define APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
+#include <sys/stat.h>
+
 #include <random>
 #include <sstream>
-#include <sys/stat.h>
+
 #include "app/common.h"
 #include "app/historical_market_data_event_processor.h"
 #include "app/order.h"
@@ -31,8 +33,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
       : EventHandler(),
         privateTradeCsvWriter(privateTradeCsvWriter),
         orderUpdateCsvWriter(orderUpdateCsvWriter),
-        accountBalanceCsvWriter(accountBalanceCsvWriter) {
-  }
+        accountBalanceCsvWriter(accountBalanceCsvWriter) {}
   bool processEvent(const Event& event, Session* session) override {
     APP_LOGGER_DEBUG("********");
     APP_LOGGER_DEBUG("Received an event: " + event.toStringPretty());
@@ -101,8 +102,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
             this->orderUpdateCsvWriter->flush();
           }
         } else if (message.getType() == Message::Type::MARKET_DATA_EVENTS_TRADE || message.getType() == Message::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
+          const auto& messageTime = message.getTime();
           if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
-            const auto& messageTime = message.getTime();
             for (const auto& element : message.getElementList()) {
               bool isBuyerMaker = element.getValue(CCAPI_IS_BUYER_MAKER) == "1";
               const auto& takerPrice = Decimal(element.getValue(CCAPI_LAST_PRICE));
@@ -200,6 +201,15 @@ class SpotMarketMakingEventHandler : public EventHandler {
               }
             }
           }
+          int intervalStart = UtilTime::getUnixTimestamp(messageTime) / this->adverseSelectionGuardMarketDataSampleIntervalSeconds *
+                              this->adverseSelectionGuardMarketDataSampleIntervalSeconds;
+          this->publicTradeMap.erase(this->publicTradeMap.begin(),
+                                     this->publicTradeMap.upper_bound(intervalStart - this->adverseSelectionGuardMarketDataSampleBufferSizeSeconds));
+          const auto& elementList = message.getElementList();
+          auto rit = elementList.rbegin();
+          if (rit != elementList.rend()) {
+            this->publicTradeMap[intervalStart] = std::stod(rit->getValue(CCAPI_LAST_PRICE));
+          }
         }
       }
       if (index != -1) {
@@ -243,12 +253,12 @@ class SpotMarketMakingEventHandler : public EventHandler {
           if (!this->privateDataFileSuffix.empty()) {
             suffix = "__" + this->privateDataFileSuffix;
           }
-          std::string privateTradeCsvFilename(prefix  + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
-                                              UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate+ "__private-trade" + suffix + ".csv"),
-              orderUpdateCsvFilename(prefix  + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
-                                     UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate+ "__order-update" + suffix + ".csv"),
-              accountBalanceCsvFilename(prefix  + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
-                                        UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate+ "__account-balance" + suffix + ".csv");
+          std::string privateTradeCsvFilename(prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
+                                              UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate + "__private-trade" + suffix + ".csv"),
+              orderUpdateCsvFilename(prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" + UtilString::toLower(this->quoteAsset) +
+                                     "__" + messageTimeISODate + "__order-update" + suffix + ".csv"),
+              accountBalanceCsvFilename(prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" + UtilString::toLower(this->quoteAsset) +
+                                        "__" + messageTimeISODate + "__account-balance" + suffix + ".csv");
           if (!this->privateDataDirectory.empty()) {
             // std::filesystem::create_directory(std::filesystem::path(this->privateDataDirectory.c_str()));
             privateTradeCsvFilename = this->privateDataDirectory + "/" + privateTradeCsvFilename;
@@ -404,9 +414,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
         this->baseAsset = element.getValue("BASE_ASSET");
         this->quoteAsset = element.getValue("QUOTE_ASSET");
         this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue("PRICE_INCREMENT"));
-        APP_LOGGER_INFO("Order price increment is "+this->orderPriceIncrement);
+        APP_LOGGER_INFO("Order price increment is " + this->orderPriceIncrement);
         this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue("QUANTITY_INCREMENT"));
-        APP_LOGGER_INFO("Order quantity increment is "+this->orderQuantityIncrement);
+        APP_LOGGER_INFO("Order quantity increment is " + this->orderQuantityIncrement);
         if (this->tradingMode == TradingMode::BACKTEST) {
           HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(
               std::bind(&SpotMarketMakingEventHandler::processEvent, this, std::placeholders::_1, nullptr));
@@ -416,8 +426,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
           historicalMarketDataEventProcessor.startDateTp = this->startDateTp;
           historicalMarketDataEventProcessor.endDateTp = this->endDateTp;
           historicalMarketDataEventProcessor.historicalMarketDataDirectory = this->historicalMarketDataDirectory;
-          historicalMarketDataEventProcessor.historicalMarketDataFilePrefix= this->historicalMarketDataFilePrefix;
-          historicalMarketDataEventProcessor.historicalMarketDataFileSuffix= this->historicalMarketDataFileSuffix;
+          historicalMarketDataEventProcessor.historicalMarketDataFilePrefix = this->historicalMarketDataFilePrefix;
+          historicalMarketDataEventProcessor.historicalMarketDataFileSuffix = this->historicalMarketDataFileSuffix;
           historicalMarketDataEventProcessor.clockStepSeconds = this->clockStepSeconds;
           historicalMarketDataEventProcessor.processEvent();
           std::string baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
@@ -437,14 +447,13 @@ class SpotMarketMakingEventHandler : public EventHandler {
                                         std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepSeconds * 1000) + "&" +
                                             CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0",
                                         PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID);
-          if (this->tradingMode == TradingMode::PAPER) {
+          if (this->tradingMode == TradingMode::PAPER || this->enableAdverseSelectionGuardByRollCorrelationCoefficient) {
             std::string field = "TRADE";
             if (this->exchange.rfind("binance", 0) == 0) {
               field = "AGG_TRADE";
             }
             subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID);
           } else {
-
             subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "PRIVATE_TRADE,ORDER_UPDATE", "",
                                           this->privateSubscriptionDataCorrelationId);
           }
@@ -568,12 +577,12 @@ class SpotMarketMakingEventHandler : public EventHandler {
             virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
             if (this->openBuyOrder) {
-              this->openBuyOrder.get().status="CANCELED";
+              this->openBuyOrder.get().status = "CANCELED";
               elementList.push_back(this->extractOrderInfo(this->openBuyOrder.get()));
               this->openBuyOrder = boost::none;
             }
             if (this->openSellOrder) {
-              this->openSellOrder.get().status="CANCELED";
+              this->openSellOrder.get().status = "CANCELED";
               elementList.push_back(this->extractOrderInfo(this->openSellOrder.get()));
               this->openSellOrder = boost::none;
             }
@@ -627,101 +636,116 @@ class SpotMarketMakingEventHandler : public EventHandler {
       }
       double r = this->baseBalance * midPrice / totalBalance;
       AdverseSelectionGuardInformedTraderSide adverseSelectionGuardInformedTraderSide{AdverseSelectionGuardInformedTraderSide::NONE};
-      if (r < this->adverseSelectionGuardTriggerInventoryBasePortionMinimum && this->enableAdverseSelectionGuardByInventoryLimit){
-        adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
-      } else if (r>this->adverseSelectionGuardTriggerInventoryBasePortionMaximum&& this->enableAdverseSelectionGuardByInventoryLimit){
-        adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
-      }else {
-        std::string orderQuantity =
-            AppUtil::roundInput((this->quoteBalance / midPrice + this->baseBalance) * this->orderQuantityProportion, this->orderQuantityIncrement, false);
-            if (r < this->inventoryBasePortionTarget) {
-              std::string buyPrice = AppUtil::roundInput(midPrice * (1 - halfSpreadMinimum), this->orderPriceIncrement, false);
-              if (std::stod(buyPrice) * std::stod(orderQuantity) <= this->quoteBalance) {
-                Request request = this->createRequestForCreateOrder("BUY", buyPrice, orderQuantity, now);
-                requestList.emplace_back(std::move(request));
-              } else {
-                APP_LOGGER_INFO("Insufficient quote balance.");
-                if (this->enableAdverseSelectionGuardByInventoryDepletion){
-                  adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
-                }
-              }
-              std::string sellPrice = AppUtil::roundInput(
-                  midPrice * (1 + AppUtil::linearInterpolate(this->inventoryBasePortionTarget, this->halfSpreadMinimum, 0, this->halfSpreadMaximum, r)),
-                  this->orderPriceIncrement, true);
-              if (std::stod(orderQuantity) <= this->baseBalance) {
-                Request request = this->createRequestForCreateOrder("SELL", sellPrice, orderQuantity, now);
-                requestList.emplace_back(std::move(request));
-              } else {
-                APP_LOGGER_INFO("Insufficient base balance.");
-                if (this->enableAdverseSelectionGuardByInventoryDepletion){
-                  adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
-                }
-              }
-            } else {
-              std::string buyPrice = AppUtil::roundInput(
-                  midPrice * (1 - AppUtil::linearInterpolate(this->inventoryBasePortionTarget, this->halfSpreadMinimum, 1, this->halfSpreadMaximum, r)),
-                  this->orderPriceIncrement, false);
-              if (std::stod(buyPrice) * std::stod(orderQuantity) <= this->quoteBalance) {
-                Request request = this->createRequestForCreateOrder("BUY", buyPrice, orderQuantity, now);
-                requestList.emplace_back(std::move(request));
-              } else {
-                APP_LOGGER_INFO("Insufficient quote balance.");
-                if (this->enableAdverseSelectionGuardByInventoryDepletion){
-                  adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
-                }
-              }
-              std::string sellPrice = AppUtil::roundInput(midPrice * (1 + halfSpreadMinimum), this->orderPriceIncrement, true);
-              if (std::stod(orderQuantity) <= this->baseBalance) {
-                Request request = this->createRequestForCreateOrder("SELL", sellPrice, orderQuantity, now);
-                requestList.emplace_back(std::move(request));
-              } else {
-                APP_LOGGER_INFO("Insufficient base balance.");
-                if (this->enableAdverseSelectionGuardByInventoryDepletion){
-                  adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
-                }
-              }
-            }
+      if (this->enableAdverseSelectionGuardByRollCorrelationCoefficient) {
+        this->checkAdverseSelectionGuardByRollCorrelationCoefficient(adverseSelectionGuardInformedTraderSide);
       }
-      if (adverseSelectionGuardInformedTraderSide!=AdverseSelectionGuardInformedTraderSide::NONE){
-        APP_LOGGER_INFO("Adverse selection guard was triggered.");
-        requestList.clear();
-          if (adverseSelectionGuardInformedTraderSide == AdverseSelectionGuardInformedTraderSide::BUY){
-            std::string buyPrice = this->adverseSelectionGuardActionType==AdverseSelectionGuardActionType::TAKE? this->bestAskPrice:
-            Decimal(this->bestAskPrice).subtract(Decimal(this->orderPriceIncrement)).toString();
-            std::string orderQuantity =
-                AppUtil::roundInput(std::min((this->quoteBalance / midPrice + this->baseBalance) * this->adverseSelectionGuardActionOrderQuantityProportion, this->quoteBalance / midPrice), this->orderQuantityIncrement, false);
-            if (orderQuantity!="0"){
+      if (adverseSelectionGuardInformedTraderSide == AdverseSelectionGuardInformedTraderSide::NONE) {
+        if (r < this->adverseSelectionGuardTriggerInventoryBasePortionMinimum && this->enableAdverseSelectionGuardByInventoryLimit) {
+          adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+        } else if (r > this->adverseSelectionGuardTriggerInventoryBasePortionMaximum && this->enableAdverseSelectionGuardByInventoryLimit) {
+          adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+        } else {
+          std::string orderQuantity =
+              AppUtil::roundInput((this->quoteBalance / midPrice + this->baseBalance) * this->orderQuantityProportion, this->orderQuantityIncrement, false);
+          if (r < this->inventoryBasePortionTarget) {
+            std::string buyPrice = AppUtil::roundInput(midPrice * (1 - halfSpreadMinimum), this->orderPriceIncrement, false);
+            if (std::stod(buyPrice) * std::stod(orderQuantity) <= this->quoteBalance) {
               Request request = this->createRequestForCreateOrder("BUY", buyPrice, orderQuantity, now);
               requestList.emplace_back(std::move(request));
+            } else {
+              APP_LOGGER_INFO("Insufficient quote balance.");
+              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+                adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+              }
             }
-          }else {
-            std::string sellPrice = this->adverseSelectionGuardActionType==AdverseSelectionGuardActionType::TAKE? this->bestBidPrice:
-            Decimal(this->bestBidPrice).add(Decimal(this->orderPriceIncrement)).toString();
-            std::string orderQuantity =
-                AppUtil::roundInput(std::min((this->quoteBalance / midPrice + this->baseBalance) * this->adverseSelectionGuardActionOrderQuantityProportion, this->baseBalance), this->orderQuantityIncrement, false);
-            if (orderQuantity!="0"){
+            std::string sellPrice = AppUtil::roundInput(
+                midPrice * (1 + AppUtil::linearInterpolate(this->inventoryBasePortionTarget, this->halfSpreadMinimum, 0, this->halfSpreadMaximum, r)),
+                this->orderPriceIncrement, true);
+            if (std::stod(orderQuantity) <= this->baseBalance) {
               Request request = this->createRequestForCreateOrder("SELL", sellPrice, orderQuantity, now);
               requestList.emplace_back(std::move(request));
+            } else {
+              APP_LOGGER_INFO("Insufficient base balance.");
+              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+                adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+              }
+            }
+          } else {
+            std::string buyPrice = AppUtil::roundInput(
+                midPrice * (1 - AppUtil::linearInterpolate(this->inventoryBasePortionTarget, this->halfSpreadMinimum, 1, this->halfSpreadMaximum, r)),
+                this->orderPriceIncrement, false);
+            if (std::stod(buyPrice) * std::stod(orderQuantity) <= this->quoteBalance) {
+              Request request = this->createRequestForCreateOrder("BUY", buyPrice, orderQuantity, now);
+              requestList.emplace_back(std::move(request));
+            } else {
+              APP_LOGGER_INFO("Insufficient quote balance.");
+              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+                adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+              }
+            }
+            std::string sellPrice = AppUtil::roundInput(midPrice * (1 + halfSpreadMinimum), this->orderPriceIncrement, true);
+            if (std::stod(orderQuantity) <= this->baseBalance) {
+              Request request = this->createRequestForCreateOrder("SELL", sellPrice, orderQuantity, now);
+              requestList.emplace_back(std::move(request));
+            } else {
+              APP_LOGGER_INFO("Insufficient base balance.");
+              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+                adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+              }
             }
           }
+        }
+      }
+      if (adverseSelectionGuardInformedTraderSide != AdverseSelectionGuardInformedTraderSide::NONE) {
+        APP_LOGGER_INFO("Adverse selection guard was triggered.");
+        this->orderRefreshIntervalSeconds = this->adverseSelectionGuardActionOrderRefreshIntervalSeconds;
+        requestList.clear();
+        if (adverseSelectionGuardInformedTraderSide == AdverseSelectionGuardInformedTraderSide::BUY) {
+          std::string buyPrice = this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::TAKE
+                                     ? this->bestAskPrice
+                                     : Decimal(this->bestAskPrice).subtract(Decimal(this->orderPriceIncrement)).toString();
+          std::string orderQuantity =
+              AppUtil::roundInput(std::min((this->quoteBalance / midPrice + this->baseBalance) * this->adverseSelectionGuardActionOrderQuantityProportion,
+                                           this->quoteBalance / midPrice),
+                                  this->orderQuantityIncrement, false);
+          if (orderQuantity != "0") {
+            Request request = this->createRequestForCreateOrder("BUY", buyPrice, orderQuantity, now);
+            requestList.emplace_back(std::move(request));
+          }
+        } else {
+          std::string sellPrice = this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::TAKE
+                                      ? this->bestBidPrice
+                                      : Decimal(this->bestBidPrice).add(Decimal(this->orderPriceIncrement)).toString();
+          std::string orderQuantity = AppUtil::roundInput(
+              std::min((this->quoteBalance / midPrice + this->baseBalance) * this->adverseSelectionGuardActionOrderQuantityProportion, this->baseBalance),
+              this->orderQuantityIncrement, false);
+          if (orderQuantity != "0") {
+            Request request = this->createRequestForCreateOrder("SELL", sellPrice, orderQuantity, now);
+            requestList.emplace_back(std::move(request));
+          }
+        }
+      } else {
+        this->orderRefreshIntervalSeconds = this->originalOrderRefreshIntervalSeconds;
       }
     } else {
       APP_LOGGER_INFO("Account has no assets. Skip.");
     }
-
   }
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
       orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix, privateDataFileSuffix,
       privateSubscriptionDataCorrelationId{"PRIVATE_TRADE,ORDER_UPDATE"}, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
       cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
   double halfSpreadMinimum{}, halfSpreadMaximum{}, inventoryBasePortionTarget{}, baseBalance{}, quoteBalance{}, baseAvailableBalanceProportion{},
-      quoteAvailableBalanceProportion{}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},adverseSelectionGuardTriggerInventoryBasePortionMinimum{},
-      adverseSelectionGuardTriggerInventoryBasePortionMaximum{},adverseSelectionGuardActionOrderQuantityProportion{};
-  int orderRefreshIntervalSeconds{}, orderRefreshIntervalOffsetSeconds{}, accountBalanceRefreshWaitSeconds, clockStepSeconds{};
+      quoteAvailableBalanceProportion{}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},
+      adverseSelectionGuardTriggerInventoryBasePortionMinimum{}, adverseSelectionGuardTriggerInventoryBasePortionMaximum{},
+      adverseSelectionGuardActionOrderQuantityProportion{}, adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum{};
+  int orderRefreshIntervalSeconds{}, orderRefreshIntervalOffsetSeconds{}, accountBalanceRefreshWaitSeconds{}, clockStepSeconds{},
+      adverseSelectionGuardActionOrderRefreshIntervalSeconds{}, originalOrderRefreshIntervalSeconds{}, adverseSelectionGuardMarketDataSampleIntervalSeconds{},
+      adverseSelectionGuardMarketDataSampleBufferSizeSeconds{}, adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations{};
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}}, cancelOpenOrdersLastTime{std::chrono::seconds{0}},
       getAccountBalancesLastTime{std::chrono::seconds{0}};
-  bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalBalance{},enableAdverseSelectionGuardByInventoryLimit{},
-  enableAdverseSelectionGuardByInventoryDepletion{};
+  bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalBalance{}, enableAdverseSelectionGuardByInventoryLimit{},
+      enableAdverseSelectionGuardByInventoryDepletion{}, enableAdverseSelectionGuardByRollCorrelationCoefficient{};
   TradingMode tradingMode{TradingMode::LIVE};
   AdverseSelectionGuardActionType adverseSelectionGuardActionType{AdverseSelectionGuardActionType::MAKE};
   std::shared_ptr<std::promise<void>> promisePtr{nullptr};
@@ -734,7 +758,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
 
   // start: only applicable to backtest
   TimePoint startDateTp, endDateTp;
-  std::string historicalMarketDataDirectory,historicalMarketDataFilePrefix,historicalMarketDataFileSuffix;
+  std::string historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
   // end: only applicable to backtest
 
  protected:
@@ -780,11 +804,65 @@ class SpotMarketMakingEventHandler : public EventHandler {
     element.insert("STATUS", order.status);
     return element;
   }
+  void checkAdverseSelectionGuardByRollCorrelationCoefficient(AdverseSelectionGuardInformedTraderSide& adverseSelectionGuardInformedTraderSide) {
+    if (this->publicTradeMap.size() >= this->adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations) {
+      int size = this->adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations - 1;
+      double deltaPt[size];
+      double deltaPtPlusOne[size];
+      auto rit = this->publicTradeMap.rbegin();
+      std::advance(rit, size);
+      int i = 0;
+      double previousP = rit->second;
+      double firstP, secondP, secondToLastP, lastP;
+      while (i < size) {
+        rit--;
+        deltaPt[i] = rit->second - previousP;
+        if (i == 0) {
+          firstP = previousP;
+        }
+        if (i == 1) {
+          secondP = previousP;
+        }
+        previousP = rit->second;
+        if (i == size - 2) {
+          secondToLastP = rit->second;
+        }
+        if (i == size - 1) {
+          lastP = rit->second;
+        }
+        i++;
+      }
+      std::copy(deltaPt, deltaPt + size, deltaPtPlusOne);
+      double deltaPtBar = (secondToLastP - firstP) / (size - 1);
+      double deltaPtPlusOneBar = (lastP - secondP) / (size - 1);
+      double deltaPtMinusDeltaPtBar[size - 1];
+      double deltaPtPlusOneMinusDeltaPtPlusOneBar[size - 1];
+      std::transform(deltaPt, deltaPt + size - 1, deltaPtMinusDeltaPtBar, [deltaPtBar](double a) -> double { return a - deltaPtBar; });
+      std::transform(deltaPtPlusOne + 1, deltaPtPlusOne + size, deltaPtPlusOneMinusDeltaPtPlusOneBar,
+                     [deltaPtPlusOneBar](double a) -> double { return a - deltaPtPlusOneBar; });
+      double denominator = std::sqrt(std::accumulate(deltaPtMinusDeltaPtBar, deltaPtMinusDeltaPtBar + size - 1, 0.0,
+                                                     [](double accu, double elem) -> double { return accu + std::pow(elem, 2); }) *
+                                     std::accumulate(deltaPtPlusOneMinusDeltaPtPlusOneBar, deltaPtPlusOneMinusDeltaPtPlusOneBar + size - 1, 0.0,
+                                                     [](double accu, double elem) -> double { return accu + std::pow(elem, 2); }));
+      if (denominator > 0) {
+        double numerator = std::inner_product(deltaPtMinusDeltaPtBar, deltaPtMinusDeltaPtBar + size - 1, deltaPtPlusOneMinusDeltaPtPlusOneBar, 0.0);
+        double r = numerator / denominator;
+        if (r > this->adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum) {
+          if (lastP - firstP > 0) {
+            adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+          } else {
+            adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+          }
+        }
+      }
+    }
+  }
   CsvWriter* privateTradeCsvWriter;
   CsvWriter* orderUpdateCsvWriter;
   CsvWriter* accountBalanceCsvWriter;
   int64_t virtualTradeId;
   int64_t virtualOrderId;
+  std::map<int, double> publicTradeMap;
 };
 } /* namespace ccapi */
 #endif  // APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
