@@ -58,12 +58,16 @@ int main(int argc, char** argv) {
   eventHandler.adverseSelectionGuardMarketDataSampleIntervalSeconds = UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_MARKET_DATA_SAMPLE_INTERVAL_SECONDS");
   eventHandler.adverseSelectionGuardMarketDataSampleBufferSizeSeconds =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_MARKET_DATA_SAMPLE_BUFFER_SIZE_SECONDS");
+  eventHandler.enableAdverseSelectionGuardByRoc = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_ROC")) == "true";
+  eventHandler.adverseSelectionGuardTriggerRocNumObservations = UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_NUM_OBSERVATIONS");
+  eventHandler.adverseSelectionGuardTriggerRocMinimum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_MINIMUM");
+  eventHandler.adverseSelectionGuardTriggerRocMaximum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_MAXIMUM");
   eventHandler.enableAdverseSelectionGuardByRollCorrelationCoefficient =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_ROLL_CORRELATION_COEFFICIENT")) == "true";
-  eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum =
-      UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_MAXIMUM");
   eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_NUM_OBSERVATIONS");
+  eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum =
+      UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_MAXIMUM");
   eventHandler.enableAdverseSelectionGuardByInventoryLimit =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_LIMIT")) == "true";
   a = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_INVENTORY_BASE_QUOTE_RATIO_MINIMUM");
@@ -72,6 +76,8 @@ int main(int argc, char** argv) {
   eventHandler.adverseSelectionGuardTriggerInventoryBasePortionMaximum = a / (a + 1);
   eventHandler.enableAdverseSelectionGuardByInventoryDepletion =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_DEPLETION")) == "true";
+  eventHandler.enableAdverseSelectionGuardByInventorySoft =
+      UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_SOFT")) == "true";
   std::string adverseSelectionGuardActionType = UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_ACTION_TYPE");
   if (adverseSelectionGuardActionType == "take") {
     eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::TAKE;
@@ -79,6 +85,8 @@ int main(int argc, char** argv) {
     eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::MAKE;
   }
   eventHandler.adverseSelectionGuardActionOrderQuantityProportion = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_ACTION_ORDER_QUANTITY_PROPORTION");
+  eventHandler.adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset =
+      UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_ACTION_ORDER_QUANTITY_PROPORTION_RELATIVE_TO_ONE_ASSET")) == "true";
   eventHandler.adverseSelectionGuardActionOrderRefreshIntervalSeconds =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_ACTION_ORDER_REFRESH_INTERVAL_SECONDS");
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
