@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
   eventHandler.privateDataOnlySaveFinalBalance = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_BALANCE")) == "true";
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
+  eventHandler.enableAdverseSelectionGuard = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD")) == "true";
   eventHandler.adverseSelectionGuardMarketDataSampleIntervalSeconds = UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_MARKET_DATA_SAMPLE_INTERVAL_SECONDS");
   eventHandler.adverseSelectionGuardMarketDataSampleBufferSizeSeconds =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_MARKET_DATA_SAMPLE_BUFFER_SIZE_SECONDS");
@@ -76,13 +77,13 @@ int main(int argc, char** argv) {
   eventHandler.adverseSelectionGuardTriggerInventoryBasePortionMaximum = a / (a + 1);
   eventHandler.enableAdverseSelectionGuardByInventoryDepletion =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_DEPLETION")) == "true";
-  eventHandler.enableAdverseSelectionGuardByInventorySoft =
-      UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_SOFT")) == "true";
   std::string adverseSelectionGuardActionType = UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_ACTION_TYPE");
   if (adverseSelectionGuardActionType == "take") {
     eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::TAKE;
-  } else {
+  } else if (adverseSelectionGuardActionType == "make") {
     eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::MAKE;
+  } else {
+    eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::NONE;
   }
   eventHandler.adverseSelectionGuardActionOrderQuantityProportion = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_ACTION_ORDER_QUANTITY_PROPORTION");
   eventHandler.adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset =

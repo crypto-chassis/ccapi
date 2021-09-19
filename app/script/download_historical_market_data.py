@@ -25,23 +25,39 @@ class TimeoutHTTPAdapter(HTTPAdapter):
             kwargs["timeout"] = self.timeout
         return super().send(request, **kwargs)
 
-if __name__ == '__main__':
-    argumentParser = argparse.ArgumentParser()
 
+if __name__ == "__main__":
+    argumentParser = argparse.ArgumentParser()
 
     argumentParser.add_argument("--exchange", required=True, type=str, help="The exchange, e.g. coinbase.")
     argumentParser.add_argument("--base-asset", required=True, type=str, help="The base asset, e.g. btc.")
     argumentParser.add_argument("--quote-asset", required=True, type=str, help="The quote asset, e.g. usd.")
     argumentParser.add_argument("--start-date", required=True, type=str, help="The start date, e.g. 2021-08-22.")
-    argumentParser.add_argument("--end-date", required=True, type=str, help="The end date, e.g. 2021-08-23. Exclusive.")
     argumentParser.add_argument(
-        "--historical-market-data-directory", required=True, type=str, help="The directory in which historical market data files are saved."
+        "--end-date",
+        required=True,
+        type=str,
+        help="The end date, e.g. 2021-08-23. Exclusive.",
     )
     argumentParser.add_argument(
-        "--historical-market-data-file-prefix", required=False, type=str, default='',help="This value specifies the name prefix of the files in which historical market data are saved."
+        "--historical-market-data-directory",
+        required=True,
+        type=str,
+        help="The directory in which historical market data files are saved.",
     )
     argumentParser.add_argument(
-        "--historical-market-data-file-suffix", required=False, type=str, default='',help="This value specifies the name suffix of the files in which historical market data are saved."
+        "--historical-market-data-file-prefix",
+        required=False,
+        type=str,
+        default="",
+        help="This value specifies the name prefix of the files in which historical market data are saved.",
+    )
+    argumentParser.add_argument(
+        "--historical-market-data-file-suffix",
+        required=False,
+        type=str,
+        default="",
+        help="This value specifies the name suffix of the files in which historical market data are saved.",
     )
 
     args = argumentParser.parse_args()
@@ -63,7 +79,9 @@ if __name__ == '__main__':
     tradeCsvHeader = "time_seconds,price,size,is_buyer_maker\n"
     while currentDate < endDate:
         for dataType in ["market-depth", "trade"]:
-            fileName = f"{historicalMarketDataFilePrefix}{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}{historicalMarketDataFileSuffix}"
+            fileName = (
+                f"{historicalMarketDataFilePrefix}{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}{historicalMarketDataFileSuffix}"
+            )
             fileNameWithDir = f"{historicalMarketDataDirectory}/{fileName}"
             tmpFileNameWithDir = f"{historicalMarketDataDirectory}/tmp__{fileName}"
             if not pathlib.Path(f"{fileNameWithDir}.csv").is_file():
