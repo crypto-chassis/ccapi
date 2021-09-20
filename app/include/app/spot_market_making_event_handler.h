@@ -638,23 +638,28 @@ class SpotMarketMakingEventHandler : public EventHandler {
       double r = this->baseBalance * midPrice / totalBalance;
       APP_LOGGER_DEBUG("Base balance proportion is " + std::to_string(r) + ".");
       AdverseSelectionGuardInformedTraderSide adverseSelectionGuardInformedTraderSide{AdverseSelectionGuardInformedTraderSide::NONE};
-      if (this->enableAdverseSelectionGuardByRollCorrelationCoefficient) {
-        this->checkAdverseSelectionGuardByRollCorrelationCoefficient(adverseSelectionGuardInformedTraderSide);
-      }
-      if (this->enableAdverseSelectionGuardByRoc) {
-        this->checkAdverseSelectionGuardByRoc(adverseSelectionGuardInformedTraderSide);
+      if (this->enableAdverseSelectionGuard) {
+        if (this->enableAdverseSelectionGuardByRollCorrelationCoefficient) {
+          this->checkAdverseSelectionGuardByRollCorrelationCoefficient(adverseSelectionGuardInformedTraderSide);
+        }
+        if (this->enableAdverseSelectionGuardByRoc) {
+          this->checkAdverseSelectionGuardByRoc(adverseSelectionGuardInformedTraderSide);
+        }
       }
       if (adverseSelectionGuardInformedTraderSide == AdverseSelectionGuardInformedTraderSide::NONE) {
-        if (r < this->adverseSelectionGuardTriggerInventoryBasePortionMinimum && this->enableAdverseSelectionGuardByInventoryLimit) {
+        if (this->enableAdverseSelectionGuard && r < this->adverseSelectionGuardTriggerInventoryBasePortionMinimum &&
+            this->enableAdverseSelectionGuardByInventoryLimit) {
           adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
-        } else if (r > this->adverseSelectionGuardTriggerInventoryBasePortionMaximum && this->enableAdverseSelectionGuardByInventoryLimit) {
+        } else if (this->enableAdverseSelectionGuard && r > this->adverseSelectionGuardTriggerInventoryBasePortionMaximum &&
+                   this->enableAdverseSelectionGuardByInventoryLimit) {
           adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
         } else {
           std::string orderQuantity =
               AppUtil::roundInput((this->quoteBalance / midPrice + this->baseBalance) * this->orderQuantityProportion, this->orderQuantityIncrement, false);
           if (r < this->inventoryBasePortionTarget) {
             std::string buyPrice;
-            if ((this->enableAdverseSelectionGuardByInventoryLimit || this->enableAdverseSelectionGuardByInventoryDepletion) &&
+            if (this->enableAdverseSelectionGuard &&
+                (this->enableAdverseSelectionGuardByInventoryLimit || this->enableAdverseSelectionGuardByInventoryDepletion) &&
                 (this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::MAKE ||
                  this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::TAKE)) {
               double halfSpread =
@@ -674,7 +679,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
               requestList.emplace_back(std::move(request));
             } else {
               APP_LOGGER_INFO("Insufficient quote balance.");
-              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+              if (this->enableAdverseSelectionGuard && this->enableAdverseSelectionGuardByInventoryDepletion) {
                 adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
               }
             }
@@ -686,7 +691,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
               requestList.emplace_back(std::move(request));
             } else {
               APP_LOGGER_INFO("Insufficient base balance.");
-              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+              if (this->enableAdverseSelectionGuard && this->enableAdverseSelectionGuardByInventoryDepletion) {
                 adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
               }
             }
@@ -699,12 +704,13 @@ class SpotMarketMakingEventHandler : public EventHandler {
               requestList.emplace_back(std::move(request));
             } else {
               APP_LOGGER_INFO("Insufficient quote balance.");
-              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+              if (this->enableAdverseSelectionGuard && this->enableAdverseSelectionGuardByInventoryDepletion) {
                 adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
               }
             }
             std::string sellPrice;
-            if ((this->enableAdverseSelectionGuardByInventoryLimit || this->enableAdverseSelectionGuardByInventoryDepletion) &&
+            if (this->enableAdverseSelectionGuard &&
+                (this->enableAdverseSelectionGuardByInventoryLimit || this->enableAdverseSelectionGuardByInventoryDepletion) &&
                 (this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::MAKE ||
                  this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::TAKE)) {
               double halfSpread =
@@ -724,14 +730,14 @@ class SpotMarketMakingEventHandler : public EventHandler {
               requestList.emplace_back(std::move(request));
             } else {
               APP_LOGGER_INFO("Insufficient base balance.");
-              if (this->enableAdverseSelectionGuardByInventoryDepletion) {
+              if (this->enableAdverseSelectionGuard && this->enableAdverseSelectionGuardByInventoryDepletion) {
                 adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
               }
             }
           }
         }
       }
-      if (adverseSelectionGuardInformedTraderSide != AdverseSelectionGuardInformedTraderSide::NONE) {
+      if (this->enableAdverseSelectionGuard && adverseSelectionGuardInformedTraderSide != AdverseSelectionGuardInformedTraderSide::NONE) {
         APP_LOGGER_INFO("Adverse selection guard was triggered.");
         if (this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::MAKE ||
             this->adverseSelectionGuardActionType == AdverseSelectionGuardActionType::TAKE) {
@@ -872,8 +878,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
         i++;
       }
       std::copy(deltaPt, deltaPt + size, deltaPtPlusOne);
-      double deltaPtBar = std::accumulate(deltaPt, deltaPt + size - 1, 0) / (size - 1);
-      double deltaPtPlusOneBar = std::accumulate(deltaPt + 1, deltaPt + size, 0) / (size - 1);
+      double deltaPtBar = std::accumulate(deltaPt, deltaPt + size - 1, 0.0) / (size - 1);
+      double deltaPtPlusOneBar = std::accumulate(deltaPt + 1, deltaPt + size, 0.0) / (size - 1);
       double deltaPtMinusDeltaPtBar[size - 1];
       double deltaPtPlusOneMinusDeltaPtPlusOneBar[size - 1];
       std::transform(deltaPt, deltaPt + size - 1, deltaPtMinusDeltaPtBar, [deltaPtBar](double a) -> double { return a - deltaPtBar; });
