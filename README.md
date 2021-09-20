@@ -908,7 +908,7 @@ rm -rf * (if rebuild from scratch)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
 cmake --build . -j
 ```
-* The executable is `app/build/src/spot_market_making/spot_market_making`. Run it after setting relevant environment variables shown in [`app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`.
+* The executable is `app/build/src/spot_market_making/spot_market_making`. Run it after setting relevant environment variables shown in [`app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`. To enable and configure advanced parameters, set additional environment variables shown in [`app/src/spot_market_making/config_advanced.env.example`](app/src/spot_market_making/config_advanced.env.example).
 * For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details.
 
 ## Contributing
