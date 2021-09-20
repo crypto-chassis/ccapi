@@ -19,17 +19,17 @@ class HistoricalMarketDataEventProcessor {
     while (currentDateTp < this->endDateTp) {
       const auto& currentDateISO = UtilTime::getISOTimestamp(currentDateTp, "%F");
       APP_LOGGER_INFO("Start processing " + currentDateISO + ".");
-      std::string fileNameWithDirBase =
-          this->historicalMarketDataDirectory + "/" + this->exchange + "__" + this->baseAsset + "-" + this->quoteAsset + "__" + currentDateISO + "__";
+      std::string fileNameWithDirBase = this->historicalMarketDataDirectory + "/" + this->historicalMarketDataFilePrefix + this->exchange + "__" +
+                                        this->baseAsset + "-" + this->quoteAsset + "__" + currentDateISO + "__";
       std::ifstream fMarketDepth;
       std::ifstream fTrade;
-      fMarketDepth.open(fileNameWithDirBase + "market-depth.csv");
-      APP_LOGGER_INFO("Opening file " + fileNameWithDirBase + "market-depth.csv.");
-      fTrade.open(fileNameWithDirBase + "trade.csv");
-      APP_LOGGER_INFO("Opening file " + fileNameWithDirBase + "trade.csv.");
+      fMarketDepth.open(fileNameWithDirBase + "market-depth" + this->historicalMarketDataFileSuffix + ".csv");
+      APP_LOGGER_INFO("Opening file " + fileNameWithDirBase + "market-depth" + this->historicalMarketDataFileSuffix + ".csv.");
+      fTrade.open(fileNameWithDirBase + "trade" + this->historicalMarketDataFileSuffix + ".csv");
+      APP_LOGGER_INFO("Opening file " + fileNameWithDirBase + "trade" + this->historicalMarketDataFileSuffix + ".csv.");
       if (fMarketDepth && fTrade) {
-        APP_LOGGER_INFO("Opened file " + fileNameWithDirBase + "market-depth.csv.");
-        APP_LOGGER_INFO("Opened file " + fileNameWithDirBase + "trade.csv.");
+        APP_LOGGER_INFO("Opened file " + fileNameWithDirBase + "market-depth" + this->historicalMarketDataFileSuffix + ".csv.");
+        APP_LOGGER_INFO("Opened file " + fileNameWithDirBase + "trade" + this->historicalMarketDataFileSuffix + ".csv.");
         fMarketDepth.ignore(INT_MAX, '\n');
         fTrade.ignore(INT_MAX, '\n');
         while (std::getline(fMarketDepth, lineMarketDepth) && !lineMarketDepth.empty()) {
@@ -75,7 +75,8 @@ class HistoricalMarketDataEventProcessor {
     }
   }
   TimePoint startDateTp, endDateTp;
-  std::string exchange, baseAsset, quoteAsset, historicalMarketDataDirectory;
+  std::string exchange, baseAsset, quoteAsset, historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
+  ;
   int clockStepSeconds;
   int clockSeconds;
 
