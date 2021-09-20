@@ -40,6 +40,8 @@ TEST(DecimalTest, subtract_0) { EXPECT_EQ(Decimal("0.000000549410817836").subtra
 TEST(DecimalTest, add_1) { EXPECT_EQ(Decimal("0.020411").add(Decimal("0.006527")).toString(), "0.026938"); }
 TEST(DecimalTest, add_2) { EXPECT_EQ(Decimal("0.016527").add(Decimal("0.003884")).toString(), "0.020411"); }
 TEST(DecimalTest, add_3) { EXPECT_EQ(Decimal("0.908").add(Decimal("15119.106")).toString(), "15120.014"); }
+TEST(DecimalTest, add_41) { EXPECT_EQ(Decimal("42745.9").add(Decimal("0.1")).toString(), "42746"); }
+TEST(DecimalTest, add_42) { EXPECT_EQ(Decimal("42745").add(Decimal("0.1")).toString(), "42745.1"); }
 TEST(DecimalTest, subtract_11) { EXPECT_EQ(Decimal("0.026938").subtract(Decimal("0.020411")).toString(), "0.006527"); }
 TEST(DecimalTest, subtract_12) { EXPECT_EQ(Decimal("0.026938").subtract(Decimal("0.006527")).toString(), "0.020411"); }
 TEST(DecimalTest, subtract_21) { EXPECT_EQ(Decimal("0.020411").subtract(Decimal("0.016527")).toString(), "0.003884"); }
@@ -51,4 +53,6 @@ TEST(DecimalTest, subtract_42) { EXPECT_EQ(Decimal("8.00000000").subtract(Decima
 TEST(DecimalTest, subtract_43) { EXPECT_EQ(Decimal("0.00000010").subtract(Decimal("0.00000000")).toString(), "0.0000001"); }
 TEST(DecimalTest, subtract_44) { EXPECT_EQ(Decimal("0.00010000").subtract(Decimal("0.00000000")).toString(), "0.0001"); }
 TEST(DecimalTest, subtract_45) { EXPECT_EQ(Decimal("0.00089990").subtract(Decimal("0.00000000")).toString(), "0.0008999"); }
+TEST(DecimalTest, subtract_51) { EXPECT_EQ(Decimal("42839.6").subtract(Decimal("0.1")).toString(), "42839.5"); }
+TEST(DecimalTest, subtract_52) { EXPECT_EQ(Decimal("42839").subtract(Decimal("0.1")).toString(), "42838.9"); }
 } /* namespace ccapi */
