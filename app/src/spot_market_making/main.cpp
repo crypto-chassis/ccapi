@@ -57,12 +57,16 @@ int main(int argc, char** argv) {
   eventHandler.adverseSelectionGuardTriggerRocNumObservations = UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_NUM_OBSERVATIONS");
   eventHandler.adverseSelectionGuardTriggerRocMinimum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_MINIMUM");
   eventHandler.adverseSelectionGuardTriggerRocMaximum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_MAXIMUM");
+  eventHandler.adverseSelectionGuardTriggerRocOrderDirectionReverse =
+      UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_ORDER_DIRECTION_REVERSE")) == "true";
   eventHandler.enableAdverseSelectionGuardByRollCorrelationCoefficient =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_ROLL_CORRELATION_COEFFICIENT")) == "true";
   eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_NUM_OBSERVATIONS");
   eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum =
       UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_MAXIMUM");
+  eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse =
+      UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_ORDER_DIRECTION_REVERSE")) == "true";
   eventHandler.enableAdverseSelectionGuardByInventoryLimit =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_LIMIT")) == "true";
   a = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_INVENTORY_BASE_QUOTE_RATIO_MINIMUM");

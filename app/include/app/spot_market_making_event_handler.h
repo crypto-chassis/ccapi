@@ -843,7 +843,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
   bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalBalance{}, enableAdverseSelectionGuard{},
       enableAdverseSelectionGuardByInventoryLimit{}, enableAdverseSelectionGuardByInventoryDepletion{},
       enableAdverseSelectionGuardByRollCorrelationCoefficient{}, adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset{},
-      enableAdverseSelectionGuardByRoc{}, immediatelyPlaceNewOrders{};
+      enableAdverseSelectionGuardByRoc{}, immediatelyPlaceNewOrders{}, adverseSelectionGuardTriggerRocOrderDirectionReverse{},
+      adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse{};
   TradingMode tradingMode{TradingMode::LIVE};
   AdverseSelectionGuardActionType adverseSelectionGuardActionType{AdverseSelectionGuardActionType::NONE};
   std::shared_ptr<std::promise<void>> promisePtr{nullptr};
@@ -936,9 +937,17 @@ class SpotMarketMakingEventHandler : public EventHandler {
         APP_LOGGER_DEBUG("Roll coefficient is " + std::to_string(r) + ".");
         if (r > this->adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum) {
           if (deltaPt[size - 1] - deltaPt[0] > 0) {
-            adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+            if (this->adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse) {
+              adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+            } else {
+              adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+            }
           } else {
-            adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+            if (this->adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse) {
+              adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+            } else {
+              adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+            }
           }
         }
       }
@@ -953,9 +962,17 @@ class SpotMarketMakingEventHandler : public EventHandler {
       double roc = (rit2->second - rit->second) / rit->second * 100;
       APP_LOGGER_DEBUG("ROC is " + std::to_string(roc) + ".");
       if (roc > this->adverseSelectionGuardTriggerRocMaximum) {
-        adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+        if (this->adverseSelectionGuardTriggerRocOrderDirectionReverse) {
+          adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+        } else {
+          adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+        }
       } else if (roc < this->adverseSelectionGuardTriggerRocMinimum) {
-        adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+        if (this->adverseSelectionGuardTriggerRocOrderDirectionReverse) {
+          adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
+        } else {
+          adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::SELL;
+        }
       }
     }
   }
