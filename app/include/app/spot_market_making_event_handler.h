@@ -1,5 +1,17 @@
 #ifndef APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
 #define APP_INCLUDE_APP_SPOT_MARKET_MAKING_EVENT_HANDLER_H_
+#ifndef APP_SPOT_MARKET_MAKING_ORDER_STATUS_NEW
+#define APP_SPOT_MARKET_MAKING_ORDER_STATUS_NEW "NEW"
+#endif
+#ifndef APP_SPOT_MARKET_MAKING_ORDER_STATUS_CANCELED
+#define APP_SPOT_MARKET_MAKING_ORDER_STATUS_CANCELED "CANCELED"
+#endif
+#ifndef APP_SPOT_MARKET_MAKING_ORDER_STATUS_PARTIALLY_FILLED
+#define APP_SPOT_MARKET_MAKING_ORDER_STATUS_PARTIALLY_FILLED "PARTIALLY_FILLED"
+#endif
+#ifndef APP_SPOT_MARKET_MAKING_ORDER_STATUS_FILLED
+#define APP_SPOT_MARKET_MAKING_ORDER_STATUS_FILLED "FILLED"
+#endif
 #include <sys/stat.h>
 
 #include <random>
@@ -81,6 +93,28 @@ class SpotMarketMakingEventHandler : public EventHandler {
             this->privateTradeCsvWriter->flush();
           }
         } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE) {
+          for (const auto& element : message.getElementList()) {
+            auto quantity=element.getValue("QUANTITY");
+            auto cumulativeFilledQuantity=element.getValue("CUMULATIVE_FILLED_QUANTITY");
+            auto remainingQuantity=element.getValue("REMAINING_QUANTITY");
+            bool filled = false;
+            if (!quantity.empty() &&!cumulativeFilledQuantity.empty()){
+              filled = UtilString::normalizeDecimalString(quantity)==UtilString::normalizeDecimalString(cumulativeFilledQuantity);
+            } else if (!remainingQuantity.empty()) {
+              filled = UtilString::normalizeDecimalString(remainingQuantity)=="0";
+            }
+            if (filled&&this->numOpenOrders > 0){
+                this->numOpenOrders -= 1;
+            }
+          }
+          if (this->numOpenOrders==0){
+            APP_LOGGER_INFO("All open orders are filled.");
+            if (this->immediatelyPlaceNewOrders){
+              const auto& messageTimeReceived = message.getTimeReceived();
+              this->orderRefreshLastTime = messageTimeReceived;
+              this->cancelOpenOrdersLastTime = messageTimeReceived;
+            }
+          }
           if (!this->privateDataOnlySaveFinalBalance) {
             std::vector<std::vector<std::string>> rows;
             const std::string& messageTimeISO = UtilTime::getISOTimestamp(message.getTime());
@@ -122,7 +156,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                   lastFilledQuantity = takerQuantity;
                   order.cumulativeFilledQuantity = order.cumulativeFilledQuantity.add(lastFilledQuantity);
                   order.remainingQuantity = order.remainingQuantity.subtract(lastFilledQuantity);
-                  order.status = "PARTIALLY_FILLED";
+                  order.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_PARTIALLY_FILLED;
                   if (isBuyerMaker) {
                     this->openBuyOrder = order;
                   } else {
@@ -132,7 +166,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                   lastFilledQuantity = order.remainingQuantity;
                   order.cumulativeFilledQuantity = order.quantity;
                   order.remainingQuantity = Decimal("0");
-                  order.status = "FILLED";
+                  order.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_FILLED;
                   if (isBuyerMaker) {
                     this->openBuyOrder = boost::none;
                   } else {
@@ -359,11 +393,12 @@ class SpotMarketMakingEventHandler : public EventHandler {
           requestList.emplace_back(std::move(request));
           this->orderRefreshLastTime = messageTime;
           this->cancelOpenOrdersLastTime = messageTime;
+          this->numOpenOrders = 0;
           APP_LOGGER_INFO("Cancel open orders.");
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
-                   this->getAccountBalancesLastTime<this->cancelOpenOrdersLastTime&& this->cancelOpenOrdersLastTime +
-                                                    std::chrono::seconds(this->accountBalanceRefreshWaitSeconds)> this->orderRefreshLastTime) {
+                   this->getAccountBalancesLastTime <= this->cancelOpenOrdersLastTime && this->cancelOpenOrdersLastTime +
+                                                    std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) >= this->orderRefreshLastTime) {
           this->getAccountBalancesRequestCorrelationId = messageTimeISO + "-GET_ACCOUNT_BALANCES";
           Request request(this->useGetAccountsToGetAccountBalances ? Request::Operation::GET_ACCOUNTS : Request::Operation::GET_ACCOUNT_BALANCES,
                           this->exchange, "", this->getAccountBalancesRequestCorrelationId);
@@ -410,6 +445,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                         ".");
         APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best ask price is " + this->bestAskPrice + ".");
         this->placeOrders(requestList, messageTimeReceived);
+        this->numOpenOrders = requestList.size();
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
         const auto& element = firstMessage.getElementList().at(0);
         this->baseAsset = element.getValue("BASE_ASSET");
@@ -543,7 +579,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
               order.quantity = Decimal(quantity);
               order.cumulativeFilledQuantity = Decimal("0");
               order.remainingQuantity = order.quantity;
-              order.status = "NEW";
+              order.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_NEW;
               Element element = this->extractOrderInfo(order);
               if (side == "BUY") {
                 this->openBuyOrder = order;
@@ -578,12 +614,12 @@ class SpotMarketMakingEventHandler : public EventHandler {
             virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
             if (this->openBuyOrder) {
-              this->openBuyOrder.get().status = "CANCELED";
+              this->openBuyOrder.get().status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_CANCELED;
               elementList.push_back(this->extractOrderInfo(this->openBuyOrder.get()));
               this->openBuyOrder = boost::none;
             }
             if (this->openSellOrder) {
-              this->openSellOrder.get().status = "CANCELED";
+              this->openSellOrder.get().status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_CANCELED;
               elementList.push_back(this->extractOrderInfo(this->openSellOrder.get()));
               this->openSellOrder = boost::none;
             }
@@ -803,10 +839,11 @@ class SpotMarketMakingEventHandler : public EventHandler {
   bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalBalance{}, enableAdverseSelectionGuard{},
       enableAdverseSelectionGuardByInventoryLimit{}, enableAdverseSelectionGuardByInventoryDepletion{},
       enableAdverseSelectionGuardByRollCorrelationCoefficient{}, adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset{},
-      enableAdverseSelectionGuardByRoc{};
+      enableAdverseSelectionGuardByRoc{},immediatelyPlaceNewOrders{};
   TradingMode tradingMode{TradingMode::LIVE};
   AdverseSelectionGuardActionType adverseSelectionGuardActionType{AdverseSelectionGuardActionType::NONE};
   std::shared_ptr<std::promise<void>> promisePtr{nullptr};
+  int numOpenOrders;
 
   // start: only applicable to paper trade and backtest
   double makerFee{};
