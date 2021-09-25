@@ -42,8 +42,8 @@
 %template(vector_Message) std::vector<ccapi::Message>;
 %template(map_string_map_string_string) std::map<std::string, std::map<std::string, std::string> >;
 %template(vector_Event) std::vector<ccapi::Event>;
-%template(vector_Subscription) std::vector<ccapi::Subscription>;
-%template(vector_Request) std::vector<ccapi::Request>;
+%template(SubscriptionList) std::vector<ccapi::Subscription>;
+%template(RequestList) std::vector<ccapi::Request>;
 %include "ccapi_cpp/ccapi_macro.h"
 %include "ccapi_cpp/ccapi_util.h"
 %include "ccapi_cpp/ccapi_element.h"

@@ -414,9 +414,16 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
-    std::ostringstream oss;
-    oss << *resPtr;
-    CCAPI_LOGGER_DEBUG("res = \n" + oss.str());
+    {
+      std::ostringstream oss;
+      oss << *reqPtr;
+      CCAPI_LOGGER_DEBUG("req = \n" + oss.str());
+    }
+    {
+      std::ostringstream oss;
+      oss << *resPtr;
+      CCAPI_LOGGER_DEBUG("res = \n" + oss.str());
+    }
 #endif
     responseHandler(*resPtr);
   }
@@ -554,9 +561,16 @@ class Service : public std::enable_shared_from_this<Service> {
       }
     }
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
-    std::ostringstream oss;
-    oss << *resPtr;
-    CCAPI_LOGGER_DEBUG("res = \n" + oss.str());
+    {
+      std::ostringstream oss;
+      oss << *reqPtr;
+      CCAPI_LOGGER_DEBUG("req = \n" + oss.str());
+    }
+    {
+      std::ostringstream oss;
+      oss << *resPtr;
+      CCAPI_LOGGER_DEBUG("res = \n" + oss.str());
+    }
 #endif
     int statusCode = resPtr->result_int();
     std::string body = resPtr->body();
@@ -593,9 +607,16 @@ class Service : public std::enable_shared_from_this<Service> {
       }
     } catch (const std::exception& e) {
       CCAPI_LOGGER_ERROR(e.what());
-      std::ostringstream oss;
-      oss << *resPtr;
-      CCAPI_LOGGER_ERROR("res = " + oss.str());
+      {
+        std::ostringstream oss;
+        oss << *reqPtr;
+        CCAPI_LOGGER_DEBUG("req = \n" + oss.str());
+      }
+      {
+        std::ostringstream oss;
+        oss << *resPtr;
+        CCAPI_LOGGER_ERROR("res = " + oss.str());
+      }
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::GENERIC_ERROR, e, {request.getCorrelationId()}, eventQueuePtr);
     }
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));

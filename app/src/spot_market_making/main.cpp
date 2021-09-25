@@ -1,8 +1,5 @@
 #include "app/spot_market_making_event_handler.h"
 #include "ccapi_cpp/ccapi_session.h"
-#ifdef APP_USE_SPOT_MARKET_MAKING_EVENT_HANDLER_ADVANCED
-#include "ccapi_advanced/spot_market_making_event_handler_advanced.h"
-#endif
 namespace ccapi {
 AppLogger appLogger;
 AppLogger* AppLogger::logger = &appLogger;
@@ -28,11 +25,7 @@ int main(int argc, char** argv) {
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
-#ifdef APP_USE_SPOT_MARKET_MAKING_EVENT_HANDLER_ADVANCED
-  SpotMarketMakingEventHandlerAdvanced eventHandler;
-#else
   SpotMarketMakingEventHandler eventHandler;
-#endif
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
@@ -47,6 +40,7 @@ int main(int argc, char** argv) {
   eventHandler.originalOrderRefreshIntervalSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_SECONDS");
   eventHandler.orderRefreshIntervalSeconds = eventHandler.originalOrderRefreshIntervalSeconds;
   eventHandler.orderRefreshIntervalOffsetSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_OFFSET_SECONDS") % eventHandler.orderRefreshIntervalSeconds;
+  eventHandler.immediatelyPlaceNewOrders = UtilString::toLower(UtilSystem::getEnvAsString("IMMEDIATELY_PLACE_NEW_ORDERS")) == "true";
   eventHandler.accountBalanceRefreshWaitSeconds = UtilSystem::getEnvAsInt("ACCOUNT_BALANCE_REFRESH_WAIT_SECONDS");
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
   eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
@@ -63,12 +57,16 @@ int main(int argc, char** argv) {
   eventHandler.adverseSelectionGuardTriggerRocNumObservations = UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_NUM_OBSERVATIONS");
   eventHandler.adverseSelectionGuardTriggerRocMinimum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_MINIMUM");
   eventHandler.adverseSelectionGuardTriggerRocMaximum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_MAXIMUM");
+  eventHandler.adverseSelectionGuardTriggerRocOrderDirectionReverse =
+      UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_ORDER_DIRECTION_REVERSE")) == "true";
   eventHandler.enableAdverseSelectionGuardByRollCorrelationCoefficient =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_ROLL_CORRELATION_COEFFICIENT")) == "true";
   eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_NUM_OBSERVATIONS");
   eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum =
       UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_MAXIMUM");
+  eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse =
+      UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_TRIGGER_ROLL_CORRELATION_COEFFICIENT_ORDER_DIRECTION_REVERSE")) == "true";
   eventHandler.enableAdverseSelectionGuardByInventoryLimit =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_LIMIT")) == "true";
   a = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_INVENTORY_BASE_QUOTE_RATIO_MINIMUM");
@@ -122,7 +120,6 @@ int main(int argc, char** argv) {
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  // TODO(cryptochassis): come back to test kraken once its execution management is implemented
   if (exchange == "kraken") {
     Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");
     request.appendParam({
