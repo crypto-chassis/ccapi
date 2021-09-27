@@ -78,6 +78,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
 #include "ccapi_cpp/service/ccapi_execution_management_service_kraken.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_kraken_futures.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
 #endif
@@ -288,6 +291,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KRAKEN] =
         std::make_shared<ExecutionManagementServiceKraken>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES] =
+        std::make_shared<ExecutionManagementServiceKrakenFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITMEX] =
@@ -583,7 +590,9 @@ class Session {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     // std::set<std::string> serviceNameExchangeSet;
+    int i=0;
     for (auto& request : requestList) {
+      request.setIndex(i);
       auto serviceName = request.getServiceName();
       CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
       if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
@@ -608,6 +617,7 @@ class Session {
       if (eventQueuePtr) {
         futurePtrList.push_back(futurePtr);
       }
+      ++i;
     }
     if (eventQueuePtr) {
       for (auto& futurePtr : futurePtrList) {

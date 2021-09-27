@@ -41,12 +41,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
     BUY,
     SELL,
   };
-  SpotMarketMakingEventHandler(CsvWriter* privateTradeCsvWriter = nullptr, CsvWriter* orderUpdateCsvWriter = nullptr,
-                               CsvWriter* accountBalanceCsvWriter = nullptr)
-      : EventHandler(),
-        privateTradeCsvWriter(privateTradeCsvWriter),
-        orderUpdateCsvWriter(orderUpdateCsvWriter),
-        accountBalanceCsvWriter(accountBalanceCsvWriter) {}
+  // explicit SpotMarketMakingEventHandler()
+  //     : EventHandler(){}
   bool processEvent(const Event& event, Session* session) override {
     APP_LOGGER_DEBUG("********");
     APP_LOGGER_DEBUG("Received an event: " + event.toStringPretty());
@@ -69,7 +65,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
         if (message.getType() == Message::Type::MARKET_DATA_EVENTS_MARKET_DEPTH && message.getRecapType() == Message::RecapType::NONE) {
           index = i;
         } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE) {
-          if (!this->privateDataOnlySaveFinalBalance) {
+          if (!this->privateDataOnlySaveFinalSummary) {
             std::vector<std::vector<std::string>> rows;
             const std::string& messageTimeISO = UtilTime::getISOTimestamp(message.getTime());
             for (const auto& element : message.getElementList()) {
@@ -92,6 +88,21 @@ class SpotMarketMakingEventHandler : public EventHandler {
             this->privateTradeCsvWriter->writeRows(rows);
             this->privateTradeCsvWriter->flush();
           }
+            for (const auto& element : message.getElementList()) {
+              double lastExecutedPrice = std::stod(element.getValue("LAST_EXECUTED_PRICE"));
+              double lastExecutedSize = std::stod(element.getValue("LAST_EXECUTED_SIZE"));
+              double feeQuantity = std::stod(element.getValue("FEE_QUANTITY"));
+              std::string feeAsset = element.getValue("FEE_ASSET");
+              this->privateTradeVolumeInBaseSum += lastExecutedSize;
+              this->privateTradeVolumeInQuoteSum += lastExecutedSize*lastExecutedPrice;
+              if (feeAsset == this->baseAsset){
+                this->privateTradeFeeInBaseSum += feeQuantity;
+                this->privateTradeFeeInQuoteSum += feeQuantity*lastExecutedPrice;
+              } else if (feeAsset == this->quoteAsset){
+                this->privateTradeFeeInBaseSum += feeQuantity/lastExecutedPrice;
+                this->privateTradeFeeInQuoteSum += feeQuantity;
+              }
+            }
         } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE) {
           if (this->numOpenOrders > 0) {
             for (const auto& element : message.getElementList()) {
@@ -112,12 +123,16 @@ class SpotMarketMakingEventHandler : public EventHandler {
               APP_LOGGER_INFO("All open orders are filled.");
               if (this->immediatelyPlaceNewOrders) {
                 const auto& messageTimeReceived = message.getTimeReceived();
+                const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
                 this->orderRefreshLastTime = messageTimeReceived;
                 this->cancelOpenOrdersLastTime = messageTimeReceived;
+                if (this->accountBalanceRefreshWaitSeconds == 0) {
+                  this->getAccountBalances(requestList, messageTimeReceived, messageTimeReceivedISO);
+                }
               }
             }
           }
-          if (!this->privateDataOnlySaveFinalBalance) {
+          if (!this->privateDataOnlySaveFinalSummary) {
             std::vector<std::vector<std::string>> rows;
             const std::string& messageTimeISO = UtilTime::getISOTimestamp(message.getTime());
             for (const auto& element : message.getElementList()) {
@@ -305,7 +320,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
           CsvWriter* privateTradeCsvWriter = nullptr;
           CsvWriter* orderUpdateCsvWriter = nullptr;
           CsvWriter* accountBalanceCsvWriter = nullptr;
-          if (!privateDataOnlySaveFinalBalance) {
+          if (!privateDataOnlySaveFinalSummary) {
             privateTradeCsvWriter = new CsvWriter();
             {
               struct stat buffer;
@@ -351,7 +366,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
               }
             }
           }
-          if (!this->privateDataOnlySaveFinalBalance || UtilTime::parse(messageTimeISODate, "%F") + std::chrono::hours(24) == this->endDateTp) {
+          if (!this->privateDataOnlySaveFinalSummary) {
             accountBalanceCsvWriter = new CsvWriter();
             {
               struct stat buffer;
@@ -399,22 +414,14 @@ class SpotMarketMakingEventHandler : public EventHandler {
           }
           this->orderRefreshLastTime = messageTime;
           this->cancelOpenOrdersLastTime = messageTime;
+          if (this->accountBalanceRefreshWaitSeconds == 0) {
+            this->getAccountBalances(requestList, messageTime, messageTimeISO);
+          }
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
-                   this->getAccountBalancesLastTime <= this->cancelOpenOrdersLastTime &&
+                   this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
                    this->cancelOpenOrdersLastTime + std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) >= this->orderRefreshLastTime) {
-          this->getAccountBalancesRequestCorrelationId = messageTimeISO + "-GET_ACCOUNT_BALANCES";
-          Request request(this->useGetAccountsToGetAccountBalances ? Request::Operation::GET_ACCOUNTS : Request::Operation::GET_ACCOUNT_BALANCES,
-                          this->exchange, "", this->getAccountBalancesRequestCorrelationId);
-          request.setTimeSent(messageTime);
-          if (!this->accountId.empty()) {
-            request.appendParam({
-                {"ACCOUNT_ID", this->accountId},
-            });
-          }
-          requestList.emplace_back(std::move(request));
-          this->getAccountBalancesLastTime = messageTime;
-          APP_LOGGER_INFO("Get account balances.");
+                     this->getAccountBalances(requestList, messageTime, messageTimeISO);
         }
       }
     } else if (eventType == Event::Type::RESPONSE) {
@@ -435,7 +442,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
         }
         const auto& baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
         const auto& quoteBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString();
-        if (!this->privateDataOnlySaveFinalBalance) {
+        if (!this->privateDataOnlySaveFinalSummary) {
           this->accountBalanceCsvWriter->writeRow({
               messageTimeReceivedISO,
               baseBalanceDecimalNotation,
@@ -471,16 +478,51 @@ class SpotMarketMakingEventHandler : public EventHandler {
           historicalMarketDataEventProcessor.historicalMarketDataFileSuffix = this->historicalMarketDataFileSuffix;
           historicalMarketDataEventProcessor.clockStepSeconds = this->clockStepSeconds;
           historicalMarketDataEventProcessor.processEvent();
-          std::string baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
-          std::string quoteBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString();
-          this->accountBalanceCsvWriter->writeRow({
-              UtilTime::getISOTimestamp(this->endDateTp),
-              baseBalanceDecimalNotation,
-              quoteBalanceDecimalNotation,
+          std::string prefix;
+          if (!this->privateDataFilePrefix.empty()) {
+            prefix = this->privateDataFilePrefix + "__";
+          }
+          std::string suffix;
+          if (!this->privateDataFileSuffix.empty()) {
+            suffix = "__" + this->privateDataFileSuffix;
+          }
+          std::string privateDataSummaryCsvFilename(prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
+                                              UtilString::toLower(this->quoteAsset) + "__" + UtilTime::getISOTimestamp(this->startDateTp).substr(0, 10) + "__" + UtilTime::getISOTimestamp(this->endDateTp).substr(0, 10) + "__summary" + suffix + ".csv");
+          if (!this->privateDataDirectory.empty()) {
+            privateDataSummaryCsvFilename = this->privateDataDirectory + "/" + privateDataSummaryCsvFilename;
+          }
+          CsvWriter* privateDataFinalSummaryCsvWriter =  new CsvWriter();
+          {
+            struct stat buffer;
+            if (stat(privateDataSummaryCsvFilename.c_str(), &buffer) != 0) {
+              privateDataFinalSummaryCsvWriter->open(privateDataSummaryCsvFilename, std::ios_base::app);
+              privateDataFinalSummaryCsvWriter->writeRow({
+                "BASE_AVAILABLE_BALANCE",
+                "QUOTE_AVAILABLE_BALANCE",
+                "BEST_BID_PRICE",
+                "BEST_ASK_PRICE",
+                "TRADE_VOLUME_IN_BASE_SUM",
+                "TRADE_VOLUME_IN_QUOTE_SUM",
+                "TRADE_FEE_IN_BASE_SUM",
+                "TRADE_FEE_IN_QUOTE_SUM",
+              });
+              privateDataFinalSummaryCsvWriter->flush();
+            } else {
+              privateDataFinalSummaryCsvWriter->open(privateDataSummaryCsvFilename, std::ios_base::app);
+            }
+          }
+          privateDataFinalSummaryCsvWriter->writeRow({
+              Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString(),
+              Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString(),
               this->bestBidPrice,
               this->bestAskPrice,
+              Decimal(UtilString::printDoubleScientific(this->privateTradeVolumeInBaseSum)).toString(),
+              Decimal(UtilString::printDoubleScientific(this->privateTradeVolumeInQuoteSum)).toString(),
+              Decimal(UtilString::printDoubleScientific(this->privateTradeFeeInBaseSum)).toString(),
+              Decimal(UtilString::printDoubleScientific(this->privateTradeFeeInQuoteSum)).toString(),
           });
-          this->accountBalanceCsvWriter->flush();
+          privateDataFinalSummaryCsvWriter->flush();
+          delete privateDataFinalSummaryCsvWriter;
           this->promisePtr->set_value();
         } else {
           std::vector<Subscription> subscriptionList;
@@ -653,6 +695,20 @@ class SpotMarketMakingEventHandler : public EventHandler {
     }
     return true;
   }
+  void getAccountBalances(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO){
+    this->getAccountBalancesRequestCorrelationId = messageTimeISO + "-GET_ACCOUNT_BALANCES";
+    Request request(this->useGetAccountsToGetAccountBalances ? Request::Operation::GET_ACCOUNTS : Request::Operation::GET_ACCOUNT_BALANCES,
+                    this->exchange, "", this->getAccountBalancesRequestCorrelationId);
+    request.setTimeSent(messageTime);
+    if (!this->accountId.empty()) {
+      request.appendParam({
+          {"ACCOUNT_ID", this->accountId},
+      });
+    }
+    requestList.emplace_back(std::move(request));
+    this->getAccountBalancesLastTime = messageTime;
+    APP_LOGGER_INFO("Get account balances.");
+  }
   void placeOrders(std::vector<Request>& requestList, const TimePoint& now) {
     double midPrice;
     if (!this->bestBidPrice.empty() && !this->bestAskPrice.empty()) {
@@ -796,7 +852,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                           std::min((this->quoteBalance / conversionPrice + this->baseBalance) * this->adverseSelectionGuardActionOrderQuantityProportion,
                                    this->quoteBalance / conversionPrice),
                           this->orderQuantityIncrement, false);
-            if (orderQuantity != "0") {
+            if (UtilString::normalizeDecimalString(orderQuantity) != "0") {
               Request request = this->createRequestForCreateOrder("BUY", buyPrice, orderQuantity, now);
               requestList.emplace_back(std::move(request));
             }
@@ -812,7 +868,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                           std::min((this->quoteBalance / conversionPrice + this->baseBalance) * this->adverseSelectionGuardActionOrderQuantityProportion,
                                    this->baseBalance),
                           this->orderQuantityIncrement, false);
-            if (orderQuantity != "0") {
+            if (UtilString::normalizeDecimalString(orderQuantity) != "0") {
               Request request = this->createRequestForCreateOrder("SELL", sellPrice, orderQuantity, now);
               requestList.emplace_back(std::move(request));
             }
@@ -833,14 +889,15 @@ class SpotMarketMakingEventHandler : public EventHandler {
       quoteAvailableBalanceProportion{}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},
       adverseSelectionGuardTriggerInventoryBasePortionMinimum{}, adverseSelectionGuardTriggerInventoryBasePortionMaximum{},
       adverseSelectionGuardActionOrderQuantityProportion{}, adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum{},
-      adverseSelectionGuardTriggerRocMinimum{}, adverseSelectionGuardTriggerRocMaximum{};
+      adverseSelectionGuardTriggerRocMinimum{}, adverseSelectionGuardTriggerRocMaximum{}, privateTradeVolumeInBaseSum{}, privateTradeVolumeInQuoteSum{},
+      privateTradeFeeInBaseSum{},privateTradeFeeInQuoteSum{};
   int orderRefreshIntervalSeconds{}, orderRefreshIntervalOffsetSeconds{}, accountBalanceRefreshWaitSeconds{}, clockStepSeconds{},
       adverseSelectionGuardActionOrderRefreshIntervalSeconds{}, originalOrderRefreshIntervalSeconds{}, adverseSelectionGuardMarketDataSampleIntervalSeconds{},
       adverseSelectionGuardMarketDataSampleBufferSizeSeconds{}, adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations{},
       adverseSelectionGuardTriggerRocNumObservations{};
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}}, cancelOpenOrdersLastTime{std::chrono::seconds{0}},
       getAccountBalancesLastTime{std::chrono::seconds{0}};
-  bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalBalance{}, enableAdverseSelectionGuard{},
+  bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalSummary{}, enableAdverseSelectionGuard{},
       enableAdverseSelectionGuardByInventoryLimit{}, enableAdverseSelectionGuardByInventoryDepletion{},
       enableAdverseSelectionGuardByRollCorrelationCoefficient{}, adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset{},
       enableAdverseSelectionGuardByRoc{}, immediatelyPlaceNewOrders{}, adverseSelectionGuardTriggerRocOrderDirectionReverse{},
@@ -976,9 +1033,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
       }
     }
   }
-  CsvWriter* privateTradeCsvWriter;
-  CsvWriter* orderUpdateCsvWriter;
-  CsvWriter* accountBalanceCsvWriter;
+  CsvWriter* privateTradeCsvWriter = nullptr;
+  CsvWriter* orderUpdateCsvWriter = nullptr;
+  CsvWriter* accountBalanceCsvWriter = nullptr;
   int64_t virtualTradeId;
   int64_t virtualOrderId;
   std::map<int, double> publicTradeMap;

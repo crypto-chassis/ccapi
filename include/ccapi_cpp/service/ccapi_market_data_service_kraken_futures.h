@@ -50,10 +50,6 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
       }
       document.AddMember("product_ids", instrument, allocator);
-      // rj::Value subscription(rj::kObjectType);
-      // subscription.AddMember("depth", rj::Value(marketDepthSubscribedToExchange).Move(), allocator);
-      // subscription.AddMember("name", rj::Value(std::string(CCAPI_WEBSOCKET_KRAKEN_FUTURES_CHANNEL_BOOK).c_str(), allocator).Move(), allocator);
-      // document.AddMember("subscription", subscription, allocator);
       rj::StringBuffer stringBuffer;
       rj::Writer<rj::StringBuffer> writer(stringBuffer);
       document.Accept(writer);
@@ -195,9 +191,6 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
       case Request::Operation::GET_INSTRUMENT: {
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
-        // std::string queryString;
-        // const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        // this->appendSymbolId(queryString, symbolId, "pair");
         req.target(target);
       } break;
       case Request::Operation::GET_INSTRUMENTS: {
@@ -210,7 +203,6 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
     }
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
-    // element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["underlying"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
@@ -227,9 +219,6 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         for (const auto& x : document["history"].GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
-          // auto timePair = UtilTime::divide(std::string(x[2].GetString()));
-          // auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
-          // tp += std::chrono::nanoseconds(timePair.second);
           marketDataMessage.tp = UtilTime::parse(x["time"].GetString());
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});

@@ -53,8 +53,8 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
-  std::string generateNonce(const TimePoint& now) {
-    int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  std::string generateNonce(const TimePoint& now, int requestIndex) {
+    int64_t nonce = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count()+requestIndex;
     return std::to_string(nonce);
   }
   void appendParam(std::string& body, const std::map<std::string, std::string>& param, const std::string& nonce,
@@ -98,7 +98,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->createOrderTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now);
+        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         if (param.find("type") == param.end()) {
           body += "ordertype=limit&";
@@ -112,7 +112,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOrderTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now);
+        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -122,7 +122,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getOrderTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now);
+        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -132,7 +132,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getOpenOrdersTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now);
+        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -142,7 +142,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOpenOrdersTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now);
+        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -152,7 +152,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getAccountBalancesTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now);
+        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -162,7 +162,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getAccountPositionsTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now);
+        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -260,7 +260,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.set("API-Key", apiKey);
     req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
     std::string body;
-    std::string nonce = this->generateNonce(now);
+    std::string nonce = this->generateNonce(now, request.getIndex());
     this->appendParam(body, {}, nonce);
     body.pop_back();
     this->signRequest(req, body, credential, nonce);

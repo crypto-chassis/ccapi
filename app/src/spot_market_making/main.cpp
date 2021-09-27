@@ -8,7 +8,6 @@ Logger* Logger::logger = &ccapiLogger;
 } /* namespace ccapi */
 using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
-using ::ccapi::CsvWriter;
 using ::ccapi::Event;
 using ::ccapi::Logger;
 using ::ccapi::Queue;
@@ -46,7 +45,7 @@ int main(int argc, char** argv) {
   eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
   eventHandler.privateDataFilePrefix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_PREFIX");
   eventHandler.privateDataFileSuffix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_SUFFIX");
-  eventHandler.privateDataOnlySaveFinalBalance = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_BALANCE")) == "true";
+  eventHandler.privateDataOnlySaveFinalSummary = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_SUMMARY")) == "true";
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   eventHandler.enableAdverseSelectionGuard = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD")) == "true";
