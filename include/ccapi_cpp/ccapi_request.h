@@ -140,7 +140,7 @@ class Request CCAPI_FINAL {
   std::string getTimeSentISO() const { return UtilTime::getISOTimestamp(timeSent); }
   std::pair<long long, long long> getTimeSentPair() const { return UtilTime::divide(timeSent); }
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
-  int getIndex() { return index; }
+  int getIndex() const { return index; }
   void setIndex(int index) { this->index = index; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 

@@ -27,9 +27,9 @@
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
-  static std::string printDoubleScientific(double number) {
+  static std::string printDoubleScientific(double number, int precision = CCAPI_PRINT_DOUBLE_PRECISION_DEFAULT) {
     std::stringstream ss;
-    ss << std::scientific;
+    ss << std::setprecision(precision) << std::scientific;
     ss << number;
     return ss.str();
   }

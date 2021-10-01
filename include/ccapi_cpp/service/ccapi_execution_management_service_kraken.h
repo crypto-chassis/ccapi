@@ -54,7 +54,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.prepare_payload();
   }
   std::string generateNonce(const TimePoint& now, int requestIndex) {
-    int64_t nonce = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count()+requestIndex;
+    int64_t nonce = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + requestIndex;
     return std::to_string(nonce);
   }
   void appendParam(std::string& body, const std::map<std::string, std::string>& param, const std::string& nonce,
@@ -92,15 +92,15 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("API-Key", apiKey);
+    std::string nonce = this->generateNonce(now, request.getIndex());
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->createOrderTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
-        if (param.find("type") == param.end()) {
+        if (param.find(CCAPI_EM_ORDER_TYPE) == param.end() && param.find("ordertype") == param.end()) {
           body += "ordertype=limit&";
         }
         this->appendSymbolId(body, symbolId);
@@ -112,7 +112,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOrderTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -122,7 +121,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getOrderTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -132,7 +130,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getOpenOrdersTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -142,7 +139,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOpenOrdersTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -152,7 +148,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getAccountBalancesTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
@@ -162,7 +157,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->getAccountPositionsTarget);
         std::string body;
-        std::string nonce = this->generateNonce(now, request.getIndex());
         this->appendParam(body, param, nonce);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);

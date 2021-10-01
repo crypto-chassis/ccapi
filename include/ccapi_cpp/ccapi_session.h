@@ -590,7 +590,7 @@ class Session {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     // std::set<std::string> serviceNameExchangeSet;
-    int i=0;
+    int i = 0;
     for (auto& request : requestList) {
       request.setIndex(i);
       auto serviceName = request.getServiceName();
