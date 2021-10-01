@@ -53,7 +53,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
-  std::string generateNonce(const TimePoint& now, int requestIndex) {
+  std::string generateNonce(const TimePoint& now, int requestIndex = 0) {
     int64_t nonce = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + requestIndex;
     return std::to_string(nonce);
   }
@@ -254,7 +254,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.set("API-Key", apiKey);
     req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
     std::string body;
-    std::string nonce = this->generateNonce(now, request.getIndex());
+    std::string nonce = this->generateNonce(now);
     this->appendParam(body, {}, nonce);
     body.pop_back();
     this->signRequest(req, body, credential, nonce);
