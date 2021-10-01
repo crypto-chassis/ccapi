@@ -8,9 +8,10 @@ Logger* Logger::logger = &ccapiLogger;
 } /* namespace ccapi */
 using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
-using ::ccapi::CsvWriter;
+using ::ccapi::Element;
 using ::ccapi::Event;
 using ::ccapi::Logger;
+using ::ccapi::Message;
 using ::ccapi::Queue;
 using ::ccapi::Request;
 using ::ccapi::Session;
@@ -46,7 +47,7 @@ int main(int argc, char** argv) {
   eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
   eventHandler.privateDataFilePrefix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_PREFIX");
   eventHandler.privateDataFileSuffix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_SUFFIX");
-  eventHandler.privateDataOnlySaveFinalBalance = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_BALANCE")) == "true";
+  eventHandler.privateDataOnlySaveFinalSummary = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_SUMMARY")) == "true";
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
   eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   eventHandler.enableAdverseSelectionGuard = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD")) == "true";
@@ -88,6 +89,10 @@ int main(int argc, char** argv) {
       UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_ACTION_ORDER_QUANTITY_PROPORTION_RELATIVE_TO_ONE_ASSET")) == "true";
   eventHandler.adverseSelectionGuardActionOrderRefreshIntervalSeconds =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_ACTION_ORDER_REFRESH_INTERVAL_SECONDS");
+  eventHandler.baseAsset = UtilSystem::getEnvAsString("BASE_ASSET_OVERRIDE");
+  eventHandler.quoteAsset = UtilSystem::getEnvAsString("QUOTE_ASSET_OVERRIDE");
+  eventHandler.orderPriceIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_PRICE_INCREMENT_OVERRIDE"));
+  eventHandler.orderQuantityIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_QUANTITY_INCREMENT_OVERRIDE"));
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
@@ -100,8 +105,8 @@ int main(int argc, char** argv) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
     eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
     eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
-    eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE");
-    eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE");
+    eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE") * eventHandler.baseAvailableBalanceProportion;
+    eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE") * eventHandler.quoteAvailableBalanceProportion;
   }
   if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST) {
     eventHandler.startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE"), "%F");
@@ -142,7 +147,28 @@ int main(int argc, char** argv) {
     eventHandler.instrumentWebsocket = UtilString::toLower(instrumentRest);
   }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
-  session.sendRequest(request);
+  if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST && !eventHandler.baseAsset.empty() && !eventHandler.quoteAsset.empty() &&
+      !eventHandler.orderPriceIncrement.empty() && !eventHandler.orderQuantityIncrement.empty()) {
+    Event virtualEvent;
+    Message message;
+    message.setTime(eventHandler.startDateTp);
+    message.setTimeReceived(eventHandler.startDateTp);
+    message.setCorrelationIdList({request.getCorrelationId()});
+    std::vector<Element> elementList;
+    virtualEvent.setType(Event::Type::RESPONSE);
+    message.setType(Message::Type::GET_INSTRUMENT);
+    Element element;
+    element.insert("BASE_ASSET", eventHandler.baseAsset);
+    element.insert("QUOTE_ASSET", eventHandler.quoteAsset);
+    element.insert("PRICE_INCREMENT", eventHandler.orderPriceIncrement);
+    element.insert("QUANTITY_INCREMENT", eventHandler.orderQuantityIncrement);
+    elementList.emplace_back(std::move(element));
+    message.setElementList(elementList);
+    virtualEvent.setMessageList({message});
+    eventHandler.processEvent(virtualEvent, &session);
+  } else {
+    session.sendRequest(request);
+  }
   promisePtr->get_future().wait();
   session.stop();
   return EXIT_SUCCESS;

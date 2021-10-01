@@ -61,7 +61,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestCreateOrder) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_API_KEY));
   EXPECT_EQ(req.target(), "/0/private/AddOrder");
   std::map<std::string, std::string> bodyMap = Url::convertFormUrlEncodedToMap(req.body());
-  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp));
+  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp) + "000");
   EXPECT_EQ(bodyMap.at("pair"), "XXBTZUSD");
   EXPECT_EQ(bodyMap.at("type"), "buy");
   EXPECT_EQ(bodyMap.at("ordertype"), "limit");
@@ -109,7 +109,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestCancelOrderByOrderId)
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_API_KEY));
   EXPECT_EQ(req.target(), "/0/private/CancelOrder");
   std::map<std::string, std::string> bodyMap = Url::convertFormUrlEncodedToMap(req.body());
-  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp));
+  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp) + "000");
   EXPECT_EQ(bodyMap.at("txid"), "OYVGEW-VYV5B-UUEXSK");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_API_SECRET));
 }
@@ -142,7 +142,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestGetOrderByOrderId) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_API_KEY));
   EXPECT_EQ(req.target(), "/0/private/QueryOrders");
   std::map<std::string, std::string> bodyMap = Url::convertFormUrlEncodedToMap(req.body());
-  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp));
+  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp) + "000");
   EXPECT_EQ(bodyMap.at("txid"), "OYVGEW-VYV5B-UUEXSK");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_API_SECRET));
 }
@@ -245,7 +245,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestGetOpenOrdersAllInstr
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_API_KEY));
   EXPECT_EQ(req.target(), "/0/private/OpenOrders");
   std::map<std::string, std::string> bodyMap = Url::convertFormUrlEncodedToMap(req.body());
-  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp));
+  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp) + "000");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_API_SECRET));
 }
 
@@ -423,7 +423,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestCancelOpenOrders) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_API_KEY));
   EXPECT_EQ(req.target(), "/0/private/CancelAll");
   std::map<std::string, std::string> bodyMap = Url::convertFormUrlEncodedToMap(req.body());
-  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp));
+  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp) + "000");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_API_SECRET));
 }
 
@@ -452,7 +452,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestGetAccountBalances) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_API_KEY));
   EXPECT_EQ(req.target(), "/0/private/Balance");
   std::map<std::string, std::string> bodyMap = Url::convertFormUrlEncodedToMap(req.body());
-  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp));
+  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp) + "000");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_API_SECRET));
 }
 
@@ -487,7 +487,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertRequestGetAccountPositions) 
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_API_KEY));
   EXPECT_EQ(req.target(), "/0/private/OpenPositions");
   std::map<std::string, std::string> bodyMap = Url::convertFormUrlEncodedToMap(req.body());
-  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp));
+  EXPECT_EQ(bodyMap.at("nonce"), std::to_string(this->timestamp) + "000");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_API_SECRET));
 }
 

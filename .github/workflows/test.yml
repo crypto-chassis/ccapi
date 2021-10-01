@@ -163,7 +163,7 @@ jobs:
         set(ENV{CC} ${{ matrix.config.cc }})
         set(ENV{CXX} ${{ matrix.config.cxx }})
         if ("${{ runner.os }}" STREQUAL "macOS")
-          set(ENV{OPENSSL_ROOT_DIR} "/usr/local/opt/openssl")
+          set(ENV{OPENSSL_ROOT_DIR} "/usr/local/Cellar/openssl")
         elseif ("${{ runner.os }}" STREQUAL "Windows")
           set(ENV{OPENSSL_ROOT_DIR} "C:/vcpkg/installed/x64-windows-static")
           # set(ENV{CMAKE_TOOLCHAIN_FILE} "C:/vcpkg/scripts/buildsystems/vcpkg.cmake")

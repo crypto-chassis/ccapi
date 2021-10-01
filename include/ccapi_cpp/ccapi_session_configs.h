@@ -16,9 +16,6 @@ class SessionConfigs CCAPI_FINAL {
     this->updateExchangeRest();
     this->initializUrlFixBase();
   }
-  // const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMap() const { return exchangeInstrumentMap;
-  // } const std::map<std::string, std::vector<std::string> >& getExchangeInstrumentMapRest() const { return
-  // exchangeInstrumentMapRest; }
   const std::map<std::string, std::vector<std::string> >& getExchangeFieldMap() const { return exchangeFieldMap; }
   const std::map<std::string, std::map<std::string, std::string> >& getExchangeFieldWebsocketChannelMap() const { return exchangeFieldWebsocketChannelMap; }
   const std::map<std::string, std::string>& getUrlWebsocketBase() const { return urlWebsocketBase; }
@@ -257,9 +254,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_FIX_BASE},
     };
   }
-  // std::map<std::string, std::vector<std::string> > exchangeInstrumentMap;
   std::map<std::string, std::vector<std::string> > exchangeFieldMap;
-  // std::map<std::string, std::vector<std::string> > exchangeInstrumentMapRest;
   std::map<std::string, std::map<std::string, std::string> > exchangeFieldWebsocketChannelMap;
   std::map<std::string, std::string> urlWebsocketBase;
   std::map<std::string, std::string> urlRestBase;

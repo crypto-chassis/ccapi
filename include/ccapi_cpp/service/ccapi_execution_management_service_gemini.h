@@ -366,13 +366,13 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
               {
                 auto it = x.FindMember("is_live");
                 if (it != x.MemberEnd()) {
-                  info.insert("is_live", it->value.GetBool() ? "true" : "false");
+                  info.insert("is_live", it->value.GetBool() ? "1" : "0");
                 }
               }
               {
                 auto it = x.FindMember("is_cancelled");
                 if (it != x.MemberEnd()) {
-                  info.insert("is_cancelled", it->value.GetBool() ? "true" : "false");
+                  info.insert("is_cancelled", it->value.GetBool() ? "1" : "0");
                 }
               }
               std::vector<Element> elementList;

@@ -140,6 +140,8 @@ class Request CCAPI_FINAL {
   std::string getTimeSentISO() const { return UtilTime::getISOTimestamp(timeSent); }
   std::pair<long long, long long> getTimeSentPair() const { return UtilTime::divide(timeSent); }
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
+  int getIndex() const { return index; }
+  void setIndex(int index) { this->index = index; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -153,6 +155,7 @@ class Request CCAPI_FINAL {
   Operation operation;
   std::vector<std::vector<std::pair<int, std::string> > > paramListFix;
   TimePoint timeSent{std::chrono::seconds{0}};
+  int index{};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
