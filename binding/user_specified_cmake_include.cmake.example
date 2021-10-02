@@ -12,6 +12,8 @@ include_guard(DIRECTORY)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES)
+#
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITSTAMP)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITFINEX)

@@ -76,7 +76,6 @@ class HistoricalMarketDataEventProcessor {
   }
   TimePoint startDateTp, endDateTp;
   std::string exchange, baseAsset, quoteAsset, historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
-  ;
   int clockStepSeconds;
   int clockSeconds;
 
