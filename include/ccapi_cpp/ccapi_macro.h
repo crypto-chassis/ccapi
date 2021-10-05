@@ -99,6 +99,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_DERIBIT
 #define CCAPI_EXCHANGE_NAME_DERIBIT "deribit"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_WAZIRX
+#define CCAPI_EXCHANGE_NAME_WAZIRX "wazirx"
+#endif
 // #ifndef CCAPI_EXCHANGE_NAME_BYBIT
 // #define CCAPI_EXCHANGE_NAME_BYBIT "bybit"
 // #endif
@@ -233,6 +236,9 @@
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT "book.{instrument_name}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_QUOTE "quote.{instrument_name}"
+#define CCAPI_WEBSOCKET_WAZIRX_CHANNEL_TRADE "trades"
+#define CCAPI_WEBSOCKET_WAZIRX_CHANNEL_BOOK "depth"
+#define CCAPI_WEBSOCKET_WAZIRX_CHANNEL_BOOK_TICKER "bookTicker"
 // #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_TRADE "trade"
 // #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_BOOK_TICKER "bookTicker"
 // #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH "depth"
@@ -537,6 +543,9 @@
 #ifndef CCAPI_DERIBIT_URL_REST_BASE
 #define CCAPI_DERIBIT_URL_REST_BASE "https://www.deribit.com"
 #endif
+#ifndef CCAPI_WAZIRX_URL_REST_BASE 
+#define CCAPI_WAZIRX_URL_REST_BASE "https://api.wazirx.com/"
+#endif
 // #ifndef CCAPI_BYBIT_URL_REST_BASE
 // #define CCAPI_BYBIT_URL_REST_BASE "https://api.bybit.com"
 // #endif
@@ -626,6 +635,9 @@
 #endif
 #ifndef CCAPI_DERIBIT_URL_WS_BASE
 #define CCAPI_DERIBIT_URL_WS_BASE "wss://www.deribit.com"
+#endif
+#ifndef CCAPI_WAZIRX_URL_WS_BASE 
+#define CCAPI_WAZIRX_URL_WS_BASE "wss://stream-internal.wazirx.com"
 #endif
 // #ifndef CCAPI_BYBIT_URL_WS_BASE
 // #define CCAPI_BYBIT_URL_WS_BASE "https://api.bybit.com"
@@ -788,6 +800,9 @@
 #endif
 #ifndef CCAPI_DERIBIT_CLIENT_SECRET
 #define CCAPI_DERIBIT_CLIENT_SECRET "DERIBIT_CLIENT_SECRET"
+#endif
+#ifndef CCAPI_WAZIRX_API_KEY
+#define CCAPI_WAZIRX_API_KEY "WAZIRX_API_KEY"
 #endif
 // #ifndef CCAPI_BYBIT_API_KEY
 // #define CCAPI_BYBIT_API_KEY "BYBIT_API_KEY"

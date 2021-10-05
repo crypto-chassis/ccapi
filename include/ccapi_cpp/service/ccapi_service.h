@@ -785,6 +785,7 @@ class Service : public std::enable_shared_from_this<Service> {
     wsConnection.hdl = hdl;
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " established");
     auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    std::cout<<urlBase<<std::endl;
     this->connectNumRetryOnFailByConnectionUrlMap[urlBase] = 0;
     Event event;
     event.setType(Event::Type::SESSION_STATUS);

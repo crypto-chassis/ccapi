@@ -64,6 +64,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 #include "ccapi_cpp/service/ccapi_market_data_service_deribit.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_WAZIRX
+#include "ccapi_cpp/service/ccapi_market_data_service_wazirx.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -275,6 +278,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_DERIBIT] =
         std::make_shared<MarketDataServiceDeribit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_WAZIRX
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_WAZIRX]=
+        std::make_shared<MarketDataServiceWazirx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -389,12 +396,12 @@ class Session {
     this->serviceContextPtr->stop();
     this->t.join();
   }
-  virtual void subscribe(Subscription& subscription) {
+  virtual void subscribe(Subscription subscription) {
     std::vector<Subscription> subscriptionList;
     subscriptionList.push_back(subscription);
     this->subscribe(subscriptionList);
   }
-  virtual void subscribe(std::vector<Subscription>& subscriptionList) {
+  virtual void subscribe(std::vector<Subscription> subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::map<std::string, std::vector<Subscription> > subscriptionListByServiceNameMap;
     for (const auto& subscription : subscriptionList) {
@@ -478,7 +485,7 @@ class Session {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void subscribeByFix(Subscription& subscription) {
+  virtual void subscribeByFix(Subscription subscription) {
     auto serviceName = subscription.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
     if (this->serviceByServiceNameExchangeMap.find(serviceName) == this->serviceByServiceNameExchangeMap.end()) {
@@ -493,7 +500,7 @@ class Session {
     }
     serviceByExchangeMap.at(exchange)->subscribeByFix(subscription);
   }
-  virtual void subscribeByFix(std::vector<Subscription>& subscriptionList) {
+  virtual void subscribeByFix(std::vector<Subscription> subscriptionList) {
     for (auto& x : subscriptionList) {
       this->subscribeByFix(x);
     }
@@ -525,7 +532,7 @@ class Session {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequestByFix(Request& request) {
+  virtual void sendRequestByFix(Request request) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto serviceName = request.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
@@ -544,12 +551,12 @@ class Session {
     servicePtr->sendRequestByFix(request, now);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequestByFix(std::vector<Request>& requestList) {
+  virtual void sendRequestByFix(std::vector<Request> requestList) {
     for (auto& x : requestList) {
       this->sendRequestByFix(x);
     }
   }
-  virtual void sendRequestByWebsocket(Request& request) {
+  virtual void sendRequestByWebsocket(Request request) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto serviceName = request.getServiceName();
     CCAPI_LOGGER_DEBUG("serviceName = " + serviceName);
@@ -568,18 +575,18 @@ class Session {
     servicePtr->sendRequestByWebsocket(request, now);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequestByWebsocket(std::vector<Request>& requestList) {
+  virtual void sendRequestByWebsocket(std::vector<Request> requestList) {
     for (auto& x : requestList) {
       this->sendRequestByWebsocket(x);
     }
   }
-  virtual void sendRequest(Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest(Request request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList({request});
     this->sendRequest(requestList, eventQueuePtr, delayMilliSeconds);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequest(std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest(std::vector<Request> requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     // std::set<std::string> serviceNameExchangeSet;

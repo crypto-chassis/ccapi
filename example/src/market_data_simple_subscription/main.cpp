@@ -1,6 +1,6 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-Logger* Logger::logger = nullptr;  // This line is needed.
+//Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session* session) override {
@@ -28,9 +28,9 @@ int main(int argc, char** argv) {
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+  Subscription subscription("wazirx", "bmb", "MARKET_DEPTH");
   session.subscribe(subscription);
-  std::this_thread::sleep_for(std::chrono::seconds(10));
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   session.stop();
   std::cout << "Bye" << std::endl;
   return EXIT_SUCCESS;
