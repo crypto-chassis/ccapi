@@ -10,7 +10,6 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
   ExecutionManagementServiceErisx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_ERISX;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
@@ -28,7 +27,6 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     this->getOrderTarget = prefix + "/order/{partyID}/{orderID}";
     this->getOpenOrdersTarget = prefix + "/order-mass-status";
     this->cancelOpenOrdersTarget = prefix + "/cancel-all";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceErisx() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

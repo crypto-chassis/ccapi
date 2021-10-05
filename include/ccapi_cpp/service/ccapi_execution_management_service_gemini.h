@@ -9,7 +9,6 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
   ExecutionManagementServiceGemini(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v1/order/events";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -29,7 +28,6 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/v1/order/cancel/session";
     this->getAccountsTarget = "/v1/account/list";
     this->getAccountBalancesTarget = "/v1/balances";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceGemini() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

@@ -21,9 +21,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         channelId = CCAPI_WEBSOCKET_GATEIO_CHANNEL_BOOK_TICKER;
@@ -47,7 +45,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     std::vector<std::string> sendStringList;
-
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       if (channelId == CCAPI_WEBSOCKET_GATEIO_CHANNEL_BOOK_TICKER || channelId == CCAPI_WEBSOCKET_GATEIO_CHANNEL_TRADES) {
@@ -94,7 +91,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
           rj::Value payload(rj::kArrayType);
           payload.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
           payload.PushBack(rj::Value(std::to_string(marketDepthSubscribedToExchange).c_str(), allocator).Move(), allocator);
-          CCAPI_LOGGER_TRACE("channelId=" + channelId);
           auto splitted = UtilString::split(channelId, "?");
           if (splitted.size() == 2) {
             auto mapped = Url::convertQueryStringToMap(splitted.at(1));
@@ -132,18 +128,13 @@ class MarketDataServiceGateioBase : public MarketDataService {
       Message message;
       message.setTimeReceived(timeReceived);
       std::vector<std::string> correlationIdList;
-      CCAPI_LOGGER_TRACE("correlationIdListByConnectionIdChannelIdSymbolIdMap = " + toString(correlationIdListByConnectionIdChannelIdSymbolIdMap));
-      CCAPI_LOGGER_TRACE("wsConnection.id = " + toString(wsConnection.id));
       if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
         int id = std::stoi(document["id"].GetString());
-        CCAPI_LOGGER_TRACE("exchangeSubscriptionIdListByExchangeJsonPayloadIdMap = " + toString(exchangeSubscriptionIdListByExchangeJsonPayloadIdMap));
-        CCAPI_LOGGER_TRACE("id = " + toString(id));
         if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.find(id) != this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.end()) {
           for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.at(id)) {
             auto splitted = UtilString::split(exchangeSubscriptionId, "|");
             std::string channelId = splitted.at(0);
             std::string symbolId = splitted.at(1);
-            CCAPI_LOGGER_TRACE("id = " + toString(id));
             if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
                 this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
               if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
@@ -174,9 +165,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
       std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
       std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
       auto optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
-      CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
-      CCAPI_LOGGER_TRACE("channelId = " + channelId);
-
       if (channelId == CCAPI_WEBSOCKET_GATEIO_CHANNEL_BOOK_TICKER) {
         marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]

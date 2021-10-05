@@ -32,9 +32,7 @@ class MarketDataServiceKraken : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
       marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({10, 25, 100, 500, 1000}));
@@ -108,7 +106,6 @@ class MarketDataServiceKraken : public MarketDataService {
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
@@ -118,15 +115,9 @@ class MarketDataServiceKraken : public MarketDataService {
       if (channelNameWithSuffix.rfind(CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK, 0) == 0) {
         auto symbolId = std::string(document[documentSize - 1].GetString());
         auto exchangeSubscriptionId = channelNameWithSuffix + "|" + symbolId;
-        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
-                           toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
-        CCAPI_LOGGER_TRACE("wsConnection = " + toString(wsConnection));
-        CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
         auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
-        CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
         const rj::Value& anonymous = document[1];
         if (anonymous.IsObject() && (anonymous.HasMember("b") || anonymous.HasMember("a"))) {
-          CCAPI_LOGGER_TRACE("this is update");
           rj::Value anonymous2(anonymous, allocator);
           if (documentSize == 5) {
             rj::Value& source = document[2];
@@ -178,7 +169,6 @@ class MarketDataServiceKraken : public MarketDataService {
           }
           marketDataMessageList.push_back(std::move(marketDataMessage));
         } else if (anonymous.IsObject() && anonymous.HasMember("as") && anonymous.HasMember("bs")) {
-          CCAPI_LOGGER_TRACE("this is snapshot");
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
@@ -220,7 +210,6 @@ class MarketDataServiceKraken : public MarketDataService {
     } else if (document.IsObject() && document.HasMember("event")) {
       std::string eventPayload = std::string(document["event"].GetString());
       if (eventPayload == "heartbeat") {
-        CCAPI_LOGGER_DEBUG("heartbeat: " + toString(wsConnection));
       } else if (eventPayload == "subscriptionStatus") {
         std::string status = document["status"].GetString();
         if (status == "subscribed" || status == "error") {
@@ -258,7 +247,6 @@ class MarketDataServiceKraken : public MarketDataService {
         }
       }
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {

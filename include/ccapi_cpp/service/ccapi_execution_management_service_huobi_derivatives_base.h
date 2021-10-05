@@ -10,7 +10,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
   ExecutionManagementServiceHuobiDerivativesBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions,
                                                  SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->isDerivatives = true;
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
     this->needDecompressWebsocketMessage = true;
@@ -18,8 +17,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
-    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobiDerivativesBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -199,12 +196,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     }
     return elementList;
   }
-  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const
-  // TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-  //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
-  // }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -247,15 +238,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  // void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-  //   WsConnection& wsConnection =
-  //   this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl)); auto
-  //   subscription = wsConnection.subscriptionList.at(0); const std::string& quotedTextMessage =
-  //   this->convertNumberToStringInJson(textMessage); CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-  //   rj::Document document;
-  //   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  //   this->onTextMessage(wsConnection, subscription, textMessage, document, timeReceived);
-  // }
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
     std::string op = document["op"].GetString();

@@ -10,7 +10,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
   ExecutionManagementServiceKraken(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
     this->baseUrl = CCAPI_KRAKEN_URL_WS_BASE_PRIVATE;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -32,7 +31,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     this->getAccountBalancesTarget = prefix + "/Balance";
     this->getAccountPositionsTarget = prefix + "/OpenPositions";
     this->getWebSocketsTokenTarget = prefix + "/GetWebSocketsToken";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceKraken() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -407,7 +405,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     } else if (document.IsObject() && document.HasMember("event")) {
       std::string eventPayload = std::string(document["event"].GetString());
       if (eventPayload == "heartbeat") {
-        // CCAPI_LOGGER_DEBUG("heartbeat: " + toString(wsConnection));
       } else if (eventPayload == "subscriptionStatus") {
         std::string status = document["status"].GetString();
         if (status == "subscribed" || status == "error") {

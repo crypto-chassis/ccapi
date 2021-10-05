@@ -9,7 +9,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
   ExecutionManagementServiceBitmex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/realtime";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -30,7 +29,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = prefix + "/order/all";
     this->getAccountBalancesTarget = prefix + "/user/margin";
     this->getAccountPositionsTarget = prefix + "/position";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBitmex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -245,12 +243,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     }
     return elementList;
   }
-  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const
-  // TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-  //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
-  // }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -362,7 +354,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
             rj::Writer<rj::StringBuffer> writer(stringBuffer);
             document.Accept(writer);
             std::string sendString = stringBuffer.GetString();
-            CCAPI_LOGGER_INFO("sendString = " + sendString);
             ErrorCode ec;
             this->send(hdl, sendString, wspp::frame::opcode::text, ec);
             if (ec) {
@@ -437,11 +428,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
-  // void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-  //   ExecutionManagementService::onTextMessage(hdl, quotedTextMessage, timeReceived);
-  // }
 };
 } /* namespace ccapi */
 #endif

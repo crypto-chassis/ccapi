@@ -36,10 +36,8 @@ class FixServiceFtxBase : public FixService<beast::ssl_stream<beast::tcp_stream>
     auto targetCompID = this->targetCompID;
     std::vector<std::string> prehashFieldList{nowFixTimeStr, msgType, msgSeqNum, senderCompID, targetCompID};
     auto prehashStr = UtilString::join(prehashFieldList, "\x01");
-    CCAPI_LOGGER_TRACE("prehashStr = " + printableString(prehashStr));
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     std::string rawData = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, prehashStr, true);
-    CCAPI_LOGGER_TRACE("rawData = " + rawData);
     param.push_back({hff::tag::RawData, rawData});
     for (const auto& x : logonOptionMap) {
       param.push_back({x.first, x.second});

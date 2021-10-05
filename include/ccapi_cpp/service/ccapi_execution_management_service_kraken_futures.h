@@ -10,7 +10,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
   ExecutionManagementServiceKrakenFutures(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/v1";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -37,7 +36,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
     this->getAccountsPath = prefix_2 + "/accounts";
     this->getAccountPositionsTarget = prefix + "/openpositions";
     this->getAccountPositionsPath = prefix_2 + "/openpositions";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceKrakenFutures() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -361,7 +359,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
           sendStringList.push_back(sendString);
         }
         for (const auto& sendString : sendStringList) {
-          CCAPI_LOGGER_INFO("sendString = " + sendString);
           ErrorCode ec;
           this->send(hdl, sendString, wspp::frame::opcode::text, ec);
           if (ec) {
