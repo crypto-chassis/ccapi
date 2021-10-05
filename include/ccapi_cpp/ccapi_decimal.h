@@ -21,7 +21,7 @@ class Decimal CCAPI_FINAL {
     if (fixedPointValue.find("E") != std::string::npos || fixedPointValue.find("e") != std::string::npos) {
       std::vector<std::string> splitted = UtilString::split(fixedPointValue, fixedPointValue.find("E") != std::string::npos ? "E" : "e");
       fixedPointValue = splitted.at(0);
-      if (fixedPointValue.find(".") != std::string::npos) {
+      if (fixedPointValue.find('.') != std::string::npos) {
         fixedPointValue = UtilString::rtrim(UtilString::rtrim(fixedPointValue, "0"), ".");
       }
       auto exponent = splitted.at(1);
@@ -33,7 +33,7 @@ class Decimal CCAPI_FINAL {
         exponent = "0";
       }
       if (exponent != "0") {
-        if (fixedPointValue.find(".") != std::string::npos) {
+        if (fixedPointValue.find('.') != std::string::npos) {
           std::vector<std::string> splittedByDecimal = UtilString::split(fixedPointValue, ".");
           if (exponent.at(0) != '-') {
             if (std::stoi(exponent) < splittedByDecimal.at(1).length()) {

@@ -112,7 +112,11 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->cancelOrderTarget);
         std::string body;
-        this->appendParam(body, param, nonce);
+        this->appendParam(body, param, nonce,
+                          {
+                              {CCAPI_EM_CLIENT_ORDER_ID, "txid"},
+                              {CCAPI_EM_ORDER_ID, "txid"},
+                          });
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
       } break;

@@ -302,6 +302,7 @@ class MarketDataServiceKraken : public MarketDataService {
     }
     int lotDecimals = std::stoi(x["lot_decimals"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(lotDecimals - 1, '0') + "1");
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["ordermin"].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
