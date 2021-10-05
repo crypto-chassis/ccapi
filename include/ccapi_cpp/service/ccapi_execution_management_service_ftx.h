@@ -9,7 +9,6 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
   ExecutionManagementServiceFtx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                 ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceFtxBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -25,7 +24,6 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiSubaccountName});
     this->getAccountPositionsTarget = "/api/positions";
     this->ftx = "FTX";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceFtx() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

@@ -9,7 +9,6 @@ class ExecutionManagementServiceHuobiCoinSwap : public ExecutionManagementServic
   ExecutionManagementServiceHuobiCoinSwap(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiDerivativesBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/swap-notification";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -31,7 +30,6 @@ class ExecutionManagementServiceHuobiCoinSwap : public ExecutionManagementServic
     this->authenticationPath = "/swap-api/v1/swap_order";
     this->orderDataTopic = CCAPI_HUOBI_COIN_SWAP_SUBSCRIBE_ORDER_DATA_TOPIC;
     this->matchOrderDataTopic = CCAPI_HUOBI_COIN_SWAP_SUBSCRIBE_MATCH_ORDER_DATA_TOPIC;
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceHuobiCoinSwap() {}
 };

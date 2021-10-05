@@ -224,6 +224,11 @@ class UtilTime CCAPI_FINAL {
     tp += std::chrono::nanoseconds(timePair.second);
     return tp;
   }
+  static TimePoint makeTimePointMilli(const std::pair<long long, long long>& timePair) {
+    auto tp = TimePoint(std::chrono::milliseconds(timePair.first));
+    tp += std::chrono::nanoseconds(timePair.second);
+    return tp;
+  }
   static std::pair<long long, long long> divide(const TimePoint& tp) {
     auto then = tp.time_since_epoch();
     auto s = std::chrono::duration_cast<std::chrono::seconds>(then);
@@ -232,11 +237,20 @@ class UtilTime CCAPI_FINAL {
     return std::make_pair(s.count(), ns.count());
   }
   static std::pair<long long, long long> divide(const std::string& seconds) {
-    if (seconds.find(".") != std::string::npos) {
+    if (seconds.find('.') != std::string::npos) {
       auto splittedSeconds = UtilString::split(UtilString::rtrim(UtilString::rtrim(seconds, "0"), "."), ".");
-      return std::make_pair(std::stoi(splittedSeconds[0]), splittedSeconds.size() == 1 ? 0 : std::stoi(UtilString::rightPadTo(splittedSeconds[1], 9, '0')));
+      return std::make_pair(std::stoll(splittedSeconds[0]), splittedSeconds.size() == 1 ? 0 : std::stoll(UtilString::rightPadTo(splittedSeconds[1], 9, '0')));
     } else {
-      return std::make_pair(std::stoi(seconds), 0);
+      return std::make_pair(std::stoll(seconds), 0);
+    }
+  }
+  static std::pair<long long, long long> divideMilli(const std::string& milliseconds) {
+    if (milliseconds.find('.') != std::string::npos) {
+      auto splittedMilliSeconds = UtilString::split(UtilString::rtrim(UtilString::rtrim(milliseconds, "0"), "."), ".");
+      return std::make_pair(std::stoll(splittedMilliSeconds[0]),
+                            splittedMilliSeconds.size() == 1 ? 0 : std::stoll(UtilString::rightPadTo(splittedMilliSeconds[1], 6, '0')));
+    } else {
+      return std::make_pair(std::stoll(milliseconds), 0);
     }
   }
   template <typename T = std::chrono::nanoseconds>

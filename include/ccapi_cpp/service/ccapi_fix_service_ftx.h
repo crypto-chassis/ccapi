@@ -10,7 +10,6 @@ class FixServiceFtx : public FixServiceFtxBase {
   FixServiceFtx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                 ServiceContextPtr serviceContextPtr)
       : FixServiceFtxBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrlFix = this->sessionConfigs.getUrlFixBase().at(this->exchangeName);
     this->setHostFixFromUrlFix(this->baseUrlFix);
@@ -25,7 +24,6 @@ class FixServiceFtx : public FixServiceFtxBase {
     }
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_FTX;
     this->targetCompID = "FTX";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceFtx() {}
 };

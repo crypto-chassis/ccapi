@@ -9,10 +9,8 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
   FixServiceGemini(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                    ServiceContextPtr serviceContextPtr)
       : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
     this->hostFix = CCAPI_GEMINI_URL_FIX_HOST;
-    CCAPI_LOGGER_INFO(this->baseUrlFix);
     this->portFix = CCAPI_GEMINI_URL_FIX_PORT;
     try {
       this->tcpResolverResultsFix = this->resolver.resolve(this->hostFix, this->portFix);
@@ -22,7 +20,6 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_GEMINI;
     this->senderCompID = CCAPI_GEMINI_API_SENDER_COMP_ID;
     this->targetCompID = CCAPI_GEMINI_API_TARGET_COMP_ID;
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceGemini() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

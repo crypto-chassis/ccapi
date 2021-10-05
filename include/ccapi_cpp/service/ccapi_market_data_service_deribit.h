@@ -29,7 +29,6 @@ class MarketDataServiceDeribit : public MarketDataService {
  private:
 #endif
   void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
@@ -45,7 +44,6 @@ class MarketDataServiceDeribit : public MarketDataService {
     document.Accept(writer);
     std::string msg = stringBuffer.GetString();
     ErrorCode ec;
-    CCAPI_LOGGER_TRACE("msg = " + msg);
     this->send(hdl, msg, wspp::frame::opcode::text, ec);
     if (ec) {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
@@ -54,7 +52,6 @@ class MarketDataServiceDeribit : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         channelId = CCAPI_WEBSOCKET_DERIBIT_CHANNEL_QUOTE;
@@ -125,8 +122,6 @@ class MarketDataServiceDeribit : public MarketDataService {
         channels.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
       }
     }
-    CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
-                       toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
     rj::Value params(rj::kObjectType);
     params.AddMember("channels", channels, allocator);
     document.AddMember("params", params, allocator);
@@ -139,7 +134,6 @@ class MarketDataServiceDeribit : public MarketDataService {
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto it = document.FindMember("result");
@@ -258,7 +252,6 @@ class MarketDataServiceDeribit : public MarketDataService {
           document.Accept(writer);
           std::string msg = stringBuffer.GetString();
           ErrorCode ec;
-          CCAPI_LOGGER_TRACE("msg = " + msg);
           this->send(hdl, msg, wspp::frame::opcode::text, ec);
           if (ec) {
             this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
@@ -319,7 +312,6 @@ class MarketDataServiceDeribit : public MarketDataService {
         this->subscriptionJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).erase(id);
       }
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& method,
                    const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
@@ -467,11 +459,9 @@ class MarketDataServiceDeribit : public MarketDataService {
     }
   }
   void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
 
   std::map<std::string, std::set<int64_t>> subscriptionJsonrpcIdSetByConnectionIdMap;

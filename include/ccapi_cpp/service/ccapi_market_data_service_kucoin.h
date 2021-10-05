@@ -33,7 +33,6 @@ class MarketDataServiceKucoin : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         channelId = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_TICKER;
@@ -80,7 +79,6 @@ class MarketDataServiceKucoin : public MarketDataService {
                   {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},
                   {"pingTimeout", std::string(instanceServer["pingInterval"].GetString())},
               });
-              CCAPI_LOGGER_TRACE("that->extraPropertyByConnectionIdMap = " + toString(that->extraPropertyByConnectionIdMap));
               return;
             } catch (const std::runtime_error& e) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -95,7 +93,6 @@ class MarketDataServiceKucoin : public MarketDataService {
     this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
   }
   void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     wsConnection.status = WsConnection::Status::OPEN;
   }
@@ -114,8 +111,6 @@ class MarketDataServiceKucoin : public MarketDataService {
         symbolListByTopicMap[channelId].push_back(symbolId);
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
-        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
-                           toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
       }
     }
     for (const auto& x : symbolListByTopicMap) {
@@ -319,12 +314,6 @@ class MarketDataServiceKucoin : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const
-  // TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  // }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseCurrency"].GetString());

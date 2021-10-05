@@ -224,7 +224,6 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
   void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     ExecutionManagementService::onOpen(hdl);
     auto now = UtilTime::now();
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
@@ -276,7 +275,6 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         });
   }
   void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     if (this->pingListenKeyTimerMapByConnectionIdMap.find(wsConnection.id) != this->pingListenKeyTimerMapByConnectionIdMap.end()) {
       this->pingListenKeyTimerMapByConnectionIdMap.at(wsConnection.id)->cancel();

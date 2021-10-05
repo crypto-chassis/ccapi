@@ -31,7 +31,6 @@ class MarketDataServiceBitmex : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
@@ -63,8 +62,6 @@ class MarketDataServiceBitmex : public MarketDataService {
         args.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
       }
     }
-    CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
-                       toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
     document.AddMember("args", args, allocator);
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -74,19 +71,14 @@ class MarketDataServiceBitmex : public MarketDataService {
     return sendStringList;
   }
   void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     if (textMessage != "pong") {
       rj::Document document;
-      // std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-      // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
       document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
       if (document.IsObject() && document.HasMember("table")) {
         std::string channelId = document["table"].GetString();
@@ -235,7 +227,6 @@ class MarketDataServiceBitmex : public MarketDataService {
         event.setMessageList(messageList);
       }
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -273,12 +264,6 @@ class MarketDataServiceBitmex : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const
-  // TimePoint& timeReceived) override {
-  //   std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  // }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());

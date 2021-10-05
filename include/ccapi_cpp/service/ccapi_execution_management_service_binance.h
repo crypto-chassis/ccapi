@@ -12,7 +12,6 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
   ExecutionManagementServiceBinance(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                     ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -32,7 +31,6 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
     this->cancelOpenOrdersTarget = "/api/v3/openOrders";
     this->listenKeyTarget = CCAPI_BINANCE_LISTEN_KEY_PATH;
     this->getAccountBalancesTarget = "/api/v3/account";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceBinance() {}
 };

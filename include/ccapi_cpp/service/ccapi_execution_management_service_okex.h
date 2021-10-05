@@ -9,7 +9,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
   ExecutionManagementServiceOkex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKEX_PRIVATE_WS_PATH;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -30,7 +29,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     this->getOpenOrdersTarget = "/api/v5/trade/orders-pending";
     this->getAccountBalancesTarget = "/api/v5/account/balance";
     this->getAccountPositionsTarget = "/api/v5/account/positions";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceOkex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -299,8 +297,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         auto it1Str = std::string(it1->value.GetString());
         auto it2Str = std::string(it2->value.GetString());
         if (!it1Str.empty() && !it2Str.empty()) {
-          CCAPI_LOGGER_INFO("it1Str = " + it1Str);
-          CCAPI_LOGGER_INFO("it2Str = " + it2Str);
           element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::to_string(std::stod(it1Str) * std::stod(it2Str)));
         }
       }
@@ -364,7 +360,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
       document.Accept(writerSubscribe);
       std::string sendString = stringBufferSubscribe.GetString();
-      CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
       if (ec) {

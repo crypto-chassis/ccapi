@@ -105,6 +105,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_DERIBIT
 #define CCAPI_EXCHANGE_NAME_DERIBIT "deribit"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_GATEIO
+#define CCAPI_EXCHANGE_NAME_GATEIO "gateio"
+#endif
 // #ifndef CCAPI_EXCHANGE_NAME_BYBIT
 // #define CCAPI_EXCHANGE_NAME_BYBIT "bybit"
 // #endif
@@ -192,6 +195,12 @@
 #ifndef CCAPI_ORDER_QUANTITY_INCREMENT
 #define CCAPI_ORDER_QUANTITY_INCREMENT "QUANTITY_INCREMENT"
 #endif
+#ifndef CCAPI_ORDER_QUANTITY_MIN
+#define CCAPI_ORDER_QUANTITY_MIN "QUANTITY_MIN"
+#endif
+#ifndef CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN
+#define CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN "PRICE_TIMES_QUANTITY_MIN"
+#endif
 #define CCAPI_WEBSOCKET_COINBASE_CHANNEL_MATCH "matches"
 #define CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2 "level2"
 #define CCAPI_WEBSOCKET_GEMINI_PARAMETER_TRADES "trades"
@@ -239,6 +248,9 @@
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT "book.{instrument_name}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_QUOTE "quote.{instrument_name}"
+#define CCAPI_WEBSOCKET_GATEIO_CHANNEL_TRADES "spot.trades"
+#define CCAPI_WEBSOCKET_GATEIO_CHANNEL_BOOK_TICKER "spot.book_ticker"
+#define CCAPI_WEBSOCKET_GATEIO_CHANNEL_ORDER_BOOK "spot.order_book"
 // #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_TRADE "trade"
 // #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_BOOK_TICKER "bookTicker"
 // #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH "depth"
@@ -543,6 +555,9 @@
 #ifndef CCAPI_DERIBIT_URL_REST_BASE
 #define CCAPI_DERIBIT_URL_REST_BASE "https://www.deribit.com"
 #endif
+#ifndef CCAPI_GATEIO_URL_REST_BASE
+#define CCAPI_GATEIO_URL_REST_BASE "https://api.gateio.ws"
+#endif
 // #ifndef CCAPI_BYBIT_URL_REST_BASE
 // #define CCAPI_BYBIT_URL_REST_BASE "https://api.bybit.com"
 // #endif
@@ -632,6 +647,9 @@
 #endif
 #ifndef CCAPI_DERIBIT_URL_WS_BASE
 #define CCAPI_DERIBIT_URL_WS_BASE "wss://www.deribit.com"
+#endif
+#ifndef CCAPI_GATEIO_URL_WS_BASE
+#define CCAPI_GATEIO_URL_WS_BASE "wss://api.gateio.ws"
 #endif
 // #ifndef CCAPI_BYBIT_URL_WS_BASE
 // #define CCAPI_BYBIT_URL_WS_BASE "https://api.bybit.com"
@@ -800,6 +818,12 @@
 #endif
 #ifndef CCAPI_DERIBIT_CLIENT_SECRET
 #define CCAPI_DERIBIT_CLIENT_SECRET "DERIBIT_CLIENT_SECRET"
+#endif
+#ifndef CCAPI_GATEIO_API_KEY
+#define CCAPI_GATEIO_API_KEY "GATEIO_API_KEY"
+#endif
+#ifndef CCAPI_GATEIO_API_SECRET
+#define CCAPI_GATEIO_API_SECRET "GATEIO_API_SECRET"
 #endif
 // #ifndef CCAPI_BYBIT_API_KEY
 // #define CCAPI_BYBIT_API_KEY "BYBIT_API_KEY"
