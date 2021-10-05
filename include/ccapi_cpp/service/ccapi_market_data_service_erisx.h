@@ -21,7 +21,6 @@ class MarketDataServiceErisx : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested <= 20) {
         channelId = std::string(CCAPI_WEBSOCKET_ERISX_CHANNEL_TOP_OF_BOOK_MARKET_DATA_SUBSCRIBE) + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" +
@@ -67,16 +66,11 @@ class MarketDataServiceErisx : public MarketDataService {
         sendStringList.push_back(sendString);
       }
     }
-    CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
-                       toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
     return sendStringList;
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    // std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     std::string type = document["type"].GetString();
     if (type == "MarketDataIncrementalRefresh" || type == "MarketDataIncrementalRefreshTrade") {
@@ -160,7 +154,6 @@ class MarketDataServiceErisx : public MarketDataService {
       }
       marketDataMessageList.push_back(std::move(marketDataMessage));
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {

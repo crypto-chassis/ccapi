@@ -60,14 +60,12 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.HasMember("event")) {
       std::string eventPayload = std::string(document["event"].GetString());
       if (eventPayload == "heartbeat") {
-        CCAPI_LOGGER_DEBUG("heartbeat: " + toString(wsConnection));
       } else if (eventPayload == "subscriptionStatus") {
         std::string status = document["status"].GetString();
         if (status == "subscribed" || status == "error") {
@@ -172,7 +170,6 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         }
       }
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {

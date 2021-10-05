@@ -10,7 +10,6 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
   FixServiceCoinbase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                      ServiceContextPtr serviceContextPtr)
       : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrlFix = this->sessionConfigs.getUrlFixBase().at(this->exchangeName);
     this->setHostFixFromUrlFix(this->baseUrlFix);
@@ -25,7 +24,6 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_COINBASE;
     this->targetCompID = "Coinbase";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~FixServiceCoinbase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -55,10 +53,8 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
     auto targetCompID = this->targetCompID;
     std::vector<std::string> prehashFieldList{nowFixTimeStr, msgType, msgSeqNum, senderCompID, targetCompID, apiPassphrase};
     auto prehashStr = UtilString::join(prehashFieldList, "\x01");
-    CCAPI_LOGGER_TRACE("prehashStr = " + printableString(prehashStr));
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto rawData = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), prehashStr));
-    CCAPI_LOGGER_TRACE("rawData = " + rawData);
     param.push_back({hff::tag::RawData, rawData});
     for (const auto& x : logonOptionMap) {
       param.push_back({x.first, x.second});

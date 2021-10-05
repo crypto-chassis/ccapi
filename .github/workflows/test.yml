@@ -34,11 +34,11 @@ jobs:
             os: ubuntu-latest,
             cc: "gcc", cxx: "g++"
           }
-        - {
-            name: "macOS Latest Clang",
-            os: macos-latest,
-            cc: "clang", cxx: "clang++"
-          }
+        # - {
+        #     name: "macOS Latest Clang",
+        #     os: macos-latest,
+        #     cc: "clang", cxx: "clang++"
+        #   }
         - {
             name: "Windows Latest MinGW",
             os: windows-latest,

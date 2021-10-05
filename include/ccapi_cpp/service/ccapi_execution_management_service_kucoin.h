@@ -9,7 +9,6 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
   ExecutionManagementServiceKucoin(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -31,7 +30,6 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/api/v1/orders";
     this->getAccountsTarget = "/api/v1/accounts";
     this->getAccountBalancesTarget = "/api/v1/accounts/<accountId>";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceKucoin() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -39,7 +37,6 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
  protected:
 #endif
   void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     wsConnection.status = WsConnection::Status::OPEN;
   }

@@ -31,9 +31,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
       marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({1, 25, 100, 250}));
@@ -43,7 +41,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
   }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
     rj::Document document;
     document.SetObject();
@@ -54,35 +51,25 @@ class MarketDataServiceBitfinex : public MarketDataService {
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
     std::string sendString = stringBuffer.GetString();
-    CCAPI_LOGGER_INFO("sendString = " + toString(sendString));
     ErrorCode ec;
     this->send(hdl, sendString, wspp::frame::opcode::text, ec);
     if (ec) {
       this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    // std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    CCAPI_LOGGER_TRACE("document.IsObject() = " + toString(document.IsObject()));
     if (document.IsArray() && document.Size() >= 1) {
       auto exchangeSubscriptionId = std::string(document[0].GetString());
-      CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
       if (document.Size() >= 2 && document[1].IsString() && std::string(document[1].GetString()) == "hb") {
-        CCAPI_LOGGER_DEBUG("heartbeat: " + toString(wsConnection));
         if (this->sessionOptions.enableCheckSequence) {
           int sequence = std::stoi(document[2].GetString());
           if (!this->checkSequence(wsConnection, sequence)) {
@@ -92,9 +79,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
         }
       } else {
         auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
-        CCAPI_LOGGER_TRACE("channelId = " + channelId);
         auto symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_SYMBOL_ID);
-        CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
         if (channelId.rfind(CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK, 0) == 0 || channelId == CCAPI_WEBSOCKET_BITFINEX_CHANNEL_TRADES) {
           std::string channel =
               channelId.rfind(CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK, 0) == 0 ? CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK : CCAPI_WEBSOCKET_BITFINEX_CHANNEL_TRADES;
@@ -109,10 +94,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
             }
             const rj::Value& content = document[1].GetArray();
             if (content[0].IsArray()) {
-              CCAPI_LOGGER_TRACE("SOLICITED");
               if (this->sessionOptions.enableCheckSequence) {
                 int sequence = std::stoi(document[2].GetString());
-                CCAPI_LOGGER_INFO("snapshot sequence is " + toString(sequence));
               }
               if (channelId.rfind(CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK, 0) == 0) {
                 MarketDataMessage marketDataMessage;
@@ -243,7 +226,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
               timestampInMilliseconds.insert(timestampInMilliseconds.size() - 3, ".");
               marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(timestampInMilliseconds));
               marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-              CCAPI_LOGGER_TRACE("NONE");
               marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
               std::swap(marketDataMessage.data,
                         this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]);
@@ -256,7 +238,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
       std::string eventStr = document["event"].GetString();
       if (eventStr == "conf") {
         std::vector<std::string> sendStringList;
-        CCAPI_LOGGER_TRACE("this->subscriptionListByConnectionIdChannelSymbolIdMap = " + toString(this->subscriptionListByConnectionIdChannelIdSymbolIdMap));
         for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
           auto channelId = subscriptionListByChannelIdSymbolId.first;
           if (channelId.rfind(CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK, 0) == 0 || channelId == CCAPI_WEBSOCKET_BITFINEX_CHANNEL_TRADES) {
@@ -291,7 +272,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
           }
         }
         for (const auto& sendString : sendStringList) {
-          CCAPI_LOGGER_INFO("sendString = " + sendString);
           ErrorCode ec;
           this->send(hdl, sendString, wspp::frame::opcode::text, ec);
           if (ec) {
@@ -303,16 +283,11 @@ class MarketDataServiceBitfinex : public MarketDataService {
         auto channelId = channel == CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK
                              ? channel + "?" + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::string(document["len"].GetString())
                              : channel;
-        CCAPI_LOGGER_TRACE("channelId = " + channelId);
         auto symbolId = std::string(document["symbol"].GetString());
-        CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
         if (eventStr == "subscribed") {
           auto exchangeSubscriptionId = std::string(document["chanId"].GetString());
-          CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
           this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
           this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
-          CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
-                             toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
         }
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         std::vector<Message> messageList;
@@ -340,7 +315,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
         event.setMessageList(messageList);
       }
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   bool checkSequence(const WsConnection& wsConnection, int sequence) {
     if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
@@ -351,8 +325,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
       this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnection.id, sequence));
       return true;
     } else {
-      CCAPI_LOGGER_DEBUG("sequence: previous = " + toString(this->sequenceByConnectionIdMap[wsConnection.id]) + ", current = " + toString(sequence) +
-                         ", wsConnection = " + toString(wsConnection));
       if (sequence - this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
         this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
         return true;
@@ -397,7 +369,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
       ++i;
     }
     std::string csStr = UtilString::join(csData, ":");
-    CCAPI_LOGGER_DEBUG("csStr = " + csStr);
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
@@ -428,11 +399,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
                           });
         req.target(target + "?" + queryString);
       } break;
-      // case Request::Operation::GET_INSTRUMENT: {
-      //   req.method(http::verb::get);
-      //   auto target = this->getInstrumentTarget;
-      //   req.target(target);
-      // } break;
       case Request::Operation::GET_INSTRUMENTS: {
         req.method(http::verb::get);
         auto target = this->getInstrumentsTarget;
@@ -442,12 +408,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  // void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const
-  // TimePoint& timeReceived) override {
-  //   std::string quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
-  //   MarketDataService::processSuccessfulTextMessageRest(statusCode, request, quotedTextMessage, timeReceived);
-  // }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -469,32 +429,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
       } break;
-      // case Request::Operation::GET_INSTRUMENT: {
-      //   Message message;
-      //   message.setTimeReceived(timeReceived);
-      //   message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
-      //   for (const auto& x : document[0].GetArray()) {
-      //     std::string pair = x.GetString();
-      //     if (pair == request.getInstrument().substr(1)) {
-      //       Element element;
-      //       element.insert(CCAPI_INSTRUMENT, pair);
-      //       auto splitted = UtilString::split(pair, ":");
-      //       if (splitted.size() == 1) {
-      //         element.insert(CCAPI_BASE_ASSET, pair.substr(0, 3));
-      //         element.insert(CCAPI_QUOTE_ASSET, pair.substr(3, 6));
-      //       } else {
-      //         element.insert(CCAPI_BASE_ASSET, splitted.at(0));
-      //         element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
-      //       }
-      //       element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(8 - 1, '0') + "1");
-      //       element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(8 - 1, '0') + "1");
-      //       message.setElementList({element});
-      //       break;
-      //     }
-      //   }
-      //   message.setCorrelationIdList({request.getCorrelationId()});
-      //   event.addMessages({message});
-      // } break;
       case Request::Operation::GET_INSTRUMENTS: {
         Message message;
         message.setTimeReceived(timeReceived);

@@ -9,7 +9,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
   ExecutionManagementServiceCoinbase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -30,7 +29,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/orders";
     this->getAccountsTarget = "/accounts";
     this->getAccountBalancesTarget = "/accounts/<account-id>";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceCoinbase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

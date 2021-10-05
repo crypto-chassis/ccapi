@@ -36,9 +36,7 @@ class MarketDataServiceOkex : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       if (conflateIntervalMilliSeconds < 100) {
         if (marketDepthRequested <= 50) {
@@ -106,7 +104,6 @@ class MarketDataServiceOkex : public MarketDataService {
       ++i;
     }
     std::string csStr = UtilString::join(csData, ":");
-    CCAPI_LOGGER_DEBUG("csStr = " + csStr);
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
@@ -166,9 +163,7 @@ class MarketDataServiceOkex : public MarketDataService {
           if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400 ||
               channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
             std::string action = channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 ? "" : document["action"].GetString();
-            CCAPI_LOGGER_TRACE("action = " + toString(action));
             for (const auto& datum : document["data"].GetArray()) {
-              CCAPI_LOGGER_TRACE("this->sessionOptions.enableCheckOrderBookChecksum = " + toString(this->sessionOptions.enableCheckOrderBookChecksum));
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
                 auto it = datum.FindMember("checksum");
                 if (it != datum.MemberEnd()) {
@@ -176,10 +171,8 @@ class MarketDataServiceOkex : public MarketDataService {
                       intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoi(it->value.GetString()))));
                 }
               }
-              CCAPI_LOGGER_TRACE("this->orderBookChecksumByConnectionIdSymbolIdMap = " + toString(this->orderBookChecksumByConnectionIdSymbolIdMap));
               MarketDataMessage marketDataMessage;
               marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
-              CCAPI_LOGGER_TRACE("marketDataMessage.tp = " + toString(marketDataMessage.tp));
               marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
               marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
               if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5) {

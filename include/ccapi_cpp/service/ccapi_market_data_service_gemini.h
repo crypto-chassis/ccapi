@@ -30,9 +30,7 @@ class MarketDataServiceGemini : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    CCAPI_LOGGER_TRACE("conflateIntervalMilliSeconds = " + toString(conflateIntervalMilliSeconds));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         int marketDepthSubscribedToExchange = 1;
@@ -43,7 +41,6 @@ class MarketDataServiceGemini : public MarketDataService {
   }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     MarketDataService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     std::vector<std::string> correlationIdList;
@@ -73,22 +70,17 @@ class MarketDataServiceGemini : public MarketDataService {
     messageList.push_back(std::move(message));
     event.setMessageList(messageList);
     this->eventHandler(event, nullptr);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
-    CCAPI_LOGGER_TRACE("type = " + type);
     if (this->sessionOptions.enableCheckSequence) {
       int sequence = std::stoi(document["socket_sequence"].GetString());
       if (!this->checkSequence(wsConnection, sequence)) {
@@ -155,7 +147,6 @@ class MarketDataServiceGemini : public MarketDataService {
       }
       marketDataMessageList.push_back(std::move(marketDataMessage));
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto instrument = subscription.getInstrument();
@@ -193,8 +184,6 @@ class MarketDataServiceGemini : public MarketDataService {
       this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnection.id, sequence));
       return true;
     } else {
-      CCAPI_LOGGER_DEBUG("sequence: previous = " + toString(this->sequenceByConnectionIdMap[wsConnection.id]) + ", current = " + toString(sequence) +
-                         ", wsConnection = " + toString(wsConnection));
       if (sequence - this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
         this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
         return true;

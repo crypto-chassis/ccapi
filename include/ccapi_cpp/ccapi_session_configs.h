@@ -111,6 +111,10 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapGateio = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_GATEIO_CHANNEL_TRADES},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_GATEIO_CHANNEL_ORDER_BOOK},
+    };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -171,6 +175,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapDeribit) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_DERIBIT].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapGateio) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_GATEIO].push_back(fieldWebsocketChannel.first);
+    }
     for (auto& x : this->exchangeFieldMap) {
       x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
     }
@@ -196,6 +203,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_FTX, fieldWebsocketChannelMapFtx},
         {CCAPI_EXCHANGE_NAME_FTX_US, fieldWebsocketChannelMapFtxUs},
         {CCAPI_EXCHANGE_NAME_DERIBIT, fieldWebsocketChannelMapDeribit},
+        {CCAPI_EXCHANGE_NAME_GATEIO, fieldWebsocketChannelMapGateio},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -219,6 +227,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_FTX_US, CCAPI_FTX_US_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_GATEIO, CCAPI_GATEIO_URL_WS_BASE},
     };
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
@@ -244,6 +253,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_FTX_US, CCAPI_FTX_US_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_GATEIO, CCAPI_GATEIO_URL_REST_BASE},
     };
   }
   void initializUrlFixBase() {

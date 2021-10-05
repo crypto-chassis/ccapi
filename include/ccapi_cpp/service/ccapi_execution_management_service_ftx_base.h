@@ -9,7 +9,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
   ExecutionManagementServiceFtxBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                     ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->createOrderTarget = "/api/orders";
     this->cancelOrderTarget = "/api/orders";
     this->getOrderTarget = "/api/orders";
@@ -17,8 +16,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/api/orders";
     this->getAccountsTarget = "/api/subaccounts";
     this->getAccountBalancesTarget = "/api/wallet/balances";
-    // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceFtxBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -228,12 +225,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     }
     return elementList;
   }
-  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const
-  // TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-  //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
-  // }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -253,11 +244,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("op", rj::Value("login").Move(), allocator);
-    // create the args document
     rj::Document args;
     args.SetObject();
     rj::Document::AllocatorType& allocatorArgs = args.GetAllocator();
-    // Get the signed values
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto subaccount = mapGetWithDefault(credential, this->apiSubaccountName);
@@ -272,16 +261,12 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     if (!subaccount.empty()) {
       args.AddMember("subaccount", rj::Value(subaccount.c_str(), allocatorArgs).Move(), allocatorArgs);
     }
-    // Add the args object to the main document
     document.AddMember("args", rj::Value(args, allocator).Move(), allocator);
-    // Turn the rapidjson document into a string
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
     std::string sendString = stringBuffer.GetString();
-    // First element should be the authentication string
     sendStringList.push_back(sendString);
-    // Subsequent element should be the channel to subscribe to
     auto fieldSet = subscription.getFieldSet();
     for (const auto& field : subscription.getFieldSet()) {
       std::string channelId;
@@ -295,7 +280,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       rj::Document::AllocatorType& allocatorSubscribe = documentSubscribe.GetAllocator();
       documentSubscribe.AddMember("op", rj::Value("subscribe").Move(), allocatorSubscribe);
       documentSubscribe.AddMember("channel", rj::Value(channelId.c_str(), allocatorSubscribe).Move(), allocatorSubscribe);
-      // Turn the rapidjson document into a string
       rj::StringBuffer stringBufferSubscribe;
       rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
       documentSubscribe.Accept(writerSubscribe);
@@ -386,11 +370,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
-  // void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   CCAPI_LOGGER_DEBUG("quotedTextMessage = " + quotedTextMessage);
-  //   ExecutionManagementService::onTextMessage(hdl, quotedTextMessage, timeReceived);
-  // }
   std::string apiSubaccountName;
   std::string ftx;
 };

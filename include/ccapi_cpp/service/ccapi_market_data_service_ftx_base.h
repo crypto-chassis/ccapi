@@ -23,7 +23,6 @@ class MarketDataServiceFtxBase : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    CCAPI_LOGGER_TRACE("marketDepthRequested = " + toString(marketDepthRequested));
     if (field == CCAPI_MARKET_DEPTH) {
       this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = 100;
     }
@@ -77,24 +76,18 @@ class MarketDataServiceFtxBase : public MarketDataService {
       ++i;
     }
     std::string csStr = UtilString::join(csData, ":");
-    CCAPI_LOGGER_DEBUG("csStr = " + csStr);
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     rj::Document document;
-    // const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-    // CCAPI_LOGGER_TRACE("quotedTextMessage = " + quotedTextMessage);
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
-    CCAPI_LOGGER_TRACE("type = " + type);
     if (type == "update") {
       const rj::Value& data = document["data"];
       auto symbolId = std::string(document["market"].GetString());
       auto channel = std::string(document["channel"].GetString());
-      CCAPI_LOGGER_TRACE("channel = " + channel);
       auto exchangeSubscriptionId = channel + "|" + symbolId;
       if (channel == CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS) {
         MarketDataMessage marketDataMessage;
@@ -229,7 +222,6 @@ class MarketDataServiceFtxBase : public MarketDataService {
       messageList.push_back(std::move(message));
       event.setMessageList(messageList);
     }
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {

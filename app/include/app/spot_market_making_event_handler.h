@@ -432,6 +432,11 @@ class SpotMarketMakingEventHandler : public EventHandler {
       const auto& correlationIdList = firstMessage.getCorrelationIdList();
       const auto& messageTimeReceived = firstMessage.getTimeReceived();
       const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
+      if (firstMessage.getType() == Message::Type::RESPONSE_ERROR) {
+        for (const auto& element : firstMessage.getElementList()) {
+          APP_LOGGER_INFO("Received an error: " + element.getValue(CCAPI_ERROR_MESSAGE) + ".");
+        }
+      }
       if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
         if (this->tradingMode == TradingMode::LIVE) {
           for (const auto& element : firstMessage.getElementList()) {
@@ -938,6 +943,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
     } else {
       if (exchange == "coinbase") {
         clientOrderId = AppUtil::generateUuidV4();
+      } else if (exchange == "kraken") {
+        clientOrderId = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
       } else {
         clientOrderId += instrument;
         clientOrderId += "_";

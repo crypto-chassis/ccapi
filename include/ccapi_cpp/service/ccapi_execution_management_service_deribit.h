@@ -9,7 +9,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
   ExecutionManagementServiceDeribit(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                     ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     this->exchangeName = CCAPI_EXCHANGE_NAME_DERIBIT;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/api/v2";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -31,7 +30,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/private/cancel_all_by_instrument";
     this->getAccountBalancesTarget = "/private/get_account_summary";
     this->getAccountPositionsTarget = "/private/get_positions";
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual ~ExecutionManagementServiceDeribit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -39,7 +37,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
  protected:
 #endif
   void onOpen(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     ExecutionManagementService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     rj::Document document;
@@ -55,7 +52,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     document.Accept(writer);
     std::string msg = stringBuffer.GetString();
     ErrorCode ec;
-    CCAPI_LOGGER_TRACE("msg = " + msg);
     this->send(hdl, msg, wspp::frame::opcode::text, ec);
     if (ec) {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
@@ -75,13 +71,11 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     requestData += "\n";
     requestData += body;
     requestData += "\n";
-
     std::string stringToSign = ts;
     stringToSign += "\n";
     stringToSign += nonce;
     stringToSign += "\n";
     stringToSign += requestData;
-
     auto clientSecret = mapGetWithDefault(credential, this->clientSecretName);
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, clientSecret, stringToSign, true);
     authorizationHeader += signature;
@@ -256,20 +250,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       }
     }
   }
-  // void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) override {
-  //   CCAPI_LOGGER_INFO("about to logon to exchange");
-  //   CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-  //   auto subscription = wsConnection.subscriptionList.at(0);
-  //   std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnection, subscription, now, credential);
-  //   for (const auto& sendString : sendStringList) {
-  //     CCAPI_LOGGER_INFO("sendString = " + sendString);
-  //     ErrorCode ec;
-  //     this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-  //     if (ec) {
-  //       this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
-  //     }
-  //   }
-  // }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
@@ -367,7 +347,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             rj::Writer<rj::StringBuffer> writer(stringBuffer);
             document.Accept(writer);
             std::string sendString = stringBuffer.GetString();
-            CCAPI_LOGGER_INFO("sendString = " + sendString);
             ErrorCode ec;
             this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
             if (ec) {
@@ -471,7 +450,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             document.Accept(writer);
             std::string msg = stringBuffer.GetString();
             ErrorCode ec;
-            CCAPI_LOGGER_TRACE("msg = " + msg);
             this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
             if (ec) {
               this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
@@ -484,12 +462,10 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     return event;
   }
   void onClose(wspp::connection_hdl hdl) override {
-    CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
     this->authorizationJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
     ExecutionManagementService::onClose(hdl);
-    CCAPI_LOGGER_FUNCTION_EXIT;
   }
   std::map<std::string, std::set<int64_t>> subscriptionJsonrpcIdSetByConnectionIdMap;
   std::map<std::string, std::set<int64_t>> authorizationJsonrpcIdSetByConnectionIdMap;
