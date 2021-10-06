@@ -27,6 +27,13 @@
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
+  static bool endsWith(const std::string& mainStr, const std::string& toMatch) {
+    if (mainStr.size() >= toMatch.size() && mainStr.compare(mainStr.size() - toMatch.size(), toMatch.size(), toMatch) == 0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
   static std::string printDoubleScientific(double number, int precision = CCAPI_PRINT_DOUBLE_PRECISION_DEFAULT) {
     std::stringstream ss;
     ss << std::setprecision(precision) << std::scientific;
