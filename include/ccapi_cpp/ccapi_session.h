@@ -67,6 +67,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_GATEIO
 #include "ccapi_cpp/service/ccapi_market_data_service_gateio.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
+#include "ccapi_cpp/service/ccapi_market_data_service_gateio_perpetual_futures.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -284,6 +287,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_GATEIO
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_GATEIO] =
         std::make_shared<MarketDataServiceGateio>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES] =
+        std::make_shared<MarketDataServiceGateioPerpetualFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
