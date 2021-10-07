@@ -51,12 +51,20 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-
         this->substituteParam(target, param,
                               {
                                   {"settle", "{settle}"},
                                   {CCAPI_MARGIN_ASSET, "{settle}"},
                               });
+        std::string settle;
+        if (UtilString::endsWith(symbolId, "_USD")) {
+          settle = "btc";
+        } else if (UtilString::endsWith(symbolId, "_USDT")) {
+          settle = "usdt";
+        }
+        this->substituteParam(target, {
+                                          {"{settle}", settle},
+                                      });
         std::string queryString;
         this->appendParam(queryString, param,
                           {
@@ -74,6 +82,15 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
                                   {"settle", "{settle}"},
                                   {CCAPI_MARGIN_ASSET, "{settle}"},
                               });
+        std::string settle;
+        if (UtilString::endsWith(symbolId, "_USD")) {
+          settle = "btc";
+        } else if (UtilString::endsWith(symbolId, "_USDT")) {
+          settle = "usdt";
+        }
+        this->substituteParam(target, {
+                                          {"{settle}", settle},
+                                      });
         this->substituteParam(target, {
                                           {"{contract}", symbolId},
                                       });
