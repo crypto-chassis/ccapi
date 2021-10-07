@@ -16,8 +16,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
 #endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
-    CCAPI_LOGGER_WARN("{\"time\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"channel\":\"" + (this->isDerivatives ? "futures" : "spot") +
-                      ".ping\"}");
     this->send(hdl,
                "{\"time\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"channel\":\"" + (this->isDerivatives ? "futures" : "spot") + ".ping\"}",
                wspp::frame::opcode::text, ec);
@@ -33,7 +31,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
         int marketDepthSubscribedToExchange = 1;
         marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
         channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
-
         std::string updateSpeed;
         if (this->isDerivatives) {
           updateSpeed = "0";
@@ -83,7 +80,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
               exchangeSubscriptionIdList;
           this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
         }
-
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
@@ -123,7 +119,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
                 exchangeSubscriptionIdList;
             this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
           }
-
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
           document.Accept(writer);
@@ -166,7 +161,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
           }
         }
       }
-
       message.setCorrelationIdList(correlationIdList);
       bool hasError = document.HasMember("error") && !document["error"].IsNull();
       message.setType(!hasError ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
@@ -186,7 +180,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
           auto its = result.FindMember("s");
           symbol = it != result.MemberEnd() ? it->value.GetString() : (its != result.MemberEnd() ? its->value.GetString() : "");
         }
-
         MarketDataMessage marketDataMessage;
         std::string exchangeSubscriptionId;
         std::string channelId;
@@ -200,8 +193,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
         } else {
           channelId = channel;
         }
-        CCAPI_LOGGER_WARN("channelId=" + channelId);
-
         if (channelId == this->websocketChannelBookTicker) {
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
@@ -305,7 +296,6 @@ class MarketDataServiceGateioBase : public MarketDataService {
       }
     }
   }
-
   bool isDerivatives{};
   std::string symbolName;
   std::string websocketChannelTrades;

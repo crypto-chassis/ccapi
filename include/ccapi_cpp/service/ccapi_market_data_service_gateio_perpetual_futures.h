@@ -56,10 +56,8 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
                               {
                                   {"settle", "{settle}"},
                                   {CCAPI_MARGIN_ASSET, "{settle}"},
-
                               });
         std::string queryString;
-
         this->appendParam(queryString, param,
                           {
                               {CCAPI_LIMIT, "limit"},
@@ -71,12 +69,10 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-
         this->substituteParam(target, param,
                               {
                                   {"settle", "{settle}"},
                                   {CCAPI_MARGIN_ASSET, "{settle}"},
-
                               });
         this->substituteParam(target, {
                                           {"{contract}", symbolId},
@@ -87,12 +83,10 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
         req.method(http::verb::get);
         auto target = this->getInstrumentsTarget;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-
         this->substituteParam(target, param,
                               {
                                   {"settle", "{settle}"},
                                   {CCAPI_MARGIN_ASSET, "{settle}"},
-
                               });
         req.target(target);
       } break;

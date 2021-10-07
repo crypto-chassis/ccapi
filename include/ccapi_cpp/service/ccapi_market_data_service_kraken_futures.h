@@ -221,7 +221,7 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["size"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "sell" ? "1" : "0"});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, x["trade_id"].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, x["uid"].GetString()});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
           marketDataMessageList.push_back(std::move(marketDataMessage));
         }
