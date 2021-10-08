@@ -43,6 +43,8 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
+    req.set("Accept", "application/json");
+    req.set(beast::http::field::content_type, "application/json");
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PUBLIC_REQUEST: {
         MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
