@@ -1,0 +1,54 @@
+include_guard(DIRECTORY)
+#
+add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
+add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_compile_definitions(CCAPI_ENABLE_SERVICE_FIX)
+
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GEMINI)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITSTAMP)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITFINEX)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITMEX)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ERISX)
+#
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX_US)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_DERIBIT)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GATEIO)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES)
+#
+# add_compile_definitions(CCAPI_ENABLE_LOG_TRACE)
+#
+# add_compile_definitions(CCAPI_ENABLE_LOG_DEBUG)
+#
+add_compile_definitions(CCAPI_ENABLE_LOG_INFO)
+add_compile_definitions(CCAPI_ENABLE_LOG_WARN)
+add_compile_definitions(CCAPI_ENABLE_LOG_ERROR)
+add_compile_definitions(CCAPI_ENABLE_LOG_FATAL)
+#
+# find_package(ZLIB REQUIRED)
+# link_libraries(ZLIB::ZLIB)
