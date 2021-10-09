@@ -184,14 +184,15 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
   std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
-        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("text", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_size", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("executed_value", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("left", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_total", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("product_id", JsonDataType::STRING)}};
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("currency_pair", JsonDataType::STRING)},
+    };
     std::vector<Element> elementList;
     if (operation == Request::Operation::GET_OPEN_ORDERS || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document.GetArray()) {
@@ -304,21 +305,14 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
               std::vector<Element> elementList;
               Element element;
-              element.insert(CCAPI_TRADE_ID, std::string(document["id"].GetString()));
-              element.insert(CCAPI_EM_ORDER_ID, document["order_id"].GetString());
-              element.insert(CCAPI_EM_ORDER_SIDE, std::string(document["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, document["price"].GetString());
-              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, document["amount"].GetString());
-              std::string takerSide = document["side"].GetString();
-              if (document.FindMember("taker_user_id") != document.MemberEnd()) {
-                element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                element.insert(CCAPI_IS_MAKER, "0");
-                element.insert(CCAPI_EM_ORDER_ID, document["taker_order_id"].GetString());
-              } else if (document.FindMember("maker_user_id") != document.MemberEnd()) {
-                element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "sell" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                element.insert(CCAPI_IS_MAKER, "1");
-                element.insert(CCAPI_EM_ORDER_ID, document["maker_order_id"].GetString());
-              }
+              element.insert(CCAPI_TRADE_ID, std::string(x["id"].GetString()));
+              element.insert(CCAPI_EM_ORDER_ID, x["order_id"].GetString());
+              element.insert(CCAPI_EM_CLIENT_ORDER_ID, x["text"].GetString());
+              element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["price"].GetString());
+              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["amount"].GetString());
+              std::string takerSide = x["side"].GetString();
+              element.insert(CCAPI_IS_MAKER, std::string(x["role"].GetString()) == "maker" ? "1" : "0");
               element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
               elementList.emplace_back(std::move(element));
               message.setElementList(elementList);
@@ -329,7 +323,7 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
               message.setTimeReceived(timeReceived);
               message.setCorrelationIdList({subscription.getCorrelationId()});
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+              const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
                   {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
                   {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("text", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -341,7 +335,7 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                   {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("currency_pair", JsonDataType::STRING)},
               };
               Element info;
-              this->extractOrderInfo(info, document, extractionFieldNameMap);
+              this->extractOrderInfo(info, x, extractionFieldNameMap);
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));
               message.setElementList(elementList);

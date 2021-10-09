@@ -376,7 +376,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
             messageList.push_back(std::move(message));
           } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-            std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+            const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
                 {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
