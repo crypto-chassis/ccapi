@@ -23,6 +23,8 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     preSignedText += "\n";
     preSignedText += queryString;
     preSignedText += "\n";
+    std::cout << body << std::endl;
+    std::cout << UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA512, body, true) << std::endl;
     preSignedText += UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA512, body, true);
     preSignedText += "\n";
     preSignedText += req.base().at("TIMESTAMP").to_string();

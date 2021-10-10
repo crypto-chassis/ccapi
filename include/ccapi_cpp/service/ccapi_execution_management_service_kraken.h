@@ -47,8 +47,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto noncePlusBody = nonce + body;
     std::string preSignedText = req.target().to_string();
-    std::string noncePlusBodySha256;
-    computeHash(noncePlusBody, noncePlusBodySha256);
+    std::cout << noncePlusBody << std::endl;
+    std::string noncePlusBodySha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, noncePlusBody);
+    std::cout << UtilAlgorithm::stringToHex(noncePlusBodySha256) << std::endl;
     preSignedText += noncePlusBodySha256;
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
     req.set("API-Sign", signature);

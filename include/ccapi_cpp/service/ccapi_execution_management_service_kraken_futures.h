@@ -49,8 +49,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
     std::string preSignedText = postData;
     preSignedText += nonce;
     preSignedText += path;
-    std::string preSignedTextSha256;
-    computeHash(preSignedText, preSignedTextSha256);
+    std::string preSignedTextSha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, preSignedText);
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedTextSha256));
     req.set("Authent", signature);
   }
@@ -333,8 +332,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
         auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
         std::string challengeToSign = document["message"].GetString();
-        std::string challengeToSignSha256;
-        computeHash(challengeToSign, challengeToSignSha256);
+        std::string challengeToSignSha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, challengeToSign);
         auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), challengeToSignSha256));
         std::vector<std::string> sendStringList;
         for (const auto& field : subscription.getFieldSet()) {
