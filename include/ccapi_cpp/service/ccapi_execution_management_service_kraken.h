@@ -47,8 +47,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto noncePlusBody = nonce + body;
     std::string preSignedText = req.target().to_string();
-    std::string noncePlusBodySha256;
-    computeHash(noncePlusBody, noncePlusBodySha256);
+    std::string noncePlusBodySha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, noncePlusBody);
     preSignedText += noncePlusBodySha256;
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
     req.set("API-Sign", signature);
@@ -171,14 +170,14 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("userref", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("vol", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("vol_exec", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
     };
-    std::vector<Element> elementList;
     if (operation == Request::Operation::CREATE_ORDER) {
       for (const auto& x : document["result"]["txid"].GetArray()) {
         Element element;
@@ -205,10 +204,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         auto resultItr = document.FindMember("result");
@@ -228,7 +226,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
           const rj::Value& result = resultItr->value;
           for (auto itr = result.MemberBegin(); itr != result.MemberEnd(); ++itr) {
             Element element;
-            element.insert(CCAPI_EM_SYMBOL, itr->value["pair"].GetString());
+            element.insert(CCAPI_INSTRUMENT, itr->value["pair"].GetString());
             element.insert(CCAPI_EM_POSITION_QUANTITY,
                            Decimal(itr->value["vol"].GetString()).subtract(Decimal(itr->value["vol_closed"].GetString())).toString());
             element.insert(CCAPI_EM_POSITION_COST, itr->value["cost"].GetString());
@@ -239,7 +237,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
@@ -426,34 +423,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     }
     event.setMessageList(messageList);
     return event;
-  }
-  static bool computeHash(const std::string& unhashed, std::string& hashed, bool returnHex = false) {
-    bool success = false;
-    EVP_MD_CTX* context = EVP_MD_CTX_new();
-    if (context != NULL) {
-      if (EVP_DigestInit_ex(context, EVP_sha256(), NULL)) {
-        if (EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length())) {
-          unsigned char hash[EVP_MAX_MD_SIZE];
-          unsigned int lengthOfHash = 0;
-          if (EVP_DigestFinal_ex(context, hash, &lengthOfHash)) {
-            std::stringstream ss;
-            if (returnHex) {
-              for (unsigned int i = 0; i < lengthOfHash; ++i) {
-                ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
-              }
-            } else {
-              for (unsigned int i = 0; i < lengthOfHash; ++i) {
-                ss << (char)hash[i];
-              }
-            }
-            hashed = ss.str();
-            success = true;
-          }
-        }
-      }
-      EVP_MD_CTX_free(context);
-    }
-    return success;
   }
   std::string getWebSocketsTokenTarget;
 };

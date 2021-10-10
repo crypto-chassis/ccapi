@@ -19,6 +19,8 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_FTX_US)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GATEIO)
+#
 # find_package(ZLIB REQUIRED)
 # link_libraries(ZLIB::ZLIB)
 

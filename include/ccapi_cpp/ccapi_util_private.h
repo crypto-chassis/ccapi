@@ -24,6 +24,7 @@
 #include "ccapi_cpp/ccapi_date.h"
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util.h"
+#include "openssl/evp.h"
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
@@ -274,6 +275,42 @@ class UtilTime CCAPI_FINAL {
 };
 class UtilAlgorithm CCAPI_FINAL {
  public:
+  enum class ShaVersion {
+    UNKNOWN,
+    SHA256,
+    SHA512,
+  };
+
+ public:
+  static std::string computeHash(const ShaVersion shaVersion, const std::string& unhashed, bool returnHex = false) {
+    EVP_MD_CTX* context = EVP_MD_CTX_new();
+    switch (shaVersion) {
+      case ShaVersion::SHA256:
+        EVP_DigestInit_ex(context, EVP_sha256(), NULL);
+        break;
+      case ShaVersion::SHA512:
+        EVP_DigestInit_ex(context, EVP_sha512(), NULL);
+        break;
+      default:
+        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+    }
+    EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length());
+    unsigned char hash[EVP_MAX_MD_SIZE];
+    unsigned int lengthOfHash = 0;
+    EVP_DigestFinal_ex(context, hash, &lengthOfHash);
+    EVP_MD_CTX_free(context);
+    std::stringstream ss;
+    if (returnHex) {
+      for (unsigned int i = 0; i < lengthOfHash; ++i) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+      }
+    } else {
+      for (unsigned int i = 0; i < lengthOfHash; ++i) {
+        ss << (char)hash[i];
+      }
+    }
+    return ss.str();
+  }
   static std::string stringToHex(const std::string& input) {
     static const char hex_digits[] = "0123456789abcdef";
     std::string output;

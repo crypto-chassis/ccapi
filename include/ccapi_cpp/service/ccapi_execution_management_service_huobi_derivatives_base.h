@@ -132,7 +132,8 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
@@ -142,7 +143,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("trade_volume", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("contract_code", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER) {
       Element element;
@@ -163,10 +163,9 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     const auto& data = document["data"];
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
@@ -183,7 +182,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : data.GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["contract_code"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["contract_code"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["direction"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["available"].GetString());
           element.insert(CCAPI_EM_POSITION_COST, x["cost_open"].GetString());
@@ -194,7 +193,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {

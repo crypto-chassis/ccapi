@@ -504,7 +504,7 @@ TEST_F(ExecutionManagementServiceFtxTest, convertTextMessageToMessageRestGetAcco
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "ETH-PERP");
+  EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "ETH-PERP");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "sell");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0.23");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "-31.7906");

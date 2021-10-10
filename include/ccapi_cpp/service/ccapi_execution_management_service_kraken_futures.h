@@ -49,8 +49,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
     std::string preSignedText = postData;
     preSignedText += nonce;
     preSignedText += path;
-    std::string preSignedTextSha256;
-    computeHash(preSignedText, preSignedTextSha256);
+    std::string preSignedTextSha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, preSignedText);
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedTextSha256));
     req.set("Authent", signature);
   }
@@ -150,7 +149,8 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("cliOrdId", JsonDataType::STRING)},
@@ -161,7 +161,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("unfilledSize", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       const rj::Value& sendStatus = document[operation == Request::Operation::CREATE_ORDER ? "sendStatus" : "cancelStatus"];
       if (sendStatus.FindMember("orderEvents") != sendStatus.MemberEnd()) {
@@ -194,10 +193,9 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         auto resultItr = document.FindMember("accounts");
@@ -221,7 +219,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document["openPositions"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["symbol"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["side"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
           element.insert(CCAPI_EM_POSITION_COST,
@@ -232,7 +230,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -333,8 +330,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
         auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
         std::string challengeToSign = document["message"].GetString();
-        std::string challengeToSignSha256;
-        computeHash(challengeToSign, challengeToSignSha256);
+        std::string challengeToSignSha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, challengeToSign);
         auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), challengeToSignSha256));
         std::vector<std::string> sendStringList;
         for (const auto& field : subscription.getFieldSet()) {
@@ -379,34 +375,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
     }
     event.setMessageList(messageList);
     return event;
-  }
-  static bool computeHash(const std::string& unhashed, std::string& hashed, bool returnHex = false) {
-    bool success = false;
-    EVP_MD_CTX* context = EVP_MD_CTX_new();
-    if (context != NULL) {
-      if (EVP_DigestInit_ex(context, EVP_sha256(), NULL)) {
-        if (EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length())) {
-          unsigned char hash[EVP_MAX_MD_SIZE];
-          unsigned int lengthOfHash = 0;
-          if (EVP_DigestFinal_ex(context, hash, &lengthOfHash)) {
-            std::stringstream ss;
-            if (returnHex) {
-              for (unsigned int i = 0; i < lengthOfHash; ++i) {
-                ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
-              }
-            } else {
-              for (unsigned int i = 0; i < lengthOfHash; ++i) {
-                ss << (char)hash[i];
-              }
-            }
-            hashed = ss.str();
-            success = true;
-          }
-        }
-      }
-      EVP_MD_CTX_free(context);
-    }
-    return success;
   }
   std::string createOrderPath;
   std::string cancelOrderPath;
