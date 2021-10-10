@@ -28,6 +28,10 @@ class ExecutionManagementServiceGateio : public ExecutionManagementServiceGateio
     this->getOpenOrdersTarget = prefix + "/spot/orders";
     this->cancelOpenOrdersTarget = prefix + "/spot/orders";
     this->getAccountsTarget = prefix + "/spot/accounts";
+    this->symbolName = "currency_pair";
+    this->websocketChannelUserTrades = "spot.usertrades";
+    this->websocketChannelOrders = "spot.orders";
+    this->amountName = "amount";
   }
   virtual ~ExecutionManagementServiceGateio() {}
 };

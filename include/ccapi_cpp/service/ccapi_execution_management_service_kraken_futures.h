@@ -149,7 +149,8 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("cliOrdId", JsonDataType::STRING)},
@@ -160,7 +161,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("unfilledSize", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       const rj::Value& sendStatus = document[operation == Request::Operation::CREATE_ORDER ? "sendStatus" : "cancelStatus"];
       if (sendStatus.FindMember("orderEvents") != sendStatus.MemberEnd()) {
@@ -193,10 +193,9 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         auto resultItr = document.FindMember("accounts");
@@ -220,7 +219,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document["openPositions"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["symbol"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["side"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
           element.insert(CCAPI_EM_POSITION_COST,
@@ -231,7 +230,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {

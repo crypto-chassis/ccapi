@@ -23,8 +23,6 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     preSignedText += "\n";
     preSignedText += queryString;
     preSignedText += "\n";
-    std::cout << body << std::endl;
-    std::cout << UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA512, body, true) << std::endl;
     preSignedText += UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA512, body, true);
     preSignedText += "\n";
     preSignedText += req.base().at("TIMESTAMP").to_string();
@@ -44,19 +42,13 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     }
   }
   void appendSymbolId(std::string& queryString, const std::string& symbolId) {
-    queryString += "currency_pair=";
+    queryString += this->symbolName;
+    queryString += "=";
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> standardizationMap = {
-                       {CCAPI_EM_ORDER_SIDE, "side"},
-                       {CCAPI_EM_ORDER_QUANTITY, "amount"},
-                       {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                       {CCAPI_EM_CLIENT_ORDER_ID, "text"},
-                       {CCAPI_EM_ORDER_TYPE, "type"},
-                       {CCAPI_EM_ACCOUNT_TYPE, "account"},
-                   }) {
+                   const std::map<std::string, std::string> standardizationMap) {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
@@ -72,16 +64,46 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       }
     }
   }
-  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
-    document.AddMember("currency_pair", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param) {
+    this->appendParam(document, allocator, param,
+                      {
+                          {CCAPI_EM_ORDER_SIDE, "side"},
+                          {CCAPI_EM_ORDER_QUANTITY, this->amountName},
+                          {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                          {CCAPI_EM_CLIENT_ORDER_ID, "text"},
+                          {CCAPI_EM_ORDER_TYPE, "type"},
+                          {CCAPI_EM_ACCOUNT_TYPE, "account"},
+                      });
   }
-  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
-                             const std::map<std::string, std::string>& credential) override {
+  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
+    document.AddMember(rj::Value(symbolName.c_str(), allocator).Move(), rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+  }
+  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     req.set("Accept", "application/json");
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("KEY", apiKey);
     req.set("TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
+  }
+  void substituteParamSettle(std::string& target, const std::map<std::string, std::string>& param, const std::string& symbolId) {
+    this->substituteParam(target, param,
+                          {
+                              {"settle", "{settle}"},
+                              {CCAPI_MARGIN_ASSET, "{settle}"},
+                          });
+    std::string settle;
+    if (UtilString::endsWith(symbolId, "_USD")) {
+      settle = "btc";
+    } else if (UtilString::endsWith(symbolId, "_USDT")) {
+      settle = "usdt";
+    }
+    this->substituteParam(target, {
+                                      {"{settle}", settle},
+                                  });
+  }
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                             const std::map<std::string, std::string>& credential) override {
+    this->prepareReq(req, now, credential);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
@@ -95,7 +117,11 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
         auto body = stringBuffer.GetString();
-        this->signRequest(req, this->createOrderTarget, "", body, credential);
+        std::string path = this->createOrderTarget;
+        if (this->isDerivatives) {
+          this->substituteParamSettle(path, param, symbolId);
+        }
+        this->signRequest(req, path, "", body, credential);
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
@@ -117,6 +143,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                           });
         this->appendSymbolId(queryString, symbolId);
         queryString.pop_back();
+        if (this->isDerivatives) {
+          this->substituteParamSettle(path, param, symbolId);
+        }
         this->signRequest(req, path, queryString, "", credential);
       } break;
       case Request::Operation::GET_ORDER: {
@@ -139,6 +168,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                           });
         this->appendSymbolId(queryString, symbolId);
         queryString.pop_back();
+        if (this->isDerivatives) {
+          this->substituteParamSettle(path, param, symbolId);
+        }
         this->signRequest(req, path, queryString, "", credential);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
@@ -152,7 +184,11 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                           });
         this->appendSymbolId(queryString, symbolId);
         queryString.pop_back();
-        this->signRequest(req, this->getOpenOrdersTarget, queryString, "", credential);
+        std::string path = this->getOpenOrdersTarget;
+        if (this->isDerivatives) {
+          this->substituteParamSettle(path, param, symbolId);
+        }
+        this->signRequest(req, path, queryString, "", credential);
       } break;
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
@@ -164,7 +200,11 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                           });
         this->appendSymbolId(queryString, symbolId);
         queryString.pop_back();
-        this->signRequest(req, this->getOpenOrdersTarget, queryString, "", credential);
+        std::string path = this->getOpenOrdersTarget;
+        if (this->isDerivatives) {
+          this->substituteParamSettle(path, param, symbolId);
+        }
+        this->signRequest(req, path, queryString, "", credential);
       } break;
       case Request::Operation::GET_ACCOUNTS: {
         req.method(http::verb::get);
@@ -177,40 +217,18 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         if (!queryString.empty()) {
           queryString.pop_back();
         }
-        this->signRequest(req, this->getAccountsTarget, queryString, "", credential);
+        std::string path = this->getAccountsTarget;
+        if (this->isDerivatives) {
+          this->substituteParamSettle(path, param, symbolId);
+        }
+        this->signRequest(req, path, queryString, "", credential);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-        {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
-        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("text", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("left", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_total", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("currency_pair", JsonDataType::STRING)},
-    };
-    std::vector<Element> elementList;
-    if (operation == Request::Operation::GET_OPEN_ORDERS || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
-      for (const auto& x : document.GetArray()) {
-        Element element;
-        this->extractOrderInfo(element, x, extractionFieldNameMap);
-        elementList.emplace_back(std::move(element));
-      }
-    } else {
-      Element element;
-      this->extractOrderInfo(element, document, extractionFieldNameMap);
-      elementList.emplace_back(std::move(element));
-    }
-    return elementList;
-  }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document.GetArray()) {
@@ -223,7 +241,31 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
+  }
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
+    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+        {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("text", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair(this->amountName, JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("left", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_total", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair(this->symbolName, JsonDataType::STRING)},
+    };
+    if (operation == Request::Operation::GET_OPEN_ORDERS || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
+      for (const auto& x : document.GetArray()) {
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
+      }
+    } else {
+      Element element;
+      this->extractOrderInfo(element, document, extractionFieldNameMap);
+      elementList.emplace_back(std::move(element));
+    }
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -240,9 +282,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       document.AddMember("time", rj::Value(time).Move(), allocator);
       std::string channel;
       if (field == CCAPI_EM_PRIVATE_TRADE) {
-        channel = "spot.usertrades";
+        channel = this->websocketChannelUserTrades;
       } else if (field == CCAPI_EM_ORDER_UPDATE) {
-        channel = "spot.orders";
+        channel = this->websocketChannelOrders;
       }
       document.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
       document.AddMember("event", rj::Value("subscribe").Move(), allocator);
@@ -290,14 +332,14 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       auto instrumentSet = subscription.getInstrumentSet();
       std::string channel = document["channel"].GetString();
       std::string field;
-      if (channel == "spot.usertrades") {
+      if (channel == this->websocketChannelUserTrades) {
         field = CCAPI_EM_PRIVATE_TRADE;
-      } else if (channel == "spot.orders") {
+      } else if (channel == this->websocketChannelOrders) {
         field = CCAPI_EM_ORDER_UPDATE;
       }
       if (fieldSet.find(field) != fieldSet.end()) {
         for (const auto& x : document["result"].GetArray()) {
-          std::string instrument = x["currency_pair"].GetString();
+          std::string instrument = x[this->symbolName.c_str()].GetString();
           if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
             if (field == CCAPI_EM_PRIVATE_TRADE) {
               Message message;
@@ -312,7 +354,7 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
               element.insert(CCAPI_EM_CLIENT_ORDER_ID, x["text"].GetString());
               element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
               element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["price"].GetString());
-              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["amount"].GetString());
+              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x[this->amountName.c_str()].GetString());
               std::string takerSide = x["side"].GetString();
               element.insert(CCAPI_IS_MAKER, std::string(x["role"].GetString()) == "maker" ? "1" : "0");
               element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
@@ -330,11 +372,11 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                   {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("text", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_QUANTITY, std::make_pair(this->amountName, JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("left", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_total", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_STATUS, std::make_pair("event", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("currency_pair", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair(this->symbolName, JsonDataType::STRING)},
               };
               Element info;
               this->extractOrderInfo(info, x, extractionFieldNameMap);
@@ -358,6 +400,11 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
+  bool isDerivatives{};
+  std::string symbolName;
+  std::string websocketChannelUserTrades;
+  std::string websocketChannelOrders;
+  std::string amountName;
 };
 } /* namespace ccapi */
 #endif

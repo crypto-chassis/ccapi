@@ -33,8 +33,7 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   std::string nonce = req.base().at("Nonce").to_string();
   std::string path = splitted.at(0).rfind("/derivatives", 0) == 0 ? splitted.at(0).substr(std::string("/derivatives").length()) : splitted.at(0);
   std::string preSignedText = postData + nonce + path;
-  std::string preSignedTextSha256;
-  ExecutionManagementServiceKrakenFutures::computeHash(preSignedText, preSignedTextSha256);
+  std::string preSignedTextSha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, preSignedText);
   auto signature = req.base().at("Authent").to_string();
   EXPECT_EQ(UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedTextSha256)), signature);
 }
@@ -406,7 +405,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertTextMessageToMessageR
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 2);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "pi_xbtusd");
+  EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "pi_xbtusd");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "short");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "10000");
   EXPECT_NEAR(std::stod(element.getValue(CCAPI_EM_POSITION_COST)), 9392.749993345933 * 10000, 9392.749993345933 * 10000 * CCAPI_DOUBLE_ERROR_DEFAULT);

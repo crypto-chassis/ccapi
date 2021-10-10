@@ -27,13 +27,13 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
         ExecutionManagementServiceBinanceBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document["positions"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["symbol"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["positionSide"].GetString());
           std::string positionAmt;
           auto it = x.FindMember("positionAmt");
@@ -49,9 +49,8 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
         }
       } break;
       default:
-        elementList = ExecutionManagementServiceBinanceBase::extractAccountInfoFromRequest(request, operation, document);
+        ExecutionManagementServiceBinanceBase::extractAccountInfoFromRequest(elementList, request, operation, document);
     }
-    return elementList;
   }
 };
 } /* namespace ccapi */

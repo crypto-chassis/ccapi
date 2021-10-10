@@ -71,9 +71,11 @@ class ExecutionManagementService : public Service {
     message.setType(this->requestOperationToMessageTypeMap.at(operation));
     auto castedOperation = static_cast<int>(operation);
     if (castedOperation >= Request::operationTypeExecutionManagementOrder && castedOperation < Request::operationTypeExecutionManagementAccount) {
-      message.setElementList(this->extractOrderInfoFromRequest(request, operation, document));
+      this->extractOrderInfoFromRequest(elementList, request, operation, document);
+      message.setElementList(elementList);
     } else if (castedOperation >= Request::operationTypeExecutionManagementAccount) {
-      message.setElementList(this->extractAccountInfoFromRequest(request, operation, document));
+      this->extractAccountInfoFromRequest(elementList, request, operation, document);
+      message.setElementList(elementList);
     }
     std::vector<Message> messageList;
     messageList.push_back(std::move(message));
@@ -219,12 +221,10 @@ class ExecutionManagementService : public Service {
   virtual void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection,
                                           const Request& request, int wsRequestId, const TimePoint& now, const std::string& symbolId,
                                           const std::map<std::string, std::string>& credential) {}
-  virtual std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
-    return {};
-  }
-  virtual std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) {
-    return {};
-  }
+  virtual void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                           const rj::Document& document) {}
+  virtual void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                             const rj::Document& document) {}
   virtual std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription,
                                                                         const TimePoint& now, const std::map<std::string, std::string>& credential) {
     return {};

@@ -41,6 +41,22 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     }
     return url + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
   }
+  void substituteParamSettle(std::string& target, const std::map<std::string, std::string>& param, const std::string& symbolId) {
+    this->substituteParam(target, param,
+                          {
+                              {"settle", "{settle}"},
+                              {CCAPI_MARGIN_ASSET, "{settle}"},
+                          });
+    std::string settle;
+    if (UtilString::endsWith(symbolId, "_USD")) {
+      settle = "btc";
+    } else if (UtilString::endsWith(symbolId, "_USDT")) {
+      settle = "usdt";
+    }
+    this->substituteParam(target, {
+                                      {"{settle}", settle},
+                                  });
+  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     req.set("Accept", "application/json");
@@ -53,20 +69,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->substituteParam(target, param,
-                              {
-                                  {"settle", "{settle}"},
-                                  {CCAPI_MARGIN_ASSET, "{settle}"},
-                              });
-        std::string settle;
-        if (UtilString::endsWith(symbolId, "_USD")) {
-          settle = "btc";
-        } else if (UtilString::endsWith(symbolId, "_USDT")) {
-          settle = "usdt";
-        }
-        this->substituteParam(target, {
-                                          {"{settle}", settle},
-                                      });
+        this->substituteParamSettle(target, param, symbolId);
         std::string queryString;
         this->appendParam(queryString, param,
                           {
@@ -79,20 +82,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->substituteParam(target, param,
-                              {
-                                  {"settle", "{settle}"},
-                                  {CCAPI_MARGIN_ASSET, "{settle}"},
-                              });
-        std::string settle;
-        if (UtilString::endsWith(symbolId, "_USD")) {
-          settle = "btc";
-        } else if (UtilString::endsWith(symbolId, "_USDT")) {
-          settle = "usdt";
-        }
-        this->substituteParam(target, {
-                                          {"{settle}", settle},
-                                      });
+        this->substituteParamSettle(target, param, symbolId);
         this->substituteParam(target, {
                                           {"{contract}", symbolId},
                                       });
