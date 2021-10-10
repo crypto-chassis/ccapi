@@ -129,6 +129,12 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service_deribit.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO
+#include "ccapi_cpp/service/ccapi_execution_management_service_gateio.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_gateio_perpetual_futures.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -365,6 +371,14 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_DERIBIT] =
         std::make_shared<ExecutionManagementServiceDeribit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_GATEIO] =
+        std::make_shared<ExecutionManagementServiceGateio>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES] =
+        std::make_shared<ExecutionManagementServiceGateioPerpetualFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX

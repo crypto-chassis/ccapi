@@ -645,7 +645,7 @@ TEST_F(ExecutionManagementServiceBitmexTest, convertTextMessageToMessageRestGetA
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ACCOUNT_ID), "335606");
-  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "XBTUSD");
+  EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "XBTUSD");
   EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "XBt");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "500");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "-1485034");

@@ -180,7 +180,8 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdID", JsonDataType::STRING)},
@@ -190,7 +191,6 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("ordStatus", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (operation == Request::Operation::GET_OPEN_ORDERS) {
       for (const auto& x : document["orderStatuses"].GetArray()) {
         Element element;
@@ -208,17 +208,9 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
-    return elementList;
-  }
-  // std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const
-  // TimePoint& timeReceived) override {
-  //   const std::string& quotedTextMessage = this->convertNumberToStringInJson(textMessage);
-  //   return ExecutionManagementService::convertTextMessageToMessageRest(request, quotedTextMessage, timeReceived);
-  // }
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {}
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);

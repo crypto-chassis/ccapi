@@ -45,13 +45,13 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
         ExecutionManagementServiceFtxBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document["result"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["future"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["future"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["side"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
           element.insert(CCAPI_EM_POSITION_COST, x["cost"].GetString());
@@ -59,9 +59,8 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
         }
       } break;
       default:
-        elementList = ExecutionManagementServiceFtxBase::extractAccountInfoFromRequest(request, operation, document);
+        ExecutionManagementServiceFtxBase::extractAccountInfoFromRequest(elementList, request, operation, document);
     }
-    return elementList;
   }
 };
 } /* namespace ccapi */

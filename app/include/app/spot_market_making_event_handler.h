@@ -945,6 +945,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
         clientOrderId = AppUtil::generateUuidV4();
       } else if (exchange == "kraken") {
         clientOrderId = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+      } else if (exchange == "gateio") {
+        clientOrderId = "t-" + std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
       } else {
         clientOrderId += instrument;
         clientOrderId += "_";

@@ -153,7 +153,8 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
@@ -164,7 +165,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("executed_value", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("product_id", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, document.GetString());
@@ -188,10 +188,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         }
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document.GetArray()) {
@@ -211,7 +210,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
