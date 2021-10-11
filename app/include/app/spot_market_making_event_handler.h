@@ -462,7 +462,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
         }
         APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " + quoteBalanceDecimalNotation +
                         ".");
-        APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best ask price is " + this->bestAskPrice + ".");
+        APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
+                        ", best ask size is " + this->bestAskSize + ".");
         if (this->enableMarketMaking) {
           this->placeOrders(requestList, messageTimeReceived);
         }
@@ -560,9 +561,11 @@ class SpotMarketMakingEventHandler : public EventHandler {
     if (!requestList.empty()) {
       if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
         for (const auto& request : requestList) {
+          bool createdBuyOrder = false;
           const auto& now = request.getTimeSent();
           Event virtualEvent;
           Event virtualEvent_2;
+          Event virtualEvent_3;
           Message message;
           Message message_2;
           message.setTime(now);
@@ -642,103 +645,26 @@ class SpotMarketMakingEventHandler : public EventHandler {
               order.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_NEW;
               Element element;
               this->extractOrderInfo(element, order);
-              bool isBuy = side == CCAPI_EM_ORDER_SIDE_BUY;
-              if (isBuy) {
+              createdBuyOrder = side == CCAPI_EM_ORDER_SIDE_BUY;
+              if (createdBuyOrder) {
                 this->openBuyOrder = order;
               } else {
                 this->openSellOrder = order;
               }
               std::vector<Element> elementList;
+              std::vector<Element> elementList_2;
               elementList.emplace_back(std::move(element));
+              elementList_2 = elementList;
               message.setElementList(elementList);
               std::vector<Message> messageList;
               messageList.emplace_back(std::move(message));
               virtualEvent.setMessageList(messageList);
               virtualEvent_2.setType(Event::Type::RESPONSE);
               message_2.setType(Message::Type::CREATE_ORDER);
-              message_2.setElementList(elementList);
+              message_2.setElementList(elementList_2);
               std::vector<Message> messageList_2;
               messageList_2.emplace_back(std::move(message_2));
               virtualEvent_2.setMessageList(messageList_2);
-              if ((isBuy && order.limitPrice >= Decimal(this->bestAskPrice)) || (!isBuy && order.limitPrice <= Decimal(this->bestBidPrice))) {
-                Order matchedOrder = order;
-                Decimal quantityToMatch = Decimal(isBuy ? this->bestAskSize : this->bestBidSize);
-                if (quantityToMatch >= matchedOrder.quantity) {
-                  matchedOrder.cumulativeFilledQuantity = matchedOrder.quantity;
-                  matchedOrder.remainingQuantity = Decimal("0");
-                  matchedOrder.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_FILLED;
-                  if (isBuy) {
-                    this->openBuyOrder = boost::none;
-                  } else {
-                    this->openSellOrder = boost::none;
-                  }
-                } else {
-                  matchedOrder.cumulativeFilledQuantity = quantityToMatch;
-                  matchedOrder.remainingQuantity = matchedOrder.quantity.subtract(quantityToMatch);
-                  matchedOrder.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_PARTIALLY_FILLED;
-                  if (isBuy) {
-                    this->openBuyOrder = matchedOrder;
-                  } else {
-                    this->openSellOrder = matchedOrder;
-                  }
-                }
-                if (isBuy) {
-                  this->baseBalance += matchedOrder.cumulativeFilledQuantity.toDouble();
-                  this->quoteBalance -= matchedOrder.limitPrice.toDouble() * matchedOrder.cumulativeFilledQuantity.toDouble();
-                } else {
-                  this->baseBalance -= matchedOrder.cumulativeFilledQuantity.toDouble();
-                  this->quoteBalance += matchedOrder.limitPrice.toDouble() * matchedOrder.cumulativeFilledQuantity.toDouble();
-                }
-                double feeQuantity = 0;
-                if ((isBuy && UtilString::toLower(this->takerBuyerFeeAsset) == UtilString::toLower(this->baseAsset)) ||
-                    (!isBuy && UtilString::toLower(this->takerSellerFeeAsset) == UtilString::toLower(this->baseAsset))) {
-                  feeQuantity = matchedOrder.cumulativeFilledQuantity.toDouble() * this->takerFee;
-                  this->baseBalance -= feeQuantity;
-                } else if ((isBuy && UtilString::toLower(this->takerBuyerFeeAsset) == UtilString::toLower(this->quoteAsset)) ||
-                           (!isBuy && UtilString::toLower(this->takerSellerFeeAsset) == UtilString::toLower(this->quoteAsset))) {
-                  feeQuantity = matchedOrder.limitPrice.toDouble() * matchedOrder.cumulativeFilledQuantity.toDouble() * this->takerFee;
-                  this->quoteBalance -= feeQuantity;
-                }
-                Event virtualEvent;
-                virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
-                std::vector<Message> messageList;
-                {
-                  Message message;
-                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-                  message.setTime(now);
-                  message.setTimeReceived(now);
-                  Element element;
-                  element.insert(CCAPI_TRADE_ID, std::to_string(++this->virtualTradeId));
-                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, matchedOrder.limitPrice.toString());
-                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, matchedOrder.cumulativeFilledQuantity.toString());
-                  element.insert(CCAPI_EM_ORDER_SIDE, matchedOrder.side);
-                  element.insert(CCAPI_IS_MAKER, "0");
-                  element.insert(CCAPI_EM_ORDER_ID, matchedOrder.orderId);
-                  element.insert(CCAPI_EM_CLIENT_ORDER_ID, matchedOrder.clientOrderId);
-                  element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(feeQuantity)).toString());
-                  element.insert(CCAPI_EM_ORDER_FEE_ASSET, isBuy ? this->takerBuyerFeeAsset : this->takerSellerFeeAsset);
-                  std::vector<Element> elementList;
-                  elementList.emplace_back(std::move(element));
-                  message.setElementList(elementList);
-                  messageList.emplace_back(std::move(message));
-                }
-                {
-                  Message message;
-                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-                  message.setTime(now);
-                  message.setTimeReceived(now);
-                  Element element;
-                  this->extractOrderInfo(element, matchedOrder);
-                  std::vector<Element> elementList;
-                  elementList.emplace_back(std::move(element));
-                  message.setElementList(elementList);
-                  std::vector<Message> messageList;
-                  messageList.emplace_back(std::move(message));
-                }
-                virtualEvent.setMessageList(messageList);
-              }
             } else {
               virtualEvent_2.setType(Event::Type::RESPONSE);
               message_2.setType(Message::Type::RESPONSE_ERROR);
@@ -769,13 +695,15 @@ class SpotMarketMakingEventHandler : public EventHandler {
               elementList.emplace_back(std::move(element));
               this->openSellOrder = boost::none;
             }
+            std::vector<Element> elementList_2;
             if (!elementList.empty()) {
+              elementList_2 = elementList;
               message.setElementList(elementList);
               virtualEvent.setMessageList({message});
             }
             virtualEvent_2.setType(Event::Type::RESPONSE);
             message_2.setType(Message::Type::CANCEL_OPEN_ORDERS);
-            message_2.setElementList(elementList);
+            message_2.setElementList(elementList_2);
             std::vector<Message> messageList_2;
             messageList_2.emplace_back(std::move(message_2));
             virtualEvent_2.setMessageList(messageList_2);
@@ -787,6 +715,90 @@ class SpotMarketMakingEventHandler : public EventHandler {
           if (!virtualEvent_2.getMessageList().empty()) {
             APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent_2.toStringPretty());
             this->processEvent(virtualEvent_2, session);
+          }
+          if (operation == Request::Operation::CREATE_ORDER) {
+            if ((createdBuyOrder && this->openBuyOrder->limitPrice >= Decimal(this->bestAskPrice)) ||
+                (!createdBuyOrder && this->openSellOrder->limitPrice <= Decimal(this->bestBidPrice))) {
+              Order matchedOrder = createdBuyOrder ? this->openBuyOrder.get() : this->openSellOrder.get();
+              Decimal quantityToMatch = Decimal(createdBuyOrder ? this->bestAskSize : this->bestBidSize);
+              if (quantityToMatch >= matchedOrder.quantity) {
+                matchedOrder.cumulativeFilledQuantity = matchedOrder.quantity;
+                matchedOrder.remainingQuantity = Decimal("0");
+                matchedOrder.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_FILLED;
+                if (createdBuyOrder) {
+                  this->openBuyOrder = boost::none;
+                } else {
+                  this->openSellOrder = boost::none;
+                }
+              } else {
+                matchedOrder.cumulativeFilledQuantity = quantityToMatch;
+                matchedOrder.remainingQuantity = matchedOrder.quantity.subtract(quantityToMatch);
+                matchedOrder.status = APP_SPOT_MARKET_MAKING_ORDER_STATUS_PARTIALLY_FILLED;
+                if (createdBuyOrder) {
+                  this->openBuyOrder = matchedOrder;
+                } else {
+                  this->openSellOrder = matchedOrder;
+                }
+              }
+              if (createdBuyOrder) {
+                this->baseBalance += matchedOrder.cumulativeFilledQuantity.toDouble();
+                this->quoteBalance -= matchedOrder.limitPrice.toDouble() * matchedOrder.cumulativeFilledQuantity.toDouble();
+              } else {
+                this->baseBalance -= matchedOrder.cumulativeFilledQuantity.toDouble();
+                this->quoteBalance += matchedOrder.limitPrice.toDouble() * matchedOrder.cumulativeFilledQuantity.toDouble();
+              }
+              double feeQuantity = 0;
+              if ((createdBuyOrder && UtilString::toLower(this->takerBuyerFeeAsset) == UtilString::toLower(this->baseAsset)) ||
+                  (!createdBuyOrder && UtilString::toLower(this->takerSellerFeeAsset) == UtilString::toLower(this->baseAsset))) {
+                feeQuantity = matchedOrder.cumulativeFilledQuantity.toDouble() * this->takerFee;
+                this->baseBalance -= feeQuantity;
+              } else if ((createdBuyOrder && UtilString::toLower(this->takerBuyerFeeAsset) == UtilString::toLower(this->quoteAsset)) ||
+                         (!createdBuyOrder && UtilString::toLower(this->takerSellerFeeAsset) == UtilString::toLower(this->quoteAsset))) {
+                feeQuantity = matchedOrder.limitPrice.toDouble() * matchedOrder.cumulativeFilledQuantity.toDouble() * this->takerFee;
+                this->quoteBalance -= feeQuantity;
+              }
+              virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
+              std::vector<Message> messageList;
+              {
+                Message message;
+                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                message.setTime(now);
+                message.setTimeReceived(now);
+                Element element;
+                element.insert(CCAPI_TRADE_ID, std::to_string(++this->virtualTradeId));
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, matchedOrder.limitPrice.toString());
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, matchedOrder.cumulativeFilledQuantity.toString());
+                element.insert(CCAPI_EM_ORDER_SIDE, matchedOrder.side);
+                element.insert(CCAPI_IS_MAKER, "0");
+                element.insert(CCAPI_EM_ORDER_ID, matchedOrder.orderId);
+                element.insert(CCAPI_EM_CLIENT_ORDER_ID, matchedOrder.clientOrderId);
+                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(feeQuantity)).toString());
+                element.insert(CCAPI_EM_ORDER_FEE_ASSET, createdBuyOrder ? this->takerBuyerFeeAsset : this->takerSellerFeeAsset);
+                std::vector<Element> elementList;
+                elementList.emplace_back(std::move(element));
+                message.setElementList(elementList);
+                messageList.emplace_back(std::move(message));
+              }
+              {
+                Message message;
+                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+                message.setTime(now);
+                message.setTimeReceived(now);
+                Element element;
+                this->extractOrderInfo(element, matchedOrder);
+                std::vector<Element> elementList;
+                elementList.emplace_back(std::move(element));
+                message.setElementList(elementList);
+                messageList.emplace_back(std::move(message));
+              }
+              virtualEvent_3.setMessageList(messageList);
+            }
+          }
+          if (!virtualEvent_3.getMessageList().empty()) {
+            APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent_3.toStringPretty());
+            this->processEvent(virtualEvent_3, session);
           }
         }
       } else {
