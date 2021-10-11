@@ -1184,7 +1184,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
       } else if (countGain > 0 && countLoss == 0) {
         rsi = 100;
       } else {
-        rsi = 100 - 100 / (1 + (sumGain / countGain) / (sumLoss / countLoss));
+        rsi = 100 - 100 / (1 + sumGain / sumLoss);
       }
       APP_LOGGER_DEBUG("RSI is " + std::to_string(rsi) + ".");
       if (rsi > this->adverseSelectionGuardTriggerRsiMaximum) {
