@@ -60,6 +60,12 @@ int main(int argc, char** argv) {
   eventHandler.adverseSelectionGuardTriggerRocMaximum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_MAXIMUM");
   eventHandler.adverseSelectionGuardTriggerRocOrderDirectionReverse =
       UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_TRIGGER_ROC_ORDER_DIRECTION_REVERSE")) == "true";
+  eventHandler.enableAdverseSelectionGuardByRsi = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_RSI")) == "true";
+  eventHandler.adverseSelectionGuardTriggerRsiNumObservations = UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_TRIGGER_RSI_NUM_OBSERVATIONS");
+  eventHandler.adverseSelectionGuardTriggerRsiMinimum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_RSI_MINIMUM");
+  eventHandler.adverseSelectionGuardTriggerRsiMaximum = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_TRIGGER_RSI_MAXIMUM");
+  eventHandler.adverseSelectionGuardTriggerRsiOrderDirectionReverse =
+      UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_TRIGGER_RSI_ORDER_DIRECTION_REVERSE")) == "true";
   eventHandler.enableAdverseSelectionGuardByRollCorrelationCoefficient =
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_ROLL_CORRELATION_COEFFICIENT")) == "true";
   eventHandler.adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations =
@@ -89,6 +95,7 @@ int main(int argc, char** argv) {
       UtilString::toLower(UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_ACTION_ORDER_QUANTITY_PROPORTION_RELATIVE_TO_ONE_ASSET")) == "true";
   eventHandler.adverseSelectionGuardActionOrderRefreshIntervalSeconds =
       UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_ACTION_ORDER_REFRESH_INTERVAL_SECONDS");
+  eventHandler.enableMarketMaking = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_MARKET_MAKING", "true")) == "true";
   eventHandler.baseAsset = UtilSystem::getEnvAsString("BASE_ASSET_OVERRIDE");
   eventHandler.quoteAsset = UtilSystem::getEnvAsString("QUOTE_ASSET_OVERRIDE");
   eventHandler.orderPriceIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_PRICE_INCREMENT_OVERRIDE"));
@@ -105,6 +112,9 @@ int main(int argc, char** argv) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
     eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
     eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
+    eventHandler.takerFee = UtilSystem::getEnvAsDouble("TAKER_FEE");
+    eventHandler.takerBuyerFeeAsset = UtilSystem::getEnvAsString("TAKER_BUYER_FEE_ASSET");
+    eventHandler.takerSellerFeeAsset = UtilSystem::getEnvAsString("TAKER_SELLER_FEE_ASSET");
     eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE") * eventHandler.baseAvailableBalanceProportion;
     eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE") * eventHandler.quoteAvailableBalanceProportion;
   }
