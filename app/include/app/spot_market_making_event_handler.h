@@ -540,9 +540,12 @@ class SpotMarketMakingEventHandler : public EventHandler {
           this->promisePtr->set_value();
         } else {
           std::vector<Subscription> subscriptionList;
-          subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH",
-                                        std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepSeconds * 1000) + "&" +
-                                            CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0",
+          std::string options;
+          if (!this->enableUpdateOrderBookTickByTick) {
+            options = std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepSeconds * 1000) + "&" +
+                      CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0";
+          }
+          subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH", options,
                                         PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID);
           if (this->tradingMode == TradingMode::PAPER || this->enableAdverseSelectionGuard) {
             std::string field = "TRADE";
@@ -1019,7 +1022,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalSummary{}, enableAdverseSelectionGuard{},
       enableAdverseSelectionGuardByInventoryLimit{}, enableAdverseSelectionGuardByInventoryDepletion{},
       enableAdverseSelectionGuardByRollCorrelationCoefficient{}, adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset{},
-      enableAdverseSelectionGuardByRoc{}, enableAdverseSelectionGuardByRsi{}, immediatelyPlaceNewOrders{},
+      enableAdverseSelectionGuardByRoc{}, enableAdverseSelectionGuardByRsi{}, enableUpdateOrderBookTickByTick{}, immediatelyPlaceNewOrders{},
       adverseSelectionGuardTriggerRocOrderDirectionReverse{}, adverseSelectionGuardTriggerRsiOrderDirectionReverse{},
       adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse{}, enableMarketMaking{};
   TradingMode tradingMode{TradingMode::LIVE};
