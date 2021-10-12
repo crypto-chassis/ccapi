@@ -289,6 +289,7 @@ Instantiate `Subscription` with the desired correlationId.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id");
 ```
+This is used to match a particular request or subscription with its returned data. Within each `Message` there is a `correlationIdList` to identify the request or subscription that requested the data.
 
 #### Multiple exchanges and/or instruments
 
@@ -605,6 +606,7 @@ Instantiate `Subscription` with the desired correlationId.
 ```
 Subscription subscription("coinbase", "BTC-USD", "ORDER_UPDATE", "", "cool correlation id");
 ```
+This is used to match a particular request or subscription with its returned data. Within each `Message` there is a `correlationIdList` to identify the request or subscription that requested the data.
 
 #### Multiple exchanges and/or instruments
 
