@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
   eventHandler.orderRefreshIntervalSeconds = eventHandler.originalOrderRefreshIntervalSeconds;
   eventHandler.orderRefreshIntervalOffsetSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_OFFSET_SECONDS") % eventHandler.orderRefreshIntervalSeconds;
   eventHandler.immediatelyPlaceNewOrders = UtilString::toLower(UtilSystem::getEnvAsString("IMMEDIATELY_PLACE_NEW_ORDERS")) == "true";
+  eventHandler.enableUpdateOrderBookTickByTick = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_UPDATE_ORDER_BOOK_TICK_BY_TICK")) == "true";
   eventHandler.accountBalanceRefreshWaitSeconds = UtilSystem::getEnvAsInt("ACCOUNT_BALANCE_REFRESH_WAIT_SECONDS");
   eventHandler.accountId = UtilSystem::getEnvAsString("ACCOUNT_ID");
   eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
