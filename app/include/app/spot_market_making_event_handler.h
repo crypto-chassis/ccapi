@@ -464,9 +464,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                         ".");
         APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
                         ", best ask size is " + this->bestAskSize + ".");
-        if (this->enableMarketMaking) {
-          this->placeOrders(requestList, messageTimeReceived);
-        }
+        this->placeOrders(requestList, messageTimeReceived);
         this->numOpenOrders = requestList.size();
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
         const auto& element = firstMessage.getElementList().at(0);
@@ -864,7 +862,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
           this->checkAdverseSelectionGuardByRsi(adverseSelectionGuardInformedTraderSide);
         }
       }
-      if (adverseSelectionGuardInformedTraderSide == AdverseSelectionGuardInformedTraderSide::NONE) {
+      if (this->enableMarketMaking && adverseSelectionGuardInformedTraderSide == AdverseSelectionGuardInformedTraderSide::NONE) {
         if (this->enableAdverseSelectionGuard && r < this->adverseSelectionGuardTriggerInventoryBasePortionMinimum &&
             this->enableAdverseSelectionGuardByInventoryLimit) {
           adverseSelectionGuardInformedTraderSide = AdverseSelectionGuardInformedTraderSide::BUY;
