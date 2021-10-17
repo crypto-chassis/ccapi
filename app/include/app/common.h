@@ -29,11 +29,16 @@
 #include <fstream>
 #include <mutex>
 #include <string>
-
+#include <random>
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class AppUtil {
  public:
+   static double generateRandomDouble(double lowerBound, double upperBound) {
+        static std::uniform_real_distribution<double> unif(lowerBound,upperBound);
+        static std::default_random_engine re;
+        return unif(re);
+   }
   static std::string generateUuidV4() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
