@@ -47,7 +47,7 @@ class SingleOrderExecutionEventHandler : public EventHandler {
     IS,
   };
   bool processEvent(const Event& event, Session* session) override {
-    if (this->skipProcessEvent){
+    if (this->skipProcessEvent) {
       return true;
     }
     APP_LOGGER_DEBUG("********");
@@ -411,8 +411,6 @@ class SingleOrderExecutionEventHandler : public EventHandler {
             (this->orderRefreshIntervalOffsetSeconds >= 0 &&
              std::chrono::duration_cast<std::chrono::seconds>(messageTime.time_since_epoch()).count() % this->orderRefreshIntervalSeconds ==
                  this->orderRefreshIntervalOffsetSeconds)) {
-
-
           if (this->numOpenOrders != 0) {
 #ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
             this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
@@ -838,134 +836,128 @@ class SingleOrderExecutionEventHandler : public EventHandler {
     this->onPostGetAccountBalances(messageTime);
   }
   void placeOrders(std::vector<Request>& requestList, const TimePoint& now) {
-    // double midPrice;
-    // if (!this->bestBidPrice.empty() && !this->bestAskPrice.empty()) {
-    //     midPrice = (std::stod(this->bestBidPrice) + std::stod(this->bestAskPrice)) / 2;
-    // } else {
-    //   APP_LOGGER_INFO("At least one side of the order book is empty. Skip.");
-    //   return;
-    // }
-    // if (this->baseBalance > 0 || this->quoteBalance > 0) {
-    //   double price = 0;
-    //   if (side==CCAPI_EM_ORDER_SIDE_BUY){
-    //     price = std::min(midPrice*(1+this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit);
-    //   }else{
-    //     price = std::max(midPrice*(1+this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit);
-    //   }
-    //   std::string priceStr = AppUtil::roundInput(price, this->orderPriceIncrement, side==CCAPI_EM_ORDER_SIDE_SELL);
-    //   double quantity = 0;
-    //   int intervalStart = std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()+(this->orderRefreshIntervalIndex-1)*this->orderRefreshIntervalSeconds;
-    //   int intervalEnd = intervalStart+this->orderRefreshIntervalSeconds;
-    //   if (tradingStrategy==TradingStrategy::TWAP){
-    //     quantity = AppUtil::generateRandomDouble(-this->orderQuantityRandomizationMax,this->orderQuantityRandomizationMax)*
-    //     (this->targetQuantityInQuote > 0 ? this->targetQuantityInQuote / this->numOrderRefreshIntervals/std::stod(priceStr) : this->targetQuantity / this->numOrderRefreshIntervals);
-    //     // quantity *= ;
-    //     // side==CCAPI_EM_ORDER_SIDE_BUY?this->quoteBalance/std::stod(priceStr):this->baseBalance);
-    //   } else if (tradingStrategy==TradingStrategy::VWAP){
-    //     if (this->orderRefreshIntervalIndex == 0) {
-    //       quantity = this->targetQuantityInQuote > 0 ? this->targetQuantityInQuote / this->numOrderRefreshIntervals/price : this->targetQuantity / this->numOrderRefreshIntervals;
-    //     } else {
-    //       double projectedPublicTradeVolume = 0;
-    //       double projectedPublicTradeVolumeInQuote = 0;
-    //       double projectedPublicTradeVwap = 0;
-    //       for (const auto& kv:this->publicTradeMap){
-    //         if (kv.first>=intervalStart
-    //       && kv.first<intervalEnd){
-    //           projectedPublicTradeVolume+=2*kv.second[APP_PUBLIC_TRADE_VOLUME];
-    //           projectedPublicTradeVolumeInQuote+=2*kv.second[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE];
-    //         } else {
-    //           projectedPublicTradeVolume+=kv.second[APP_PUBLIC_TRADE_VOLUME];
-    //           projectedPublicTradeVolumeInQuote+=kv.second[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE];
-    //         }
-    //       }
-    //       if (projectedPublicTradeVolume>0){
-    //         projectedPublicTradeVwap=projectedPublicTradeVolumeInQuote/projectedPublicTradeVolume;
-    //         if (price!=projectedPublicTradeVwap){
-    //           quantity=(projectedPublicTradeVwap*this->privateTradeSummary[APP_PUBLIC_TRADE_VOLUME]-this->privateTradeSummary[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE])/(price-projectedPublicTradeVwap);
-    //         }
-    //       }
-    //     }
-    //   }else if (tradingStrategy==TradingStrategy::POV){
-    //     if (this->orderRefreshIntervalIndex == 0) {
-    //       quantity = this->targetQuantityInQuote > 0 ? this->targetQuantityInQuote / this->numOrderRefreshIntervals/price : this->targetQuantity / this->numOrderRefreshIntervals;
-    //     } else {
-    //       auto itLowerBound = this->publicTradeMap.lower_bound(intervalStart);
-    //       auto itUpperBound = this->publicTradeMap.lower_bound(intervalEnd);
-    //       double projectedPublicTradeVolume = 0;
-    //       double projectedPublicTradeVolumeInQuote = 0;
-    //       while (itLowerBound!=itUpperBound){
-    //         projectedPublicTradeVolume+=*itLowerBound[APP_PUBLIC_TRADE_VOLUME];
-    //         projectedPublicTradeVolumeInQuote+=*itLowerBound[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE];
-    //         itLowerBound++;
-    //       }
-    //       quantity = this->targetQuantityInQuote > 0?projectedPublicTradeVolumeInQuote*this->orderQuantityParticipationRate/price:projectedPublicTradeVolume*this->orderQuantityParticipationRate;
-    //     }
-    //
-    //     // quantity =
-    //   }else if (tradingStrategy==TradingStrategy::IS){
-    //     if (this->orderRefreshIntervalIndex > 0) {
-    //       quantity = 2*sinh(0.5*this->kapa*this->orderRefreshIntervalSeconds)/sinh(this->kapa*this->totalDurationSeconds)*cosh(this->kapa*(this->totalDurationSeconds-(this->orderRefreshIntervalIndex-0.5)*this->orderRefreshIntervalSeconds))*(this->targetQuantityInQuote?this->targetQuantityInQuote/price:this->targetQuantity);
-    //     }
-    //
-    //   }
-    //   quantity = min({quantity,
-    //     CCAPI_EM_ORDER_SIDE_BUY?this->quoteBalance/std::stod(priceStr):this->baseBalance, this->targetQuantityInQuote > 0?this->theoreticalRemainingQuantityInQuote/std::stod(priceStr):this->theoreticalRemainingQuantity,
-    //     this->targetQuantityInQuote > 0?this->targetQuantityInQuote*this->orderQuantityLimitRelativeToTarget/std::stod(priceStr):this->targetQuantity*this->orderQuantityLimitRelativeToTarget,
-    //   });
-    //   if (quantity > 0) {
-    //     std::string quantityStr = AppUtil::roundInput(quantity, this->orderQuantityIncrement, false);
-    //     if (UtilString::normalizeDecimalString(quantityStr) != "0") {
-    //       if (this->targetQuantityInQuote>0){
-    //         this->theoreticalRemainingQuantityInQuote -=price*quantity;
-    //         if (this->theoreticalRemainingQuantityInQuote>=0){
-    //           Request request = this->createRequestForCreateOrder(side, priceStr, quantityStr, now);
-    //           requestList.emplace_back(std::move(request));
-    //         }
-    //       } else {
-    //
-    //           Request request = this->createRequestForCreateOrder(side, priceStr, quantityStr, now);
-    //           requestList.emplace_back(std::move(request));
-    //           this->theoreticalRemainingQuantity -=quantity;
-    //       }
-    //
-    //     }
-    //   }
-    //
-    // } else {
-    //   APP_LOGGER_INFO("Account has no assets. Skip.");
-    // }
+    double midPrice;
+    if (!this->bestBidPrice.empty() && !this->bestAskPrice.empty()) {
+      midPrice = (std::stod(this->bestBidPrice) + std::stod(this->bestAskPrice)) / 2;
+    } else {
+      APP_LOGGER_INFO("At least one side of the order book is empty. Skip.");
+      return;
+    }
+    if (this->baseBalance > 0 || this->quoteBalance > 0) {
+      double price = 0;
+      if (this->orderSide == CCAPI_EM_ORDER_SIDE_BUY) {
+        price = std::min(midPrice * (1 + this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit);
+      } else {
+        price = std::max(midPrice * (1 + this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit);
+      }
+      std::string priceStr = AppUtil::roundInput(price, this->orderPriceIncrement, this->orderSide == CCAPI_EM_ORDER_SIDE_SELL);
+      double quantity = 0;
+      int intervalStart = std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count() +
+                          (this->orderRefreshIntervalIndex - 1) * this->orderRefreshIntervalSeconds;
+      int intervalEnd = intervalStart + this->orderRefreshIntervalSeconds;
+      if (tradingStrategy == TradingStrategy::TWAP) {
+        quantity = AppUtil::generateRandomDouble(-this->twapOrderQuantityRandomizationMax, this->twapOrderQuantityRandomizationMax) *
+                   (this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals / std::stod(priceStr)
+                                                         : this->totalTargetQuantity / this->numOrderRefreshIntervals);
+      }
+      // else if (tradingStrategy==TradingStrategy::VWAP){
+      //   if (this->orderRefreshIntervalIndex == 0) {
+      //     quantity = this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals/price :
+      //     this->totalTargetQuantity / this->numOrderRefreshIntervals;
+      //   } else {
+      //     double projectedPublicTradeVolume = 0;
+      //     double projectedPublicTradeVolumeInQuote = 0;
+      //     double projectedPublicTradeVwap = 0;
+      //     for (const auto& kv:this->publicTradeMap){
+      //       if (kv.first>=intervalStart
+      //     && kv.first<intervalEnd){
+      //         projectedPublicTradeVolume+=2*kv.second[APP_PUBLIC_TRADE_VOLUME];
+      //         projectedPublicTradeVolumeInQuote+=2*kv.second[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE];
+      //       } else {
+      //         projectedPublicTradeVolume+=kv.second[APP_PUBLIC_TRADE_VOLUME];
+      //         projectedPublicTradeVolumeInQuote+=kv.second[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE];
+      //       }
+      //     }
+      //     if (projectedPublicTradeVolume>0){
+      //       projectedPublicTradeVwap=projectedPublicTradeVolumeInQuote/projectedPublicTradeVolume;
+      //       if (price!=projectedPublicTradeVwap){
+      //         quantity=(projectedPublicTradeVwap*this->privateTradeSummary[APP_PUBLIC_TRADE_VOLUME]-this->privateTradeSummary[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE])/(price-projectedPublicTradeVwap);
+      //       }
+      //     }
+      //   }
+      // }else if (tradingStrategy==TradingStrategy::POV){
+      //   if (this->orderRefreshIntervalIndex == 0) {
+      //     quantity = this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals/price :
+      //     this->totalTargetQuantity / this->numOrderRefreshIntervals;
+      //   } else {
+      //     auto itLowerBound = this->publicTradeMap.lower_bound(intervalStart);
+      //     auto itUpperBound = this->publicTradeMap.lower_bound(intervalEnd);
+      //     double projectedPublicTradeVolume = 0;
+      //     double projectedPublicTradeVolumeInQuote = 0;
+      //     while (itLowerBound!=itUpperBound){
+      //       projectedPublicTradeVolume+=*itLowerBound[APP_PUBLIC_TRADE_VOLUME];
+      //       projectedPublicTradeVolumeInQuote+=*itLowerBound[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE];
+      //       itLowerBound++;
+      //     }
+      //     quantity = this->totalTargetQuantityInQuote >
+      //     0?projectedPublicTradeVolumeInQuote*this->povOrderQuantityParticipationRate/price:projectedPublicTradeVolume*this->povOrderQuantityParticipationRate;
+      //   }
+      //
+      //   // quantity =
+      // }else if (tradingStrategy==TradingStrategy::IS){
+      //   if (this->orderRefreshIntervalIndex > 0) {
+      //     quantity =
+      //     2*std::sinh(0.5*this->isKapa*this->orderRefreshIntervalSeconds)/std::sinh(this->isKapa*this->totalDurationSeconds)*std::cosh(this->isKapa*(this->totalDurationSeconds-(this->orderRefreshIntervalIndex-0.5)*this->orderRefreshIntervalSeconds))*(this->totalTargetQuantityInQuote?this->totalTargetQuantityInQuote/price:this->totalTargetQuantity);
+      //   }
+      //
+      // }
+      quantity = std::min({
+          quantity,
+          CCAPI_EM_ORDER_SIDE_BUY ? this->quoteBalance / std::stod(priceStr) : this->baseBalance,
+          this->totalTargetQuantityInQuote > 0 ? this->theoreticalRemainingQuantityInQuote / std::stod(priceStr) : this->theoreticalRemainingQuantity,
+          this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
+                                               : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
+      });
+      if (quantity > 0) {
+        std::string quantityStr = AppUtil::roundInput(quantity, this->orderQuantityIncrement, false);
+        if (UtilString::normalizeDecimalString(quantityStr) != "0") {
+          if (this->totalTargetQuantityInQuote > 0) {
+            this->theoreticalRemainingQuantityInQuote -= price * quantity;
+            if (this->theoreticalRemainingQuantityInQuote >= 0) {
+              Request request = this->createRequestForCreateOrder(this->orderSide, priceStr, quantityStr, now);
+              requestList.emplace_back(std::move(request));
+            }
+          } else {
+            Request request = this->createRequestForCreateOrder(this->orderSide, priceStr, quantityStr, now);
+            requestList.emplace_back(std::move(request));
+            this->theoreticalRemainingQuantity -= quantity;
+          }
+        }
+      }
+    } else {
+      APP_LOGGER_INFO("Account has no assets. Skip.");
+    }
   }
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
       orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix, privateDataFileSuffix, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
       cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
-  double halfSpreadMinimum{}, halfSpreadMaximum{}, inventoryBasePortionTarget{}, baseBalance{}, quoteBalance{}, baseAvailableBalanceProportion{},
-      quoteAvailableBalanceProportion{}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},
-      adverseSelectionGuardTriggerInventoryBasePortionMinimum{}, adverseSelectionGuardTriggerInventoryBasePortionMaximum{},
-      adverseSelectionGuardActionOrderQuantityProportion{}, adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum{},
-      adverseSelectionGuardTriggerRocMinimum{}, adverseSelectionGuardTriggerRocMaximum{}, adverseSelectionGuardTriggerRsiMinimum{},
-      adverseSelectionGuardTriggerRsiMaximum{}, privateTradeVolumeInBaseSum{}, privateTradeVolumeInQuoteSum{}, privateTradeFeeInBaseSum{},
-      privateTradeFeeInQuoteSum{};
-  int orderRefreshIntervalSeconds{}, orderRefreshIntervalOffsetSeconds{-1}, accountBalanceRefreshWaitSeconds{}, clockStepSeconds{},
-      adverseSelectionGuardActionOrderRefreshIntervalSeconds{}, originalOrderRefreshIntervalSeconds{}, adverseSelectionGuardMarketDataSampleIntervalSeconds{},
-      adverseSelectionGuardMarketDataSampleBufferSizeSeconds{}, adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations{},
-      adverseSelectionGuardTriggerRocNumObservations{}, adverseSelectionGuardTriggerRsiNumObservations{};
+  double baseBalance{}, quoteBalance{}, baseAvailableBalanceProportion{1}, quoteAvailableBalanceProportion{1}, privateTradeVolumeInBaseSum{},
+      privateTradeVolumeInQuoteSum{}, privateTradeFeeInBaseSum{}, privateTradeFeeInQuoteSum{};
+  int orderRefreshIntervalSeconds{}, orderRefreshIntervalOffsetSeconds{-1}, accountBalanceRefreshWaitSeconds{}, clockStepSeconds{};
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}}, cancelOpenOrdersLastTime{std::chrono::seconds{0}},
       getAccountBalancesLastTime{std::chrono::seconds{0}};
   bool useGetAccountsToGetAccountBalances{}, useWeightedMidPrice{}, privateDataOnlySaveFinalSummary{}, enableAdverseSelectionGuard{},
       enableAdverseSelectionGuardByInventoryLimit{}, enableAdverseSelectionGuardByInventoryDepletion{},
       enableAdverseSelectionGuardByRollCorrelationCoefficient{}, adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset{},
-      enableAdverseSelectionGuardByRoc{}, enableAdverseSelectionGuardByRsi{}, enableUpdateOrderBookTickByTick{}, immediatelyPlaceNewOrders{},
-      adverseSelectionGuardTriggerRocOrderDirectionReverse{}, adverseSelectionGuardTriggerRsiOrderDirectionReverse{},
-      adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse{}, enableMarketMaking{};
+      enableAdverseSelectionGuardByRoc{}, enableAdverseSelectionGuardByRsi{}, enableUpdateOrderBookTickByTick{}, immediatelyPlaceNewOrders{};
   TradingMode tradingMode{TradingMode::LIVE};
-  // AdverseSelectionGuardActionType adverseSelectionGuardActionType{AdverseSelectionGuardActionType::NONE};
   std::shared_ptr<std::promise<void>> promisePtr{nullptr};
   int numOpenOrders;
+  boost::optional<Order> openBuyOrder, openSellOrder;
 
   // start: only applicable to paper trade and backtest
   double makerFee{}, takerFee{};
   std::string makerBuyerFeeAsset, makerSellerFeeAsset, takerBuyerFeeAsset, takerSellerFeeAsset;
-  boost::optional<Order> openBuyOrder, openSellOrder;
   // end: only applicable to paper trade and backtest
 
   // start: only applicable to backtest
@@ -973,21 +965,20 @@ class SingleOrderExecutionEventHandler : public EventHandler {
   std::string historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
   // end: only applicable to backtest
 
-
-
-
-
-  double targetQuantity{},targetQuantityInQuote{},theoreticalRemainingQuantity{},theoreticalRemainingQuantityInQuote{},orderPriceLimit{},orderPriceLimitRelativeToMidPrice{},orderQuantityLimitRelativeToTarget{},kapa{},
-  orderQuantityRandomizationMax{},orderQuantityParticipationRate{};
+  // start: only single order execution
+  double totalTargetQuantity{}, totalTargetQuantityInQuote{}, theoreticalRemainingQuantity{}, theoreticalRemainingQuantityInQuote{}, orderPriceLimit{},
+      orderPriceLimitRelativeToMidPrice{}, orderQuantityLimitRelativeToTarget{}, twapOrderQuantityRandomizationMax{}, povOrderQuantityParticipationRate{},
+      isKapa{};
   TimePoint startTimeTp;
-  int totalDurationSeconds{},numOrderRefreshIntervals{},orderRefreshIntervalIndex{-1};
-  std::string side;
-  TradingStrategy tradingStrategy;
+  int totalDurationSeconds{}, numOrderRefreshIntervals{}, orderRefreshIntervalIndex{-1};
+  std::string orderSide;
+  TradingStrategy tradingStrategy{TradingStrategy::TWAP};
+  // end: only single order execution
 
  protected:
-  void onPostGetAccountBalances(const TimePoint& now){
+  void onPostGetAccountBalances(const TimePoint& now) {
     this->orderRefreshIntervalIndex += 1;
-    if (now>=this->startTimeTp+std::chrono::seconds(this->totalDurationSeconds) || this->theoreticalRemainingQuantity<=0){
+    if (now >= this->startTimeTp + std::chrono::seconds(this->totalDurationSeconds) || this->theoreticalRemainingQuantity <= 0) {
       APP_LOGGER_INFO("Exit.");
       this->promisePtr->set_value();
       this->skipProcessEvent = true;
@@ -1048,8 +1039,8 @@ class SingleOrderExecutionEventHandler : public EventHandler {
   CsvWriter* accountBalanceCsvWriter = nullptr;
   int64_t virtualTradeId;
   int64_t virtualOrderId;
-  std::map<int, std::map<std::string, double> > publicTradeMap;
-  std::map<std::string, double>  privateTradeSummary;
+  std::map<int, std::map<std::string, double>> publicTradeMap;
+  std::map<std::string, double> privateTradeSummary;
   bool skipProcessEvent{};
 };
 } /* namespace ccapi */

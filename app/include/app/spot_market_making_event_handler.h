@@ -42,7 +42,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
     SELL,
   };
   bool processEvent(const Event& event, Session* session) override {
-    if (this->skipProcessEvent){
+    if (this->skipProcessEvent) {
       return true;
     }
     APP_LOGGER_DEBUG("********");
@@ -1032,11 +1032,11 @@ class SpotMarketMakingEventHandler : public EventHandler {
   AdverseSelectionGuardActionType adverseSelectionGuardActionType{AdverseSelectionGuardActionType::NONE};
   std::shared_ptr<std::promise<void>> promisePtr{nullptr};
   int numOpenOrders;
+  boost::optional<Order> openBuyOrder, openSellOrder;
 
   // start: only applicable to paper trade and backtest
   double makerFee{}, takerFee{};
   std::string makerBuyerFeeAsset, makerSellerFeeAsset, takerBuyerFeeAsset, takerSellerFeeAsset;
-  boost::optional<Order> openBuyOrder, openSellOrder;
   // end: only applicable to paper trade and backtest
 
   // start: only applicable to backtest
