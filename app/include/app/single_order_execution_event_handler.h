@@ -846,7 +846,7 @@ class SingleOrderExecutionEventHandler : public EventHandler {
     if (this->baseBalance > 0 || this->quoteBalance > 0) {
       double price = 0;
       if (this->orderSide == CCAPI_EM_ORDER_SIDE_BUY) {
-        price = std::min(midPrice * (1 + this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit);
+        price = std::min(midPrice * (1 + this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit == 0 ? INT_MAX : this->orderPriceLimit);
       } else {
         price = std::max(midPrice * (1 + this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit);
       }
