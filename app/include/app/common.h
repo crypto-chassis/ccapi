@@ -141,7 +141,7 @@ class CsvWriter {
     size_t numCol = row.size();
     int i = 0;
     for (const auto& column : row) {
-      this->f << column;
+      this->f << column.c_str();
       if (i < numCol - 1) {
         this->f << ",";
       }
@@ -155,7 +155,7 @@ class CsvWriter {
       size_t numCol = row.size();
       int i = 0;
       for (const auto& column : row) {
-        this->f << column;
+        this->f << column.c_str();
         if (i < numCol - 1) {
           this->f << ",";
         }

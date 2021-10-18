@@ -1049,7 +1049,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
                                   const std::string& quantity, const TimePoint& now) {
     std::string clientOrderId;
     if (this->tradingMode == TradingMode::BACKTEST) {
-      clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now), "%F%T");
+      clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now));
       clientOrderId += "_";
       clientOrderId += side;
     } else {
@@ -1062,7 +1062,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
       } else {
         clientOrderId += instrument;
         clientOrderId += "_";
-        clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now), "%F%T");
+        clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now));
         clientOrderId += "_";
         clientOrderId += side;
         clientOrderId += "_";
