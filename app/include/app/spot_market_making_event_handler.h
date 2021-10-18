@@ -128,9 +128,9 @@ class SpotMarketMakingEventHandler : public EventHandler {
                 const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
                 this->orderRefreshLastTime = messageTimeReceived;
                 this->cancelOpenOrdersLastTime = messageTimeReceived;
-                if (this->accountBalanceRefreshWaitSeconds == 0) {
-                  this->getAccountBalances(requestList, messageTimeReceived, messageTimeReceivedISO);
-                }
+                // if (this->accountBalanceRefreshWaitSeconds == 0) {
+                //   this->getAccountBalances(requestList, messageTimeReceived, messageTimeReceivedISO);
+                // }
               }
             }
           }
