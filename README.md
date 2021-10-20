@@ -44,7 +44,7 @@
       - [Custom service class](#custom-service-class)
   - [Performance Tuning](#performance-tuning)
   - [Applications](#applications)
-    - [Spot Market Making (Beta)](#spot-market-making-beta)
+    - [Spot Market Making](#spot-market-making)
   - [Known Issues and Workarounds](#known-issues-and-workarounds)
   - [Contributing](#contributing)
 
@@ -58,7 +58,8 @@
   * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures.
   * Execution Management: coinbase, gemini, kraken, kraken-futures, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures.
   * FIX: coinbase, gemini, ftx, ftx-us.
-* A spot market making application is also provided as an end-to-end solution for liquidity providers.
+* A spot market making application is provided as an end-to-end solution for liquidity providers.
+<!-- * A single order execution application is provided as an end-to-end solution for executing large orders. -->
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
@@ -901,7 +902,7 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 
 ## Applications
 
-### Spot Market Making (Beta)
+### Spot Market Making
 * Source code: [app](app)
 * The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details. And read more at https://medium.com/open-crypto-market-data-initiative/simplified-avellaneda-stoikov-market-making-608b9d437403.
 * Require CMake.
@@ -917,6 +918,24 @@ cmake --build . --target spot_market_making
 ```
 * The executable is `app/build/src/spot_market_making/spot_market_making`. Run it after setting relevant environment variables shown in [`app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`. To enable and configure advanced parameters, set additional environment variables shown in [`app/src/spot_market_making/config_advanced.env.example`](app/src/spot_market_making/config_advanced.env.example).
 * For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details.
+
+<!-- ### Single Order Execution
+* Currently in beta.
+* Source code: [app](app)
+* The supported strategies are listed in [`app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example).
+* Require CMake.
+  * CMake: https://cmake.org/download/.
+* Copy file [`app/user_specified_cmake_include.cmake.example`](app/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
+* Run the following commands.
+```
+mkdir app/build
+cd app/build
+rm -rf * (if rebuild from scratch)
+cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
+cmake --build . --target single_order_execution
+```
+* The executable is `app/build/src/single_order_execution/single_order_execution`. Run it after setting relevant environment variables shown in [`app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`. To enable and configure advanced parameters, set additional environment variables shown in [`app/src/single_order_execution/config_advanced.env.example`](app/src/single_order_execution/config_advanced.env.example).
+* For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example) for more details. -->
 
 ## Known Issues and Workarounds
 * Kraken invalid nonce errors. Give the API key a nonce window (https://support.kraken.com/hc/en-us/articles/360001148023-What-is-a-nonce-window-). We use unix timestamp with microsecond resolution as nonce and therefore a nonce window of 500000 translates to a tolerance of 0.5 second.
