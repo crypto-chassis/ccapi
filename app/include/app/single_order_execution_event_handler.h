@@ -857,17 +857,17 @@ class SingleOrderExecutionEventHandler : public EventHandler {
       int intervalEnd = intervalStart + this->orderRefreshIntervalSeconds;
       if (tradingStrategy == TradingStrategy::TWAP) {
         double randomization = AppUtil::generateRandomDouble(-this->twapOrderQuantityRandomizationMax, this->twapOrderQuantityRandomizationMax);
-        std::cout<<randomization<<std::endl;
-        std::cout<<this->totalTargetQuantityInQuote<<std::endl;
-        std::cout<<this->numOrderRefreshIntervals<<std::endl;
-        std::cout<<priceStr<<std::endl;
-        std::cout<<this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals<<std::endl;
-        std::cout<<this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals / std::stod(priceStr)<<std::endl;
-        std::cout<<1+randomization<<std::endl;
-        quantity = (1+randomization) *
-                   (this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals / std::stod(priceStr)
-                                                         : this->totalTargetQuantity / this->numOrderRefreshIntervals);
-                                                         std::cout<<quantity<<std::endl;
+        std::cout << randomization << std::endl;
+        std::cout << this->totalTargetQuantityInQuote << std::endl;
+        std::cout << this->numOrderRefreshIntervals << std::endl;
+        std::cout << priceStr << std::endl;
+        std::cout << this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals << std::endl;
+        std::cout << this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals / std::stod(priceStr) << std::endl;
+        std::cout << 1 + randomization << std::endl;
+        quantity = (1 + randomization) * (this->totalTargetQuantityInQuote > 0
+                                              ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals / std::stod(priceStr)
+                                              : this->totalTargetQuantity / this->numOrderRefreshIntervals);
+        std::cout << quantity << std::endl;
       }
       // else if (tradingStrategy==TradingStrategy::VWAP){
       //   if (this->orderRefreshIntervalIndex == 0) {
@@ -920,12 +920,12 @@ class SingleOrderExecutionEventHandler : public EventHandler {
       //   }
       //
       // }
-      std::cout<< "more"<<std::endl;
-      std::cout<< this->quoteBalance<<std::endl;
-      std::cout<< priceStr<<std::endl;
-      std::cout<< this->baseBalance<<std::endl;
-      std::cout<< this->theoreticalRemainingQuantityInQuote<<std::endl;
-      std::cout<< this->orderQuantityLimitRelativeToTarget<<std::endl;
+      std::cout << "more" << std::endl;
+      std::cout << this->quoteBalance << std::endl;
+      std::cout << priceStr << std::endl;
+      std::cout << this->baseBalance << std::endl;
+      std::cout << this->theoreticalRemainingQuantityInQuote << std::endl;
+      std::cout << this->orderQuantityLimitRelativeToTarget << std::endl;
       quantity = std::min({
           quantity,
           CCAPI_EM_ORDER_SIDE_BUY ? this->quoteBalance / std::stod(priceStr) : this->baseBalance,
@@ -933,10 +933,10 @@ class SingleOrderExecutionEventHandler : public EventHandler {
           this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
                                                : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
       });
-      std::cout<< "more"<<quantity<<std::endl;
+      std::cout << "more" << quantity << std::endl;
       if (quantity > 0) {
         std::string quantityStr = AppUtil::roundInput(quantity, this->orderQuantityIncrement, false);
-        std::cout<< quantityStr<<std::endl;
+        std::cout << quantityStr << std::endl;
         if (UtilString::normalizeDecimalString(quantityStr) != "0") {
           if (this->totalTargetQuantityInQuote > 0) {
             this->theoreticalRemainingQuantityInQuote -= price * quantity;
@@ -946,7 +946,7 @@ class SingleOrderExecutionEventHandler : public EventHandler {
             }
           } else {
             this->theoreticalRemainingQuantity -= quantity;
-            if (this->theoreticalRemainingQuantity >= 0){
+            if (this->theoreticalRemainingQuantity >= 0) {
               Request request = this->createRequestForCreateOrder(this->orderSide, priceStr, quantityStr, now);
               requestList.emplace_back(std::move(request));
             }
@@ -997,7 +997,8 @@ class SingleOrderExecutionEventHandler : public EventHandler {
  protected:
   void onPostGetAccountBalances(const TimePoint& now) {
     this->orderRefreshIntervalIndex += 1;
-    if (now >= this->startTimeTp + std::chrono::seconds(this->totalDurationSeconds) || (this->totalTargetQuantityInQuote > 0?this->theoreticalRemainingQuantityInQuote<=0: this->theoreticalRemainingQuantity <= 0)) {
+    if (now >= this->startTimeTp + std::chrono::seconds(this->totalDurationSeconds) ||
+        (this->totalTargetQuantityInQuote > 0 ? this->theoreticalRemainingQuantityInQuote <= 0 : this->theoreticalRemainingQuantity <= 0)) {
       APP_LOGGER_INFO("Exit.");
       this->promisePtr->set_value();
       this->skipProcessEvent = true;

@@ -500,9 +500,10 @@ class SpotMarketMakingEventHandler : public EventHandler {
           if (!this->privateDataFileSuffix.empty()) {
             suffix = "__" + this->privateDataFileSuffix;
           }
-          std::string privateDataSummaryCsvFilename(prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
-                                                    UtilString::toLower(this->quoteAsset) + "__" + UtilTime::getISOTimestamp(this->historicalMarketDataStartDateTp).substr(0, 10) +
-                                                    "__" + UtilTime::getISOTimestamp(this->historicalMarketDataEndDateTp).substr(0, 10) + "__summary" + suffix + ".csv");
+          std::string privateDataSummaryCsvFilename(
+              prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" + UtilString::toLower(this->quoteAsset) + "__" +
+              UtilTime::getISOTimestamp(this->historicalMarketDataStartDateTp).substr(0, 10) + "__" +
+              UtilTime::getISOTimestamp(this->historicalMarketDataEndDateTp).substr(0, 10) + "__summary" + suffix + ".csv");
           if (!this->privateDataDirectory.empty()) {
             privateDataSummaryCsvFilename = this->privateDataDirectory + "/" + privateDataSummaryCsvFilename;
           }

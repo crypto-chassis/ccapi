@@ -36,10 +36,11 @@ class HistoricalMarketDataEventProcessor {
           APP_LOGGER_DEBUG("File market-depth next line is " + lineMarketDepth + ".");
           auto splittedMarketDepth = UtilString::split(lineMarketDepth, ",");
           int currentSecondsMarketDepth = std::stoi(splittedMarketDepth.at(0));
-          if (currentSecondsMarketDepth<std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()){
+          if (currentSecondsMarketDepth < std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()) {
             continue;
           }
-          if (currentSecondsMarketDepth>=std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()+this->totalDurationSeconds){
+          if (currentSecondsMarketDepth >=
+              std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count() + this->totalDurationSeconds) {
             return;
           }
           if (this->clockSeconds == 0) {
@@ -65,11 +66,12 @@ class HistoricalMarketDataEventProcessor {
         this->clockSeconds += this->clockStepSeconds;
         APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
         while (this->clockSeconds < std::chrono::duration_cast<std::chrono::seconds>((currentDateTp + std::chrono::hours(24)).time_since_epoch()).count()) {
-          if (this->clockSeconds-this->clockStepSeconds<std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()){
+          if (this->clockSeconds - this->clockStepSeconds < std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()) {
             this->clockSeconds += this->clockStepSeconds;
             continue;
           }
-          if (this->clockSeconds-this->clockStepSeconds>=std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()+this->totalDurationSeconds){
+          if (this->clockSeconds - this->clockStepSeconds >=
+              std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count() + this->totalDurationSeconds) {
             return;
           }
           this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
@@ -87,9 +89,10 @@ class HistoricalMarketDataEventProcessor {
       currentDateTp += std::chrono::hours(24);
     }
   }
-  TimePoint historicalMarketDataStartDateTp{std::chrono::seconds{0}}, historicalMarketDataEndDateTp{std::chrono::seconds{0}}, startTimeTp{std::chrono::seconds{0}};
+  TimePoint historicalMarketDataStartDateTp{std::chrono::seconds{0}}, historicalMarketDataEndDateTp{std::chrono::seconds{0}},
+      startTimeTp{std::chrono::seconds{0}};
   std::string exchange, baseAsset, quoteAsset, historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
-  int clockStepSeconds{},clockSeconds{},totalDurationSeconds{};
+  int clockStepSeconds{}, clockSeconds{}, totalDurationSeconds{};
 
  private:
   void advanceTradeIterator(bool& shouldContinueTrade, std::ifstream& fTrade, std::string& lineTrade) {
@@ -147,7 +150,7 @@ class HistoricalMarketDataEventProcessor {
     Element element;
     if (!splittedLine.at(1).empty()) {
       auto levels = UtilString::split(splittedLine.at(1), "|");
-      for (const auto& level : levels){
+      for (const auto& level : levels) {
         auto priceSize = UtilString::split(level, "_");
         element.insert(CCAPI_BEST_BID_N_PRICE, priceSize.at(0));
         element.insert(CCAPI_BEST_BID_N_SIZE, priceSize.at(1));
@@ -155,7 +158,7 @@ class HistoricalMarketDataEventProcessor {
     }
     if (!splittedLine.at(2).empty()) {
       auto levels = UtilString::split(splittedLine.at(2), "|");
-      for (const auto& level : levels){
+      for (const auto& level : levels) {
         auto priceSize = UtilString::split(level, "_");
         element.insert(CCAPI_BEST_ASK_N_PRICE, priceSize.at(0));
         element.insert(CCAPI_BEST_ASK_N_SIZE, priceSize.at(1));

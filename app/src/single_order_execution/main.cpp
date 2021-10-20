@@ -10,6 +10,7 @@ using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
 using ::ccapi::Element;
 using ::ccapi::Event;
+using ::ccapi::EventHandlerBase;
 using ::ccapi::Logger;
 using ::ccapi::Message;
 using ::ccapi::Queue;
@@ -17,16 +18,16 @@ using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
-using ::ccapi::SingleOrderExecutionEventHandler;
 using ::ccapi::Subscription;
 using ::ccapi::UtilString;
 using ::ccapi::UtilSystem;
 using ::ccapi::UtilTime;
 int main(int argc, char** argv) {
+  auto now = UtilTime::now();
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
-  SingleOrderExecutionEventHandler eventHandler;
+  EventHandlerBase eventHandler;
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
@@ -41,29 +42,34 @@ int main(int argc, char** argv) {
   eventHandler.orderPriceIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_PRICE_INCREMENT_OVERRIDE"));
   eventHandler.orderQuantityIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_QUANTITY_INCREMENT_OVERRIDE"));
   std::string startTimeStr = UtilSystem::getEnvAsString("START_TIME");
-  eventHandler.startTimeTp = startTimeStr.empty() ? UtilTime::now() : UtilTime::parse(startTimeStr);
-  eventHandler.totalDurationSeconds = UtilSystem::getEnvAsInt("TOTAL_DURATION_SECONDS");
+  eventHandler.startTimeTp = startTimeStr.empty() ? now : UtilTime::parse(startTimeStr);
+  std::string totalDurationSecondsStr = UtilSystem::getEnvAsString("TOTAL_DURATION_SECONDS");
+  eventHandler.totalDurationSeconds = std::stoi(totalDurationSecondsStr);
   eventHandler.numOrderRefreshIntervals = eventHandler.totalDurationSeconds / eventHandler.orderRefreshIntervalSeconds;
   eventHandler.orderSide = UtilString::toUpper(UtilSystem::getEnvAsString("ORDER_SIDE"));
   eventHandler.totalTargetQuantity = UtilSystem::getEnvAsDouble("TOTAL_TARGET_QUANTITY");
   eventHandler.totalTargetQuantityInQuote = UtilSystem::getEnvAsDouble("TOTAL_TARGET_QUANTITY_IN_QUOTE");
-  eventHandler.theoreticalRemainingQuantity=eventHandler.totalTargetQuantity;
-  eventHandler.theoreticalRemainingQuantityInQuote=eventHandler.totalTargetQuantityInQuote;
+  eventHandler.theoreticalRemainingQuantity = eventHandler.totalTargetQuantity;
+  eventHandler.theoreticalRemainingQuantityInQuote = eventHandler.totalTargetQuantityInQuote;
   eventHandler.orderPriceLimit = UtilSystem::getEnvAsDouble("ORDER_PRICE_LIMIT");
   eventHandler.orderPriceLimitRelativeToMidPrice = UtilSystem::getEnvAsDouble("ORDER_PRICE_LIMIT_RELATIVE_TO_MID_PRICE");
   eventHandler.orderQuantityLimitRelativeToTarget = UtilSystem::getEnvAsDouble("ORDER_QUANTITY_LIMIT_RELATIVE_TO_TARGET");
   eventHandler.twapOrderQuantityRandomizationMax = UtilSystem::getEnvAsDouble("TWAP_ORDER_QUANTITY_RANDOMIZATION_MAX");
   eventHandler.povOrderQuantityParticipationRate = UtilSystem::getEnvAsDouble("POV_ORDER_QUANTITY_PARTICIPATION_RATE");
   eventHandler.isKapa = UtilSystem::getEnvAsDouble("IS_URGENCY");
+  int timeToSleepSeconds = std::chrono::duration_cast<std::chrono::seconds>(eventHandler.startTimeTp - now).count();
+  if (timeToSleepSeconds > 0) {
+    APP_LOGGER_INFO("About to sleep " + std::to_string(timeToSleepSeconds) + " seconds.");
+    std::this_thread::sleep_for(std::chrono::seconds(timeToSleepSeconds));
+  }
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
-    eventHandler.tradingMode = SingleOrderExecutionEventHandler::TradingMode::PAPER;
+    eventHandler.tradingMode = EventHandlerBase::TradingMode::PAPER;
   } else if (tradingMode == "backtest") {
-    eventHandler.tradingMode = SingleOrderExecutionEventHandler::TradingMode::BACKTEST;
+    eventHandler.tradingMode = EventHandlerBase::TradingMode::BACKTEST;
   }
-  if (eventHandler.tradingMode == SingleOrderExecutionEventHandler::TradingMode::PAPER ||
-      eventHandler.tradingMode == SingleOrderExecutionEventHandler::TradingMode::BACKTEST) {
+  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::PAPER || eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
     eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
     eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
@@ -73,14 +79,15 @@ int main(int argc, char** argv) {
     eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE") * eventHandler.baseAvailableBalanceProportion;
     eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE") * eventHandler.quoteAvailableBalanceProportion;
   }
-  if (eventHandler.tradingMode == SingleOrderExecutionEventHandler::TradingMode::BACKTEST) {
+  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
     eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"), "%F");
-    if (startTimeStr.empty()){
-      eventHandler.startTimeTp=eventHandler.historicalMarketDataStartDateTp;
+    if (startTimeStr.empty()) {
+      eventHandler.startTimeTp = eventHandler.historicalMarketDataStartDateTp;
     }
     eventHandler.historicalMarketDataEndDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE"), "%F");
-    if (totalDurationSecondsStr.empty()){
-      eventHandler.totalDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>((eventHandler.historicalMarketDataEndDateTp-eventHandler.historicalMarketDataStartDateTp).time_since_epoch()).count();
+    if (totalDurationSecondsStr.empty()) {
+      eventHandler.totalDurationSeconds =
+          std::chrono::duration_cast<std::chrono::seconds>(eventHandler.historicalMarketDataEndDateTp - eventHandler.historicalMarketDataStartDateTp).count();
     }
     eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY");
     eventHandler.historicalMarketDataFilePrefix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_PREFIX");
@@ -89,13 +96,13 @@ int main(int argc, char** argv) {
   std::string tradingStrategy = UtilSystem::getEnvAsString("TRADING_STRATEGY");
   APP_LOGGER_INFO("******** Trading strategy is " + tradingStrategy + "! ********");
   if (tradingStrategy == "twap") {
-    eventHandler.tradingStrategy = SingleOrderExecutionEventHandler::TradingStrategy::TWAP;
+    eventHandler.tradingStrategy = EventHandlerBase::TradingStrategy::TWAP;
   } else if (tradingStrategy == "vwap") {
-    eventHandler.tradingStrategy = SingleOrderExecutionEventHandler::TradingStrategy::VWAP;
+    eventHandler.tradingStrategy = EventHandlerBase::TradingStrategy::VWAP;
   } else if (tradingStrategy == "pov") {
-    eventHandler.tradingStrategy = SingleOrderExecutionEventHandler::TradingStrategy::POV;
+    eventHandler.tradingStrategy = EventHandlerBase::TradingStrategy::POV;
   } else if (tradingStrategy == "is") {
-    eventHandler.tradingStrategy = SingleOrderExecutionEventHandler::TradingStrategy::IS;
+    eventHandler.tradingStrategy = EventHandlerBase::TradingStrategy::IS;
   }
   std::set<std::string> useGetAccountsToGetAccountBalancesExchangeSet{"coinbase", "kucoin"};
   if (useGetAccountsToGetAccountBalancesExchangeSet.find(eventHandler.exchange) != useGetAccountsToGetAccountBalancesExchangeSet.end()) {
@@ -129,12 +136,12 @@ int main(int argc, char** argv) {
     eventHandler.instrumentWebsocket = UtilString::toLower(instrumentRest);
   }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
-  if (eventHandler.tradingMode == SingleOrderExecutionEventHandler::TradingMode::BACKTEST && !eventHandler.baseAsset.empty() &&
-      !eventHandler.quoteAsset.empty() && !eventHandler.orderPriceIncrement.empty() && !eventHandler.orderQuantityIncrement.empty()) {
+  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST && !eventHandler.baseAsset.empty() && !eventHandler.quoteAsset.empty() &&
+      !eventHandler.orderPriceIncrement.empty() && !eventHandler.orderQuantityIncrement.empty()) {
     Event virtualEvent;
     Message message;
-    message.setTime(eventHandler.startDateTp);
-    message.setTimeReceived(eventHandler.startDateTp);
+    message.setTime(eventHandler.startTimeTp);
+    message.setTimeReceived(eventHandler.startTimeTp);
     message.setCorrelationIdList({request.getCorrelationId()});
     std::vector<Element> elementList;
     virtualEvent.setType(Event::Type::RESPONSE);

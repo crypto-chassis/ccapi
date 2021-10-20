@@ -10,6 +10,7 @@ using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
 using ::ccapi::Element;
 using ::ccapi::Event;
+using ::ccapi::EventHandlerBase;
 using ::ccapi::Logger;
 using ::ccapi::Message;
 using ::ccapi::Queue;
@@ -17,12 +18,12 @@ using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
-using ::ccapi::EventHandlerBase;
 using ::ccapi::Subscription;
 using ::ccapi::UtilString;
 using ::ccapi::UtilSystem;
 using ::ccapi::UtilTime;
 int main(int argc, char** argv) {
+  auto now = UtilTime::now();
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
@@ -102,10 +103,15 @@ int main(int argc, char** argv) {
   eventHandler.orderPriceIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_PRICE_INCREMENT_OVERRIDE"));
   eventHandler.orderQuantityIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_QUANTITY_INCREMENT_OVERRIDE"));
   std::string startTimeStr = UtilSystem::getEnvAsString("START_TIME");
-  eventHandler.startTimeTp = startTimeStr.empty() ? UtilTime::now() : UtilTime::parse(startTimeStr);
+  eventHandler.startTimeTp = startTimeStr.empty() ? now : UtilTime::parse(startTimeStr);
   std::string totalDurationSecondsStr = UtilSystem::getEnvAsString("TOTAL_DURATION_SECONDS");
-  eventHandler.totalDurationSeconds = totalDurationSecondsStr.empty()? INT_MAX :UtilSystem::getEnvAsInt("TOTAL_DURATION_SECONDS");
-  int timeToSleepSeconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+  eventHandler.totalDurationSeconds =
+      (totalDurationSecondsStr.empty() || std::stoi(totalDurationSecondsStr) <= 0) ? INT_MAX : std::stoi(totalDurationSecondsStr);
+  int timeToSleepSeconds = std::chrono::duration_cast<std::chrono::seconds>(eventHandler.startTimeTp - now).count();
+  if (timeToSleepSeconds > 0) {
+    APP_LOGGER_INFO("About to sleep " + std::to_string(timeToSleepSeconds) + " seconds.");
+    std::this_thread::sleep_for(std::chrono::seconds(timeToSleepSeconds));
+  }
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
@@ -113,8 +119,7 @@ int main(int argc, char** argv) {
   } else if (tradingMode == "backtest") {
     eventHandler.tradingMode = EventHandlerBase::TradingMode::BACKTEST;
   }
-  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::PAPER ||
-      eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
+  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::PAPER || eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
     eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
     eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
@@ -126,12 +131,13 @@ int main(int argc, char** argv) {
   }
   if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
     eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"), "%F");
-    if (startTimeStr.empty()){
-      eventHandler.startTimeTp=eventHandler.historicalMarketDataStartDateTp;
+    if (startTimeStr.empty()) {
+      eventHandler.startTimeTp = eventHandler.historicalMarketDataStartDateTp;
     }
     eventHandler.historicalMarketDataEndDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE"), "%F");
-    if (totalDurationSecondsStr.empty()){
-      eventHandler.totalDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>((eventHandler.historicalMarketDataEndDateTp-eventHandler.historicalMarketDataStartDateTp).time_since_epoch()).count();
+    if (totalDurationSecondsStr.empty()) {
+      eventHandler.totalDurationSeconds =
+          std::chrono::duration_cast<std::chrono::seconds>(eventHandler.historicalMarketDataEndDateTp - eventHandler.historicalMarketDataStartDateTp).count();
     }
     eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY");
     eventHandler.historicalMarketDataFilePrefix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_PREFIX");
@@ -173,8 +179,8 @@ int main(int argc, char** argv) {
       !eventHandler.orderPriceIncrement.empty() && !eventHandler.orderQuantityIncrement.empty()) {
     Event virtualEvent;
     Message message;
-    message.setTime(eventHandler.startDateTp);
-    message.setTimeReceived(eventHandler.startDateTp);
+    message.setTime(eventHandler.startTimeTp);
+    message.setTimeReceived(eventHandler.startTimeTp);
     message.setCorrelationIdList({request.getCorrelationId()});
     std::vector<Element> elementList;
     virtualEvent.setType(Event::Type::RESPONSE);
