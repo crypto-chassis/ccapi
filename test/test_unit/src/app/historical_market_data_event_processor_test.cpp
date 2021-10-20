@@ -14,8 +14,10 @@ class HistoricalMarketDataEventProcessorTest : public ::testing::Test {
     this->historicalMarketDataEventProcessor->exchange = UtilSystem::getEnvAsString("EXCHANGE", splitted.at(0));
     this->historicalMarketDataEventProcessor->baseAsset = UtilSystem::getEnvAsString("BASE_ASSET", splitted.at(1));
     this->historicalMarketDataEventProcessor->quoteAsset = UtilSystem::getEnvAsString("QUOTE_ASSET", splitted.at(2));
-    this->historicalMarketDataEventProcessor->startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE", splitted.at(3)), "%F");
-    this->historicalMarketDataEventProcessor->endDateTp = UtilTime::parse(UtilSystem::getEnvAsString("END_DATE", splitted.at(4)), "%F");
+    this->historicalMarketDataEventProcessor->historicalMarketDataStartDateTp =
+        UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE", splitted.at(3)), "%F");
+    this->historicalMarketDataEventProcessor->historicalMarketDataEndDateTp =
+        UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE", splitted.at(4)), "%F");
     this->historicalMarketDataEventProcessor->historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY", splitted.at(5));
     this->historicalMarketDataEventProcessor->clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
   }
@@ -71,10 +73,10 @@ TEST_F(HistoricalMarketDataEventProcessorTest, processEvent) {
   this->historicalMarketDataEventProcessor->processEvent();
   std::vector<Message> expectedMessageList;
   std::map<std::pair<long long, long long>, std::vector<Message> > expectedMessageListByTimeMap;
-  auto currentDateTp = this->historicalMarketDataEventProcessor->startDateTp;
+  auto currentDateTp = this->historicalMarketDataEventProcessor->historicalMarketDataStartDateTp;
   int previousSecondsMarketDepth = 0;
   std::vector<std::string> previousSplittedMarketDepth;
-  while (currentDateTp < this->historicalMarketDataEventProcessor->endDateTp) {
+  while (currentDateTp < this->historicalMarketDataEventProcessor->historicalMarketDataEndDateTp) {
     int currentSeconds;
     auto currentDateISO = UtilTime::getISOTimestamp(currentDateTp, "%F");
     std::string fileNameWithDirBase = this->historicalMarketDataEventProcessor->historicalMarketDataDirectory + "/" +
