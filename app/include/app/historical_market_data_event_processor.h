@@ -11,12 +11,12 @@ class HistoricalMarketDataEventProcessor {
   explicit HistoricalMarketDataEventProcessor(std::function<bool(const Event& event)> eventHandler) : eventHandler(eventHandler) {}
   void processEvent() {
     this->clockSeconds = 0;
-    auto currentDateTp = this->startDateTp;
+    auto currentDateTp = this->historicalMarketDataStartDateTp;
     std::string lineMarketDepth;
     std::string lineTrade;
     bool shouldContinueTrade{true};
     std::vector<std::string> previousSplittedMarketDepth;
-    while (currentDateTp < this->endDateTp) {
+    while (currentDateTp < this->historicalMarketDataEndDateTp) {
       const auto& currentDateISO = UtilTime::getISOTimestamp(currentDateTp, "%F");
       APP_LOGGER_INFO("Start processing " + currentDateISO + ".");
       std::string fileNameWithDirBase = this->historicalMarketDataDirectory + "/" + this->historicalMarketDataFilePrefix + this->exchange + "__" +
@@ -36,6 +36,12 @@ class HistoricalMarketDataEventProcessor {
           APP_LOGGER_DEBUG("File market-depth next line is " + lineMarketDepth + ".");
           auto splittedMarketDepth = UtilString::split(lineMarketDepth, ",");
           int currentSecondsMarketDepth = std::stoi(splittedMarketDepth.at(0));
+          if (currentSecondsMarketDepth<std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()){
+            continue;
+          }
+          if (currentSecondsMarketDepth>=std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()+this->totalDurationSeconds){
+            return;
+          }
           if (this->clockSeconds == 0) {
             this->clockSeconds = currentSecondsMarketDepth;
             APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
@@ -59,6 +65,13 @@ class HistoricalMarketDataEventProcessor {
         this->clockSeconds += this->clockStepSeconds;
         APP_LOGGER_DEBUG("Clock unix timestamp is " + std::to_string(this->clockSeconds) + " seconds.");
         while (this->clockSeconds < std::chrono::duration_cast<std::chrono::seconds>((currentDateTp + std::chrono::hours(24)).time_since_epoch()).count()) {
+          if (this->clockSeconds-this->clockStepSeconds<std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()){
+            this->clockSeconds += this->clockStepSeconds;
+            continue;
+          }
+          if (this->clockSeconds-this->clockStepSeconds>=std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()+this->totalDurationSeconds){
+            return;
+          }
           this->advanceTradeIterator(shouldContinueTrade, fTrade, lineTrade);
           previousSplittedMarketDepth[0] = std::to_string(this->clockSeconds);
           this->processMarketDataEventMarketDepth(previousSplittedMarketDepth);
@@ -74,10 +87,9 @@ class HistoricalMarketDataEventProcessor {
       currentDateTp += std::chrono::hours(24);
     }
   }
-  TimePoint startDateTp, endDateTp;
+  TimePoint historicalMarketDataStartDateTp{std::chrono::seconds{0}}, historicalMarketDataEndDateTp{std::chrono::seconds{0}}, startTimeTp{std::chrono::seconds{0}};
   std::string exchange, baseAsset, quoteAsset, historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
-  int clockStepSeconds;
-  int clockSeconds;
+  int clockStepSeconds{},clockSeconds{},totalDurationSeconds{};
 
  private:
   void advanceTradeIterator(bool& shouldContinueTrade, std::ifstream& fTrade, std::string& lineTrade) {
@@ -134,14 +146,20 @@ class HistoricalMarketDataEventProcessor {
     std::vector<Element> elementList;
     Element element;
     if (!splittedLine.at(1).empty()) {
-      auto priceSize = UtilString::split(splittedLine.at(1), "_");
-      element.insert(CCAPI_BEST_BID_N_PRICE, priceSize.at(0));
-      element.insert(CCAPI_BEST_BID_N_SIZE, priceSize.at(1));
+      auto levels = UtilString::split(splittedLine.at(1), "|");
+      for (const auto& level : levels){
+        auto priceSize = UtilString::split(level, "_");
+        element.insert(CCAPI_BEST_BID_N_PRICE, priceSize.at(0));
+        element.insert(CCAPI_BEST_BID_N_SIZE, priceSize.at(1));
+      }
     }
     if (!splittedLine.at(2).empty()) {
-      auto priceSize = UtilString::split(splittedLine.at(2), "_");
-      element.insert(CCAPI_BEST_ASK_N_PRICE, priceSize.at(0));
-      element.insert(CCAPI_BEST_ASK_N_SIZE, priceSize.at(1));
+      auto levels = UtilString::split(splittedLine.at(2), "|");
+      for (const auto& level : levels){
+        auto priceSize = UtilString::split(level, "_");
+        element.insert(CCAPI_BEST_ASK_N_PRICE, priceSize.at(0));
+        element.insert(CCAPI_BEST_ASK_N_SIZE, priceSize.at(1));
+      }
     }
     elementList.emplace_back(std::move(element));
     message.setElementList(elementList);

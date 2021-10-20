@@ -1,4 +1,4 @@
-#include "app/spot_market_making_event_handler.h"
+#include "app/event_handler_base.h"
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
 AppLogger appLogger;
@@ -17,7 +17,7 @@ using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
-using ::ccapi::SpotMarketMakingEventHandler;
+using ::ccapi::EventHandlerBase;
 using ::ccapi::Subscription;
 using ::ccapi::UtilString;
 using ::ccapi::UtilSystem;
@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
-  SpotMarketMakingEventHandler eventHandler;
+  EventHandlerBase eventHandler;
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
@@ -85,11 +85,11 @@ int main(int argc, char** argv) {
       UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD_BY_INVENTORY_DEPLETION")) == "true";
   std::string adverseSelectionGuardActionType = UtilSystem::getEnvAsString("ADVERSE_SELECTION_GUARD_ACTION_TYPE");
   if (adverseSelectionGuardActionType == "take") {
-    eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::TAKE;
+    eventHandler.adverseSelectionGuardActionType = EventHandlerBase::AdverseSelectionGuardActionType::TAKE;
   } else if (adverseSelectionGuardActionType == "make") {
-    eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::MAKE;
+    eventHandler.adverseSelectionGuardActionType = EventHandlerBase::AdverseSelectionGuardActionType::MAKE;
   } else {
-    eventHandler.adverseSelectionGuardActionType = SpotMarketMakingEventHandler::AdverseSelectionGuardActionType::NONE;
+    eventHandler.adverseSelectionGuardActionType = EventHandlerBase::AdverseSelectionGuardActionType::NONE;
   }
   eventHandler.adverseSelectionGuardActionOrderQuantityProportion = UtilSystem::getEnvAsDouble("ADVERSE_SELECTION_GUARD_ACTION_ORDER_QUANTITY_PROPORTION");
   eventHandler.adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset =
@@ -101,15 +101,20 @@ int main(int argc, char** argv) {
   eventHandler.quoteAsset = UtilSystem::getEnvAsString("QUOTE_ASSET_OVERRIDE");
   eventHandler.orderPriceIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_PRICE_INCREMENT_OVERRIDE"));
   eventHandler.orderQuantityIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_QUANTITY_INCREMENT_OVERRIDE"));
+  std::string startTimeStr = UtilSystem::getEnvAsString("START_TIME");
+  eventHandler.startTimeTp = startTimeStr.empty() ? UtilTime::now() : UtilTime::parse(startTimeStr);
+  std::string totalDurationSecondsStr = UtilSystem::getEnvAsString("TOTAL_DURATION_SECONDS");
+  eventHandler.totalDurationSeconds = totalDurationSecondsStr.empty()? INT_MAX :UtilSystem::getEnvAsInt("TOTAL_DURATION_SECONDS");
+  int timeToSleepSeconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
-    eventHandler.tradingMode = SpotMarketMakingEventHandler::TradingMode::PAPER;
+    eventHandler.tradingMode = EventHandlerBase::TradingMode::PAPER;
   } else if (tradingMode == "backtest") {
-    eventHandler.tradingMode = SpotMarketMakingEventHandler::TradingMode::BACKTEST;
+    eventHandler.tradingMode = EventHandlerBase::TradingMode::BACKTEST;
   }
-  if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::PAPER ||
-      eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST) {
+  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::PAPER ||
+      eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
     eventHandler.makerFee = UtilSystem::getEnvAsDouble("MAKER_FEE");
     eventHandler.makerBuyerFeeAsset = UtilSystem::getEnvAsString("MAKER_BUYER_FEE_ASSET");
     eventHandler.makerSellerFeeAsset = UtilSystem::getEnvAsString("MAKER_SELLER_FEE_ASSET");
@@ -119,9 +124,15 @@ int main(int argc, char** argv) {
     eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE") * eventHandler.baseAvailableBalanceProportion;
     eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE") * eventHandler.quoteAvailableBalanceProportion;
   }
-  if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST) {
-    eventHandler.startDateTp = UtilTime::parse(UtilSystem::getEnvAsString("START_DATE"), "%F");
-    eventHandler.endDateTp = UtilTime::parse(UtilSystem::getEnvAsString("END_DATE"), "%F");
+  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
+    eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"), "%F");
+    if (startTimeStr.empty()){
+      eventHandler.startTimeTp=eventHandler.historicalMarketDataStartDateTp;
+    }
+    eventHandler.historicalMarketDataEndDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE"), "%F");
+    if (totalDurationSecondsStr.empty()){
+      eventHandler.totalDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>((eventHandler.historicalMarketDataEndDateTp-eventHandler.historicalMarketDataStartDateTp).time_since_epoch()).count();
+    }
     eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY");
     eventHandler.historicalMarketDataFilePrefix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_PREFIX");
     eventHandler.historicalMarketDataFileSuffix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_SUFFIX");
@@ -158,7 +169,7 @@ int main(int argc, char** argv) {
     eventHandler.instrumentWebsocket = UtilString::toLower(instrumentRest);
   }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
-  if (eventHandler.tradingMode == SpotMarketMakingEventHandler::TradingMode::BACKTEST && !eventHandler.baseAsset.empty() && !eventHandler.quoteAsset.empty() &&
+  if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST && !eventHandler.baseAsset.empty() && !eventHandler.quoteAsset.empty() &&
       !eventHandler.orderPriceIncrement.empty() && !eventHandler.orderQuantityIncrement.empty()) {
     Event virtualEvent;
     Message message;

@@ -485,8 +485,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
           historicalMarketDataEventProcessor.exchange = this->exchange;
           historicalMarketDataEventProcessor.baseAsset = UtilString::toLower(this->baseAsset);
           historicalMarketDataEventProcessor.quoteAsset = UtilString::toLower(this->quoteAsset);
-          historicalMarketDataEventProcessor.startDateTp = this->startDateTp;
-          historicalMarketDataEventProcessor.endDateTp = this->endDateTp;
+          historicalMarketDataEventProcessor.historicalMarketDataStartDateTp = this->historicalMarketDataStartDateTp;
+          historicalMarketDataEventProcessor.historicalMarketDataEndDateTp = this->historicalMarketDataEndDateTp;
           historicalMarketDataEventProcessor.historicalMarketDataDirectory = this->historicalMarketDataDirectory;
           historicalMarketDataEventProcessor.historicalMarketDataFilePrefix = this->historicalMarketDataFilePrefix;
           historicalMarketDataEventProcessor.historicalMarketDataFileSuffix = this->historicalMarketDataFileSuffix;
@@ -501,8 +501,8 @@ class SpotMarketMakingEventHandler : public EventHandler {
             suffix = "__" + this->privateDataFileSuffix;
           }
           std::string privateDataSummaryCsvFilename(prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
-                                                    UtilString::toLower(this->quoteAsset) + "__" + UtilTime::getISOTimestamp(this->startDateTp).substr(0, 10) +
-                                                    "__" + UtilTime::getISOTimestamp(this->endDateTp).substr(0, 10) + "__summary" + suffix + ".csv");
+                                                    UtilString::toLower(this->quoteAsset) + "__" + UtilTime::getISOTimestamp(this->historicalMarketDataStartDateTp).substr(0, 10) +
+                                                    "__" + UtilTime::getISOTimestamp(this->historicalMarketDataEndDateTp).substr(0, 10) + "__summary" + suffix + ".csv");
           if (!this->privateDataDirectory.empty()) {
             privateDataSummaryCsvFilename = this->privateDataDirectory + "/" + privateDataSummaryCsvFilename;
           }
@@ -1040,7 +1040,7 @@ class SpotMarketMakingEventHandler : public EventHandler {
   // end: only applicable to paper trade and backtest
 
   // start: only applicable to backtest
-  TimePoint startDateTp, endDateTp;
+  TimePoint historicalMarketDataStartDateTp, historicalMarketDataEndDateTp;
   std::string historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
   // end: only applicable to backtest
 

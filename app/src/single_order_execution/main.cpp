@@ -1,4 +1,4 @@
-#include "app/single_order_execution_event_handler.h"
+#include "app/event_handler_base.h"
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
 AppLogger appLogger;
@@ -30,6 +30,7 @@ int main(int argc, char** argv) {
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
+  eventHandler.orderRefreshIntervalSeconds = UtilSystem::getEnvAsInt("ORDER_REFRESH_INTERVAL_SECONDS");
   eventHandler.privateDataDirectory = UtilSystem::getEnvAsString("PRIVATE_DATA_DIRECTORY");
   eventHandler.privateDataFilePrefix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_PREFIX");
   eventHandler.privateDataFileSuffix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_SUFFIX");
@@ -42,9 +43,12 @@ int main(int argc, char** argv) {
   std::string startTimeStr = UtilSystem::getEnvAsString("START_TIME");
   eventHandler.startTimeTp = startTimeStr.empty() ? UtilTime::now() : UtilTime::parse(startTimeStr);
   eventHandler.totalDurationSeconds = UtilSystem::getEnvAsInt("TOTAL_DURATION_SECONDS");
+  eventHandler.numOrderRefreshIntervals = eventHandler.totalDurationSeconds / eventHandler.orderRefreshIntervalSeconds;
   eventHandler.orderSide = UtilString::toUpper(UtilSystem::getEnvAsString("ORDER_SIDE"));
   eventHandler.totalTargetQuantity = UtilSystem::getEnvAsDouble("TOTAL_TARGET_QUANTITY");
   eventHandler.totalTargetQuantityInQuote = UtilSystem::getEnvAsDouble("TOTAL_TARGET_QUANTITY_IN_QUOTE");
+  eventHandler.theoreticalRemainingQuantity=eventHandler.totalTargetQuantity;
+  eventHandler.theoreticalRemainingQuantityInQuote=eventHandler.totalTargetQuantityInQuote;
   eventHandler.orderPriceLimit = UtilSystem::getEnvAsDouble("ORDER_PRICE_LIMIT");
   eventHandler.orderPriceLimitRelativeToMidPrice = UtilSystem::getEnvAsDouble("ORDER_PRICE_LIMIT_RELATIVE_TO_MID_PRICE");
   eventHandler.orderQuantityLimitRelativeToTarget = UtilSystem::getEnvAsDouble("ORDER_QUANTITY_LIMIT_RELATIVE_TO_TARGET");
@@ -70,6 +74,14 @@ int main(int argc, char** argv) {
     eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE") * eventHandler.quoteAvailableBalanceProportion;
   }
   if (eventHandler.tradingMode == SingleOrderExecutionEventHandler::TradingMode::BACKTEST) {
+    eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"), "%F");
+    if (startTimeStr.empty()){
+      eventHandler.startTimeTp=eventHandler.historicalMarketDataStartDateTp;
+    }
+    eventHandler.historicalMarketDataEndDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE"), "%F");
+    if (totalDurationSecondsStr.empty()){
+      eventHandler.totalDurationSeconds = std::chrono::duration_cast<std::chrono::seconds>((eventHandler.historicalMarketDataEndDateTp-eventHandler.historicalMarketDataStartDateTp).time_since_epoch()).count();
+    }
     eventHandler.historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY");
     eventHandler.historicalMarketDataFilePrefix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_PREFIX");
     eventHandler.historicalMarketDataFileSuffix = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_FILE_SUFFIX");
