@@ -292,29 +292,25 @@ class EventHandlerBase : public EventHandler {
         if (messageTime < this->startTimeTp) {
           return true;
         }
+        this->snapshotBid.clear();
+        this->snapshotAsk.clear();
         for (const auto& element : message.getElementList()) {
           const auto& elementNameValueMap = element.getNameValueMap();
           {
             auto it = elementNameValueMap.find(CCAPI_BEST_BID_N_PRICE);
             if (it != elementNameValueMap.end()) {
-              // this->bestBidPrice = it->second;
               auto price = it->second;
-              if (price == CCAPI_BEST_BID_N_PRICE_EMPTY) {
-                this->snapshotBid.clear();
-              } else {
-                this->snapshotBid[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_BID_N_SIZE);
+              if (price != CCAPI_BEST_BID_N_PRICE_EMPTY) {
+this->snapshotBid[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_BID_N_SIZE);
               }
             }
           }
           {
             auto it = elementNameValueMap.find(CCAPI_BEST_ASK_N_PRICE);
             if (it != elementNameValueMap.end()) {
-              // this->bestBidPrice = it->second;
               auto price = it->second;
-              if (price == CCAPI_BEST_ASK_N_PRICE_EMPTY) {
-                this->snapshotAsk.clear();
-              } else {
-                this->snapshotAsk[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_ASK_N_SIZE);
+              if (price != CCAPI_BEST_ASK_N_PRICE_EMPTY) {
+this->snapshotAsk[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_ASK_N_SIZE);
               }
             }
           }
@@ -335,6 +331,12 @@ class EventHandlerBase : public EventHandler {
             this->bestAskSize = it->second;
           }
         }
+        // std::cout<< toString(this->snapshotBid) <<std::endl;
+        // std::cout<< toString(this->snapshotAsk) <<std::endl;
+        // std::cout<< toString(this->bestBidPrice) <<std::endl;
+        // std::cout<< toString(this->bestBidSize) <<std::endl;
+        // std::cout<< toString(this->bestAskPrice) <<std::endl;
+        // std::cout<< toString(this->bestAskSize) <<std::endl;
         const std::string& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
         const std::string& messageTimeISODate = messageTimeISO.substr(0, 10);
         if (this->previousMessageTimeISODate.empty() || messageTimeISODate != previousMessageTimeISODate) {
@@ -612,266 +614,266 @@ class EventHandlerBase : public EventHandler {
           }
           session->subscribe(subscriptionList);
         }
-        if (!requestList.empty()) {
-          if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
-            for (const auto& request : requestList) {
-              bool createdBuyOrder = false;
-              const auto& now = request.getTimeSent();
-              Event virtualEvent;
-              Event virtualEvent_2;
-              Event virtualEvent_3;
-              Message message;
-              Message message_2;
-              message.setTime(now);
-              message.setTimeReceived(now);
-              message_2.setTime(now);
-              message_2.setTimeReceived(now);
-              message_2.setCorrelationIdList({request.getCorrelationId()});
-              std::vector<Element> elementList;
-              const auto& operation = request.getOperation();
-              if (operation == Request::Operation::GET_ACCOUNT_BALANCES || operation == Request::Operation::GET_ACCOUNTS) {
-                virtualEvent.setType(Event::Type::RESPONSE);
-                message.setCorrelationIdList({request.getCorrelationId()});
-                message.setType(operation == Request::Operation::GET_ACCOUNT_BALANCES ? Message::Type::GET_ACCOUNT_BALANCES : Message::Type::GET_ACCOUNTS);
-                std::vector<Element> elementList;
-                {
-                  Element element;
-                  element.insert(CCAPI_EM_ASSET, this->baseAsset);
-                  element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING,
-                                 Decimal(UtilString::printDoubleScientific(this->baseBalance / this->baseAvailableBalanceProportion)).toString());
-                  elementList.emplace_back(std::move(element));
-                }
-                {
-                  Element element;
-                  element.insert(CCAPI_EM_ASSET, this->quoteAsset);
-                  element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING,
-                                 Decimal(UtilString::printDoubleScientific(this->quoteBalance / this->quoteAvailableBalanceProportion)).toString());
-                  elementList.emplace_back(std::move(element));
-                }
-                message.setElementList(elementList);
-                std::vector<Message> messageList;
-                messageList.emplace_back(std::move(message));
-                virtualEvent.setMessageList(messageList);
-              } else if (operation == Request::Operation::CREATE_ORDER) {
-                auto newBaseBalance = this->baseBalance;
-                auto newQuoteBalance = this->quoteBalance;
-                const auto& param = request.getParamList().at(0);
-                const auto& side = param.at(CCAPI_EM_ORDER_SIDE);
-                const auto& price = param.at(CCAPI_EM_ORDER_LIMIT_PRICE);
-                const auto& quantity = param.at(CCAPI_EM_ORDER_QUANTITY);
-                const auto& clientOrderId = param.at(CCAPI_EM_CLIENT_ORDER_ID);
-                bool sufficientBalance = false;
-                if (side == CCAPI_EM_ORDER_SIDE_BUY) {
-                  double transactedAmount = std::stod(price) * std::stod(quantity);
-                  if (UtilString::toLower(this->makerBuyerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
-                    transactedAmount *= 1 + this->makerFee;
-                  }
-                  newQuoteBalance -= transactedAmount;
-                  if (newQuoteBalance >= 0) {
-                    sufficientBalance = true;
-                  } else {
-                    APP_LOGGER_INFO("Insufficient quote balance.");
-                  }
-                } else if (side == CCAPI_EM_ORDER_SIDE_SELL) {
-                  double transactedAmount = std::stod(quantity);
-                  if (UtilString::toLower(this->makerSellerFeeAsset) == UtilString::toLower(this->baseAsset)) {
-                    transactedAmount *= 1 + this->makerFee;
-                  }
-                  newBaseBalance -= transactedAmount;
-                  if (newBaseBalance >= 0) {
-                    sufficientBalance = true;
-                  } else {
-                    APP_LOGGER_INFO("Insufficient base balance.");
-                  }
-                }
-                if (sufficientBalance) {
-                  virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
-                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-                  Order order;
-                  order.orderId = std::to_string(++this->virtualOrderId);
-                  order.clientOrderId = clientOrderId;
-                  order.side = side;
-                  order.limitPrice = Decimal(price);
-                  order.quantity = Decimal(quantity);
-                  order.cumulativeFilledQuantity = Decimal("0");
-                  order.remainingQuantity = order.quantity;
-                  order.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_NEW;
-                  Element element;
-                  this->extractOrderInfo(element, order);
-                  createdBuyOrder = side == CCAPI_EM_ORDER_SIDE_BUY;
-                  if (createdBuyOrder) {
-                    this->openBuyOrder = order;
-                  } else {
-                    this->openSellOrder = order;
-                  }
-                  std::vector<Element> elementList;
-                  std::vector<Element> elementList_2;
-                  elementList.emplace_back(std::move(element));
-                  elementList_2 = elementList;
-                  message.setElementList(elementList);
-                  std::vector<Message> messageList;
-                  messageList.emplace_back(std::move(message));
-                  virtualEvent.setMessageList(messageList);
-                  virtualEvent_2.setType(Event::Type::RESPONSE);
-                  message_2.setType(Message::Type::CREATE_ORDER);
-                  message_2.setElementList(elementList_2);
-                  std::vector<Message> messageList_2;
-                  messageList_2.emplace_back(std::move(message_2));
-                  virtualEvent_2.setMessageList(messageList_2);
-                } else {
-                  virtualEvent_2.setType(Event::Type::RESPONSE);
-                  message_2.setType(Message::Type::RESPONSE_ERROR);
-                  Element element;
-                  element.insert("ERROR_MESSAGE", "Insufficient balance.");
-                  std::vector<Element> elementList;
-                  elementList.emplace_back(std::move(element));
-                  message_2.setElementList(elementList);
-                  std::vector<Message> messageList_2;
-                  messageList_2.emplace_back(std::move(message_2));
-                  virtualEvent_2.setMessageList(messageList_2);
-                }
-              } else if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
-                virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
-                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-                if (this->openBuyOrder) {
-                  this->openBuyOrder.get().status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_CANCELED;
-                  Element element;
-                  this->extractOrderInfo(element, this->openBuyOrder.get());
-                  elementList.emplace_back(std::move(element));
-                  this->openBuyOrder = boost::none;
-                }
-                if (this->openSellOrder) {
-                  this->openSellOrder.get().status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_CANCELED;
-                  Element element;
-                  this->extractOrderInfo(element, this->openSellOrder.get());
-                  elementList.emplace_back(std::move(element));
-                  this->openSellOrder = boost::none;
-                }
-                std::vector<Element> elementList_2;
-                if (!elementList.empty()) {
-                  elementList_2 = elementList;
-                  message.setElementList(elementList);
-                  virtualEvent.setMessageList({message});
-                }
-                virtualEvent_2.setType(Event::Type::RESPONSE);
-                message_2.setType(Message::Type::CANCEL_OPEN_ORDERS);
-                message_2.setElementList(elementList_2);
-                std::vector<Message> messageList_2;
-                messageList_2.emplace_back(std::move(message_2));
-                virtualEvent_2.setMessageList(messageList_2);
+      }
+    }
+    if (!requestList.empty()) {
+      if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
+        for (const auto& request : requestList) {
+          bool createdBuyOrder = false;
+          const auto& now = request.getTimeSent();
+          Event virtualEvent;
+          Event virtualEvent_2;
+          Event virtualEvent_3;
+          Message message;
+          Message message_2;
+          message.setTime(now);
+          message.setTimeReceived(now);
+          message_2.setTime(now);
+          message_2.setTimeReceived(now);
+          message_2.setCorrelationIdList({request.getCorrelationId()});
+          std::vector<Element> elementList;
+          const auto& operation = request.getOperation();
+          if (operation == Request::Operation::GET_ACCOUNT_BALANCES || operation == Request::Operation::GET_ACCOUNTS) {
+            virtualEvent.setType(Event::Type::RESPONSE);
+            message.setCorrelationIdList({request.getCorrelationId()});
+            message.setType(operation == Request::Operation::GET_ACCOUNT_BALANCES ? Message::Type::GET_ACCOUNT_BALANCES : Message::Type::GET_ACCOUNTS);
+            std::vector<Element> elementList;
+            {
+              Element element;
+              element.insert(CCAPI_EM_ASSET, this->baseAsset);
+              element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING,
+                             Decimal(UtilString::printDoubleScientific(this->baseBalance / this->baseAvailableBalanceProportion)).toString());
+              elementList.emplace_back(std::move(element));
+            }
+            {
+              Element element;
+              element.insert(CCAPI_EM_ASSET, this->quoteAsset);
+              element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING,
+                             Decimal(UtilString::printDoubleScientific(this->quoteBalance / this->quoteAvailableBalanceProportion)).toString());
+              elementList.emplace_back(std::move(element));
+            }
+            message.setElementList(elementList);
+            std::vector<Message> messageList;
+            messageList.emplace_back(std::move(message));
+            virtualEvent.setMessageList(messageList);
+          } else if (operation == Request::Operation::CREATE_ORDER) {
+            auto newBaseBalance = this->baseBalance;
+            auto newQuoteBalance = this->quoteBalance;
+            const auto& param = request.getParamList().at(0);
+            const auto& side = param.at(CCAPI_EM_ORDER_SIDE);
+            const auto& price = param.at(CCAPI_EM_ORDER_LIMIT_PRICE);
+            const auto& quantity = param.at(CCAPI_EM_ORDER_QUANTITY);
+            const auto& clientOrderId = param.at(CCAPI_EM_CLIENT_ORDER_ID);
+            bool sufficientBalance = false;
+            if (side == CCAPI_EM_ORDER_SIDE_BUY) {
+              double transactedAmount = std::stod(price) * std::stod(quantity);
+              if (UtilString::toLower(this->makerBuyerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
+                transactedAmount *= 1 + this->makerFee;
               }
-              if (!virtualEvent.getMessageList().empty()) {
-                APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent.toStringPretty());
-                this->processEvent(virtualEvent, session);
+              newQuoteBalance -= transactedAmount;
+              if (newQuoteBalance >= 0) {
+                sufficientBalance = true;
+              } else {
+                APP_LOGGER_INFO("Insufficient quote balance.");
               }
-              if (!virtualEvent_2.getMessageList().empty()) {
-                APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent_2.toStringPretty());
-                this->processEvent(virtualEvent_2, session);
+            } else if (side == CCAPI_EM_ORDER_SIDE_SELL) {
+              double transactedAmount = std::stod(quantity);
+              if (UtilString::toLower(this->makerSellerFeeAsset) == UtilString::toLower(this->baseAsset)) {
+                transactedAmount *= 1 + this->makerFee;
               }
-              if (operation == Request::Operation::CREATE_ORDER) {
-                std::vector<Element> elementListPrivateTrade;
-                auto it = this->snapshotAsk.begin();
-                auto rit = this->snapshotBid.rbegin();
-                Order matchedOrder = createdBuyOrder ? this->openBuyOrder.get() : this->openSellOrder.get();
-                std::string takerFeeAsset = createdBuyOrder ? this->takerBuyerFeeAsset : this->takerSellerFeeAsset;
-                while ((createdBuyOrder && it != this->snapshotAsk.end()) || (!createdBuyOrder && rit != this->snapshotBid.rend())) {
-                  Decimal priceToMatch = createdBuyOrder ? it->first : rit->first;
-                  if ((createdBuyOrder && this->openBuyOrder->limitPrice >= priceToMatch) ||
-                      (!createdBuyOrder && this->openSellOrder->limitPrice <= priceToMatch)) {
-                    Decimal quantityToMatch = Decimal(it->second);
-                    Decimal matchedQuantity = std::min(quantityToMatch, matchedOrder.quantity);
-                    matchedQuantity = quantityToMatch;
-                    matchedOrder.cumulativeFilledQuantity = matchedOrder.cumulativeFilledQuantity.add(matchedQuantity);
-                    matchedOrder.remainingQuantity = matchedOrder.quantity.subtract(matchedQuantity);
-                    this->baseBalance += matchedQuantity.toDouble();
-                    this->quoteBalance -= priceToMatch.toDouble() * matchedQuantity.toDouble();
-                    double feeQuantity = 0;
-                    if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->baseAsset)) {
-                      feeQuantity = matchedQuantity.toDouble() * this->takerFee;
-                      this->baseBalance -= feeQuantity;
-                    } else if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
-                      feeQuantity = priceToMatch.toDouble() * matchedQuantity.toDouble() * this->takerFee;
-                      this->quoteBalance -= feeQuantity;
-                    }
-                    Element element;
-                    element.insert(CCAPI_TRADE_ID, std::to_string(++this->virtualTradeId));
-                    element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, priceToMatch.toString());
-                    element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, matchedQuantity.toString());
-                    element.insert(CCAPI_EM_ORDER_SIDE, matchedOrder.side);
-                    element.insert(CCAPI_IS_MAKER, "0");
-                    element.insert(CCAPI_EM_ORDER_ID, matchedOrder.orderId);
-                    element.insert(CCAPI_EM_CLIENT_ORDER_ID, matchedOrder.clientOrderId);
-                    element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(feeQuantity)).toString());
-                    element.insert(CCAPI_EM_ORDER_FEE_ASSET, takerFeeAsset);
-                    elementListPrivateTrade.emplace_back(std::move(element));
-                    if (matchedOrder.remainingQuantity == Decimal("0")) {
-                      break;
-                    }
-                  } else {
-                    break;
-                  }
-                  if (createdBuyOrder) {
-                    it++;
-                  } else {
-                    rit++;
-                  }
-                }
-                if ((createdBuyOrder && it == this->snapshotAsk.end()) || (!createdBuyOrder && rit == this->snapshotBid.rend())) {
-                  APP_LOGGER_INFO(std::string("All ") + (createdBuyOrder ? "asks" : "bids") +
-                                  " in the order book have been depleted. Do your order book data have enough depth?");
-                }
-                if (matchedOrder.remainingQuantity == Decimal("0")) {
-                  matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_FILLED;
-                  if (createdBuyOrder) {
-                    this->openBuyOrder = boost::none;
-                  } else {
-                    this->openSellOrder = boost::none;
-                  }
-                } else {
-                  matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_PARTIALLY_FILLED;
-                  if (createdBuyOrder) {
-                    this->openBuyOrder = matchedOrder;
-                  } else {
-                    this->openSellOrder = matchedOrder;
-                  }
-                }
-                virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
-                std::vector<Message> messageList;
-                {
-                  Message message;
-                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-                  message.setTime(now);
-                  message.setTimeReceived(now);
-                  message.setElementList(elementListPrivateTrade);
-                  messageList.emplace_back(std::move(message));
-                }
-                {
-                  Message message;
-                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-                  message.setTime(now);
-                  message.setTimeReceived(now);
-                  Element element;
-                  this->extractOrderInfo(element, matchedOrder);
-                  std::vector<Element> elementList;
-                  elementList.emplace_back(std::move(element));
-                  message.setElementList(elementList);
-                  messageList.emplace_back(std::move(message));
-                }
-                virtualEvent_3.setMessageList(messageList);
-              }
-              if (!virtualEvent_3.getMessageList().empty()) {
-                APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent_3.toStringPretty());
-                this->processEvent(virtualEvent_3, session);
+              newBaseBalance -= transactedAmount;
+              if (newBaseBalance >= 0) {
+                sufficientBalance = true;
+              } else {
+                APP_LOGGER_INFO("Insufficient base balance.");
               }
             }
-          } else {
-            session->sendRequest(requestList);
+            if (sufficientBalance) {
+              virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
+              message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+              Order order;
+              order.orderId = std::to_string(++this->virtualOrderId);
+              order.clientOrderId = clientOrderId;
+              order.side = side;
+              order.limitPrice = Decimal(price);
+              order.quantity = Decimal(quantity);
+              order.cumulativeFilledQuantity = Decimal("0");
+              order.remainingQuantity = order.quantity;
+              order.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_NEW;
+              Element element;
+              this->extractOrderInfo(element, order);
+              createdBuyOrder = side == CCAPI_EM_ORDER_SIDE_BUY;
+              if (createdBuyOrder) {
+                this->openBuyOrder = order;
+              } else {
+                this->openSellOrder = order;
+              }
+              std::vector<Element> elementList;
+              std::vector<Element> elementList_2;
+              elementList.emplace_back(std::move(element));
+              elementList_2 = elementList;
+              message.setElementList(elementList);
+              std::vector<Message> messageList;
+              messageList.emplace_back(std::move(message));
+              virtualEvent.setMessageList(messageList);
+              virtualEvent_2.setType(Event::Type::RESPONSE);
+              message_2.setType(Message::Type::CREATE_ORDER);
+              message_2.setElementList(elementList_2);
+              std::vector<Message> messageList_2;
+              messageList_2.emplace_back(std::move(message_2));
+              virtualEvent_2.setMessageList(messageList_2);
+            } else {
+              virtualEvent_2.setType(Event::Type::RESPONSE);
+              message_2.setType(Message::Type::RESPONSE_ERROR);
+              Element element;
+              element.insert("ERROR_MESSAGE", "Insufficient balance.");
+              std::vector<Element> elementList;
+              elementList.emplace_back(std::move(element));
+              message_2.setElementList(elementList);
+              std::vector<Message> messageList_2;
+              messageList_2.emplace_back(std::move(message_2));
+              virtualEvent_2.setMessageList(messageList_2);
+            }
+          } else if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
+            virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
+            message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+            if (this->openBuyOrder) {
+              this->openBuyOrder.get().status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_CANCELED;
+              Element element;
+              this->extractOrderInfo(element, this->openBuyOrder.get());
+              elementList.emplace_back(std::move(element));
+              this->openBuyOrder = boost::none;
+            }
+            if (this->openSellOrder) {
+              this->openSellOrder.get().status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_CANCELED;
+              Element element;
+              this->extractOrderInfo(element, this->openSellOrder.get());
+              elementList.emplace_back(std::move(element));
+              this->openSellOrder = boost::none;
+            }
+            std::vector<Element> elementList_2;
+            if (!elementList.empty()) {
+              elementList_2 = elementList;
+              message.setElementList(elementList);
+              virtualEvent.setMessageList({message});
+            }
+            virtualEvent_2.setType(Event::Type::RESPONSE);
+            message_2.setType(Message::Type::CANCEL_OPEN_ORDERS);
+            message_2.setElementList(elementList_2);
+            std::vector<Message> messageList_2;
+            messageList_2.emplace_back(std::move(message_2));
+            virtualEvent_2.setMessageList(messageList_2);
+          }
+          if (!virtualEvent.getMessageList().empty()) {
+            APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent.toStringPretty());
+            this->processEvent(virtualEvent, session);
+          }
+          if (!virtualEvent_2.getMessageList().empty()) {
+            APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent_2.toStringPretty());
+            this->processEvent(virtualEvent_2, session);
+          }
+          if (operation == Request::Operation::CREATE_ORDER) {
+            std::vector<Element> elementListPrivateTrade;
+            auto it = this->snapshotAsk.begin();
+            auto rit = this->snapshotBid.rbegin();
+            Order matchedOrder = createdBuyOrder ? this->openBuyOrder.get() : this->openSellOrder.get();
+            std::string takerFeeAsset = createdBuyOrder ? this->takerBuyerFeeAsset : this->takerSellerFeeAsset;
+            while ((createdBuyOrder && it != this->snapshotAsk.end()) || (!createdBuyOrder && rit != this->snapshotBid.rend())) {
+              Decimal priceToMatch = createdBuyOrder ? it->first : rit->first;
+              if ((createdBuyOrder && this->openBuyOrder->limitPrice >= priceToMatch) ||
+                  (!createdBuyOrder && this->openSellOrder->limitPrice <= priceToMatch)) {
+                Decimal quantityToMatch = Decimal(it->second);
+                Decimal matchedQuantity = std::min(quantityToMatch, matchedOrder.quantity);
+                matchedQuantity = quantityToMatch;
+                matchedOrder.cumulativeFilledQuantity = matchedOrder.cumulativeFilledQuantity.add(matchedQuantity);
+                matchedOrder.remainingQuantity = matchedOrder.quantity.subtract(matchedQuantity);
+                this->baseBalance += matchedQuantity.toDouble();
+                this->quoteBalance -= priceToMatch.toDouble() * matchedQuantity.toDouble();
+                double feeQuantity = 0;
+                if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->baseAsset)) {
+                  feeQuantity = matchedQuantity.toDouble() * this->takerFee;
+                  this->baseBalance -= feeQuantity;
+                } else if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
+                  feeQuantity = priceToMatch.toDouble() * matchedQuantity.toDouble() * this->takerFee;
+                  this->quoteBalance -= feeQuantity;
+                }
+                Element element;
+                element.insert(CCAPI_TRADE_ID, std::to_string(++this->virtualTradeId));
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, priceToMatch.toString());
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, matchedQuantity.toString());
+                element.insert(CCAPI_EM_ORDER_SIDE, matchedOrder.side);
+                element.insert(CCAPI_IS_MAKER, "0");
+                element.insert(CCAPI_EM_ORDER_ID, matchedOrder.orderId);
+                element.insert(CCAPI_EM_CLIENT_ORDER_ID, matchedOrder.clientOrderId);
+                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(feeQuantity)).toString());
+                element.insert(CCAPI_EM_ORDER_FEE_ASSET, takerFeeAsset);
+                elementListPrivateTrade.emplace_back(std::move(element));
+                if (matchedOrder.remainingQuantity == Decimal("0")) {
+                  break;
+                }
+              } else {
+                break;
+              }
+              if (createdBuyOrder) {
+                it++;
+              } else {
+                rit++;
+              }
+            }
+            if ((createdBuyOrder && it == this->snapshotAsk.end()) || (!createdBuyOrder && rit == this->snapshotBid.rend())) {
+              APP_LOGGER_INFO(std::string("All ") + (createdBuyOrder ? "asks" : "bids") +
+                              " in the order book have been depleted. Do your order book data have enough depth?");
+            }
+            if (matchedOrder.remainingQuantity == Decimal("0")) {
+              matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_FILLED;
+              if (createdBuyOrder) {
+                this->openBuyOrder = boost::none;
+              } else {
+                this->openSellOrder = boost::none;
+              }
+            } else {
+              matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_PARTIALLY_FILLED;
+              if (createdBuyOrder) {
+                this->openBuyOrder = matchedOrder;
+              } else {
+                this->openSellOrder = matchedOrder;
+              }
+            }
+            virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
+            std::vector<Message> messageList;
+            {
+              Message message;
+              message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+              message.setTime(now);
+              message.setTimeReceived(now);
+              message.setElementList(elementListPrivateTrade);
+              messageList.emplace_back(std::move(message));
+            }
+            {
+              Message message;
+              message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+              message.setTime(now);
+              message.setTimeReceived(now);
+              Element element;
+              this->extractOrderInfo(element, matchedOrder);
+              std::vector<Element> elementList;
+              elementList.emplace_back(std::move(element));
+              message.setElementList(elementList);
+              messageList.emplace_back(std::move(message));
+            }
+            virtualEvent_3.setMessageList(messageList);
+          }
+          if (!virtualEvent_3.getMessageList().empty()) {
+            APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent_3.toStringPretty());
+            this->processEvent(virtualEvent_3, session);
           }
         }
+      } else {
+        session->sendRequest(requestList);
       }
     }
     return true;
@@ -1193,6 +1195,7 @@ class EventHandlerBase : public EventHandler {
       }
     }
   }
+    AppMode appMode;
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
       orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix, privateDataFileSuffix, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
       cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
@@ -1427,7 +1430,6 @@ class EventHandlerBase : public EventHandler {
   std::map<Decimal, std::string> snapshotBid;
   std::map<Decimal, std::string> snapshotAsk;
   bool skipProcessEvent{};
-  AppMode appMode;
 };
 } /* namespace ccapi */
 #endif  // APP_INCLUDE_APP_EVENT_HANDLER_BASE_H_
