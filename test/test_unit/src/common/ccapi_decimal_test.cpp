@@ -32,9 +32,29 @@ TEST(DecimalTest, scientificNotation) {
     EXPECT_EQ(x.toString(), "0.0000000001");
   }
 }
+TEST(DecimalTest, mostCommon) {
+  Decimal bid_1("0.1");
+  EXPECT_EQ(bid_1.toString(), "0.1");
+}
 TEST(DecimalTest, trailingZero) {
   Decimal bid_1("0.10");
   EXPECT_EQ(bid_1.toString(), "0.1");
+}
+TEST(DecimalTest, integer_1) {
+  Decimal bid_1("1");
+  EXPECT_EQ(bid_1.toString(), "1");
+}
+TEST(DecimalTest, integer_2) {
+  Decimal bid_1("1.0");
+  EXPECT_EQ(bid_1.toString(), "1");
+}
+TEST(DecimalTest, integer_3) {
+  Decimal bid_1("0");
+  EXPECT_EQ(bid_1.toString(), "0");
+}
+TEST(DecimalTest, integer_4) {
+  Decimal bid_1("0.0");
+  EXPECT_EQ(bid_1.toString(), "0");
 }
 TEST(DecimalTest, subtract_0) { EXPECT_EQ(Decimal("0.000000549410817836").subtract(Decimal("0")).toString(), "0.000000549410817836"); }
 TEST(DecimalTest, add_1) { EXPECT_EQ(Decimal("0.020411").add(Decimal("0.006527")).toString(), "0.026938"); }
