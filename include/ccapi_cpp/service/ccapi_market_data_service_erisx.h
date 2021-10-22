@@ -99,7 +99,7 @@ class MarketDataServiceErisx : public MarketDataService {
                 std::move(dataPoint));
           }
         }
-        marketDataMessageList.push_back(std::move(marketDataMessage));
+        marketDataMessageList.emplace_back(std::move(marketDataMessage));
       } else {
         for (const auto& x : document["trades"].GetArray()) {
           MarketDataMessage marketDataMessage;
@@ -112,8 +112,8 @@ class MarketDataServiceErisx : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["size"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, ""});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["tickerType"].GetString()) == "GIVEN" ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       }
     } else if (type == "TopOfBookMarketData") {
@@ -152,7 +152,7 @@ class MarketDataServiceErisx : public MarketDataService {
           }
         }
       }
-      marketDataMessageList.push_back(std::move(marketDataMessage));
+      marketDataMessageList.emplace_back(std::move(marketDataMessage));
     }
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,

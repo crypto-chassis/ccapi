@@ -77,10 +77,10 @@ class AppUtil {
       x += 1;
     }
     std::string output;
-    if (inputIncrement.find('.') != std::string::npos) {
-      const auto& splitted = UtilString::split(inputIncrement, ".");
-      const auto& splitted_0 = splitted.at(0);
-      const auto& splitted_1 = splitted.at(1);
+    auto found = inputIncrement.find('.');
+    if (found != std::string::npos) {
+      const auto& splitted_0 = inputIncrement.substr(0,found);
+      const auto& splitted_1 = inputIncrement.substr(found+1);
       if (splitted_0 == "0") {
         output = std::to_string(x * std::stoll(splitted_1));
       } else {

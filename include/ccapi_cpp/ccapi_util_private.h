@@ -56,6 +56,17 @@ class UtilString CCAPI_FINAL {
     std::generate_n(str.begin(), length, randchar);
     return str;
   }
+  static std::vector<std::string> split(const std::string& in, char sep) {
+    std::vector<std::string> r;
+    r.reserve(std::count(in.begin(), in.end(), sep) + 1);
+    for (auto p = in.begin();; ++p) {
+        auto q = p;
+        p = std::find(p, in.end(), sep);
+        r.emplace_back(q, p);
+        if (p == in.end())
+            {return r;}
+    }
+  }
   static std::vector<std::string> split(const std::string& original, const std::string& delimiter) {
     std::string s = original;
     std::vector<std::string> output;
@@ -63,10 +74,10 @@ class UtilString CCAPI_FINAL {
     std::string token;
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
-      output.push_back(std::move(token));
+      output.emplace_back(std::move(token));
       s.erase(0, pos + delimiter.length());
     }
-    output.push_back(std::move(s));
+    output.emplace_back(std::move(s));
     return output;
   }
   static std::set<std::string> splitToSet(const std::string& original, const std::string& delimiter) {
@@ -110,12 +121,43 @@ class UtilString CCAPI_FINAL {
     str.erase(0, str.find_first_not_of(chars));
     return str;
   }
+  static std::string ltrim(const std::string& original, char c) {
+    std::string str = original;
+    str.erase(0, str.find_first_not_of(c));
+    return str;
+  }
+  static void ltrimInPlace(std::string& str, const std::string& chars = "\t\n\v\f\r ") {
+    str.erase(0, str.find_first_not_of(chars));
+  }
+  static void ltrimInPlace(std::string& str, char c) {
+    str.erase(0, str.find_first_not_of(c));
+  }
   static std::string rtrim(const std::string& original, const std::string& chars = "\t\n\v\f\r ") {
     std::string str = original;
     str.erase(str.find_last_not_of(chars) + 1);
     return str;
   }
+  static std::string rtrim(const std::string& original, char c) {
+    std::string str = original;
+    str.erase(str.find_last_not_of(c) + 1);
+    return str;
+  }
+  static void rtrimInPlace( std::string& str, const std::string& chars = "\t\n\v\f\r ") {
+    str.erase(str.find_last_not_of(chars) + 1);
+  }
+  static void rtrimInPlace( std::string& str, char c) {
+    str.erase(str.find_last_not_of(c) + 1);
+  }
   static std::string trim(const std::string& original, const std::string& chars = "\t\n\v\f\r ") { return ltrim(rtrim(original, chars), chars); }
+  static std::string trim(const std::string& original, char c) { return ltrim(rtrim(original, c), c); }
+  static void trimInPlace( std::string& str, const std::string& chars = "\t\n\v\f\r ") {
+    rtrimInPlace(str, chars);
+     ltrimInPlace(str, chars);
+   }
+   static void trimInPlace( std::string& str, char c) {
+     rtrimInPlace(str, c);
+      ltrimInPlace(str, c);
+    }
   static std::string firstNCharacter(const std::string& str, const size_t n) {
     if (str.length() > n) {
       return str.substr(0, n) + "...";
@@ -123,21 +165,32 @@ class UtilString CCAPI_FINAL {
       return str;
     }
   }
-  static std::string normalizeDecimalString(const std::string& str) {
-    if (str.find('.') != std::string::npos) {
-      return UtilString::rtrim(UtilString::rtrim(str, "0"), ".");
-    } else {
+  static std::string normalizeDecimalString(const std::string& original) {
+    if (original.find('.') != std::string::npos) {
+      std::string  str(original);
+      rtrimInPlace(str, "0");
+      rtrimInPlace(str, ".");
       return str;
+    } else {
+      return original;
     }
   }
-  static std::string leftPadTo(const std::string str, const size_t padToLength, const char paddingChar) {
+  static std::string normalizeDecimalString(const char* data) {
+    std::string str(data);
+    if (str.find('.') != std::string::npos) {
+      rtrimInPlace(str, "0");
+      rtrimInPlace(str, ".");
+    }
+    return str;
+  }
+  static std::string leftPadTo(const std::string& str, const size_t padToLength, const char paddingChar) {
     std::string copy = str;
     if (padToLength > copy.size()) {
       copy.insert(0, padToLength - copy.size(), paddingChar);
     }
     return copy;
   }
-  static std::string rightPadTo(const std::string str, const size_t padToLength, const char paddingChar) {
+  static std::string rightPadTo(const std::string& str, const size_t padToLength, const char paddingChar) {
     std::string copy = str;
     if (padToLength > copy.size()) {
       copy.append(padToLength - copy.size(), paddingChar);
@@ -246,17 +299,23 @@ class UtilTime CCAPI_FINAL {
   }
   static std::pair<long long, long long> divide(const std::string& seconds) {
     if (seconds.find('.') != std::string::npos) {
-      auto splittedSeconds = UtilString::split(UtilString::rtrim(UtilString::rtrim(seconds, "0"), "."), ".");
-      return std::make_pair(std::stoll(splittedSeconds[0]), splittedSeconds.size() == 1 ? 0 : std::stoll(UtilString::rightPadTo(splittedSeconds[1], 9, '0')));
+      std::string secondsCopy = seconds;
+      UtilString::rtrimInPlace(secondsCopy, '0');
+      UtilString::rtrimInPlace(secondsCopy, '.');
+      auto found = secondsCopy.find('.') != std::string::npos;
+      return std::make_pair(std::stoll(secondsCopy.substr(0,found)), found ?std::stoll(UtilString::rightPadTo(secondsCopy.substr(found+1), 9, '0')) :0);
     } else {
       return std::make_pair(std::stoll(seconds), 0);
     }
   }
   static std::pair<long long, long long> divideMilli(const std::string& milliseconds) {
     if (milliseconds.find('.') != std::string::npos) {
-      auto splittedMilliSeconds = UtilString::split(UtilString::rtrim(UtilString::rtrim(milliseconds, "0"), "."), ".");
-      return std::make_pair(std::stoll(splittedMilliSeconds[0]),
-                            splittedMilliSeconds.size() == 1 ? 0 : std::stoll(UtilString::rightPadTo(splittedMilliSeconds[1], 6, '0')));
+      std::string millisecondsCopy = milliseconds;
+      UtilString::rtrimInPlace(millisecondsCopy, '0');
+      UtilString::rtrimInPlace(millisecondsCopy, '.');
+      auto found = millisecondsCopy.find('.') != std::string::npos;
+      return std::make_pair(std::stoll(millisecondsCopy.substr(0,found)),
+                            found ?  std::stoll(UtilString::rightPadTo(millisecondsCopy.substr(found+1), 6, '0')) :0);
     } else {
       return std::make_pair(std::stoll(milliseconds), 0);
     }

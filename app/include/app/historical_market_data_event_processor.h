@@ -34,7 +34,7 @@ class HistoricalMarketDataEventProcessor {
         fTrade.ignore(INT_MAX, '\n');
         while (std::getline(fMarketDepth, lineMarketDepth) && !lineMarketDepth.empty()) {
           APP_LOGGER_DEBUG("File market-depth next line is " + lineMarketDepth + ".");
-          auto splittedMarketDepth = UtilString::split(lineMarketDepth, ",");
+          auto splittedMarketDepth = UtilString::split(lineMarketDepth, ',');
           int currentSecondsMarketDepth = std::stoi(splittedMarketDepth.at(0));
           if (currentSecondsMarketDepth < std::chrono::duration_cast<std::chrono::seconds>(this->startTimeTp.time_since_epoch()).count()) {
             continue;
@@ -97,7 +97,7 @@ class HistoricalMarketDataEventProcessor {
  private:
   void advanceTradeIterator(bool& shouldContinueTrade, std::ifstream& fTrade, std::string& lineTrade) {
     if (!shouldContinueTrade && !lineTrade.empty()) {
-      auto splittedTrade = UtilString::split(lineTrade, ",");
+      auto splittedTrade = UtilString::split(lineTrade, ',');
       int currentSecondsTrade = std::stoi(splittedTrade.at(0));
       if (currentSecondsTrade < this->clockSeconds) {
         this->processMarketDataEventTrade(splittedTrade);
@@ -106,7 +106,7 @@ class HistoricalMarketDataEventProcessor {
     }
     while (shouldContinueTrade && std::getline(fTrade, lineTrade) && !lineTrade.empty()) {
       APP_LOGGER_DEBUG("File trade next line is " + lineTrade + ".");
-      auto splittedTrade = UtilString::split(lineTrade, ",");
+      auto splittedTrade = UtilString::split(lineTrade, ',');
       int currentSecondsTrade = std::stoi(splittedTrade.at(0));
       if (currentSecondsTrade < this->clockSeconds) {
         this->processMarketDataEventTrade(splittedTrade);
@@ -149,19 +149,19 @@ class HistoricalMarketDataEventProcessor {
     std::vector<Element> elementList;
     Element element;
     if (!splittedLine.at(1).empty()) {
-      auto levels = UtilString::split(splittedLine.at(1), "|");
+      auto levels = UtilString::split(splittedLine.at(1), '|');
       for (const auto& level : levels) {
-        auto priceSize = UtilString::split(level, "_");
-        element.insert(CCAPI_BEST_BID_N_PRICE, priceSize.at(0));
-        element.insert(CCAPI_BEST_BID_N_SIZE, priceSize.at(1));
+        auto found = level.find('_');
+        element.insert(CCAPI_BEST_BID_N_PRICE, level.substr(0,found));
+        element.insert(CCAPI_BEST_BID_N_SIZE, level.substr(found+1));
       }
     }
     if (!splittedLine.at(2).empty()) {
-      auto levels = UtilString::split(splittedLine.at(2), "|");
+      auto levels = UtilString::split(splittedLine.at(2), '|');
       for (const auto& level : levels) {
-        auto priceSize = UtilString::split(level, "_");
-        element.insert(CCAPI_BEST_ASK_N_PRICE, priceSize.at(0));
-        element.insert(CCAPI_BEST_ASK_N_SIZE, priceSize.at(1));
+        auto found = level.find('_');
+        element.insert(CCAPI_BEST_ASK_N_PRICE, level.substr(0,found));
+        element.insert(CCAPI_BEST_ASK_N_SIZE, level.substr(found+1));
       }
     }
     elementList.emplace_back(std::move(element));

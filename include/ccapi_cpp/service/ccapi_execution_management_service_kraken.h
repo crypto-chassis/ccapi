@@ -417,7 +417,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
           Element element;
           element.insert(status == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       }
     }

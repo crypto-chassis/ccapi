@@ -370,7 +370,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         Element element;
         element.insert(eventType == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
     }
     event.setMessageList(messageList);

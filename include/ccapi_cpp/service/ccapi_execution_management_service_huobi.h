@@ -337,7 +337,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       } else if (ch.rfind("trade.clearing#", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         const rj::Value& data = document["data"];
@@ -359,7 +359,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(data["feeCurrency"].GetString()));
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       }
     } else if (actionStr == "sub") {
@@ -370,7 +370,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         Element element;
         element.insert(CCAPI_INFO_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
     }
     event.setMessageList(messageList);
