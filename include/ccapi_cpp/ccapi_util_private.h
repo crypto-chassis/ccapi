@@ -37,7 +37,7 @@ class UtilString CCAPI_FINAL {
   }
   static std::string printDoubleScientific(double number, int precision = CCAPI_PRINT_DOUBLE_PRECISION_DEFAULT) {
     std::stringstream ss;
-    ss << std::setprecision(precision) << std::scientific<< number;
+    ss << std::setprecision(precision) << std::scientific << number;
     // ss << number;
     return ss.str();
   }
@@ -60,11 +60,12 @@ class UtilString CCAPI_FINAL {
     std::vector<std::string> r;
     r.reserve(std::count(in.begin(), in.end(), sep) + 1);
     for (auto p = in.begin();; ++p) {
-        auto q = p;
-        p = std::find(p, in.end(), sep);
-        r.emplace_back(q, p);
-        if (p == in.end())
-            {return r;}
+      auto q = p;
+      p = std::find(p, in.end(), sep);
+      r.emplace_back(q, p);
+      if (p == in.end()) {
+        return r;
+      }
     }
   }
   static std::vector<std::string> split(const std::string& original, const std::string& delimiter) {
@@ -126,12 +127,8 @@ class UtilString CCAPI_FINAL {
     str.erase(0, str.find_first_not_of(c));
     return str;
   }
-  static void ltrimInPlace(std::string& str, const std::string& chars = "\t\n\v\f\r ") {
-    str.erase(0, str.find_first_not_of(chars));
-  }
-  static void ltrimInPlace(std::string& str, char c) {
-    str.erase(0, str.find_first_not_of(c));
-  }
+  static void ltrimInPlace(std::string& str, const std::string& chars = "\t\n\v\f\r ") { str.erase(0, str.find_first_not_of(chars)); }
+  static void ltrimInPlace(std::string& str, char c) { str.erase(0, str.find_first_not_of(c)); }
   static std::string rtrim(const std::string& original, const std::string& chars = "\t\n\v\f\r ") {
     std::string str = original;
     str.erase(str.find_last_not_of(chars) + 1);
@@ -142,22 +139,18 @@ class UtilString CCAPI_FINAL {
     str.erase(str.find_last_not_of(c) + 1);
     return str;
   }
-  static void rtrimInPlace( std::string& str, const std::string& chars = "\t\n\v\f\r ") {
-    str.erase(str.find_last_not_of(chars) + 1);
-  }
-  static void rtrimInPlace( std::string& str, char c) {
-    str.erase(str.find_last_not_of(c) + 1);
-  }
+  static void rtrimInPlace(std::string& str, const std::string& chars = "\t\n\v\f\r ") { str.erase(str.find_last_not_of(chars) + 1); }
+  static void rtrimInPlace(std::string& str, char c) { str.erase(str.find_last_not_of(c) + 1); }
   static std::string trim(const std::string& original, const std::string& chars = "\t\n\v\f\r ") { return ltrim(rtrim(original, chars), chars); }
   static std::string trim(const std::string& original, char c) { return ltrim(rtrim(original, c), c); }
-  static void trimInPlace( std::string& str, const std::string& chars = "\t\n\v\f\r ") {
+  static void trimInPlace(std::string& str, const std::string& chars = "\t\n\v\f\r ") {
     rtrimInPlace(str, chars);
-     ltrimInPlace(str, chars);
-   }
-   static void trimInPlace( std::string& str, char c) {
-     rtrimInPlace(str, c);
-      ltrimInPlace(str, c);
-    }
+    ltrimInPlace(str, chars);
+  }
+  static void trimInPlace(std::string& str, char c) {
+    rtrimInPlace(str, c);
+    ltrimInPlace(str, c);
+  }
   static std::string firstNCharacter(const std::string& str, const size_t n) {
     if (str.length() > n) {
       return str.substr(0, n) + "...";
@@ -167,7 +160,7 @@ class UtilString CCAPI_FINAL {
   }
   static std::string normalizeDecimalString(const std::string& original) {
     if (original.find('.') != std::string::npos) {
-      std::string  str(original);
+      std::string str(original);
       rtrimInPlace(str, "0");
       rtrimInPlace(str, ".");
       return str;
@@ -302,8 +295,9 @@ class UtilTime CCAPI_FINAL {
       std::string secondsCopy = seconds;
       UtilString::rtrimInPlace(secondsCopy, '0');
       UtilString::rtrimInPlace(secondsCopy, '.');
-      auto found = secondsCopy.find('.') != std::string::npos;
-      return std::make_pair(std::stoll(secondsCopy.substr(0,found)), found ?std::stoll(UtilString::rightPadTo(secondsCopy.substr(found+1), 9, '0')) :0);
+      auto found = secondsCopy.find('.');
+      return std::make_pair(std::stoll(secondsCopy.substr(0, found)),
+                            found != std::string::npos ? std::stoll(UtilString::rightPadTo(secondsCopy.substr(found + 1), 9, '0')) : 0);
     } else {
       return std::make_pair(std::stoll(seconds), 0);
     }
@@ -313,9 +307,9 @@ class UtilTime CCAPI_FINAL {
       std::string millisecondsCopy = milliseconds;
       UtilString::rtrimInPlace(millisecondsCopy, '0');
       UtilString::rtrimInPlace(millisecondsCopy, '.');
-      auto found = millisecondsCopy.find('.') != std::string::npos;
-      return std::make_pair(std::stoll(millisecondsCopy.substr(0,found)),
-                            found ?  std::stoll(UtilString::rightPadTo(millisecondsCopy.substr(found+1), 6, '0')) :0);
+      auto found = millisecondsCopy.find('.');
+      return std::make_pair(std::stoll(millisecondsCopy.substr(0, found)),
+                            found != std::string::npos ? std::stoll(UtilString::rightPadTo(millisecondsCopy.substr(found + 1), 6, '0')) : 0);
     } else {
       return std::make_pair(std::stoll(milliseconds), 0);
     }

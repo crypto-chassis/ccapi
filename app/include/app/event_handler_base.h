@@ -301,7 +301,7 @@ class EventHandlerBase : public EventHandler {
             if (it != elementNameValueMap.end()) {
               auto price = it->second;
               if (price != CCAPI_BEST_BID_N_PRICE_EMPTY) {
-this->snapshotBid[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_BID_N_SIZE);
+                this->snapshotBid[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_BID_N_SIZE);
               }
             }
           }
@@ -310,7 +310,7 @@ this->snapshotBid[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_BID_N_SIZE
             if (it != elementNameValueMap.end()) {
               auto price = it->second;
               if (price != CCAPI_BEST_ASK_N_PRICE_EMPTY) {
-this->snapshotAsk[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_ASK_N_SIZE);
+                this->snapshotAsk[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_ASK_N_SIZE);
               }
             }
           }
@@ -1195,7 +1195,7 @@ this->snapshotAsk[Decimal(price)] = elementNameValueMap.at(CCAPI_BEST_ASK_N_SIZE
       }
     }
   }
-    AppMode appMode;
+  AppMode appMode;
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
       orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix, privateDataFileSuffix, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
       cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;

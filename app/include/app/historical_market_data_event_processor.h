@@ -152,16 +152,16 @@ class HistoricalMarketDataEventProcessor {
       auto levels = UtilString::split(splittedLine.at(1), '|');
       for (const auto& level : levels) {
         auto found = level.find('_');
-        element.insert(CCAPI_BEST_BID_N_PRICE, level.substr(0,found));
-        element.insert(CCAPI_BEST_BID_N_SIZE, level.substr(found+1));
+        element.insert(CCAPI_BEST_BID_N_PRICE, level.substr(0, found));
+        element.insert(CCAPI_BEST_BID_N_SIZE, level.substr(found + 1));
       }
     }
     if (!splittedLine.at(2).empty()) {
       auto levels = UtilString::split(splittedLine.at(2), '|');
       for (const auto& level : levels) {
         auto found = level.find('_');
-        element.insert(CCAPI_BEST_ASK_N_PRICE, level.substr(0,found));
-        element.insert(CCAPI_BEST_ASK_N_SIZE, level.substr(found+1));
+        element.insert(CCAPI_BEST_ASK_N_PRICE, level.substr(0, found));
+        element.insert(CCAPI_BEST_ASK_N_SIZE, level.substr(found + 1));
       }
     }
     elementList.emplace_back(std::move(element));

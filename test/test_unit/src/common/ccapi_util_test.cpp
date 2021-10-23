@@ -43,21 +43,29 @@ TEST(UtilStringTest, splitHasDot) {
 }
 TEST(UtilStringTest, splitNoDot) {
   std::string original("12");
-  {auto result = UtilString::split(original, ".");
-  EXPECT_EQ(result.size(), 1);
-  EXPECT_EQ(result.at(0), "12");}
-  {auto result = UtilString::split(original, '.');
-  EXPECT_EQ(result.size(), 1);
-  EXPECT_EQ(result.at(0), "12");}
+  {
+    auto result = UtilString::split(original, ".");
+    EXPECT_EQ(result.size(), 1);
+    EXPECT_EQ(result.at(0), "12");
+  }
+  {
+    auto result = UtilString::split(original, '.');
+    EXPECT_EQ(result.size(), 1);
+    EXPECT_EQ(result.at(0), "12");
+  }
 }
 TEST(UtilStringTest, splitEmptyString) {
   std::string original("");
-  {auto result = UtilString::split(original, ".");
-  EXPECT_EQ(result.size(), 1);
-  EXPECT_EQ(result.at(0), "");}
-  {auto result = UtilString::split(original, '.');
-  EXPECT_EQ(result.size(), 1);
-  EXPECT_EQ(result.at(0), "");}
+  {
+    auto result = UtilString::split(original, ".");
+    EXPECT_EQ(result.size(), 1);
+    EXPECT_EQ(result.at(0), "");
+  }
+  {
+    auto result = UtilString::split(original, '.');
+    EXPECT_EQ(result.size(), 1);
+    EXPECT_EQ(result.at(0), "");
+  }
 }
 TEST(UtilStringTest, splitToSetEmptyString) {
   std::string original("");
@@ -91,39 +99,39 @@ TEST(UtilStringTest, normalizeDecimalString_5) {
   EXPECT_EQ(UtilString::normalizeDecimalString(original.c_str()), "1.1");
 }
 TEST(UtilTimeTest, divideSecondsStr_1) {
-  std::string secondsStr("1634929946");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946, 0));
+  std::string str("1634929946");
+  EXPECT_EQ(UtilTime::divide(str), (std::make_pair<long long, long long>(1634929946, 0)));
 }
 TEST(UtilTimeTest, divideSecondsStr_2) {
-  std::string secondsStr("1634929946.000");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946, 0));
+  std::string str("1634929946.000");
+  EXPECT_EQ(UtilTime::divide(str), (std::make_pair<long long, long long>(1634929946, 0)));
 }
 TEST(UtilTimeTest, divideSecondsStr_3) {
-  std::string secondsStr("1634929946.010");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946, 10000000));
+  std::string str("1634929946.010");
+  EXPECT_EQ(UtilTime::divide(str), (std::make_pair<long long, long long>(1634929946, 10000000)));
 }
 TEST(UtilTimeTest, divideSecondsStr_4) {
-  std::string secondsStr("1634929946.123");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946, 123000000));
+  std::string str("1634929946.123");
+  EXPECT_EQ(UtilTime::divide(str), (std::make_pair<long long, long long>(1634929946, 123000000)));
 }
 TEST(UtilTimeTest, divideMilliSecondsStr_1) {
-  std::string secondsStr("1634929946000");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946000, 0));
+  std::string str("1634929946000");
+  EXPECT_EQ(UtilTime::divideMilli(str), (std::make_pair<long long, long long>(1634929946000, 0)));
 }
 TEST(UtilTimeTest, divideMilliSecondsStr_2) {
-  std::string secondsStr("1634929946123");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946123, 0));
+  std::string str("1634929946123");
+  EXPECT_EQ(UtilTime::divideMilli(str), (std::make_pair<long long, long long>(1634929946123, 0)));
 }
 TEST(UtilTimeTest, divideMilliSecondsStr_3) {
-  std::string secondsStr("1634929946010.000");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946010, 0));
+  std::string str("1634929946010.000");
+  EXPECT_EQ(UtilTime::divideMilli(str), (std::make_pair<long long, long long>(1634929946010, 0)));
 }
 TEST(UtilTimeTest, divideMilliSecondsStr_4) {
-  std::string secondsStr("1634929946010.010");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946010,10000));
+  std::string str("1634929946010.010");
+  EXPECT_EQ(UtilTime::divideMilli(str), (std::make_pair<long long, long long>(1634929946010, 10000)));
 }
-TEST(UtilTimeTest, divideMilliSecondsStr_4) {
-  std::string secondsStr("1634929946010.123");
-  EXPECT_EQ(UtilTime::divide(secondStr), std::make_pair<long long, long long>(1634929946010,123000));
+TEST(UtilTimeTest, divideMilliSecondsStr_5) {
+  std::string str("1634929946010.123");
+  EXPECT_EQ(UtilTime::divideMilli(str), (std::make_pair<long long, long long>(1634929946010, 123000)));
 }
 } /* namespace ccapi */

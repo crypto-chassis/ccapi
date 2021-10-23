@@ -20,16 +20,16 @@ class Decimal CCAPI_FINAL {
     }
     auto foundE = originalValue.find('E');
     if (foundE != std::string::npos || originalValue.find('e') != std::string::npos) {
-      if (foundE == std::string::npos){
+      if (foundE == std::string::npos) {
         foundE = originalValue.find('e');
       }
-      std::string fixedPointValue = originalValue.substr(this->sign?0:1, foundE);
+      std::string fixedPointValue = originalValue.substr(this->sign ? 0 : 1, foundE);
       auto foundDot = fixedPointValue.find('.');
-      if (foundDot!= std::string::npos) {
+      if (foundDot != std::string::npos) {
         fixedPointValue.erase(fixedPointValue.find_last_not_of('0') + 1);
         fixedPointValue.erase(fixedPointValue.find_last_not_of('.') + 1);
       }
-      std::string exponent = originalValue.substr(foundE+1);
+      std::string exponent = originalValue.substr(foundE + 1);
       if (exponent.at(0) == '+') {
         exponent.erase(0, 1);
       }
@@ -39,16 +39,17 @@ class Decimal CCAPI_FINAL {
       }
       if (exponent != "0") {
         foundDot = fixedPointValue.find('.');
-        if (foundDot!= std::string::npos) {
+        if (foundDot != std::string::npos) {
           if (exponent.at(0) != '-') {
-            if (std::stoi(exponent) < fixedPointValue.substr(foundDot+1).length()) {
-              fixedPointValue =
-                  fixedPointValue.substr(0,foundDot) + fixedPointValue.substr(foundDot+1).substr(0, std::stoi(exponent)) + "." + fixedPointValue.substr(foundDot+1).substr(std::stoi(exponent));
+            if (std::stoi(exponent) < fixedPointValue.substr(foundDot + 1).length()) {
+              fixedPointValue = fixedPointValue.substr(0, foundDot) + fixedPointValue.substr(foundDot + 1).substr(0, std::stoi(exponent)) + "." +
+                                fixedPointValue.substr(foundDot + 1).substr(std::stoi(exponent));
             } else {
-              fixedPointValue = fixedPointValue.substr(0,foundDot) + fixedPointValue.substr(foundDot+1) + std::string(std::stoi(exponent) - fixedPointValue.substr(foundDot+1).length(), '0');
+              fixedPointValue = fixedPointValue.substr(0, foundDot) + fixedPointValue.substr(foundDot + 1) +
+                                std::string(std::stoi(exponent) - fixedPointValue.substr(foundDot + 1).length(), '0');
             }
           } else {
-            fixedPointValue = "0." + std::string(-std::stoi(exponent) - 1, '0') + fixedPointValue.substr(0,foundDot) + fixedPointValue.substr(foundDot+1);
+            fixedPointValue = "0." + std::string(-std::stoi(exponent) - 1, '0') + fixedPointValue.substr(0, foundDot) + fixedPointValue.substr(foundDot + 1);
           }
         } else {
           if (exponent.at(0) != '-') {
@@ -61,8 +62,8 @@ class Decimal CCAPI_FINAL {
       foundDot = fixedPointValue.find('.');
       // TODO(cryptochassis): replace with std::from_chars() once upgrade to C++17
       this->before = std::stoull(fixedPointValue.substr(0, foundDot));
-      if (foundDot!=std::string::npos) {
-        this->frac = fixedPointValue.substr(foundDot+1);
+      if (foundDot != std::string::npos) {
+        this->frac = fixedPointValue.substr(foundDot + 1);
         if (!keepTrailingZero) {
           this->frac.erase(this->frac.find_last_not_of('0') + 1);
         }
@@ -70,9 +71,9 @@ class Decimal CCAPI_FINAL {
     } else {
       auto found = originalValue.find('.');
       // TODO(cryptochassis): replace with std::from_chars() once upgrade to C++17
-      this->before = std::stoull(originalValue.substr(this->sign?0:1, found));
-      if (found!=std::string::npos){
-        this->frac = originalValue.substr(found+1);
+      this->before = std::stoull(originalValue.substr(this->sign ? 0 : 1, found));
+      if (found != std::string::npos) {
+        this->frac = originalValue.substr(found + 1);
         if (!keepTrailingZero) {
           this->frac.erase(this->frac.find_last_not_of('0') + 1);
         }

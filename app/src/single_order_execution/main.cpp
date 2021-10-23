@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     APP_LOGGER_INFO("About to sleep " + std::to_string(timeToSleepSeconds) + " seconds.");
     std::this_thread::sleep_for(std::chrono::seconds(timeToSleepSeconds));
   }
-  eventHandler.appMode=EventHandlerBase::AppMode::SINGLE_ORDER_EXECUTION;
+  eventHandler.appMode = EventHandlerBase::AppMode::SINGLE_ORDER_EXECUTION;
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
