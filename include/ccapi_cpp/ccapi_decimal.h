@@ -105,7 +105,11 @@ class Decimal CCAPI_FINAL {
     } else if (l.sign && !r.sign) {
       return false;
     } else if (!l.sign && r.sign) {
-      return true;
+      if (l.before == 0 && l.frac.empty() && r.before == 0 && r.frac.empty()) {
+        return false;
+      } else {
+        return true;
+      }
     } else {
       Decimal nl = l;
       nl.sign = true;
@@ -184,7 +188,7 @@ class Decimal CCAPI_FINAL {
   }
   Decimal subtract(const Decimal& x) const {
     if (this->sign && x.sign) {
-      if (*this > x) {
+      if (*this >= x) {
         Decimal o;
         o.sign = true;
         if (this->frac >= x.frac) {

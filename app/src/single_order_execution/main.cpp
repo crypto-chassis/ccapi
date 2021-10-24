@@ -47,11 +47,14 @@ int main(int argc, char** argv) {
   eventHandler.totalDurationSeconds = std::stoi(totalDurationSecondsStr);
   eventHandler.numOrderRefreshIntervals = eventHandler.totalDurationSeconds / eventHandler.orderRefreshIntervalSeconds;
   eventHandler.orderSide = UtilString::toUpper(UtilSystem::getEnvAsString("ORDER_SIDE"));
-  eventHandler.totalTargetQuantity = UtilSystem::getEnvAsDouble("TOTAL_TARGET_QUANTITY");
-  eventHandler.totalTargetQuantityInQuote = UtilSystem::getEnvAsDouble("TOTAL_TARGET_QUANTITY_IN_QUOTE");
+  std::string totalTargetQuantityStr = UtilSystem::getEnvAsString("TOTAL_TARGET_QUANTITY");
+  eventHandler.totalTargetQuantity = totalTargetQuantityStr.empty() ? 0 : std::stod(totalTargetQuantityStr);
+  std::string quoteTotalTargetQuantityStr = UtilSystem::getEnvAsString("QUOTE_TOTAL_TARGET_QUANTITY");
+  eventHandler.quoteTotalTargetQuantity = quoteTotalTargetQuantityStr.empty() ? 0 : std::stod(quoteTotalTargetQuantityStr);
   eventHandler.theoreticalRemainingQuantity = eventHandler.totalTargetQuantity;
-  eventHandler.theoreticalRemainingQuantityInQuote = eventHandler.totalTargetQuantityInQuote;
-  eventHandler.orderPriceLimit = UtilSystem::getEnvAsDouble("ORDER_PRICE_LIMIT");
+  eventHandler.theoreticalQuoteRemainingQuantity = eventHandler.quoteTotalTargetQuantity;
+  std::string orderPriceLimitStr = UtilSystem::getEnvAsString("ORDER_PRICE_LIMIT");
+  eventHandler.orderPriceLimit = orderPriceLimitStr.empty() ? 0 : std::stod(orderPriceLimitStr);
   eventHandler.orderPriceLimitRelativeToMidPrice = UtilSystem::getEnvAsDouble("ORDER_PRICE_LIMIT_RELATIVE_TO_MID_PRICE");
   eventHandler.orderQuantityLimitRelativeToTarget = UtilSystem::getEnvAsDouble("ORDER_QUANTITY_LIMIT_RELATIVE_TO_TARGET");
   eventHandler.twapOrderQuantityRandomizationMax = UtilSystem::getEnvAsDouble("TWAP_ORDER_QUANTITY_RANDOMIZATION_MAX");
@@ -77,8 +80,8 @@ int main(int argc, char** argv) {
     eventHandler.takerFee = UtilSystem::getEnvAsDouble("TAKER_FEE");
     eventHandler.takerBuyerFeeAsset = UtilSystem::getEnvAsString("TAKER_BUYER_FEE_ASSET");
     eventHandler.takerSellerFeeAsset = UtilSystem::getEnvAsString("TAKER_SELLER_FEE_ASSET");
-    eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE") * eventHandler.baseAvailableBalanceProportion;
-    eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE") * eventHandler.quoteAvailableBalanceProportion;
+    eventHandler.baseBalance = eventHandler.totalTargetQuantity;
+    eventHandler.quoteBalance = eventHandler.quoteTotalTargetQuantity;
   }
   if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
     eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"), "%F");

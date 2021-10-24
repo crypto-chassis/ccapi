@@ -1,0 +1,7 @@
+set(NAME hmac)
+project(${NAME})
+add_executable(${NAME} ${SOURCE_LOGGER} ccapi_hmac_test.cpp)
+add_executable(${NAME}_hmac_openssl ${SOURCE_LOGGER} ccapi_hmac_test.cpp)
+target_compile_definitions(${NAME}_hmac_openssl PRIVATE CCAPI_SHA_USE_OPENSSL)
+gtest_discover_tests(${NAME})
+gtest_discover_tests(${NAME}_hmac_openssl)

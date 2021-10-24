@@ -147,24 +147,26 @@ class HistoricalMarketDataEventProcessor {
     message.setTimeReceived(messageTime);
     message.setCorrelationIdList({PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID});
     std::vector<Element> elementList;
-    Element element;
     if (!splittedLine.at(1).empty()) {
       auto levels = UtilString::split(splittedLine.at(1), '|');
       for (const auto& level : levels) {
         auto found = level.find('_');
+        Element element;
         element.insert(CCAPI_BEST_BID_N_PRICE, level.substr(0, found));
         element.insert(CCAPI_BEST_BID_N_SIZE, level.substr(found + 1));
+        elementList.emplace_back(std::move(element));
       }
     }
     if (!splittedLine.at(2).empty()) {
       auto levels = UtilString::split(splittedLine.at(2), '|');
       for (const auto& level : levels) {
         auto found = level.find('_');
+        Element element;
         element.insert(CCAPI_BEST_ASK_N_PRICE, level.substr(0, found));
         element.insert(CCAPI_BEST_ASK_N_SIZE, level.substr(found + 1));
+        elementList.emplace_back(std::move(element));
       }
     }
-    elementList.emplace_back(std::move(element));
     message.setElementList(elementList);
     event.addMessage(message);
     APP_LOGGER_DEBUG("Generated a backtest event: " + event.toStringPretty());

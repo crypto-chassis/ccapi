@@ -331,12 +331,12 @@ class EventHandlerBase : public EventHandler {
             this->bestAskSize = it->second;
           }
         }
-        // std::cout<< toString(this->snapshotBid) <<std::endl;
-        // std::cout<< toString(this->snapshotAsk) <<std::endl;
-        // std::cout<< toString(this->bestBidPrice) <<std::endl;
-        // std::cout<< toString(this->bestBidSize) <<std::endl;
-        // std::cout<< toString(this->bestAskPrice) <<std::endl;
-        // std::cout<< toString(this->bestAskSize) <<std::endl;
+        std::cout << toString(this->snapshotBid) << std::endl;
+        std::cout << toString(this->snapshotAsk) << std::endl;
+        std::cout << toString(this->bestBidPrice) << std::endl;
+        std::cout << toString(this->bestBidSize) << std::endl;
+        std::cout << toString(this->bestAskPrice) << std::endl;
+        std::cout << toString(this->bestAskSize) << std::endl;
         const std::string& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
         const std::string& messageTimeISODate = messageTimeISO.substr(0, 10);
         if (this->previousMessageTimeISODate.empty() || messageTimeISODate != previousMessageTimeISODate) {
@@ -590,7 +590,11 @@ class EventHandlerBase : public EventHandler {
             if (this->tradingMode == TradingMode::LIVE) {
               options += "MARKET_DEPTH_MAX=1";
             } else if (this->tradingMode == TradingMode::PAPER) {
-              options += "MARKET_DEPTH_MAX=1000";
+              if (this->appMode == AppMode::MARKET_MAKING) {
+                options += "MARKET_DEPTH_MAX=1";
+              } else if (this->appMode == AppMode::SINGLE_ORDER_EXECUTION) {
+                options += "MARKET_DEPTH_MAX=1000";
+              }
             }
             if (!this->enableUpdateOrderBookTickByTick) {
               options += "&" + std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepSeconds * 1000) + "&" +
@@ -727,7 +731,7 @@ class EventHandlerBase : public EventHandler {
               virtualEvent_2.setType(Event::Type::RESPONSE);
               message_2.setType(Message::Type::RESPONSE_ERROR);
               Element element;
-              element.insert("ERROR_MESSAGE", "Insufficient balance.");
+              element.insert("ERROR_MESSAGE", "insufficient balance");
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(element));
               message_2.setElementList(elementList);
@@ -775,97 +779,103 @@ class EventHandlerBase : public EventHandler {
             this->processEvent(virtualEvent_2, session);
           }
           if (operation == Request::Operation::CREATE_ORDER) {
-            std::vector<Element> elementListPrivateTrade;
-            auto it = this->snapshotAsk.begin();
-            auto rit = this->snapshotBid.rbegin();
-            Order matchedOrder = createdBuyOrder ? this->openBuyOrder.get() : this->openSellOrder.get();
-            std::string takerFeeAsset = createdBuyOrder ? this->takerBuyerFeeAsset : this->takerSellerFeeAsset;
-            while ((createdBuyOrder && it != this->snapshotAsk.end()) || (!createdBuyOrder && rit != this->snapshotBid.rend())) {
-              Decimal priceToMatch = createdBuyOrder ? it->first : rit->first;
-              if ((createdBuyOrder && this->openBuyOrder->limitPrice >= priceToMatch) ||
-                  (!createdBuyOrder && this->openSellOrder->limitPrice <= priceToMatch)) {
-                Decimal quantityToMatch = Decimal(it->second);
-                Decimal matchedQuantity = std::min(quantityToMatch, matchedOrder.quantity);
-                matchedQuantity = quantityToMatch;
-                matchedOrder.cumulativeFilledQuantity = matchedOrder.cumulativeFilledQuantity.add(matchedQuantity);
-                matchedOrder.remainingQuantity = matchedOrder.quantity.subtract(matchedQuantity);
-                this->baseBalance += matchedQuantity.toDouble();
-                this->quoteBalance -= priceToMatch.toDouble() * matchedQuantity.toDouble();
-                double feeQuantity = 0;
-                if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->baseAsset)) {
-                  feeQuantity = matchedQuantity.toDouble() * this->takerFee;
-                  this->baseBalance -= feeQuantity;
-                } else if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
-                  feeQuantity = priceToMatch.toDouble() * matchedQuantity.toDouble() * this->takerFee;
-                  this->quoteBalance -= feeQuantity;
-                }
-                Element element;
-                element.insert(CCAPI_TRADE_ID, std::to_string(++this->virtualTradeId));
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, priceToMatch.toString());
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, matchedQuantity.toString());
-                element.insert(CCAPI_EM_ORDER_SIDE, matchedOrder.side);
-                element.insert(CCAPI_IS_MAKER, "0");
-                element.insert(CCAPI_EM_ORDER_ID, matchedOrder.orderId);
-                element.insert(CCAPI_EM_CLIENT_ORDER_ID, matchedOrder.clientOrderId);
-                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(feeQuantity)).toString());
-                element.insert(CCAPI_EM_ORDER_FEE_ASSET, takerFeeAsset);
-                elementListPrivateTrade.emplace_back(std::move(element));
-                if (matchedOrder.remainingQuantity == Decimal("0")) {
+            if (this->openBuyOrder || this->openSellOrder) {
+              std::vector<Element> elementListPrivateTrade;
+              auto it = this->snapshotAsk.begin();
+              auto rit = this->snapshotBid.rbegin();
+              Order matchedOrder = createdBuyOrder ? this->openBuyOrder.get() : this->openSellOrder.get();
+              std::string takerFeeAsset = createdBuyOrder ? this->takerBuyerFeeAsset : this->takerSellerFeeAsset;
+              while ((createdBuyOrder && it != this->snapshotAsk.end()) || (!createdBuyOrder && rit != this->snapshotBid.rend())) {
+                Decimal priceToMatch = createdBuyOrder ? it->first : rit->first;
+                if ((createdBuyOrder && this->openBuyOrder->limitPrice >= priceToMatch) ||
+                    (!createdBuyOrder && this->openSellOrder->limitPrice <= priceToMatch)) {
+                  Decimal quantityToMatch = Decimal(createdBuyOrder ? it->second : rit->second);
+                  Decimal matchedQuantity = std::min(quantityToMatch, matchedOrder.remainingQuantity);
+                  matchedOrder.cumulativeFilledQuantity = matchedOrder.cumulativeFilledQuantity.add(matchedQuantity);
+                  matchedOrder.remainingQuantity = matchedOrder.remainingQuantity.subtract(matchedQuantity);
+                  if (createdBuyOrder) {
+                    this->baseBalance += matchedQuantity.toDouble();
+                    this->quoteBalance -= priceToMatch.toDouble() * matchedQuantity.toDouble();
+                  } else {
+                    this->baseBalance -= matchedQuantity.toDouble();
+                    this->quoteBalance += priceToMatch.toDouble() * matchedQuantity.toDouble();
+                  }
+                  double feeQuantity = 0;
+                  if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->baseAsset)) {
+                    feeQuantity = matchedQuantity.toDouble() * this->takerFee;
+                    this->baseBalance -= feeQuantity;
+                  } else if (UtilString::toLower(takerFeeAsset) == UtilString::toLower(this->quoteAsset)) {
+                    feeQuantity = priceToMatch.toDouble() * matchedQuantity.toDouble() * this->takerFee;
+                    this->quoteBalance -= feeQuantity;
+                  }
+                  Element element;
+                  element.insert(CCAPI_TRADE_ID, std::to_string(++this->virtualTradeId));
+                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, priceToMatch.toString());
+                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, matchedQuantity.toString());
+                  element.insert(CCAPI_EM_ORDER_SIDE, matchedOrder.side);
+                  element.insert(CCAPI_IS_MAKER, "0");
+                  element.insert(CCAPI_EM_ORDER_ID, matchedOrder.orderId);
+                  element.insert(CCAPI_EM_CLIENT_ORDER_ID, matchedOrder.clientOrderId);
+                  element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(feeQuantity)).toString());
+                  element.insert(CCAPI_EM_ORDER_FEE_ASSET, takerFeeAsset);
+                  elementListPrivateTrade.emplace_back(std::move(element));
+                  if (matchedOrder.remainingQuantity == Decimal("0")) {
+                    break;
+                  }
+                } else {
                   break;
                 }
-              } else {
-                break;
+                if (createdBuyOrder) {
+                  it++;
+                } else {
+                  rit++;
+                }
               }
-              if (createdBuyOrder) {
-                it++;
-              } else {
-                rit++;
+              if ((createdBuyOrder && it == this->snapshotAsk.end()) || (!createdBuyOrder && rit == this->snapshotBid.rend())) {
+                APP_LOGGER_WARN(std::string("All ") + (createdBuyOrder ? "asks" : "bids") +
+                                " in the order book have been depleted. Do your order book data have enough depth?");
               }
-            }
-            if ((createdBuyOrder && it == this->snapshotAsk.end()) || (!createdBuyOrder && rit == this->snapshotBid.rend())) {
-              APP_LOGGER_INFO(std::string("All ") + (createdBuyOrder ? "asks" : "bids") +
-                              " in the order book have been depleted. Do your order book data have enough depth?");
-            }
-            if (matchedOrder.remainingQuantity == Decimal("0")) {
-              matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_FILLED;
-              if (createdBuyOrder) {
-                this->openBuyOrder = boost::none;
+              if (matchedOrder.remainingQuantity == Decimal("0")) {
+                matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_FILLED;
+                if (createdBuyOrder) {
+                  this->openBuyOrder = boost::none;
+                } else {
+                  this->openSellOrder = boost::none;
+                }
               } else {
-                this->openSellOrder = boost::none;
+                matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_PARTIALLY_FILLED;
+                if (createdBuyOrder) {
+                  this->openBuyOrder = matchedOrder;
+                } else {
+                  this->openSellOrder = matchedOrder;
+                }
               }
-            } else {
-              matchedOrder.status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_PARTIALLY_FILLED;
-              if (createdBuyOrder) {
-                this->openBuyOrder = matchedOrder;
-              } else {
-                this->openSellOrder = matchedOrder;
+              virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
+              std::vector<Message> messageList;
+              {
+                Message message;
+                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                message.setTime(now);
+                message.setTimeReceived(now);
+                message.setElementList(elementListPrivateTrade);
+                messageList.emplace_back(std::move(message));
               }
+              {
+                Message message;
+                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+                message.setTime(now);
+                message.setTimeReceived(now);
+                Element element;
+                this->extractOrderInfo(element, matchedOrder);
+                std::vector<Element> elementList;
+                elementList.emplace_back(std::move(element));
+                message.setElementList(elementList);
+                messageList.emplace_back(std::move(message));
+              }
+              virtualEvent_3.setMessageList(messageList);
             }
-            virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
-            std::vector<Message> messageList;
-            {
-              Message message;
-              message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-              message.setTime(now);
-              message.setTimeReceived(now);
-              message.setElementList(elementListPrivateTrade);
-              messageList.emplace_back(std::move(message));
-            }
-            {
-              Message message;
-              message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              message.setTime(now);
-              message.setTimeReceived(now);
-              Element element;
-              this->extractOrderInfo(element, matchedOrder);
-              std::vector<Element> elementList;
-              elementList.emplace_back(std::move(element));
-              message.setElementList(elementList);
-              messageList.emplace_back(std::move(message));
-            }
-            virtualEvent_3.setMessageList(messageList);
           }
           if (!virtualEvent_3.getMessageList().empty()) {
             APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent_3.toStringPretty());
@@ -912,7 +922,7 @@ class EventHandlerBase : public EventHandler {
   void onPostGetAccountBalancesSingleOrderExecution(const TimePoint& now) {
     this->orderRefreshIntervalIndex += 1;
     if (now >= this->startTimeTp + std::chrono::seconds(this->totalDurationSeconds) ||
-        (this->totalTargetQuantityInQuote > 0 ? this->theoreticalRemainingQuantityInQuote <= 0 : this->theoreticalRemainingQuantity <= 0)) {
+        (this->quoteTotalTargetQuantity > 0 ? this->theoreticalQuoteRemainingQuantity <= 0 : this->theoreticalRemainingQuantity <= 0)) {
       APP_LOGGER_INFO("Exit.");
       this->promisePtr->set_value();
       this->skipProcessEvent = true;
@@ -1115,12 +1125,12 @@ class EventHandlerBase : public EventHandler {
     if (tradingStrategy == TradingStrategy::TWAP) {
       double randomization = AppUtil::generateRandomDouble(-this->twapOrderQuantityRandomizationMax, this->twapOrderQuantityRandomizationMax);
       quantity =
-          (1 + randomization) * (this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals / std::stod(priceStr)
-                                                                      : this->totalTargetQuantity / this->numOrderRefreshIntervals);
+          (1 + randomization) * (this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity / this->numOrderRefreshIntervals / std::stod(priceStr)
+                                                                    : this->totalTargetQuantity / this->numOrderRefreshIntervals);
     }
     // else if (tradingStrategy==TradingStrategy::VWAP){
     //   if (this->orderRefreshIntervalIndex == 0) {
-    //     quantity = this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals/price :
+    //     quantity = this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity / this->numOrderRefreshIntervals/price :
     //     this->totalTargetQuantity / this->numOrderRefreshIntervals;
     //   } else {
     //     double projectedPublicTradeVolume = 0;
@@ -1145,7 +1155,7 @@ class EventHandlerBase : public EventHandler {
     //   }
     // }else if (tradingStrategy==TradingStrategy::POV){
     //   if (this->orderRefreshIntervalIndex == 0) {
-    //     quantity = this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote / this->numOrderRefreshIntervals/price :
+    //     quantity = this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity / this->numOrderRefreshIntervals/price :
     //     this->totalTargetQuantity / this->numOrderRefreshIntervals;
     //   } else {
     //     auto itLowerBound = this->publicTradeMap.lower_bound(intervalStart);
@@ -1157,7 +1167,7 @@ class EventHandlerBase : public EventHandler {
     //       projectedPublicTradeVolumeInQuote+=*itLowerBound[APP_PUBLIC_TRADE_VOLUME_IN_QUOTE];
     //       itLowerBound++;
     //     }
-    //     quantity = this->totalTargetQuantityInQuote >
+    //     quantity = this->quoteTotalTargetQuantity >
     //     0?projectedPublicTradeVolumeInQuote*this->povOrderQuantityParticipationRate/price:projectedPublicTradeVolume*this->povOrderQuantityParticipationRate;
     //   }
     //
@@ -1165,23 +1175,23 @@ class EventHandlerBase : public EventHandler {
     // }else if (tradingStrategy==TradingStrategy::IS){
     //   if (this->orderRefreshIntervalIndex > 0) {
     //     quantity =
-    //     2*std::sinh(0.5*this->isKapa*this->orderRefreshIntervalSeconds)/std::sinh(this->isKapa*this->totalDurationSeconds)*std::cosh(this->isKapa*(this->totalDurationSeconds-(this->orderRefreshIntervalIndex-0.5)*this->orderRefreshIntervalSeconds))*(this->totalTargetQuantityInQuote?this->totalTargetQuantityInQuote/price:this->totalTargetQuantity);
+    //     2*std::sinh(0.5*this->isKapa*this->orderRefreshIntervalSeconds)/std::sinh(this->isKapa*this->totalDurationSeconds)*std::cosh(this->isKapa*(this->totalDurationSeconds-(this->orderRefreshIntervalIndex-0.5)*this->orderRefreshIntervalSeconds))*(this->quoteTotalTargetQuantity?this->quoteTotalTargetQuantity/price:this->totalTargetQuantity);
     //   }
     //
     // }
     quantity = std::min({
         quantity,
-        CCAPI_EM_ORDER_SIDE_BUY ? this->quoteBalance / std::stod(priceStr) : this->baseBalance,
-        this->totalTargetQuantityInQuote > 0 ? this->theoreticalRemainingQuantityInQuote / std::stod(priceStr) : this->theoreticalRemainingQuantity,
-        this->totalTargetQuantityInQuote > 0 ? this->totalTargetQuantityInQuote * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
-                                             : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
+        this->orderSide == CCAPI_EM_ORDER_SIDE_BUY ? this->quoteBalance / std::stod(priceStr) : this->baseBalance,
+        this->quoteTotalTargetQuantity > 0 ? this->theoreticalQuoteRemainingQuantity / std::stod(priceStr) : this->theoreticalRemainingQuantity,
+        this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
+                                           : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
     });
     if (quantity > 0) {
       std::string quantityStr = AppUtil::roundInput(quantity, this->orderQuantityIncrement, false);
       if (UtilString::normalizeDecimalString(quantityStr) != "0") {
-        if (this->totalTargetQuantityInQuote > 0) {
-          this->theoreticalRemainingQuantityInQuote -= price * quantity;
-          if (this->theoreticalRemainingQuantityInQuote >= 0) {
+        if (this->quoteTotalTargetQuantity > 0) {
+          this->theoreticalQuoteRemainingQuantity -= price * quantity;
+          if (this->theoreticalQuoteRemainingQuantity >= 0) {
             Request request = this->createRequestForCreateOrder(this->orderSide, priceStr, quantityStr, now);
             requestList.emplace_back(std::move(request));
           }
@@ -1195,12 +1205,12 @@ class EventHandlerBase : public EventHandler {
       }
     }
   }
-  AppMode appMode;
+  AppMode appMode{AppMode::MARKET_MAKING};
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
       orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix, privateDataFileSuffix, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
       cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId;
-  double halfSpreadMinimum{}, halfSpreadMaximum{}, inventoryBasePortionTarget{}, baseBalance{}, quoteBalance{}, baseAvailableBalanceProportion{},
-      quoteAvailableBalanceProportion{}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},
+  double halfSpreadMinimum{}, halfSpreadMaximum{}, inventoryBasePortionTarget{}, baseBalance{}, quoteBalance{}, baseAvailableBalanceProportion{1},
+      quoteAvailableBalanceProportion{1}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},
       adverseSelectionGuardTriggerInventoryBasePortionMinimum{}, adverseSelectionGuardTriggerInventoryBasePortionMaximum{},
       adverseSelectionGuardActionOrderQuantityProportion{}, adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum{},
       adverseSelectionGuardTriggerRocMinimum{}, adverseSelectionGuardTriggerRocMaximum{}, adverseSelectionGuardTriggerRsiMinimum{},
@@ -1221,14 +1231,14 @@ class EventHandlerBase : public EventHandler {
   TradingMode tradingMode{TradingMode::LIVE};
   AdverseSelectionGuardActionType adverseSelectionGuardActionType{AdverseSelectionGuardActionType::NONE};
   std::shared_ptr<std::promise<void>> promisePtr{nullptr};
-  int numOpenOrders;
+  int numOpenOrders{};
   boost::optional<Order> openBuyOrder, openSellOrder;
 
   // start: only single order execution
-  double totalTargetQuantity{}, totalTargetQuantityInQuote{}, theoreticalRemainingQuantity{}, theoreticalRemainingQuantityInQuote{}, orderPriceLimit{},
+  double totalTargetQuantity{}, quoteTotalTargetQuantity{}, theoreticalRemainingQuantity{}, theoreticalQuoteRemainingQuantity{}, orderPriceLimit{},
       orderPriceLimitRelativeToMidPrice{}, orderQuantityLimitRelativeToTarget{}, twapOrderQuantityRandomizationMax{}, povOrderQuantityParticipationRate{},
       isKapa{};
-  TimePoint startTimeTp;
+  TimePoint startTimeTp{std::chrono::seconds{0}};
   int totalDurationSeconds{}, numOrderRefreshIntervals{}, orderRefreshIntervalIndex{-1};
   std::string orderSide;
   TradingStrategy tradingStrategy{TradingStrategy::TWAP};
@@ -1240,7 +1250,7 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to paper trade and backtest
 
   // start: only applicable to backtest
-  TimePoint historicalMarketDataStartDateTp, historicalMarketDataEndDateTp;
+  TimePoint historicalMarketDataStartDateTp{std::chrono::seconds{0}}, historicalMarketDataEndDateTp{std::chrono::seconds{0}};
   std::string historicalMarketDataDirectory, historicalMarketDataFilePrefix, historicalMarketDataFileSuffix;
   // end: only applicable to backtest
 
@@ -1423,8 +1433,8 @@ class EventHandlerBase : public EventHandler {
   CsvWriter* privateTradeCsvWriter = nullptr;
   CsvWriter* orderUpdateCsvWriter = nullptr;
   CsvWriter* accountBalanceCsvWriter = nullptr;
-  int64_t virtualTradeId;
-  int64_t virtualOrderId;
+  int64_t virtualTradeId{};
+  int64_t virtualOrderId{};
   std::map<int, std::map<int, double>> publicTradeMap;
   // std::map<std::string, double> privateTradeSummary;
   std::map<Decimal, std::string> snapshotBid;
