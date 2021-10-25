@@ -333,7 +333,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       } else if (topic.rfind(this->matchOrderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         std::string instrument = document["contract_code"].GetString();
@@ -367,7 +367,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           }
         }
       }
@@ -379,14 +379,14 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         Element element;
         element.insert(CCAPI_ERROR_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       } else {
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         message.setType(Message::Type::SUBSCRIPTION_STARTED);
         Element element;
         element.insert(CCAPI_INFO_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
     }
     event.setMessageList(messageList);

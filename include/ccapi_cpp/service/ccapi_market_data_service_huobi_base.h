@@ -79,7 +79,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
         std::string sendString = stringBuffer.GetString();
-        sendStringList.push_back(std::move(sendString));
+        sendStringList.emplace_back(std::move(sendString));
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
       }
@@ -121,28 +121,28 @@ class MarketDataServiceHuobiBase : public MarketDataService {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(tick["bid"][0].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(tick["bid"][1].GetString())});
-            marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
           }
           {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(tick["ask"][0].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(tick["ask"][1].GetString())});
-            marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         } else {
           {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(tick["bid"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(tick["bidSize"].GetString())});
-            marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
           }
           {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(tick["ask"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(tick["askSize"].GetString())});
-            marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         }
       } else if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH_REGEX))) {
@@ -165,7 +165,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-          marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+          marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
           ++bidIndex;
         }
         int askIndex = 0;
@@ -176,10 +176,10 @@ class MarketDataServiceHuobiBase : public MarketDataService {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-          marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+          marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
           ++askIndex;
         }
-        marketDataMessageList.push_back(std::move(marketDataMessage));
+        marketDataMessageList.emplace_back(std::move(marketDataMessage));
       } else if (std::regex_search(channelId, std::regex(CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL_REGEX))) {
         const rj::Value& tick = document["tick"];
         for (const auto& x : tick["data"].GetArray()) {
@@ -200,8 +200,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
           }
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[this->isDerivatives ? "id" : "tradeId"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       }
     } else if (document.IsObject() && document.HasMember("ping")) {
@@ -239,7 +239,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       Element element;
       element.insert(status == "ok" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
       event.setMessageList(messageList);
     }
   }
@@ -303,8 +303,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
             }
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[this->isDerivatives ? "id" : "trade-id"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         }
       } break;

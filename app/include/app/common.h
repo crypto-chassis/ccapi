@@ -9,6 +9,10 @@
 #ifndef PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID
 #define PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID "PRIVATE_TRADE,ORDER_UPDATE"
 #endif
+#define APP_LOGGER_WARN(message)              \
+  if (::ccapi::AppLogger::logger) {           \
+    ::ccapi::AppLogger::logger->log(message); \
+  }
 #if defined(APP_ENABLE_LOG_INFO) || defined(APP_ENABLE_LOG_DEBUG)
 #define APP_LOGGER_INFO(message)              \
   if (::ccapi::AppLogger::logger) {           \
@@ -77,10 +81,10 @@ class AppUtil {
       x += 1;
     }
     std::string output;
-    if (inputIncrement.find('.') != std::string::npos) {
-      const auto& splitted = UtilString::split(inputIncrement, ".");
-      const auto& splitted_0 = splitted.at(0);
-      const auto& splitted_1 = splitted.at(1);
+    auto found = inputIncrement.find('.');
+    if (found != std::string::npos) {
+      const auto& splitted_0 = inputIncrement.substr(0, found);
+      const auto& splitted_1 = inputIncrement.substr(found + 1);
       if (splitted_0 == "0") {
         output = std::to_string(x * std::stoll(splitted_1));
       } else {

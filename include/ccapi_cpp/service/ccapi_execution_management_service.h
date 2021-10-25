@@ -78,7 +78,7 @@ class ExecutionManagementService : public Service {
       message.setElementList(elementList);
     }
     std::vector<Message> messageList;
-    messageList.push_back(std::move(message));
+    messageList.emplace_back(std::move(message));
     return messageList;
   }
   void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived,

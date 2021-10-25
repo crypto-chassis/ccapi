@@ -98,7 +98,7 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
           Element element;
           element.insert(status == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
           event.setMessageList(messageList);
         }
       }
@@ -116,8 +116,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(document["price"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(document["qty"].GetString()))});
           marketDataMessage.data[std::string(document["side"].GetString()) == "buy" ? MarketDataMessage::DataType::BID : MarketDataMessage::DataType::ASK]
-              .push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+              .emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         } else {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
@@ -133,10 +133,10 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x["price"].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x["qty"].GetString())});
-              marketDataMessage.data[kv.second].push_back(std::move(dataPoint));
+              marketDataMessage.data[kv.second].emplace_back(std::move(dataPoint));
             }
           }
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } else if (feed == "trade" || feed == "trade_snapshot") {
         if (feed == "trade") {
@@ -150,8 +150,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(document["qty"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "sell" ? "1" : "0"});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, document["uid"].GetString()});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         } else {
           for (const auto& x : document["trades"].GetArray()) {
             MarketDataMessage marketDataMessage;
@@ -164,8 +164,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["qty"].GetString()))});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "sell" ? "1" : "0"});
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, x["uid"].GetString()});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         }
       }
@@ -222,8 +222,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["size"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "sell" ? "1" : "0"});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, x["uid"].GetString()});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
       case Request::Operation::GET_INSTRUMENT: {

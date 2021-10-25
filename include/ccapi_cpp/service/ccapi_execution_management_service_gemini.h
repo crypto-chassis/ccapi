@@ -300,7 +300,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         Element element;
         element.insert(CCAPI_INFO_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
     } else if (document.IsArray()) {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
@@ -335,7 +335,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
               element.insert(CCAPI_EM_ORDER_FEE_ASSET, fill["fee_currency"].GetString());
               elementList.emplace_back(std::move(element));
               message.setElementList(elementList);
-              messageList.push_back(std::move(message));
+              messageList.emplace_back(std::move(message));
             }
             if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
@@ -374,7 +374,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));
               message.setElementList(elementList);
-              messageList.push_back(std::move(message));
+              messageList.emplace_back(std::move(message));
             }
           }
         }
