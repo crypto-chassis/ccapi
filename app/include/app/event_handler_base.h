@@ -342,11 +342,11 @@ class EventHandlerBase : public EventHandler {
         if (this->previousMessageTimeISODate.empty() || messageTimeISODate != previousMessageTimeISODate) {
           std::string prefix;
           if (!this->privateDataFilePrefix.empty()) {
-            prefix = this->privateDataFilePrefix + "__";
+            prefix = this->privateDataFilePrefix;
           }
           std::string suffix;
           if (!this->privateDataFileSuffix.empty()) {
-            suffix = "__" + this->privateDataFileSuffix;
+            suffix = this->privateDataFileSuffix;
           }
           std::string privateTradeCsvFilename(prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" +
                                               UtilString::toLower(this->quoteAsset) + "__" + messageTimeISODate + "__private-trade" + suffix + ".csv"),
@@ -537,11 +537,11 @@ class EventHandlerBase : public EventHandler {
           historicalMarketDataEventProcessor.processEvent();
           std::string prefix;
           if (!this->privateDataFilePrefix.empty()) {
-            prefix = this->privateDataFilePrefix + "__";
+            prefix = this->privateDataFilePrefix;
           }
           std::string suffix;
           if (!this->privateDataFileSuffix.empty()) {
-            suffix = "__" + this->privateDataFileSuffix;
+            suffix = this->privateDataFileSuffix;
           }
           std::string privateDataSummaryCsvFilename(
               prefix + this->exchange + "__" + UtilString::toLower(this->baseAsset) + "-" + UtilString::toLower(this->quoteAsset) + "__" +
