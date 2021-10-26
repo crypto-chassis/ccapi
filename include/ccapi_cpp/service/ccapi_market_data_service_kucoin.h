@@ -165,15 +165,15 @@ class MarketDataServiceKucoin : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["bestBid"].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["bestBidSize"].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             }
             {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["bestAsk"].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["bestAskSize"].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           } else if (std::string(document["subject"].GetString()) == "level2") {
             MarketDataMessage marketDataMessage;
             std::string exchangeSubscriptionId = document["topic"].GetString();
@@ -199,11 +199,11 @@ class MarketDataServiceKucoin : public MarketDataService {
                 MarketDataMessage::TypeForDataPoint dataPoint;
                 dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(y[0].GetString())});
                 dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(y[1].GetString())});
-                marketDataMessage.data[x.first].push_back(std::move(dataPoint));
+                marketDataMessage.data[x.first].emplace_back(std::move(dataPoint));
                 ++index;
               }
             }
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           } else if (std::string(document["subject"].GetString()) == "trade.l3match") {
             const rj::Value& data = document["data"];
             MarketDataMessage marketDataMessage;
@@ -220,8 +220,8 @@ class MarketDataServiceKucoin : public MarketDataService {
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(data["tradeId"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SEQUENCE_NUMBER, std::string(data["sequence"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(data["side"].GetString()) == "sell" ? "1" : "0"});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         } else if (type == "welcome") {
           this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
@@ -269,7 +269,7 @@ class MarketDataServiceKucoin : public MarketDataService {
           Element element;
           element.insert(CCAPI_INFO_MESSAGE, textMessage);
           message.setElementList({element});
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
           event.setMessageList(messageList);
         } else if (type == "error") {
           event.setType(Event::Type::SUBSCRIPTION_STATUS);
@@ -280,7 +280,7 @@ class MarketDataServiceKucoin : public MarketDataService {
           Element element;
           element.insert(CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
           event.setMessageList(messageList);
         }
       }
@@ -338,8 +338,8 @@ class MarketDataServiceKucoin : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["size"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::SEQUENCE_NUMBER, std::string(x["sequence"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "sell" ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
       case Request::Operation::GET_INSTRUMENT: {

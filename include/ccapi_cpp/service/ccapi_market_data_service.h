@@ -256,7 +256,7 @@ class MarketDataService : public Service {
           Element element;
           element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
           element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
-          elementList.push_back(std::move(element));
+          elementList.emplace_back(std::move(element));
         }
         ++bidIndex;
       }
@@ -264,7 +264,7 @@ class MarketDataService : public Service {
         Element element;
         element.insert(CCAPI_BEST_BID_N_PRICE, CCAPI_BEST_BID_N_PRICE_EMPTY);
         element.insert(CCAPI_BEST_BID_N_SIZE, CCAPI_BEST_BID_N_SIZE_EMPTY);
-        elementList.push_back(std::move(element));
+        elementList.emplace_back(std::move(element));
       }
       int askIndex = 0;
       for (auto iter = snapshotAsk.begin(); iter != snapshotAsk.end(); iter++) {
@@ -272,7 +272,7 @@ class MarketDataService : public Service {
           Element element;
           element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
           element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
-          elementList.push_back(std::move(element));
+          elementList.emplace_back(std::move(element));
         }
         ++askIndex;
       }
@@ -280,7 +280,7 @@ class MarketDataService : public Service {
         Element element;
         element.insert(CCAPI_BEST_ASK_N_PRICE, CCAPI_BEST_ASK_N_PRICE_EMPTY);
         element.insert(CCAPI_BEST_ASK_N_SIZE, CCAPI_BEST_ASK_N_SIZE_EMPTY);
-        elementList.push_back(std::move(element));
+        elementList.emplace_back(std::move(element));
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -388,7 +388,7 @@ class MarketDataService : public Service {
           element.emplace(k1, v1);
           std::string k2(CCAPI_BEST_BID_N_SIZE);
           element.emplace(k2, x.second);
-          elementList.push_back(std::move(element));
+          elementList.emplace_back(std::move(element));
         }
         std::map<Decimal, std::string> snapshotAskUpdate = this->calculateMarketDepthUpdate(false, snapshotAsk, snapshotAskPrevious, maxMarketDepth);
         for (auto& x : snapshotAskUpdate) {
@@ -398,7 +398,7 @@ class MarketDataService : public Service {
           element.emplace(k1, v1);
           std::string k2(CCAPI_BEST_ASK_N_SIZE);
           element.emplace(k2, x.second);
-          elementList.push_back(std::move(element));
+          elementList.emplace_back(std::move(element));
         }
       } else {
         CCAPI_LOGGER_TRACE("lastNSame = " + toString(lastNSame(snapshotBid, snapshotBidPrevious, maxMarketDepth)));
@@ -412,14 +412,14 @@ class MarketDataService : public Service {
             Element element;
             element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
             element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
-            elementList.push_back(std::move(element));
+            elementList.emplace_back(std::move(element));
             ++bidIndex;
           }
           if (snapshotBid.empty()) {
             Element element;
             element.insert(CCAPI_BEST_BID_N_PRICE, CCAPI_BEST_BID_N_PRICE_EMPTY);
             element.insert(CCAPI_BEST_BID_N_SIZE, CCAPI_BEST_BID_N_SIZE_EMPTY);
-            elementList.push_back(std::move(element));
+            elementList.emplace_back(std::move(element));
           }
           int askIndex = 0;
           for (auto iter = snapshotAsk.begin(); iter != snapshotAsk.end(); ++iter) {
@@ -429,14 +429,14 @@ class MarketDataService : public Service {
             Element element;
             element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
             element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
-            elementList.push_back(std::move(element));
+            elementList.emplace_back(std::move(element));
             ++askIndex;
           }
           if (snapshotAsk.empty()) {
             Element element;
             element.insert(CCAPI_BEST_ASK_N_PRICE, CCAPI_BEST_ASK_N_PRICE_EMPTY);
             element.insert(CCAPI_BEST_ASK_N_SIZE, CCAPI_BEST_ASK_N_SIZE_EMPTY);
-            elementList.push_back(std::move(element));
+            elementList.emplace_back(std::move(element));
           }
         }
       }
@@ -480,7 +480,7 @@ class MarketDataService : public Service {
                 element.emplace(k5, it->second);
               }
             }
-            elementList.push_back(std::move(element));
+            elementList.emplace_back(std::move(element));
           }
         } else {
           CCAPI_LOGGER_WARN("extra type " + MarketDataMessage::dataTypeToString(type));
@@ -503,7 +503,7 @@ class MarketDataService : public Service {
         element.insert(CCAPI_LOW, this->lowByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].toString());
         element.insert(CCAPI_CLOSE, this->closeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]);
       }
-      elementList.push_back(std::move(element));
+      elementList.emplace_back(std::move(element));
       this->openByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = "";
       this->highByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = Decimal();
       this->lowByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = Decimal();
@@ -696,7 +696,7 @@ class MarketDataService : public Service {
           message.setTime(time);
           message.setElementList(elementList);
           message.setCorrelationIdList(correlationIdList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
         if (!messageList.empty()) {
           event.addMessages(messageList);
@@ -755,7 +755,7 @@ class MarketDataService : public Service {
         message.setTime(time);
         message.setElementList(elementList);
         message.setCorrelationIdList(correlationIdList);
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
       if (!messageList.empty()) {
         event.addMessages(messageList);
@@ -926,7 +926,7 @@ class MarketDataService : public Service {
                         message.setTime(field == CCAPI_MARKET_DEPTH ? conflateTp : previousConflateTp);
                         message.setElementList(elementList);
                         message.setCorrelationIdList(correlationIdList);
-                        messageList.push_back(std::move(message));
+                        messageList.emplace_back(std::move(message));
                       }
                       if (!messageList.empty()) {
                         event.addMessages(messageList);
@@ -1039,7 +1039,7 @@ class MarketDataService : public Service {
     message.setTime(tp);
     message.setElementList(elementList);
     message.setCorrelationIdList(correlationIdList);
-    messageList.push_back(std::move(message));
+    messageList.emplace_back(std::move(message));
     event.addMessages(messageList);
   }
   void connect(WsConnection& wsConnection) override {

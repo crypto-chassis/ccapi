@@ -169,7 +169,7 @@ class MarketDataServiceDeribit : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
               ++bidIndex;
             }
             int askIndex = 0;
@@ -180,7 +180,7 @@ class MarketDataServiceDeribit : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
               ++askIndex;
             }
           } else if (channelId == CCAPI_WEBSOCKET_DERIBIT_CHANNEL_QUOTE) {
@@ -193,13 +193,13 @@ class MarketDataServiceDeribit : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["best_bid_price"].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["best_bid_amount"].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             }
             {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["best_ask_price"].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["best_ask_amount"].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
           } else if (channelId == CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT) {
             auto it = data.FindMember("prev_change_id");
@@ -212,16 +212,16 @@ class MarketDataServiceDeribit : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[1].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[2].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             }
             for (const auto& x : data["asks"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[1].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[2].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
           }
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         } else if (channelId == CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES) {
           for (const auto& x : data.GetArray()) {
             MarketDataMessage marketDataMessage;
@@ -235,8 +235,8 @@ class MarketDataServiceDeribit : public MarketDataService {
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["trade_id"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SEQUENCE_NUMBER, std::string(x["trade_seq"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         }
       } else if (method == "heartbeat") {
@@ -273,7 +273,7 @@ class MarketDataServiceDeribit : public MarketDataService {
             Element element;
             element.insert(CCAPI_ERROR_MESSAGE, textMessage);
             message.setElementList({element});
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
             event.setMessageList(messageList);
           } else {
             event.setType(Event::Type::SUBSCRIPTION_STATUS);
@@ -305,7 +305,7 @@ class MarketDataServiceDeribit : public MarketDataService {
             Element element;
             element.insert(CCAPI_INFO_MESSAGE, textMessage);
             message.setElementList({element});
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
             event.setMessageList(messageList);
           }
         }
@@ -424,8 +424,8 @@ class MarketDataServiceDeribit : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["trade_id"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::SEQUENCE_NUMBER, std::string(x["trade_seq"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["direction"].GetString()) == "sell" ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
       case Request::Operation::GET_INSTRUMENT: {

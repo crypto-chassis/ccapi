@@ -452,7 +452,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchTaker) {
   EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "10");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "400.23");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "5.23512");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "132fb6ae-456b-4654-b4e0-d681ac05cea1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
@@ -492,7 +492,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchMaker) {
   EXPECT_EQ(element.getValue(CCAPI_TRADE_ID), "10");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE), "400.23");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE), "5.23512");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_SELL);
   EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "ac928c66-ca53-498f-9c13-a110027a60e8");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");

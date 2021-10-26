@@ -296,22 +296,28 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             std::vector<Element> elementList;
             Element element;
             element.insert(CCAPI_TRADE_ID, std::string(document["trade_id"].GetString()));
-            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, document["price"].GetString());
-            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, document["size"].GetString());
-            std::string takerSide = document["side"].GetString();
+            std::string priceStr = document["price"].GetString();
+            std::string sizeStr = document["size"].GetString();
+            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, priceStr);
+            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, sizeStr);
+            std::string makerSide = document["side"].GetString();
             if (document.FindMember("taker_user_id") != document.MemberEnd()) {
-              element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+              element.insert(CCAPI_EM_ORDER_SIDE, makerSide == "buy" ? CCAPI_EM_ORDER_SIDE_SELL : CCAPI_EM_ORDER_SIDE_BUY);
               element.insert(CCAPI_IS_MAKER, "0");
               element.insert(CCAPI_EM_ORDER_ID, document["taker_order_id"].GetString());
+              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY,
+                             UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) * std::stod(document["taker_fee_rate"].GetString())));
             } else if (document.FindMember("maker_user_id") != document.MemberEnd()) {
-              element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "sell" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+              element.insert(CCAPI_EM_ORDER_SIDE, makerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
               element.insert(CCAPI_IS_MAKER, "1");
               element.insert(CCAPI_EM_ORDER_ID, document["maker_order_id"].GetString());
+              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY,
+                             UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) * std::stod(document["maker_fee_rate"].GetString())));
             }
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           }
           if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
@@ -334,7 +340,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           }
         }
       }
@@ -344,14 +350,14 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       Element element;
       element.insert(CCAPI_INFO_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     } else if (type == "error") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       message.setType(Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
       element.insert(CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     }
     event.setMessageList(messageList);
     return event;

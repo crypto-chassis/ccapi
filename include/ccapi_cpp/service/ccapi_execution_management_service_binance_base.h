@@ -329,7 +329,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           }
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
@@ -353,7 +353,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       }
     }

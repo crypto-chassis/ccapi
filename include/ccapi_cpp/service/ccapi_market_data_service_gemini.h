@@ -67,7 +67,7 @@ class MarketDataServiceGemini : public MarketDataService {
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList(correlationIdList);
     message.setType(Message::Type::SUBSCRIPTION_STARTED);
-    messageList.push_back(std::move(message));
+    messageList.emplace_back(std::move(message));
     event.setMessageList(messageList);
     this->eventHandler(event, nullptr);
   }
@@ -109,25 +109,25 @@ class MarketDataServiceGemini : public MarketDataService {
             marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
             marketDataMessage.tp = time;
             if (isBid) {
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             } else {
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
           } else if (reason == "initial") {
             marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
             marketDataMessage.tp = time;
             if (isBid) {
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             } else {
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
           } else if (reason == "top-of-book") {
             marketDataMessage.tp = time;
             marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
             if (isBid) {
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             } else {
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
           }
         } else if (gType == "trade") {
@@ -141,11 +141,11 @@ class MarketDataServiceGemini : public MarketDataService {
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(event["amount"].GetString()))});
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(event["tid"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, makerSide == "bid" ? "1" : "0"});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           }
         }
       }
-      marketDataMessageList.push_back(std::move(marketDataMessage));
+      marketDataMessageList.emplace_back(std::move(marketDataMessage));
     }
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
@@ -259,8 +259,8 @@ class MarketDataServiceGemini : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["amount"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, x["tid"].GetString()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["type"].GetString()) == "sell" ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
       case Request::Operation::GET_INSTRUMENT: {
