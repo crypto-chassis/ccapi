@@ -30,7 +30,27 @@
 #include "app/historical_market_data_event_processor.h"
 #include "app/order.h"
 #include "boost/optional/optional.hpp"
+#ifndef CCAPI_APP_IS_BACKTEST
 #include "ccapi_cpp/ccapi_session.h"
+#else
+#include <future>
+
+#include "ccapi_cpp/ccapi_element.h"
+#include "ccapi_cpp/ccapi_event.h"
+#include "ccapi_cpp/ccapi_event_handler.h"
+#include "ccapi_cpp/ccapi_message.h"
+#include "ccapi_cpp/ccapi_request.h"
+#include "ccapi_cpp/ccapi_subscription.h"
+namespace ccapi {
+class Session {
+ public:
+  virtual void subscribe(std::vector<Subscription>& subscriptionList) {}
+  virtual void sendRequest(std::vector<Request>& requestList) {}
+  virtual void sendRequest(Request& request) {}
+  virtual void stop() {}
+};
+}  // namespace ccapi
+#endif
 // #include <filesystem>
 namespace ccapi {
 class EventHandlerBase : public EventHandler {
@@ -507,13 +527,13 @@ class EventHandlerBase : public EventHandler {
         this->numOpenOrders = requestList.size();
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
         const auto& element = firstMessage.getElementList().at(0);
-        this->baseAsset = element.getValue("BASE_ASSET");
+        this->baseAsset = element.getValue(CCAPI_BASE_ASSET);
         APP_LOGGER_INFO("Base asset is " + this->baseAsset);
-        this->quoteAsset = element.getValue("QUOTE_ASSET");
+        this->quoteAsset = element.getValue(CCAPI_QUOTE_ASSET);
         APP_LOGGER_INFO("Quote asset is " + this->quoteAsset);
-        this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue("PRICE_INCREMENT"));
+        this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue(CCAPI_ORDER_PRICE_INCREMENT));
         APP_LOGGER_INFO("Order price increment is " + this->orderPriceIncrement);
-        this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue("QUANTITY_INCREMENT"));
+        this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT));
         APP_LOGGER_INFO("Order quantity increment is " + this->orderQuantityIncrement);
         if (this->tradingMode == TradingMode::BACKTEST) {
           HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(
@@ -583,31 +603,31 @@ class EventHandlerBase : public EventHandler {
           {
             std::string options;
             if (this->tradingMode == TradingMode::LIVE) {
-              options += "MARKET_DEPTH_MAX=1";
+              options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1";
             } else if (this->tradingMode == TradingMode::PAPER) {
               if (this->appMode == AppMode::MARKET_MAKING) {
-                options += "MARKET_DEPTH_MAX=1";
+                options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1";
               } else if (this->appMode == AppMode::SINGLE_ORDER_EXECUTION) {
-                options += "MARKET_DEPTH_MAX=1000";
+                options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1000";
               }
             }
             if (!this->enableUpdateOrderBookTickByTick) {
               options += "&" + std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepSeconds * 1000) + "&" +
                          CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0";
             }
-            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "MARKET_DEPTH", options,
+            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, CCAPI_MARKET_DEPTH, options,
                                           PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID);
           }
           {
-            std::string field = "TRADE";
+            std::string field = CCAPI_TRADE;
             if (this->exchange.rfind("binance", 0) == 0) {
-              field = "AGG_TRADE";
+              field = CCAPI_AGG_TRADE;
             }
             subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID);
           }
           {
             if (this->tradingMode == TradingMode::LIVE) {
-              subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, "PRIVATE_TRADE,ORDER_UPDATE", "",
+              subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, std::string(CCAPI_EM_PRIVATE_TRADE) + "," + CCAPI_EM_ORDER_UPDATE, "",
                                             PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID);
             }
           }
@@ -726,7 +746,7 @@ class EventHandlerBase : public EventHandler {
               virtualEvent_2.setType(Event::Type::RESPONSE);
               message_2.setType(Message::Type::RESPONSE_ERROR);
               Element element;
-              element.insert("ERROR_MESSAGE", "insufficient balance");
+              element.insert(CCAPI_ERROR_MESSAGE, "insufficient balance");
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(element));
               message_2.setElementList(elementList);

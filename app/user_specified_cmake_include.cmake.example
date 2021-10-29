@@ -25,12 +25,12 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 # link_libraries(ZLIB::ZLIB)
 
 # If backtesting, you may want to comment out the following line to improve speed.
-add_compile_definitions(APP_ENABLE_LOG_INFO)
+add_compile_definitions(CCAPI_APP_ENABLE_LOG_INFO)
 
 # If uncommented, the program will print out more information.
-# add_compile_definitions(APP_ENABLE_LOG_DEBUG)
+# add_compile_definitions(CCAPI_APP_ENABLE_LOG_DEBUG)
 
 # If you have custom logics and want to reuse part of class EventHandlerBase.
-# add_compile_definitions(USE_CUSTOM_EVENT_HANDLER)
+# add_compile_definitions(CCAPI_APP_USE_CUSTOM_EVENT_HANDLER)
 # get_filename_component(CUSTOM_EVENT_HANDLER_DIRECTORY ${CUSTOM_EVENT_HANDLER_PATH} DIRECTORY)
 # include_directories(${CUSTOM_EVENT_HANDLER_DIRECTORY})
