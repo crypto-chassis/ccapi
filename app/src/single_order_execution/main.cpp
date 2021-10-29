@@ -1,4 +1,8 @@
+#ifdef USE_CUSTOM_EVENT_HANDLER
+#include "custom_event_handler.h"
+#else
 #include "app/event_handler_base.h"
+#endif
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
 AppLogger appLogger;
@@ -10,6 +14,9 @@ using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
 using ::ccapi::Element;
 using ::ccapi::Event;
+#ifdef USE_CUSTOM_EVENT_HANDLER
+using ::ccapi::CustomEventHandler;
+#endif
 using ::ccapi::EventHandlerBase;
 using ::ccapi::Logger;
 using ::ccapi::Message;
@@ -27,7 +34,11 @@ int main(int argc, char** argv) {
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
+#ifdef USE_CUSTOM_EVENT_HANDLER
+  CustomEventHandler eventHandler;
+#else
   EventHandlerBase eventHandler;
+#endif
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;

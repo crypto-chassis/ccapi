@@ -29,3 +29,8 @@ add_compile_definitions(APP_ENABLE_LOG_INFO)
 
 # If uncommented, the program will print out more information.
 # add_compile_definitions(APP_ENABLE_LOG_DEBUG)
+
+# If you have custom logics and want to reuse part of class EventHandlerBase.
+# add_compile_definitions(USE_CUSTOM_EVENT_HANDLER)
+# get_filename_component(CUSTOM_EVENT_HANDLER_DIRECTORY ${CUSTOM_EVENT_HANDLER_PATH} DIRECTORY)
+# include_directories(${CUSTOM_EVENT_HANDLER_DIRECTORY})

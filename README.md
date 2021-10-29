@@ -1,5 +1,3 @@
-# Minor Breaking Changes
-* In [`app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example), environment variables `START_DATE` and `END_DATE` have been renamed to `HISTORICAL_MARKET_DATA_START_DATE` and `HISTORICAL_MARKET_DATA_END_DATE`.
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -45,6 +43,7 @@
   - [Performance Tuning](#performance-tuning)
   - [Applications](#applications)
     - [Spot Market Making](#spot-market-making)
+    - [Single Order Execution](#single-order-execution)
   - [Known Issues and Workarounds](#known-issues-and-workarounds)
   - [Contributing](#contributing)
 
@@ -59,7 +58,7 @@
   * Execution Management: coinbase, gemini, kraken, kraken-futures, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures.
   * FIX: coinbase, gemini, ftx, ftx-us.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
-<!-- * A single order execution application is provided as an end-to-end solution for executing large orders. -->
+* A single order execution application is provided as an end-to-end solution for executing large orders.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
@@ -920,7 +919,7 @@ cmake --build . --target spot_market_making
 * For live trade mode, please set the desired exchange's credential environment variables shown in [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example).
 * For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details.
 
-<!-- ### Single Order Execution
+### Single Order Execution
 * Currently in beta.
 * Source code: [app](app)
 * The supported strategies are listed in [`app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example).
@@ -937,7 +936,7 @@ cmake --build . --target single_order_execution
 ```
 * The executable is `app/build/src/single_order_execution/single_order_execution`. Run it after setting relevant environment variables shown in [`app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`. To enable and configure advanced parameters, set additional environment variables shown in [`app/src/single_order_execution/config_advanced.env.example`](app/src/single_order_execution/config_advanced.env.example).
 * For live trade mode, please set the desired exchange's credential environment variables shown in [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example).
-* For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example) for more details. -->
+* For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example) for more details.
 
 ## Known Issues and Workarounds
 * Kraken invalid nonce errors. Give the API key a nonce window (https://support.kraken.com/hc/en-us/articles/360001148023-What-is-a-nonce-window-). We use unix timestamp with microsecond resolution as nonce and therefore a nonce window of 500000 translates to a tolerance of 0.5 second.
