@@ -13,7 +13,7 @@
   if (::ccapi::AppLogger::logger) {           \
     ::ccapi::AppLogger::logger->log(message); \
   }
-#if defined(APP_ENABLE_LOG_INFO) || defined(APP_ENABLE_LOG_DEBUG)
+#if defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
 #define APP_LOGGER_INFO(message)              \
   if (::ccapi::AppLogger::logger) {           \
     ::ccapi::AppLogger::logger->log(message); \
@@ -21,7 +21,7 @@
 #else
 #define APP_LOGGER_INFO(message)
 #endif
-#if defined(APP_ENABLE_LOG_DEBUG)
+#if defined(CCAPI_APP_ENABLE_LOG_DEBUG)
 #define APP_LOGGER_DEBUG(message)             \
   if (::ccapi::AppLogger::logger) {           \
     ::ccapi::AppLogger::logger->log(message); \

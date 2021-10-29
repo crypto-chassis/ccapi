@@ -1,5 +1,8 @@
+#ifdef CCAPI_APP_USE_CUSTOM_EVENT_HANDLER
+#include "custom_event_handler.h"
+#else
 #include "app/event_handler_base.h"
-#include "ccapi_cpp/ccapi_session.h"
+#endif
 namespace ccapi {
 AppLogger appLogger;
 AppLogger* AppLogger::logger = &appLogger;
@@ -10,24 +13,33 @@ using ::ccapi::AppLogger;
 using ::ccapi::CcapiLogger;
 using ::ccapi::Element;
 using ::ccapi::Event;
+#ifdef CCAPI_APP_USE_CUSTOM_EVENT_HANDLER
+using ::ccapi::CustomEventHandler;
+#endif
 using ::ccapi::EventHandlerBase;
 using ::ccapi::Logger;
 using ::ccapi::Message;
-using ::ccapi::Queue;
 using ::ccapi::Request;
 using ::ccapi::Session;
-using ::ccapi::SessionConfigs;
-using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
 using ::ccapi::UtilString;
 using ::ccapi::UtilSystem;
 using ::ccapi::UtilTime;
+#ifndef CCAPI_APP_IS_BACKTEST
+using ::ccapi::Queue;
+using ::ccapi::SessionConfigs;
+using ::ccapi::SessionOptions;
+#endif
 int main(int argc, char** argv) {
   auto now = UtilTime::now();
   std::string exchange = UtilSystem::getEnvAsString("EXCHANGE");
   std::string instrumentRest = UtilSystem::getEnvAsString("INSTRUMENT");
   std::string instrumentWebsocket = instrumentRest;
+#ifdef CCAPI_APP_USE_CUSTOM_EVENT_HANDLER
+  CustomEventHandler eventHandler;
+#else
   EventHandlerBase eventHandler;
+#endif
   eventHandler.exchange = exchange;
   eventHandler.instrumentRest = instrumentRest;
   eventHandler.instrumentWebsocket = instrumentWebsocket;
@@ -114,11 +126,17 @@ int main(int argc, char** argv) {
   }
   std::shared_ptr<std::promise<void>> promisePtr(new std::promise<void>());
   eventHandler.promisePtr = promisePtr;
+#ifndef CCAPI_APP_IS_BACKTEST
   SessionOptions sessionOptions;
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   SessionConfigs sessionConfigs;
+  eventHandler.onInit();
   Session session(sessionOptions, sessionConfigs, &eventHandler);
+#else
+  Session session;
+#endif
   if (exchange == "kraken") {
+#ifndef CCAPI_APP_IS_BACKTEST
     Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "kraken", "", "Get Instrument Symbol For Websocket");
     request.appendParam({
         {"HTTP_METHOD", "GET"},
@@ -136,6 +154,9 @@ int main(int argc, char** argv) {
         break;
       }
     }
+#else
+    eventHandler.instrumentWebsocket = UtilSystem::getEnvAsString("INSTRUMENT_WEBSOCKET");
+#endif
   } else if (exchange.rfind("binance", 0) == 0) {
     eventHandler.instrumentWebsocket = UtilString::toLower(instrumentRest);
   }

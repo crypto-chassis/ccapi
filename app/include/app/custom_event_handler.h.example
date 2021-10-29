@@ -1,0 +1,7 @@
+#ifndef APP_INCLUDE_APP_CUSTOM_EVENT_HANDLER_H_
+#define APP_INCLUDE_APP_CUSTOM_EVENT_HANDLER_H_
+#include "app/event_handler_base.h"
+namespace ccapi {
+class CustomEventHandler final : public EventHandlerBase {};
+} /* namespace ccapi */
+#endif  // APP_INCLUDE_APP_CUSTOM_EVENT_HANDLER_H_
