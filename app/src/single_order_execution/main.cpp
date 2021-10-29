@@ -19,13 +19,14 @@ using ::ccapi::CustomEventHandler;
 using ::ccapi::EventHandlerBase;
 using ::ccapi::Logger;
 using ::ccapi::Message;
+using ::ccapi::Request;
+using ::ccapi::Session;
 using ::ccapi::Subscription;
 using ::ccapi::UtilString;
 using ::ccapi::UtilSystem;
 using ::ccapi::UtilTime;
 #ifndef CCAPI_APP_IS_BACKTEST
 using ::ccapi::Queue;
-using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 #endif
