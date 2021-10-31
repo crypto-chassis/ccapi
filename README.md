@@ -326,7 +326,7 @@ Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTER
 
 #### Receive subscription market depth updates
 
-Instantiate `Subscription` with option `MARKET_DEPTH_RETURN_UPDATE` set to 1.
+Instantiate `Subscription` with option `MARKET_DEPTH_RETURN_UPDATE` set to 1. This will return the order book updates instead of snapshots.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_RETURN_UPDATE=1&MARKET_DEPTH_MAX=2");
 ```
