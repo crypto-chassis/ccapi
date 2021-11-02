@@ -12,14 +12,16 @@ class Request CCAPI_FINAL {
  public:
   static constexpr int operationTypeCustom = 0x100;
   static constexpr int operationTypeGenericPublicRequest = 0x200;
-  static constexpr int operationTypeFix = 0x300;
-  static constexpr int operationTypeMarketData = 0x400;
-  static constexpr int operationTypeExecutionManagement = 0x500;
+  static constexpr int operationTypeGenericPrivateRequest = 0x300;
+  static constexpr int operationTypeFix = 0x400;
+  static constexpr int operationTypeMarketData = 0x500;
+  static constexpr int operationTypeExecutionManagement = 0x600;
   static constexpr int operationTypeExecutionManagementOrder = operationTypeExecutionManagement;
-  static constexpr int operationTypeExecutionManagementAccount = 0x600;
+  static constexpr int operationTypeExecutionManagementAccount = 0x700;
   enum class Operation {
     CUSTOM = operationTypeCustom,
     GENERIC_PUBLIC_REQUEST = operationTypeGenericPublicRequest,
+    GENERIC_PRIVATE_REQUEST = operationTypeGenericPrivateRequest,
     FIX = operationTypeFix,
     GET_RECENT_TRADES = operationTypeMarketData,
     GET_RECENT_AGG_TRADES,
@@ -43,6 +45,9 @@ class Request CCAPI_FINAL {
       case Operation::GENERIC_PUBLIC_REQUEST:
         output = "GENERIC_PUBLIC_REQUEST";
         break;
+        case Operation::GENERIC_PRIVATE_REQUEST:
+          output = "GENERIC_PRIVATE_REQUEST";
+          break;
       case Operation::FIX:
         output = "FIX";
         break;
@@ -95,7 +100,9 @@ class Request CCAPI_FINAL {
       this->serviceName = CCAPI_UNKNOWN;
     } else if (operation == Operation::GENERIC_PUBLIC_REQUEST) {
       this->serviceName = CCAPI_MARKET_DATA;
-    } else if (operation == Operation::FIX) {
+    } else if (operation == Operation::GENERIC_PRIVATE_REQUEST) {
+      this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
+    }else if (operation == Operation::FIX) {
       this->serviceName = CCAPI_FIX;
     } else {
       this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;

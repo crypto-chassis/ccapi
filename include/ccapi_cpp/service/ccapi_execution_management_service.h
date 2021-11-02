@@ -55,6 +55,30 @@ class ExecutionManagementService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  static std::map<std::string, std::string> convertHeaderStringToMap(const std::string &input) {
+    std::map<std::string, std::string> output;
+    if (!input.empty()){
+      for (const auto &x : UtilString::split(input, "\r\n")) {
+        auto y = UtilString::split(x, ':');
+        output.insert(std::make_pair(UtilString::trim(y.at(0)), UtilString::trim(y.at(1))));
+      }
+    }
+    return output;
+  }
+  static std::string convertHeaderMapToString(const std::map<std::string, std::string> &input) {
+    std::string output;
+    int i = 0;
+    for (const auto &x : input) {
+      output += x.first;
+      output += ":";
+      output += x.second;
+      if (i<input.size()-1){
+        output += "\r\n";
+      }
+      ++i;
+    }
+    return output;
+  }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
@@ -97,8 +121,22 @@ class ExecutionManagementService : public Service {
       event.setMessageList({message});
     } else {
       event.setType(Event::Type::RESPONSE);
-      const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
-      event.addMessages(messageList);
+      if (request.getOperation() == Request::Operation::GENERIC_PRIVATE_REQUEST) {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(Message::Type::GENERIC_PRIVATE_REQUEST);
+        Element element;
+        element.insert(CCAPI_HTTP_STATUS_CODE, std::to_string(statusCode));
+        element.insert(CCAPI_HTTP_BODY, textMessage);
+        message.setElementList({element});
+        const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
+        CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
+        message.setCorrelationIdList(correlationIdList);
+        event.addMessages({message});
+      } else {
+        const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
+        event.addMessages(messageList);
+      }
     }
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, eventQueuePtr);
@@ -214,6 +252,38 @@ class ExecutionManagementService : public Service {
     auto errorMessage = "Websocket unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
     throw std::runtime_error(errorMessage);
   }
+  void convertRequestForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, const TimePoint& now,
+                                                 const std::string& symbolId, const std::map<std::string, std::string>& credential) {
+    const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+    auto methodString = mapGetWithDefault(param, std::string(CCAPI_HTTP_METHOD));
+    CCAPI_LOGGER_TRACE("methodString = " + methodString);
+    auto headerString = mapGetWithDefault(param, std::string(CCAPI_HTTP_HEADERS));
+    CCAPI_LOGGER_TRACE("headerString = " + headerString);
+    auto path = mapGetWithDefault(param, std::string(CCAPI_HTTP_PATH));
+    CCAPI_LOGGER_TRACE("path = " + path);
+    auto queryString = mapGetWithDefault(param, std::string(CCAPI_HTTP_QUERY_STRING));
+    CCAPI_LOGGER_TRACE("queryString = " + queryString);
+    auto body = mapGetWithDefault(param, std::string(CCAPI_HTTP_BODY));
+    CCAPI_LOGGER_TRACE("body = " + body);
+    this->signReqeustForRestGenericPrivateRequest(req, methodString, headerString, path, queryString, body,now,credential);
+    req.method(this->convertHttpMethodStringToMethod(methodString));
+    if (!headerString.empty()){
+      auto splitted = UtilString::split(headerString, "\r\n");
+      for (const auto& x : splitted){
+        auto splitted_2 = UtilString::split(x, ':');
+        req.set(UtilString::trim(splitted_2.at(0)), UtilString::trim(splitted_2.at(1)));
+      }
+    }
+    auto target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    req.target(target);
+    if (!body.empty()) {
+      req.body() = body;
+      req.prepare_payload();
+    }
+  }
   virtual void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                              const TimePoint& timeReceived) {}
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const std::string& wsRequestId, const TimePoint& now,
@@ -229,6 +299,7 @@ class ExecutionManagementService : public Service {
                                                                         const TimePoint& now, const std::map<std::string, std::string>& credential) {
     return {};
   }
+  virtual void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,const std::map<std::string, std::string>& credential){}
   std::string createOrderTarget;
   std::string cancelOrderTarget;
   std::string getOrderTarget;

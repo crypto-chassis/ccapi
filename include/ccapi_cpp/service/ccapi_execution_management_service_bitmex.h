@@ -35,6 +35,20 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
 
  protected:
 #endif
+void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,const std::map<std::string, std::string>& credential)override{
+  auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+  auto preSignedText = methodString;
+  std::string target = path;
+  if (!queryString.empty()){
+    target+="?"+queryString;
+  }
+  preSignedText += target;
+  auto headerMap = ExecutionManagementService::convertHeaderStringToMap(headerString);
+  preSignedText += mapGetWithDefault(headerMap, "api-expires");
+  preSignedText += body;
+  auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
+  headerString += "\r\napi-signature:"+signature;
+ }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = std::string(req.method_string());
