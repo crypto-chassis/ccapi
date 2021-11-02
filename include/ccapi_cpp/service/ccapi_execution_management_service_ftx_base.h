@@ -89,16 +89,19 @@ void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& r
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    req.set(beast::http::field::content_type, "application/json");
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set(this->ftx + "-KEY", apiKey);
+    req.set(this->ftx + "-TS", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
+    auto apiSubaccountName = mapGetWithDefault(credential, this->apiSubaccountName);
+    if (!apiSubaccountName.empty()) {
+      req.set(this->ftx + "-SUBACCOUNT", Url::urlEncode(apiSubaccountName));
+    }
+  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-                               req.set(beast::http::field::content_type, "application/json");
-                               auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-                               req.set(this->ftx + "-KEY", apiKey);
-                               req.set(this->ftx + "-TS", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
-                               auto apiSubaccountName = mapGetWithDefault(credential, this->apiSubaccountName);
-                               if (!apiSubaccountName.empty()) {
-                                 req.set(this->ftx + "-SUBACCOUNT", Url::urlEncode(apiSubaccountName));
-                               }
+    this->prepareReq(req, now, credential);
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
