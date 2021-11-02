@@ -37,7 +37,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
 #endif
 void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body,const TimePoint& now, const std::map<std::string, std::string>& credential)override{
   auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-  auto preSignedText = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+  auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
   preSignedText += methodString;
   std::string target = path;
   if (!queryString.empty()){
@@ -81,17 +81,14 @@ void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& r
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("product_id", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
-    req.set(beast::http::field::content_type, "application/json");
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set("CB-ACCESS-KEY", apiKey);
-    req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
-    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
-    req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
-  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-                               this->prepareReq(req,now,credential);
+                               req.set(beast::http::field::content_type, "application/json");
+                               auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+                               req.set("CB-ACCESS-KEY", apiKey);
+                               req.set("CB-ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
+                               auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
+                               req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);

@@ -43,11 +43,13 @@ void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& r
     target+="?"+queryString;
   }
   preSignedText += target;
-  auto headerMap = ExecutionManagementService::convertHeaderStringToMap(headerString);
-  preSignedText += mapGetWithDefault(headerMap, "api-expires");
+  preSignedText += req.base().at("api-expires").to_string();
   preSignedText += body;
   auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
-  headerString += "\r\napi-signature:"+signature;
+  if (!headerString.empty()){
+    headerString += "\r\n";
+  }
+  headerString += "api-signature:"+signature;
  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
@@ -90,13 +92,16 @@ void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& r
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-    req.set(beast::http::field::content_type, "application/json");
-    req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
-                                              (now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch())
-                                              .count()));
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set("api-key", apiKey);
+                               req.set(beast::http::field::content_type, "application/json");
+                               req.set("api-expires", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(
+                                                                         (now + std::chrono::seconds(CCAPI_BITMEX_API_RECEIVE_WINDOW_SECONDS)).time_since_epoch())
+                                                                         .count()));
+                               auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+                               req.set("api-key", apiKey);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();

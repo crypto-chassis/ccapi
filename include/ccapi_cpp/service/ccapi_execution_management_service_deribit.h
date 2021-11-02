@@ -160,6 +160,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string side = mapGetWithDefault(param, std::string(CCAPI_EM_ORDER_SIDE));

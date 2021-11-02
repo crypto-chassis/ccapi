@@ -61,6 +61,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, credential);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         std::string queryString;
