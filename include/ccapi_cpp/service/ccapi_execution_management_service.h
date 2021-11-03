@@ -55,24 +55,24 @@ class ExecutionManagementService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  static std::map<std::string, std::string> convertHeaderStringToMap(const std::string &input) {
+  static std::map<std::string, std::string> convertHeaderStringToMap(const std::string& input) {
     std::map<std::string, std::string> output;
-    if (!input.empty()){
-      for (const auto &x : UtilString::split(input, "\r\n")) {
+    if (!input.empty()) {
+      for (const auto& x : UtilString::split(input, "\r\n")) {
         auto y = UtilString::split(x, ':');
         output.insert(std::make_pair(UtilString::trim(y.at(0)), UtilString::trim(y.at(1))));
       }
     }
     return output;
   }
-  static std::string convertHeaderMapToString(const std::map<std::string, std::string> &input) {
+  static std::string convertHeaderMapToString(const std::map<std::string, std::string>& input) {
     std::string output;
     int i = 0;
-    for (const auto &x : input) {
+    for (const auto& x : input) {
       output += x.first;
       output += ":";
       output += x.second;
-      if (i<input.size()-1){
+      if (i < input.size() - 1) {
         output += "\r\n";
       }
       ++i;
@@ -253,7 +253,7 @@ class ExecutionManagementService : public Service {
     throw std::runtime_error(errorMessage);
   }
   void convertRequestForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, const TimePoint& now,
-                                                 const std::string& symbolId, const std::map<std::string, std::string>& credential) {
+                                                  const std::string& symbolId, const std::map<std::string, std::string>& credential) {
     const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
     auto methodString = mapGetWithDefault(param, std::string(CCAPI_HTTP_METHOD));
     CCAPI_LOGGER_TRACE("methodString = " + methodString);
@@ -265,11 +265,11 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_TRACE("queryString = " + queryString);
     auto body = mapGetWithDefault(param, std::string(CCAPI_HTTP_BODY));
     CCAPI_LOGGER_TRACE("body = " + body);
-    this->signReqeustForRestGenericPrivateRequest(req, methodString, headerString, path, queryString, body,now,credential);
+    this->signReqeustForRestGenericPrivateRequest(req, methodString, headerString, path, queryString, body, now, credential);
     req.method(this->convertHttpMethodStringToMethod(methodString));
-    if (!headerString.empty()){
+    if (!headerString.empty()) {
       auto splitted = UtilString::split(headerString, "\r\n");
-      for (const auto& x : splitted){
+      for (const auto& x : splitted) {
         auto splitted_2 = UtilString::split(x, ':');
         req.set(UtilString::trim(splitted_2.at(0)), UtilString::trim(splitted_2.at(1)));
       }
@@ -299,7 +299,9 @@ class ExecutionManagementService : public Service {
                                                                         const TimePoint& now, const std::map<std::string, std::string>& credential) {
     return {};
   }
-  virtual void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,const std::map<std::string, std::string>& credential){}
+  virtual void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString,
+                                                       std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                                       const std::map<std::string, std::string>& credential) {}
   std::string createOrderTarget;
   std::string cancelOrderTarget;
   std::string getOrderTarget;

@@ -34,16 +34,18 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
 
  protected:
 #endif
-void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body,const TimePoint& now, const std::map<std::string, std::string>& credential)override{
-  auto headerMap = ExecutionManagementService::convertHeaderStringToMap(headerString);
-  auto base64Payload = mapGetWithDefault(headerMap, std::string("X-GEMINI-PAYLOAD"));
-  auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-  auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true);
-  if (!headerString.empty()){
-    headerString += "\r\n";
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto headerMap = ExecutionManagementService::convertHeaderStringToMap(headerString);
+    auto base64Payload = mapGetWithDefault(headerMap, std::string("X-GEMINI-PAYLOAD"));
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true);
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "X-GEMINI-SIGNATURE:" + signature;
   }
-  headerString +="X-GEMINI-SIGNATURE:"+signature;
-}
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,
                    const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     document.AddMember("request", rj::Value(req.target().to_string().c_str(), allocator).Move(), allocator);
@@ -82,11 +84,11 @@ void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& r
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-                               auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-                               req.set("Content-Length", "0");
-                               req.set("Content-Type", "text/plain");
-                               req.set("X-GEMINI-APIKEY", apiKey);
-                               req.set("Cache-Control", "no-cache");
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set("Content-Length", "0");
+    req.set("Content-Type", "text/plain");
+    req.set("X-GEMINI-APIKEY", apiKey);
+    req.set("Cache-Control", "no-cache");
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);

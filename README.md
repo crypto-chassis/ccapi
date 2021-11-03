@@ -23,6 +23,7 @@
       - [Receive subscription OHLC events at periodic intervals](#receive-subscription-ohlc-events-at-periodic-intervals)
       - [Send generic public requests](#send-generic-public-requests)
       - [Make generic public subscriptions](#make-generic-public-subscriptions)
+      - [Send generic private requests](#send-generic-private-requests)
     - [Simple Execution Management](#simple-execution-management)
     - [Advanced Execution Management](#advanced-execution-management)
       - [Specify correlation id](#specify-correlation-id-1)
@@ -347,7 +348,7 @@ Subscription subscription("coinbase", "BTC-USD", "TRADE", "CONFLATE_INTERVAL_MIL
 
 #### Send generic public requests
 
-Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (should be url-encoded), `HTTP_BODY`.
+Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (query string parameter values should be url-encoded), `HTTP_BODY`.
 ```
 Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "binance");
 request.appendParam({
@@ -362,6 +363,18 @@ request.appendParam({
 Instantiate `Subscription` with empty instrument, field `GENERIC_PUBLIC_SUBSCRIPTION` and options set to be the desired websocket payload.
 ```
 Subscription subscription("coinbase", "", "GENERIC_PUBLIC_SUBSCRIPTION", R"({"type":"subscribe","channels":[{"name":"status"}]})");
+```
+
+#### Send generic private requests
+
+Instantiate `Request` with operation `GENERIC_PRIVATE_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (query string parameter values should be url-encoded), `HTTP_BODY`.
+```
+Request request(Request::Operation::GENERIC_PRIVATE_REQUEST, "coinbase");
+request.appendParam({
+    {"HTTP_METHOD", "GET"},
+    {"HTTP_PATH", "/fills"},
+    {"HTTP_QUERY_STRING", "product_id=BTC-USD"},
+});
 ```
 
 ### Simple Execution Management

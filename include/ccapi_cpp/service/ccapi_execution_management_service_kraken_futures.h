@@ -43,17 +43,20 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
  protected:
 #endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("result":"success")") == std::string::npos; }
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body,const TimePoint& now, const std::map<std::string, std::string>& credential)override{
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     std::string preSignedText = queryString;
-    preSignedText += req.base().at("Nonce").to_string();;
+    preSignedText += req.base().at("Nonce").to_string();
+    ;
     preSignedText += path;
     std::string preSignedTextSha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, preSignedText);
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedTextSha256));
-    if (!headerString.empty()){
+    if (!headerString.empty()) {
       headerString += "\r\n";
     }
-    headerString += "Authent:"+signature;
+    headerString += "Authent:" + signature;
   }
   void signRequest(http::request<http::string_body>& req, const std::string& path, const std::string& postData,
                    const std::map<std::string, std::string>& credential, const std::string& nonce) {
@@ -97,10 +100,10 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-                               auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-                               req.set("APIKey", apiKey);
-                               std::string nonce = this->generateNonce(now, request.getIndex());
-                               req.set("Nonce", nonce);
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set("APIKey", apiKey);
+    std::string nonce = this->generateNonce(now, request.getIndex());
+    req.set("Nonce", nonce);
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);

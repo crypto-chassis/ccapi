@@ -168,9 +168,9 @@ class Message CCAPI_FINAL {
       case Type::GENERIC_PUBLIC_SUBSCRIPTION:
         output = "GENERIC_PUBLIC_SUBSCRIPTION";
         break;
-        case Type::GENERIC_PRIVATE_REQUEST:
-          output = "GENERIC_PRIVATE_REQUEST";
-          break;
+      case Type::GENERIC_PRIVATE_REQUEST:
+        output = "GENERIC_PRIVATE_REQUEST";
+        break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }

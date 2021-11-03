@@ -45,9 +45,9 @@ class Request CCAPI_FINAL {
       case Operation::GENERIC_PUBLIC_REQUEST:
         output = "GENERIC_PUBLIC_REQUEST";
         break;
-        case Operation::GENERIC_PRIVATE_REQUEST:
-          output = "GENERIC_PRIVATE_REQUEST";
-          break;
+      case Operation::GENERIC_PRIVATE_REQUEST:
+        output = "GENERIC_PRIVATE_REQUEST";
+        break;
       case Operation::FIX:
         output = "FIX";
         break;
@@ -102,7 +102,7 @@ class Request CCAPI_FINAL {
       this->serviceName = CCAPI_MARKET_DATA;
     } else if (operation == Operation::GENERIC_PRIVATE_REQUEST) {
       this->serviceName = CCAPI_EXECUTION_MANAGEMENT;
-    }else if (operation == Operation::FIX) {
+    } else if (operation == Operation::FIX) {
       this->serviceName = CCAPI_FIX;
     } else {
       this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;

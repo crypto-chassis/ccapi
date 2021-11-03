@@ -42,21 +42,23 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     this->send(hdl, "{\"reqid\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"event\":\"ping\"}", wspp::frame::opcode::text, ec);
   }
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("error":[])") == std::string::npos; }
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body,const TimePoint& now, const std::map<std::string, std::string>& credential)override{
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto noncePlusBody = req.base().at("Nonce").to_string() + body;
     auto target = path;
-    if (!queryString.empty()){
-      target+=queryString;
+    if (!queryString.empty()) {
+      target += queryString;
     }
     std::string preSignedText = target;
     std::string noncePlusBodySha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, noncePlusBody);
     preSignedText += noncePlusBodySha256;
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
-    if (!headerString.empty()){
+    if (!headerString.empty()) {
       headerString += "\r\n";
     }
-    headerString += "API-Sign:"+signature;
+    headerString += "API-Sign:" + signature;
   }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential,
                    const std::string& nonce) {

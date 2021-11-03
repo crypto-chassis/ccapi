@@ -57,7 +57,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
     }
   }
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path, std::string& queryString, std::string& body,const TimePoint& now, const std::map<std::string, std::string>& credential)override{
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
     std::string authorizationHeader("deri-hmac-sha256 id=");
     authorizationHeader += mapGetWithDefault(credential, this->clientIdName);
     authorizationHeader += ",ts=";
@@ -68,8 +70,8 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     auto requestData = methodString;
     requestData += "\n";
     std::string target = path;
-    if (!queryString.empty()){
-      target+="?"+queryString;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
     }
     requestData += target;
     requestData += "\n";
@@ -85,8 +87,8 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     authorizationHeader += signature;
     authorizationHeader += ",nonce=";
     authorizationHeader += nonce;
-    headerString += "\r\nAuthorization:"+authorizationHeader;
-   }
+    headerString += "\r\nAuthorization:" + authorizationHeader;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     std::string authorizationHeader("deri-hmac-sha256 id=");
     authorizationHeader += mapGetWithDefault(credential, this->clientIdName);
