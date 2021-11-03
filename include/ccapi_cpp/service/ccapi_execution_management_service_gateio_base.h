@@ -111,13 +111,17 @@ void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& r
                                       {"{settle}", settle},
                                   });
   }
+  void prepareReq(http::request<http::string_body>& req,  const TimePoint& now,
+                             const std::map<std::string, std::string>& credential){
+    req.set("Accept", "application/json");
+    req.set(beast::http::field::content_type, "application/json");
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set("KEY", apiKey);
+    req.set("TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
+  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-                               req.set("Accept", "application/json");
-                               req.set(beast::http::field::content_type, "application/json");
-                               auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-                               req.set("KEY", apiKey);
-                               req.set("TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
+                               this->prepareReq(req,now,credential);
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
