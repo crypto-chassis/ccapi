@@ -35,6 +35,24 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
 
  protected:
 #endif
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
+    preSignedText += methodString;
+    std::string target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    preSignedText += target;
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "CB-ACCESS-SIGN:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
@@ -74,6 +92,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();

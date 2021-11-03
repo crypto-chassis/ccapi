@@ -57,6 +57,38 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
     }
   }
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    std::string authorizationHeader("deri-hmac-sha256 id=");
+    authorizationHeader += mapGetWithDefault(credential, this->clientIdName);
+    authorizationHeader += ",ts=";
+    std::string ts = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+    authorizationHeader += ts;
+    authorizationHeader += ",sig=";
+    std::string nonce = ts;
+    auto requestData = methodString;
+    requestData += "\n";
+    std::string target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    requestData += target;
+    requestData += "\n";
+    requestData += body;
+    requestData += "\n";
+    std::string stringToSign = ts;
+    stringToSign += "\n";
+    stringToSign += nonce;
+    stringToSign += "\n";
+    stringToSign += requestData;
+    auto clientSecret = mapGetWithDefault(credential, this->clientSecretName);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, clientSecret, stringToSign, true);
+    authorizationHeader += signature;
+    authorizationHeader += ",nonce=";
+    authorizationHeader += nonce;
+    headerString += "\r\nAuthorization:" + authorizationHeader;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     std::string authorizationHeader("deri-hmac-sha256 id=");
     authorizationHeader += mapGetWithDefault(credential, this->clientIdName);
@@ -130,6 +162,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string side = mapGetWithDefault(param, std::string(CCAPI_EM_ORDER_SIDE));

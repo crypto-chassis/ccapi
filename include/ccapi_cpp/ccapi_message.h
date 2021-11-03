@@ -64,6 +64,7 @@ class Message CCAPI_FINAL {
     FIX_FAILURE,
     GENERIC_PUBLIC_REQUEST,
     GENERIC_PUBLIC_SUBSCRIPTION,
+    GENERIC_PRIVATE_REQUEST,
   };
   static std::string typeToString(Type type) {
     std::string output;
@@ -166,6 +167,9 @@ class Message CCAPI_FINAL {
         break;
       case Type::GENERIC_PUBLIC_SUBSCRIPTION:
         output = "GENERIC_PUBLIC_SUBSCRIPTION";
+        break;
+      case Type::GENERIC_PRIVATE_REQUEST:
+        output = "GENERIC_PRIVATE_REQUEST";
         break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
