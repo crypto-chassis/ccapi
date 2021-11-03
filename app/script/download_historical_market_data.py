@@ -127,7 +127,6 @@ if __name__ == "__main__":
                                     splitted = tuple(line.split(","))
                                     fOut.write(
                                         ",".join((splitted[0] + "." + splitted[1].zfill(9).rstrip("0") if splitted[1] != "0" else splitted[0],) + splitted[2:5])
-                                        + "\n"
                                     )
                         os.remove(f"{tmpFileNameWithDir}.csv")
         currentDate += timedelta(days=1)

@@ -37,6 +37,24 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
   }
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    std::map<std::string, std::string> queryParamMap;
+    if (!queryString.empty()) {
+      for (const auto& x : UtilString::split(queryString, "&")) {
+        auto y = UtilString::split(x, "=");
+        queryParamMap.insert(std::make_pair(y.at(0), y.at(1)));
+      }
+    }
+    std::string signature;
+    this->createSignature(signature, queryString, methodString, this->hostRest, path, queryParamMap, credential);
+    if (!queryString.empty()) {
+      queryString += "&";
+    }
+    queryString += "Signature=";
+    queryString += Url::urlEncode(signature);
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& path, const std::map<std::string, std::string>& queryParamMap,
                    const std::map<std::string, std::string>& credential) {
     std::string signature;

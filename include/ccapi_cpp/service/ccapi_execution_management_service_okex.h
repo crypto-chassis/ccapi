@@ -36,6 +36,24 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
  private:
 #endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = req.base().at("OK-ACCESS-TIMESTAMP").to_string();
+    preSignedText += methodString;
+    auto target = path;
+    if (!queryString.empty()) {
+      target += queryString;
+    }
+    preSignedText += target;
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "OK-ACCESS-SIGN:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("OK-ACCESS-TIMESTAMP").to_string();
@@ -96,6 +114,9 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       req.set("x-simulated-trading", "1");
     }
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);

@@ -14,6 +14,25 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
 
  protected:
 #endif
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
+                                               std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    std::string preSignedText = methodString;
+    preSignedText += "\n";
+    preSignedText += path;
+    preSignedText += "\n";
+    preSignedText += queryString;
+    preSignedText += "\n";
+    preSignedText += UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA512, body, true);
+    preSignedText += "\n";
+    preSignedText += req.base().at("TIMESTAMP").to_string();
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA512, apiSecret, preSignedText, true);
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "SIGN:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& path, const std::string& queryString, const std::string& body,
                    const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
@@ -78,13 +97,6 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember(rj::Value(symbolName.c_str(), allocator).Move(), rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
-  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
-    req.set("Accept", "application/json");
-    req.set(beast::http::field::content_type, "application/json");
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set("KEY", apiKey);
-    req.set("TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
-  }
   void substituteParamSettle(std::string& target, const std::map<std::string, std::string>& param, const std::string& symbolId) {
     this->substituteParam(target, param,
                           {
@@ -101,10 +113,20 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                                       {"{settle}", settle},
                                   });
   }
+  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    req.set("Accept", "application/json");
+    req.set(beast::http::field::content_type, "application/json");
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set("KEY", apiKey);
+    req.set("TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
+  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, now, credential);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
