@@ -24,7 +24,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 # find_package(ZLIB REQUIRED)
 # link_libraries(ZLIB::ZLIB)
 
-# If backtesting, you may want to comment out the following line to improve speed.
+# If backtesting, you may want to comment out the following line to improve run-time speed.
 add_compile_definitions(CCAPI_APP_ENABLE_LOG_INFO)
 
 # If uncommented, the program will print out more information.
@@ -34,3 +34,6 @@ add_compile_definitions(CCAPI_APP_ENABLE_LOG_INFO)
 # add_compile_definitions(CCAPI_APP_USE_CUSTOM_EVENT_HANDLER)
 # get_filename_component(CUSTOM_EVENT_HANDLER_DIRECTORY ${CUSTOM_EVENT_HANDLER_PATH} DIRECTORY)
 # include_directories(${CUSTOM_EVENT_HANDLER_DIRECTORY})
+
+# If you have custom logics and need to repeatedly rebuild for backtesting, you may want to comment out the following line to improve build-time speed.
+# add_compile_definitions(CCAPI_APP_IS_BACKTEST)

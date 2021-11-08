@@ -865,31 +865,33 @@ class EventHandlerBase : public EventHandler {
                   this->openSellOrder = matchedOrder;
                 }
               }
-              virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
-              std::vector<Message> messageList;
-              {
-                Message message;
-                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-                message.setTime(now);
-                message.setTimeReceived(now);
-                message.setElementList(elementListPrivateTrade);
-                messageList.emplace_back(std::move(message));
+              if (!elementListPrivateTrade.empty()) {
+                virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
+                std::vector<Message> messageList;
+                {
+                  Message message;
+                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                  message.setTime(now);
+                  message.setTimeReceived(now);
+                  message.setElementList(elementListPrivateTrade);
+                  messageList.emplace_back(std::move(message));
+                }
+                {
+                  Message message;
+                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+                  message.setTime(now);
+                  message.setTimeReceived(now);
+                  Element element;
+                  this->extractOrderInfo(element, matchedOrder);
+                  std::vector<Element> elementList;
+                  elementList.emplace_back(std::move(element));
+                  message.setElementList(elementList);
+                  messageList.emplace_back(std::move(message));
+                }
+                virtualEvent_3.setMessageList(messageList);
               }
-              {
-                Message message;
-                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-                message.setTime(now);
-                message.setTimeReceived(now);
-                Element element;
-                this->extractOrderInfo(element, matchedOrder);
-                std::vector<Element> elementList;
-                elementList.emplace_back(std::move(element));
-                message.setElementList(elementList);
-                messageList.emplace_back(std::move(message));
-              }
-              virtualEvent_3.setMessageList(messageList);
             }
           }
           if (!virtualEvent_3.getMessageList().empty()) {
