@@ -1250,9 +1250,14 @@ class EventHandlerBase : public EventHandler {
         quantity,
         this->orderSide == CCAPI_EM_ORDER_SIDE_BUY ? this->quoteBalance / std::stod(priceStr) : this->baseBalance,
         this->quoteTotalTargetQuantity > 0 ? this->theoreticalQuoteRemainingQuantity / std::stod(priceStr) : this->theoreticalRemainingQuantity,
-        this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
-                                           : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
     });
+    if (this->orderQuantityLimitRelativeToTarget > 0) {
+      quantity = std::min({
+          quantity,
+          this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
+                                             : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
+      });
+    }
     if (quantity > 0) {
       std::string quantityStr = AppUtil::roundInput(quantity, this->orderQuantityIncrement, false);
       if (UtilString::normalizeDecimalString(quantityStr) != "0") {

@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
   eventHandler.promisePtr = promisePtr;
 #ifndef CCAPI_APP_IS_BACKTEST
   SessionOptions sessionOptions;
-  sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
+  sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1;
   SessionConfigs sessionConfigs;
   eventHandler.onInit();
   Session session(sessionOptions, sessionConfigs, &eventHandler);
