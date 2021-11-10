@@ -351,6 +351,16 @@ class EventHandlerBase : public EventHandler {
             this->bestAskPrice = it->first.toString();
             this->bestAskSize = it->second;
           }
+          if (!this->bestBidPrice.empty() && !this->bestAskPrice.empty()) {
+            if (this->useWeightedMidPrice) {
+              this->midPrice = (std::stod(this->bestBidPrice) * std::stod(this->bestAskSize) + std::stod(this->bestAskPrice) * std::stod(this->bestBidSize)) /
+                               (std::stod(this->bestBidSize) + std::stod(this->bestAskSize));
+            } else {
+              this->midPrice = (std::stod(this->bestBidPrice) + std::stod(this->bestAskPrice)) / 2;
+            }
+          } else {
+            this->midPrice = 0;
+          }
         }
         const std::string& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
         const std::string& messageTimeISODate = messageTimeISO.substr(0, 10);
@@ -462,23 +472,7 @@ class EventHandlerBase : public EventHandler {
             (this->orderRefreshIntervalOffsetSeconds >= 0 &&
              std::chrono::duration_cast<std::chrono::seconds>(messageTime.time_since_epoch()).count() % this->orderRefreshIntervalSeconds ==
                  this->orderRefreshIntervalOffsetSeconds)) {
-          if (this->numOpenOrders != 0) {
-#ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
-            this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
-#else
-            this->cancelOpenOrdersRequestCorrelationId = messageTimeISO + "-CANCEL_OPEN_ORDERS";
-#endif
-            Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->exchange, this->instrumentRest, this->cancelOpenOrdersRequestCorrelationId);
-            request.setTimeSent(messageTime);
-            requestList.emplace_back(std::move(request));
-            this->numOpenOrders = 0;
-            APP_LOGGER_INFO("Cancel open orders.");
-          }
-          this->orderRefreshLastTime = messageTime;
-          this->cancelOpenOrdersLastTime = messageTime;
-          if (this->accountBalanceRefreshWaitSeconds == 0) {
-            this->getAccountBalances(requestList, messageTime, messageTimeISO);
-          }
+          this->cancelOpenOrders(requestList, messageTime, messageTimeISO);
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
                    this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
@@ -955,6 +949,25 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
+  virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
+    if (this->numOpenOrders != 0) {
+#ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
+      this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
+#else
+      this->cancelOpenOrdersRequestCorrelationId = messageTimeISO + "-CANCEL_OPEN_ORDERS";
+#endif
+      Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->exchange, this->instrumentRest, this->cancelOpenOrdersRequestCorrelationId);
+      request.setTimeSent(messageTime);
+      requestList.emplace_back(std::move(request));
+      this->numOpenOrders = 0;
+      APP_LOGGER_INFO("Cancel open orders.");
+    }
+    this->orderRefreshLastTime = messageTime;
+    this->cancelOpenOrdersLastTime = messageTime;
+    if (this->accountBalanceRefreshWaitSeconds == 0) {
+      this->getAccountBalances(requestList, messageTime, messageTimeISO);
+    }
+  }
   virtual void getAccountBalances(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
 #ifdef GET_ACCOUNT_BALANCES_REQUEST_CORRELATION_ID
     this->getAccountBalancesRequestCorrelationId = GET_ACCOUNT_BALANCES_REQUEST_CORRELATION_ID;
@@ -996,14 +1009,7 @@ class EventHandlerBase : public EventHandler {
     }
   }
   virtual void placeOrders(std::vector<Request>& requestList, const TimePoint& now) {
-    if (!this->bestBidPrice.empty() && !this->bestAskPrice.empty()) {
-      if (this->useWeightedMidPrice) {
-        this->midPrice = (std::stod(this->bestBidPrice) * std::stod(this->bestAskSize) + std::stod(this->bestAskPrice) * std::stod(this->bestBidSize)) /
-                         (std::stod(this->bestBidSize) + std::stod(this->bestAskSize));
-      } else {
-        this->midPrice = (std::stod(this->bestBidPrice) + std::stod(this->bestAskPrice)) / 2;
-      }
-    } else {
+    if (this->midPrice == 0) {
       APP_LOGGER_INFO("At least one side of the order book is empty. Skip.");
       return;
     }
