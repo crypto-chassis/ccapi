@@ -72,10 +72,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
-  std::string generateNonce(const TimePoint& now, int requestIndex = 0) {
-    int64_t nonce = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + requestIndex;
-    return std::to_string(nonce);
-  }
   void appendParam(std::string& body, const std::map<std::string, std::string>& param, const std::string& nonce,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_SIDE, "type"},
@@ -111,7 +107,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("API-Key", apiKey);
-    std::string nonce = this->generateNonce(now, request.getIndex());
+    std::string nonce = std::to_string(this->generateNonce(now, request.getIndex()));
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
@@ -278,7 +274,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     req.set("API-Key", apiKey);
     req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
     std::string body;
-    std::string nonce = this->generateNonce(now);
+    std::string nonce = std::to_string(this->generateNonce(now));
     this->appendParam(body, {}, nonce);
     body.pop_back();
     this->signRequest(req, body, credential, nonce);

@@ -47,9 +47,8 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     headerString += "X-GEMINI-SIGNATURE:" + signature;
   }
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,
-                   const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+                   const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential, int64_t nonce) {
     document.AddMember("request", rj::Value(req.target().to_string().c_str(), allocator).Move(), allocator);
-    int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     document.AddMember("nonce", rj::Value(nonce).Move(), allocator);
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -89,6 +88,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     req.set("Content-Type", "text/plain");
     req.set("X-GEMINI-APIKEY", apiKey);
     req.set("Cache-Control", "no-cache");
+    int64_t nonce = this->generateNonce(now, request.getIndex());
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
@@ -111,7 +111,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         if (param.find("type") == param.end()) {
           document.AddMember("type", rj::Value("exchange limit").Move(), allocator);
         }
-        this->signRequest(req, document, allocator, param, now, credential);
+        this->signRequest(req, document, allocator, param, now, credential, nonce);
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::post);
@@ -124,7 +124,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ORDER_ID, "order_id"},
                           });
-        this->signRequest(req, document, allocator, param, now, credential);
+        this->signRequest(req, document, allocator, param, now, credential, nonce);
       } break;
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::post);
@@ -139,7 +139,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                               {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, param, now, credential);
+        this->signRequest(req, document, allocator, param, now, credential, nonce);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::post);
@@ -151,7 +151,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::post);
@@ -163,7 +163,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       case Request::Operation::GET_ACCOUNTS: {
         req.method(http::verb::post);
@@ -171,7 +171,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::post);
@@ -183,7 +183,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
