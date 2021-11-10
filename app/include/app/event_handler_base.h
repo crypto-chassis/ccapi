@@ -351,6 +351,16 @@ class EventHandlerBase : public EventHandler {
             this->bestAskPrice = it->first.toString();
             this->bestAskSize = it->second;
           }
+          if (!this->bestBidPrice.empty() && !this->bestAskPrice.empty()) {
+            if (this->useWeightedMidPrice) {
+              this->midPrice = (std::stod(this->bestBidPrice) * std::stod(this->bestAskSize) + std::stod(this->bestAskPrice) * std::stod(this->bestBidSize)) /
+                               (std::stod(this->bestBidSize) + std::stod(this->bestAskSize));
+            } else {
+              this->midPrice = (std::stod(this->bestBidPrice) + std::stod(this->bestAskPrice)) / 2;
+            }
+          } else {
+            this->midPrice = 0;
+          }
         }
         const std::string& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
         const std::string& messageTimeISODate = messageTimeISO.substr(0, 10);
@@ -462,23 +472,7 @@ class EventHandlerBase : public EventHandler {
             (this->orderRefreshIntervalOffsetSeconds >= 0 &&
              std::chrono::duration_cast<std::chrono::seconds>(messageTime.time_since_epoch()).count() % this->orderRefreshIntervalSeconds ==
                  this->orderRefreshIntervalOffsetSeconds)) {
-          if (this->numOpenOrders != 0) {
-#ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
-            this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
-#else
-            this->cancelOpenOrdersRequestCorrelationId = messageTimeISO + "-CANCEL_OPEN_ORDERS";
-#endif
-            Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->exchange, this->instrumentRest, this->cancelOpenOrdersRequestCorrelationId);
-            request.setTimeSent(messageTime);
-            requestList.emplace_back(std::move(request));
-            this->numOpenOrders = 0;
-            APP_LOGGER_INFO("Cancel open orders.");
-          }
-          this->orderRefreshLastTime = messageTime;
-          this->cancelOpenOrdersLastTime = messageTime;
-          if (this->accountBalanceRefreshWaitSeconds == 0) {
-            this->getAccountBalances(requestList, messageTime, messageTimeISO);
-          }
+          this->cancelOpenOrders(requestList, messageTime, messageTimeISO);
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
                    this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
@@ -865,31 +859,33 @@ class EventHandlerBase : public EventHandler {
                   this->openSellOrder = matchedOrder;
                 }
               }
-              virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
-              std::vector<Message> messageList;
-              {
-                Message message;
-                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-                message.setTime(now);
-                message.setTimeReceived(now);
-                message.setElementList(elementListPrivateTrade);
-                messageList.emplace_back(std::move(message));
+              if (!elementListPrivateTrade.empty()) {
+                virtualEvent_3.setType(Event::Type::SUBSCRIPTION_DATA);
+                std::vector<Message> messageList;
+                {
+                  Message message;
+                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                  message.setTime(now);
+                  message.setTimeReceived(now);
+                  message.setElementList(elementListPrivateTrade);
+                  messageList.emplace_back(std::move(message));
+                }
+                {
+                  Message message;
+                  message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+                  message.setTime(now);
+                  message.setTimeReceived(now);
+                  Element element;
+                  this->extractOrderInfo(element, matchedOrder);
+                  std::vector<Element> elementList;
+                  elementList.emplace_back(std::move(element));
+                  message.setElementList(elementList);
+                  messageList.emplace_back(std::move(message));
+                }
+                virtualEvent_3.setMessageList(messageList);
               }
-              {
-                Message message;
-                message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
-                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-                message.setTime(now);
-                message.setTimeReceived(now);
-                Element element;
-                this->extractOrderInfo(element, matchedOrder);
-                std::vector<Element> elementList;
-                elementList.emplace_back(std::move(element));
-                message.setElementList(elementList);
-                messageList.emplace_back(std::move(message));
-              }
-              virtualEvent_3.setMessageList(messageList);
             }
           }
           if (!virtualEvent_3.getMessageList().empty()) {
@@ -953,6 +949,25 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
+  virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
+    if (this->numOpenOrders != 0) {
+#ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
+      this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
+#else
+      this->cancelOpenOrdersRequestCorrelationId = messageTimeISO + "-CANCEL_OPEN_ORDERS";
+#endif
+      Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->exchange, this->instrumentRest, this->cancelOpenOrdersRequestCorrelationId);
+      request.setTimeSent(messageTime);
+      requestList.emplace_back(std::move(request));
+      this->numOpenOrders = 0;
+      APP_LOGGER_INFO("Cancel open orders.");
+    }
+    this->orderRefreshLastTime = messageTime;
+    this->cancelOpenOrdersLastTime = messageTime;
+    if (this->accountBalanceRefreshWaitSeconds == 0) {
+      this->getAccountBalances(requestList, messageTime, messageTimeISO);
+    }
+  }
   virtual void getAccountBalances(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
 #ifdef GET_ACCOUNT_BALANCES_REQUEST_CORRELATION_ID
     this->getAccountBalancesRequestCorrelationId = GET_ACCOUNT_BALANCES_REQUEST_CORRELATION_ID;
@@ -994,14 +1009,7 @@ class EventHandlerBase : public EventHandler {
     }
   }
   virtual void placeOrders(std::vector<Request>& requestList, const TimePoint& now) {
-    if (!this->bestBidPrice.empty() && !this->bestAskPrice.empty()) {
-      if (this->useWeightedMidPrice) {
-        this->midPrice = (std::stod(this->bestBidPrice) * std::stod(this->bestAskSize) + std::stod(this->bestAskPrice) * std::stod(this->bestBidSize)) /
-                         (std::stod(this->bestBidSize) + std::stod(this->bestAskSize));
-      } else {
-        this->midPrice = (std::stod(this->bestBidPrice) + std::stod(this->bestAskPrice)) / 2;
-      }
-    } else {
+    if (this->midPrice == 0) {
       APP_LOGGER_INFO("At least one side of the order book is empty. Skip.");
       return;
     }
@@ -1248,9 +1256,14 @@ class EventHandlerBase : public EventHandler {
         quantity,
         this->orderSide == CCAPI_EM_ORDER_SIDE_BUY ? this->quoteBalance / std::stod(priceStr) : this->baseBalance,
         this->quoteTotalTargetQuantity > 0 ? this->theoreticalQuoteRemainingQuantity / std::stod(priceStr) : this->theoreticalRemainingQuantity,
-        this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
-                                           : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
     });
+    if (this->orderQuantityLimitRelativeToTarget > 0) {
+      quantity = std::min({
+          quantity,
+          this->quoteTotalTargetQuantity > 0 ? this->quoteTotalTargetQuantity * this->orderQuantityLimitRelativeToTarget / std::stod(priceStr)
+                                             : this->totalTargetQuantity * this->orderQuantityLimitRelativeToTarget,
+      });
+    }
     if (quantity > 0) {
       std::string quantityStr = AppUtil::roundInput(quantity, this->orderQuantityIncrement, false);
       if (UtilString::normalizeDecimalString(quantityStr) != "0") {

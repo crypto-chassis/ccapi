@@ -284,6 +284,10 @@ class ExecutionManagementService : public Service {
       req.prepare_payload();
     }
   }
+  int64_t generateNonce(const TimePoint& now, int requestIndex = 0) {
+    int64_t nonce = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + requestIndex;
+    return nonce;
+  }
   virtual void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                              const TimePoint& timeReceived) {}
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const std::string& wsRequestId, const TimePoint& now,
