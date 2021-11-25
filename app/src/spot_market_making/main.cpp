@@ -125,6 +125,9 @@ int main(int argc, char** argv) {
     std::this_thread::sleep_for(std::chrono::seconds(timeToSleepSeconds));
   }
   eventHandler.appMode = EventHandlerBase::AppMode::MARKET_MAKING;
+#ifdef CCAPI_APP_IS_BACKTEST
+  APP_LOGGER_INFO("CCAPI_APP_IS_BACKTEST is defined!");
+#endif
   std::string tradingMode = UtilSystem::getEnvAsString("TRADING_MODE");
   APP_LOGGER_INFO("******** Trading mode is " + tradingMode + "! ********");
   if (tradingMode == "paper") {
