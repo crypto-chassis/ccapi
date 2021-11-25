@@ -99,6 +99,10 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_MATCH},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapKucoinFutures = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_MATCH},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_LEVEL2},
+    };
     std::map<std::string, std::string> fieldWebsocketChannelMapFtx = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS},
@@ -170,6 +174,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapKucoin) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_KUCOIN].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapKucoinFutures) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES].push_back(fieldWebsocketChannel.first);
+    }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapFtx) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_FTX].push_back(fieldWebsocketChannel.first);
     }
@@ -207,6 +214,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_OKEX, fieldWebsocketChannelMapOkex},
         {CCAPI_EXCHANGE_NAME_ERISX, fieldWebsocketChannelMapErisx},
         {CCAPI_EXCHANGE_NAME_KUCOIN, fieldWebsocketChannelMapKucoin},
+        {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, fieldWebsocketChannelMapKucoinFutures},
         {CCAPI_EXCHANGE_NAME_FTX, fieldWebsocketChannelMapFtx},
         {CCAPI_EXCHANGE_NAME_FTX_US, fieldWebsocketChannelMapFtxUs},
         {CCAPI_EXCHANGE_NAME_DERIBIT, fieldWebsocketChannelMapDeribit},
@@ -232,6 +240,8 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_WS_BASE},
         //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
         {CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"},
+        //  Kucoin Futures has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
+        {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, "CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES_URL_WEBSOCKET_BASE"},
         {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_FTX_US, CCAPI_FTX_US_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_WS_BASE},
@@ -259,6 +269,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_OKEX, CCAPI_OKEX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, CCAPI_KUCOIN_FUTURES_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_FTX, CCAPI_FTX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_FTX_US, CCAPI_FTX_US_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_REST_BASE},
