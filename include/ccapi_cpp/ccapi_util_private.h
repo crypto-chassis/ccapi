@@ -314,6 +314,9 @@ class UtilTime CCAPI_FINAL {
       return std::make_pair(std::stoll(milliseconds), 0);
     }
   }
+  static std::pair<long long, long long> divideNanoWhole(const std::string& nanoseconds) {
+    return std::make_pair(std::stoll(nanoseconds.substr(0, nanoseconds.length() - 9)), std::stoll(nanoseconds.substr(nanoseconds.length() - 9)));
+  }
   template <typename T = std::chrono::nanoseconds>
   static std::string getISOTimestamp(const TimePoint& tp, const std::string& fmt = "%FT%TZ") {
     return date::format(fmt.c_str(), date::floor<T>(tp));
