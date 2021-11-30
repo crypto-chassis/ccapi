@@ -23,7 +23,7 @@ class Decimal CCAPI_FINAL {
       if (foundE == std::string::npos) {
         foundE = originalValue.find('e');
       }
-      std::string fixedPointValue = originalValue.substr(this->sign ? 0 : 1, foundE);
+      std::string fixedPointValue = originalValue.substr(this->sign ? 0 : 1, this->sign ? foundE : foundE - 1);
       auto foundDot = fixedPointValue.find('.');
       if (foundDot != std::string::npos) {
         fixedPointValue.erase(fixedPointValue.find_last_not_of('0') + 1);

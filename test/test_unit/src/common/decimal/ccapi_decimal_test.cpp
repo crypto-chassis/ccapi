@@ -31,6 +31,10 @@ TEST(DecimalTest, scientificNotation) {
     Decimal x("1.00000e-010");
     EXPECT_EQ(x.toString(), "0.0000000001");
   }
+  {
+    Decimal x("-3.50e-2");
+    EXPECT_EQ(x.toString(), "-0.035");
+  }
 }
 TEST(DecimalTest, mostCommon) {
   Decimal bid_1("0.1");

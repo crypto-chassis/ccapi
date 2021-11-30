@@ -9,10 +9,22 @@
 #ifndef PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID
 #define PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID "PRIVATE_TRADE,ORDER_UPDATE"
 #endif
+#if defined(CCAPI_APP_ENABLE_LOG_ERROR) || defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#define APP_LOGGER_ERROR(message)             \
+  if (::ccapi::AppLogger::logger) {           \
+    ::ccapi::AppLogger::logger->log(message); \
+  }
+#else
+#define APP_LOGGER_ERROR(message)
+#endif
+#if defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
 #define APP_LOGGER_WARN(message)              \
   if (::ccapi::AppLogger::logger) {           \
     ::ccapi::AppLogger::logger->log(message); \
   }
+#else
+#define APP_LOGGER_WARN(message)
+#endif
 #if defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
 #define APP_LOGGER_INFO(message)              \
   if (::ccapi::AppLogger::logger) {           \

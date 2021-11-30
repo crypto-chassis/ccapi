@@ -487,7 +487,7 @@ class EventHandlerBase : public EventHandler {
       const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
       if (firstMessage.getType() == Message::Type::RESPONSE_ERROR) {
         for (const auto& element : firstMessage.getElementList()) {
-          APP_LOGGER_INFO("Received an error: " + element.getValue(CCAPI_ERROR_MESSAGE) + ".");
+          APP_LOGGER_ERROR("Received an error: " + element.getValue(CCAPI_ERROR_MESSAGE) + ".");
         }
       }
       if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
@@ -1286,7 +1286,7 @@ class EventHandlerBase : public EventHandler {
   virtual std::string createClientOrderId(const std::string& exchange, const std::string& instrument, const std::string& side, const std::string& price,
                                           const std::string& quantity, const TimePoint& now) {
     std::string clientOrderId;
-    if (this->tradingMode == TradingMode::BACKTEST) {
+    if (this->tradingMode == TradingMode::BACKTEST || this->tradingMode == TradingMode::PAPER) {
       clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now));
       clientOrderId += "_";
       clientOrderId += side;
