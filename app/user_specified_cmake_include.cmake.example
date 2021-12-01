@@ -25,6 +25,8 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 # link_libraries(ZLIB::ZLIB)
 
 # If backtesting, you may want to comment out the following line to improve run-time speed.
+add_compile_definitions(CCAPI_APP_ENABLE_LOG_ERROR)
+add_compile_definitions(CCAPI_APP_ENABLE_LOG_WARN)
 add_compile_definitions(CCAPI_APP_ENABLE_LOG_INFO)
 
 # If uncommented, the program will print out more information.
