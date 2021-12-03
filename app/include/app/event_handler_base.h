@@ -1461,11 +1461,9 @@ class EventHandlerBase : public EventHandler {
   CsvWriter* privateTradeCsvWriter = nullptr;
   CsvWriter* orderUpdateCsvWriter = nullptr;
   CsvWriter* accountBalanceCsvWriter = nullptr;
-  int64_t virtualTradeId{};
-  int64_t virtualOrderId{};
+  int64_t virtualTradeId{},virtualOrderId{};
   std::map<int, std::map<int, double>> publicTradeMap;
-  std::map<Decimal, std::string> snapshotBid;
-  std::map<Decimal, std::string> snapshotAsk;
+  std::map<Decimal, std::string> snapshotBid,snapshotAsk;
   bool skipProcessEvent{};
 };
 } /* namespace ccapi */
