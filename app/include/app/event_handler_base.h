@@ -293,17 +293,19 @@ class EventHandlerBase : public EventHandler {
               }
             }
           }
-          int intervalStart = UtilTime::getUnixTimestamp(messageTime) / this->adverseSelectionGuardMarketDataSampleIntervalSeconds *
-                              this->adverseSelectionGuardMarketDataSampleIntervalSeconds;
-          for (auto& kv : this->publicTradeMap) {
-            kv.second.erase(kv.second.begin(), kv.second.upper_bound(intervalStart - this->adverseSelectionGuardMarketDataSampleBufferSizeSeconds));
-          }
-          const auto& elementList = message.getElementList();
-          auto rit = elementList.rbegin();
-          if (rit != elementList.rend()) {
-#if APP_PUBLIC_TRADE_LAST != -1
-            this->publicTradeMap[APP_PUBLIC_TRADE_LAST][intervalStart] = std::stod(rit->getValue(CCAPI_LAST_PRICE));
-#endif
+          if (this->enableAdverseSelectionGuard) {
+            int intervalStart = UtilTime::getUnixTimestamp(messageTime) / this->adverseSelectionGuardMarketDataSampleIntervalSeconds *
+                                this->adverseSelectionGuardMarketDataSampleIntervalSeconds;
+            for (auto& kv : this->publicTradeMap) {
+              kv.second.erase(kv.second.begin(), kv.second.upper_bound(intervalStart - this->adverseSelectionGuardMarketDataSampleBufferSizeSeconds));
+            }
+            const auto& elementList = message.getElementList();
+            auto rit = elementList.rbegin();
+            if (rit != elementList.rend()) {
+  #if APP_PUBLIC_TRADE_LAST != -1
+              this->publicTradeMap[APP_PUBLIC_TRADE_LAST][intervalStart] = std::stod(rit->getValue(CCAPI_LAST_PRICE));
+  #endif
+            }
           }
         }
       }
