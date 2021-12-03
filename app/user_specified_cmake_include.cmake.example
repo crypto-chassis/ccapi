@@ -28,6 +28,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 add_compile_definitions(CCAPI_APP_ENABLE_LOG_ERROR)
 add_compile_definitions(CCAPI_APP_ENABLE_LOG_WARN)
 add_compile_definitions(CCAPI_APP_ENABLE_LOG_INFO)
+add_compile_definitions(CCAPI_APP_ENABLE_LOG_DEBUG)
 
 # If uncommented, the program will print out more information.
 # add_compile_definitions(CCAPI_APP_ENABLE_LOG_DEBUG)
