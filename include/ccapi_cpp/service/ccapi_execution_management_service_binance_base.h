@@ -155,9 +155,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
     };
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
-      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("origClientOrderId", JsonDataType::STRING)}, );
+      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("origClientOrderId", JsonDataType::STRING)});
     } else {
-      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)}, );
+      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)});
     }
     if (document.IsObject()) {
       Element element;
