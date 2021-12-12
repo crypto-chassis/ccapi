@@ -1314,20 +1314,20 @@ class EventHandlerBase : public EventHandler {
                                           const std::string& quantity, const TimePoint& now) {
     std::string clientOrderId;
     if (this->tradingMode == TradingMode::BACKTEST || this->tradingMode == TradingMode::PAPER) {
-      clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now));
+      clientOrderId += UtilTime::getISOTimestamp<std::chrono::milliseconds>(std::chrono::time_point_cast<std::chrono::milliseconds>(now));
       clientOrderId += "_";
       clientOrderId += side;
     } else {
       if (exchange == "coinbase") {
         clientOrderId = AppUtil::generateUuidV4();
-      } else if (exchange == "kraken") {
-        clientOrderId = std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+      } else if (exchange.rfind("binance", 0) == 0 || exchange == "kraken") {
+        clientOrderId = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
       } else if (exchange == "gateio") {
-        clientOrderId = "t-" + std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count());
+        clientOrderId = "t-" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
       } else {
         clientOrderId += instrument;
         clientOrderId += "_";
-        clientOrderId += UtilTime::getISOTimestamp<std::chrono::seconds>(std::chrono::time_point_cast<std::chrono::seconds>(now));
+        clientOrderId += UtilTime::getISOTimestamp<std::chrono::milliseconds>(std::chrono::time_point_cast<std::chrono::milliseconds>(now));
         clientOrderId += "_";
         clientOrderId += side;
         clientOrderId += "_";
