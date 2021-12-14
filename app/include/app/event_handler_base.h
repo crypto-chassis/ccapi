@@ -136,6 +136,18 @@ class EventHandlerBase : public EventHandler {
             double lastExecutedSize = std::stod(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE));
             double feeQuantity = std::stod(element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY));
             std::string feeAsset = element.getValue(CCAPI_EM_ORDER_FEE_ASSET);
+            bool isMaker = element.getValue(CCAPI_IS_MAKER) == "1";
+            if (this->tradingMode == TradingMode::LIVE) {
+              std::string side = element.getValue(CCAPI_EM_ORDER_SIDE);
+              if (side == CCAPI_EM_ORDER_SIDE_BUY) {
+                this->baseBalance += lastExecutedSize;
+                this->quoteBalance -= lastExecutedPrice * lastExecutedSize;
+              } else {
+                this->baseBalance -= lastExecutedSize;
+                this->quoteBalance += lastExecutedPrice * lastExecutedSize;
+              }
+              this->updateBalanceByFee(feeAsset, feeQuantity, side, isMaker);
+            }
             this->privateTradeVolumeInBaseSum += lastExecutedSize;
             this->privateTradeVolumeInQuoteSum += lastExecutedSize * lastExecutedPrice;
             if (feeAsset == this->baseAsset) {
@@ -923,6 +935,19 @@ class EventHandlerBase : public EventHandler {
       } else {
         session->sendRequest(requestList);
       }
+    } else if (eventType == Event::Type::SESSION_STATUS) {
+      for (const auto& message:event.getMessageList()) {
+        if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
+          for (const auto& correlationId : message.getCorrelationIdList()) {
+            if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
+              const auto& messageTime = message.getTime();
+              const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
+              this->cancelOpenOrders(requestList, messageTime, messageTimeISO);
+              return true;
+            }
+          }
+        }
+      }
     }
     return true;
   }
@@ -976,6 +1001,13 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
+  virtual void updateBalanceByFee(const std::string& feeAsset, double feeQuantity, const std::string& side, bool isMaker) {
+    if (feeAsset == this->baseAsset) {
+      this->baseBalance -= feeQuantity;
+    } else if (feeAsset == this->quoteAsset) {
+      this->quoteBalance -= feeQuantity;
+    }
+  }
   virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
     if (this->numOpenOrders != 0) {
 #ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
