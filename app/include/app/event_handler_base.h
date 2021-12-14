@@ -94,9 +94,8 @@ class EventHandlerBase : public EventHandler {
     if (this->openSellOrder) {
       APP_LOGGER_DEBUG("Open sell order is " + this->openSellOrder->toString() + ".");
     }
-    std::string baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
-    std::string quoteBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString();
-    APP_LOGGER_DEBUG("Base asset balance is " + baseBalanceDecimalNotation + ", quote asset balance is " + quoteBalanceDecimalNotation + ".");
+    APP_LOGGER_DEBUG("Base asset balance is " + Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString() + ", quote asset balance is " +
+                     Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString() + ".");
     auto eventType = event.getType();
     std::vector<Request> requestList;
     if (eventType == Event::Type::SUBSCRIPTION_DATA) {
@@ -529,7 +528,18 @@ class EventHandlerBase : public EventHandler {
           APP_LOGGER_ERROR("Received an error: " + element.getValue(CCAPI_ERROR_MESSAGE) + ".");
         }
       }
-      if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
+      if (std::find(correlationIdList.begin(), correlationIdList.end(), this->cancelOpenOrdersRequestCorrelationId) != correlationIdList.end()) {
+        if (this->accountBalanceRefreshWaitSeconds == 0) {
+          this->getAccountBalances(requestList, messageTimeReceived, messageTimeReceivedISO);
+        }
+        // APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " +
+        // quoteBalanceDecimalNotation +
+        //                 ".");
+        // APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
+        //                 ", best ask size is " + this->bestAskSize + ".");
+        // this->placeOrders(requestList, messageTimeReceived);
+        // this->numOpenOrders = requestList.size();
+      } else if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
         if (this->tradingMode == TradingMode::LIVE) {
           for (const auto& element : firstMessage.getElementList()) {
             const auto& asset = element.getValue(CCAPI_EM_ASSET);
@@ -552,12 +562,16 @@ class EventHandlerBase : public EventHandler {
           });
           this->accountBalanceCsvWriter->flush();
         }
-        APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " + quoteBalanceDecimalNotation +
-                        ".");
-        APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
-                        ", best ask size is " + this->bestAskSize + ".");
-        this->placeOrders(requestList, messageTimeReceived);
-        this->numOpenOrders = requestList.size();
+        if (this->numOpenOrders == 0) {
+          // APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " +
+          // quoteBalanceDecimalNotation +
+          //                 ".");
+          // APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice
+          // +
+          //                 ", best ask size is " + this->bestAskSize + ".");
+          this->placeOrders(requestList, messageTimeReceived);
+          this->numOpenOrders = requestList.size();
+        }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
         const auto& element = firstMessage.getElementList().at(0);
         this->baseAsset = element.getValue(CCAPI_BASE_ASSET);
@@ -1020,13 +1034,15 @@ class EventHandlerBase : public EventHandler {
       requestList.emplace_back(std::move(request));
       this->numOpenOrders = 0;
       APP_LOGGER_INFO("Cancel open orders.");
+    } else {
+      // APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
+      //                 ", best ask size is " + this->bestAskSize + ".");
+      // this->placeOrders(requestList, messageTime);
+      // this->numOpenOrders = requestList.size();
+      this->getAccountBalances(requestList, messageTime, messageTimeISO);
     }
     this->orderRefreshLastTime = messageTime;
     this->cancelOpenOrdersLastTime = messageTime;
-    if (this->accountBalanceRefreshWaitSeconds == 0 &&
-        std::chrono::duration_cast<std::chrono::seconds>(this->orderRefreshLastTime.time_since_epoch()).count() > 0) {
-      this->getAccountBalances(requestList, messageTime, messageTimeISO);
-    }
   }
   virtual void getAccountBalances(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
 #ifdef GET_ACCOUNT_BALANCES_REQUEST_CORRELATION_ID
@@ -1074,6 +1090,10 @@ class EventHandlerBase : public EventHandler {
       return;
     }
     if (this->baseBalance > 0 || this->quoteBalance > 0) {
+      APP_LOGGER_INFO(this->baseAsset + " balance is " + Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString() + ", " + this->quoteAsset +
+                      " balance is " + Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString() + ".");
+      APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
+                      ", best ask size is " + this->bestAskSize + ".");
       if (this->appMode == AppMode::MARKET_MAKING) {
         this->placeOrdersMarketMaking(requestList, now);
       } else if (this->appMode == AppMode::SINGLE_ORDER_EXECUTION) {
