@@ -145,7 +145,7 @@ class EventHandlerBase : public EventHandler {
                 this->baseBalance -= lastExecutedSize;
                 this->quoteBalance += lastExecutedPrice * lastExecutedSize;
               }
-              this->updateBalanceByFee(feeAsset, feeQuantity, side, isMaker);
+              this->updateAccountBalancesByFee(feeAsset, feeQuantity, side, isMaker);
             }
             this->privateTradeVolumeInBaseSum += lastExecutedSize;
             this->privateTradeVolumeInQuoteSum += lastExecutedSize * lastExecutedPrice;
@@ -1015,7 +1015,7 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
-  virtual void updateBalanceByFee(const std::string& feeAsset, double feeQuantity, const std::string& side, bool isMaker) {
+  virtual void updateAccountBalancesByFee(const std::string& feeAsset, double feeQuantity, const std::string& side, bool isMaker) {
     if (feeAsset == this->baseAsset) {
       this->baseBalance -= feeQuantity;
     } else if (feeAsset == this->quoteAsset) {
