@@ -936,7 +936,7 @@ class EventHandlerBase : public EventHandler {
         session->sendRequest(requestList);
       }
     } else if (eventType == Event::Type::SESSION_STATUS) {
-      for (const auto& message:event.getMessageList()) {
+      for (const auto& message : event.getMessageList()) {
         if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
           for (const auto& correlationId : message.getCorrelationIdList()) {
             if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
@@ -1023,7 +1023,8 @@ class EventHandlerBase : public EventHandler {
     }
     this->orderRefreshLastTime = messageTime;
     this->cancelOpenOrdersLastTime = messageTime;
-    if (this->accountBalanceRefreshWaitSeconds == 0) {
+    if (this->accountBalanceRefreshWaitSeconds == 0 &&
+        std::chrono::duration_cast<std::chrono::seconds>(this->orderRefreshLastTime.time_since_epoch()).count() > 0) {
       this->getAccountBalances(requestList, messageTime, messageTimeISO);
     }
   }
