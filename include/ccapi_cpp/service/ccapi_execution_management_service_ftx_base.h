@@ -251,9 +251,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     {
       auto it1 = x.FindMember("filledSize");
       auto it2 = x.FindMember("avgFillPrice");
-      if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
+      if (it1 != x.MemberEnd() && !it1->value.IsNull() && it2 != x.MemberEnd() && !it2->value.IsNull()) {
         element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                       std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                       Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
       }
     }
   }
@@ -361,10 +361,13 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
           };
           Element info;
           this->extractOrderInfo(info, data, extractionFieldNameMap);
-          auto it = data.FindMember("avgFillPrice");
-          if (it != data.MemberEnd()) {
-            info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                        std::to_string(std::stod(it->value.GetString()) * std::stod(data["filledSize"].GetString())));
+          {
+            auto it1 = data.FindMember("filledSize");
+            auto it2 = data.FindMember("avgFillPrice");
+            if (it1 != data.MemberEnd() && !it1->value.IsNull() && it2 != data.MemberEnd() && !it2->value.IsNull()) {
+              info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                          Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
+            }
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
