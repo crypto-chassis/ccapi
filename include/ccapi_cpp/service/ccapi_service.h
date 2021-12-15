@@ -610,7 +610,7 @@ class Service : public std::enable_shared_from_this<Service> {
       {
         std::ostringstream oss;
         oss << *reqPtr;
-        CCAPI_LOGGER_DEBUG("req = \n" + oss.str());
+        CCAPI_LOGGER_ERROR("req = \n" + oss.str());
       }
       {
         std::ostringstream oss;
