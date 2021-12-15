@@ -1,7 +1,9 @@
 include_guard(DIRECTORY)
 
 # If you encountered segmentation fault at run-time, comment out the following line.
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
 
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
 #
