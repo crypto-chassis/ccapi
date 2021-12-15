@@ -94,8 +94,8 @@ class EventHandlerBase : public EventHandler {
     if (this->openSellOrder) {
       APP_LOGGER_DEBUG("Open sell order is " + this->openSellOrder->toString() + ".");
     }
-    APP_LOGGER_DEBUG("Base asset balance is " + Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString() + ", quote asset balance is " +
-                     Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString() + ".");
+    APP_LOGGER_DEBUG(this->baseAsset + " balance is " + Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString() + ", " + this->quoteAsset +
+                     " balance is " + Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString() + ".");
     auto eventType = event.getType();
     std::vector<Request> requestList;
     if (eventType == Event::Type::SUBSCRIPTION_DATA) {
