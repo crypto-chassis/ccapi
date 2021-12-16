@@ -144,16 +144,21 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+    std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
-        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("origQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executedQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair(this->isDerivatives ? "cumQuote" : "cummulativeQuoteQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
+    };
+    if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
+      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("origClientOrderId", JsonDataType::STRING)});
+    } else {
+      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)});
+    }
     if (document.IsObject()) {
       Element element;
       this->extractOrderInfo(element, document, extractionFieldNameMap);
