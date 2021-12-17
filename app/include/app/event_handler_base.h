@@ -510,7 +510,7 @@ class EventHandlerBase : public EventHandler {
             (this->orderRefreshIntervalOffsetSeconds >= 0 &&
              std::chrono::duration_cast<std::chrono::seconds>(messageTime.time_since_epoch()).count() % this->orderRefreshIntervalSeconds ==
                  this->orderRefreshIntervalOffsetSeconds)) {
-          this->cancelOpenOrders(requestList, messageTime, messageTimeISO);
+          this->cancelOpenOrders(requestList, messageTime, messageTimeISO, false);
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
                    this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
@@ -578,9 +578,9 @@ class EventHandlerBase : public EventHandler {
         APP_LOGGER_INFO("Base asset is " + this->baseAsset);
         this->quoteAsset = element.getValue(CCAPI_QUOTE_ASSET);
         APP_LOGGER_INFO("Quote asset is " + this->quoteAsset);
-        this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue(CCAPI_ORDER_PRICE_INCREMENT));
+        this->orderPriceIncrement = Decimal(element.getValue(CCAPI_ORDER_PRICE_INCREMENT)).toString();
         APP_LOGGER_INFO("Order price increment is " + this->orderPriceIncrement);
-        this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT));
+        this->orderQuantityIncrement = Decimal(element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT)).toString();
         APP_LOGGER_INFO("Order quantity increment is " + this->orderQuantityIncrement);
         if (this->tradingMode == TradingMode::BACKTEST) {
           HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(
@@ -956,7 +956,7 @@ class EventHandlerBase : public EventHandler {
             if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
               const auto& messageTime = message.getTime();
               const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
-              this->cancelOpenOrders(requestList, messageTime, messageTimeISO);
+              this->cancelOpenOrders(requestList, messageTime, messageTimeISO, true);
               return true;
             }
           }
@@ -1022,8 +1022,8 @@ class EventHandlerBase : public EventHandler {
       this->quoteBalance -= feeQuantity;
     }
   }
-  virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
-    if (this->numOpenOrders != 0) {
+  virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO, bool alwaysCancel) {
+    if (this->numOpenOrders != 0 || alwaysCancel) {
 #ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
       this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
 #else
