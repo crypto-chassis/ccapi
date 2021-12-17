@@ -689,12 +689,10 @@ class EventHandlerBase : public EventHandler {
               const auto& messageTime = message.getTime();
               const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
               this->cancelOpenOrders(requestList, messageTime, messageTimeISO, true);
-              goto endOfLoop;
             }
           }
         }
       }
-    endOfLoop:
     }
     if (!requestList.empty()) {
       if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
