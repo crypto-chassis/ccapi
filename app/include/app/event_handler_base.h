@@ -1022,7 +1022,7 @@ class EventHandlerBase : public EventHandler {
     }
   }
   virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO, bool alwaysCancel) {
-    if (this->numOpenOrders != 0 || alwaysCancel) {
+    if (alwaysCancel || this->numOpenOrders != 0) {
 #ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
       this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
 #else
