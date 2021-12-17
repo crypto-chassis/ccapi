@@ -106,7 +106,7 @@ class EventHandlerBase : public EventHandler {
         if (message.getType() == Message::Type::MARKET_DATA_EVENTS_MARKET_DEPTH && message.getRecapType() == Message::RecapType::NONE) {
           index = i;
         } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE) {
-          if (!this->privateDataOnlySaveFinalSummary) {
+          if (!this->privateDataOnlySaveFinalSummary && this->privateTradeCsvWriter) {
             std::vector<std::vector<std::string>> rows;
             const std::string& messageTimeISO = UtilTime::getISOTimestamp(message.getTime());
             for (const auto& element : message.getElementList()) {
@@ -183,7 +183,7 @@ class EventHandlerBase : public EventHandler {
               }
             }
           }
-          if (!this->privateDataOnlySaveFinalSummary) {
+          if (!this->privateDataOnlySaveFinalSummary && this->orderUpdateCsvWriter) {
             std::vector<std::vector<std::string>> rows;
             const std::string& messageTimeISO = UtilTime::getISOTimestamp(message.getTime());
             for (const auto& element : message.getElementList()) {
