@@ -681,6 +681,20 @@ class EventHandlerBase : public EventHandler {
           session->subscribe(subscriptionList);
         }
       }
+    } else if (eventType == Event::Type::SESSION_STATUS) {
+      for (const auto& message : event.getMessageList()) {
+        if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
+          for (const auto& correlationId : message.getCorrelationIdList()) {
+            if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
+              const auto& messageTime = message.getTime();
+              const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
+              this->cancelOpenOrders(requestList, messageTime, messageTimeISO, true);
+              goto endOfLoop;
+            }
+          }
+        }
+      }
+    endOfLoop:
     }
     if (!requestList.empty()) {
       if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
@@ -948,19 +962,6 @@ class EventHandlerBase : public EventHandler {
         }
       } else {
         session->sendRequest(requestList);
-      }
-    } else if (eventType == Event::Type::SESSION_STATUS) {
-      for (const auto& message : event.getMessageList()) {
-        if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
-          for (const auto& correlationId : message.getCorrelationIdList()) {
-            if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
-              const auto& messageTime = message.getTime();
-              const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
-              this->cancelOpenOrders(requestList, messageTime, messageTimeISO, true);
-              return true;
-            }
-          }
-        }
       }
     }
     return true;
