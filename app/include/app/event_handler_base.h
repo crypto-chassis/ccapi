@@ -106,7 +106,7 @@ class EventHandlerBase : public EventHandler {
         if (message.getType() == Message::Type::MARKET_DATA_EVENTS_MARKET_DEPTH && message.getRecapType() == Message::RecapType::NONE) {
           index = i;
         } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE) {
-          if (!this->privateDataOnlySaveFinalSummary) {
+          if (!this->privateDataOnlySaveFinalSummary && this->privateTradeCsvWriter) {
             std::vector<std::vector<std::string>> rows;
             const std::string& messageTimeISO = UtilTime::getISOTimestamp(message.getTime());
             for (const auto& element : message.getElementList()) {
@@ -183,7 +183,7 @@ class EventHandlerBase : public EventHandler {
               }
             }
           }
-          if (!this->privateDataOnlySaveFinalSummary) {
+          if (!this->privateDataOnlySaveFinalSummary && this->orderUpdateCsvWriter) {
             std::vector<std::vector<std::string>> rows;
             const std::string& messageTimeISO = UtilTime::getISOTimestamp(message.getTime());
             for (const auto& element : message.getElementList()) {
@@ -510,7 +510,7 @@ class EventHandlerBase : public EventHandler {
             (this->orderRefreshIntervalOffsetSeconds >= 0 &&
              std::chrono::duration_cast<std::chrono::seconds>(messageTime.time_since_epoch()).count() % this->orderRefreshIntervalSeconds ==
                  this->orderRefreshIntervalOffsetSeconds)) {
-          this->cancelOpenOrders(requestList, messageTime, messageTimeISO);
+          this->cancelOpenOrders(requestList, messageTime, messageTimeISO, false);
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
                    this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
@@ -552,7 +552,7 @@ class EventHandlerBase : public EventHandler {
         }
         const auto& baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
         const auto& quoteBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString();
-        if (!this->privateDataOnlySaveFinalSummary) {
+        if (!this->privateDataOnlySaveFinalSummary && this->accountBalanceCsvWriter) {
           this->accountBalanceCsvWriter->writeRow({
               messageTimeReceivedISO,
               baseBalanceDecimalNotation,
@@ -578,9 +578,9 @@ class EventHandlerBase : public EventHandler {
         APP_LOGGER_INFO("Base asset is " + this->baseAsset);
         this->quoteAsset = element.getValue(CCAPI_QUOTE_ASSET);
         APP_LOGGER_INFO("Quote asset is " + this->quoteAsset);
-        this->orderPriceIncrement = UtilString::normalizeDecimalString(element.getValue(CCAPI_ORDER_PRICE_INCREMENT));
+        this->orderPriceIncrement = Decimal(element.getValue(CCAPI_ORDER_PRICE_INCREMENT)).toString();
         APP_LOGGER_INFO("Order price increment is " + this->orderPriceIncrement);
-        this->orderQuantityIncrement = UtilString::normalizeDecimalString(element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT));
+        this->orderQuantityIncrement = Decimal(element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT)).toString();
         APP_LOGGER_INFO("Order quantity increment is " + this->orderQuantityIncrement);
         if (this->tradingMode == TradingMode::BACKTEST) {
           HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(
@@ -679,6 +679,18 @@ class EventHandlerBase : public EventHandler {
             }
           }
           session->subscribe(subscriptionList);
+        }
+      }
+    } else if (eventType == Event::Type::SESSION_STATUS) {
+      for (const auto& message : event.getMessageList()) {
+        if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
+          for (const auto& correlationId : message.getCorrelationIdList()) {
+            if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
+              const auto& messageTime = message.getTime();
+              const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
+              this->cancelOpenOrders(requestList, messageTime, messageTimeISO, true);
+            }
+          }
         }
       }
     }
@@ -949,19 +961,6 @@ class EventHandlerBase : public EventHandler {
       } else {
         session->sendRequest(requestList);
       }
-    } else if (eventType == Event::Type::SESSION_STATUS) {
-      for (const auto& message : event.getMessageList()) {
-        if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
-          for (const auto& correlationId : message.getCorrelationIdList()) {
-            if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
-              const auto& messageTime = message.getTime();
-              const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
-              this->cancelOpenOrders(requestList, messageTime, messageTimeISO);
-              return true;
-            }
-          }
-        }
-      }
     }
     return true;
   }
@@ -1022,8 +1021,8 @@ class EventHandlerBase : public EventHandler {
       this->quoteBalance -= feeQuantity;
     }
   }
-  virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
-    if (this->numOpenOrders != 0) {
+  virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO, bool alwaysCancel) {
+    if (alwaysCancel || this->numOpenOrders != 0) {
 #ifdef CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID
       this->cancelOpenOrdersRequestCorrelationId = CANCEL_OPEN_ORDERS_REQUEST_CORRELATION_ID;
 #else
