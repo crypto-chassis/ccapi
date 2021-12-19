@@ -10,7 +10,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
                             std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITFINEX;
-    this->baseUrl = std::string(CCAPI_BITFINEX_PUBLIC_URL_WS_BASE)+"/ws/2";
+    this->baseUrl = std::string(CCAPI_BITFINEX_PUBLIC_URL_WS_BASE) + "/ws/2";
     this->baseUrlRest = CCAPI_BITFINEX_PUBLIC_URL_REST_BASE;
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -19,7 +19,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
-    this->getInstrumentsTarget = "/v2/conf/pub:info:pair";
+    this->getInstrumentsTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
   }
   virtual ~MarketDataServiceBitfinex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -436,12 +436,14 @@ class MarketDataServiceBitfinex : public MarketDataService {
           for (const auto& y : x.GetArray()) {
             std::string pair = y[0].GetString();
             Element element;
-            element.insert(CCAPI_INSTRUMENT, "t"+pair);
-            if (pair.find(':') != std::string::npos){
-              auto splitted = UtilString::split(pair,':');
-              element.insert(CCAPI_BASE_ASSET, splitted.at(0));element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
+            element.insert(CCAPI_INSTRUMENT, "t" + pair);
+            if (pair.find(':') != std::string::npos) {
+              auto splitted = UtilString::split(pair, ':');
+              element.insert(CCAPI_BASE_ASSET, splitted.at(0));
+              element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
             } else {
-              element.insert(CCAPI_BASE_ASSET, pair.substr(0,3));element.insert(CCAPI_QUOTE_ASSET, pair.substr(3,6));
+              element.insert(CCAPI_BASE_ASSET, pair.substr(0, 3));
+              element.insert(CCAPI_QUOTE_ASSET, pair.substr(3, 6));
             }
             elementList.push_back(element);
           }

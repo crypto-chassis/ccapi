@@ -339,6 +339,9 @@
 #ifndef CCAPI_EM_ASSET
 #define CCAPI_EM_ASSET "ASSET"
 #endif
+#ifndef CCAPI_EM_QUANTITY_TOTAL
+#define CCAPI_EM_QUANTITY_TOTAL "QUANTITY_TOTAL"
+#endif
 #ifndef CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING
 #define CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING "QUANTITY_AVAILABLE_FOR_TRADING"
 #endif
@@ -457,6 +460,9 @@
 #endif
 #ifndef CCAPI_BITFINEX_PRIVATE_URL_REST_BASE
 #define CCAPI_BITFINEX_PRIVATE_URL_REST_BASE "https://api.bitfinex.com"
+#endif
+#ifndef CCAPI_BITFINEX_GET_INSTRUMENTS_PATH
+#define CCAPI_BITFINEX_GET_INSTRUMENTS_PATH "/v2/conf/pub:info:pair"  // use conf/pub:info:pair:futures for futures
 #endif
 #ifndef CCAPI_BITMEX_URL_REST_BASE
 #define CCAPI_BITMEX_URL_REST_BASE "https://www.bitmex.com"

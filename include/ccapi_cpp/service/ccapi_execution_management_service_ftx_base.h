@@ -23,8 +23,8 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
  protected:
 #endif
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
-                                               std::string& queryString, std::string& body, const TimePoint& now,
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at(this->ftx + "-TS").to_string();
@@ -237,6 +237,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         for (const auto& x : document["result"].GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ASSET, x["coin"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["total"].GetString());
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["free"].GetString());
           elementList.emplace_back(std::move(element));
         }

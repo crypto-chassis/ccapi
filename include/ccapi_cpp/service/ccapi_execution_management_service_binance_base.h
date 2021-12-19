@@ -18,8 +18,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
 
  protected:
 #endif
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
-                                               std::string& queryString, std::string& body, const TimePoint& now,
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
@@ -178,6 +178,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         for (const auto& x : document[this->isDerivatives ? "assets" : "balances"].GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
+          if (this->isDerivatives) {
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x["walletBalance"].GetString());
+          } else {
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(x["free"].GetString()).add(Decimal(x["locked"].GetString())).toString());
+          }
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x[this->isDerivatives ? "availableBalance" : "free"].GetString());
           elementList.emplace_back(std::move(element));
         }

@@ -10,56 +10,56 @@
 #define PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID "PRIVATE_TRADE,ORDER_UPDATE"
 #endif
 #if defined(CCAPI_APP_ENABLE_LOG_ERROR) || defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_ERROR(message)             \
-  if (::ccapi::AppLogger::logger) {           \
-    ::ccapi::AppLogger::logger->log(message,"ERROR:"); \
+#define APP_LOGGER_ERROR(message)                       \
+  if (::ccapi::AppLogger::logger) {                     \
+    ::ccapi::AppLogger::logger->log(message, "ERROR:"); \
   }
-#define APP_LOGGER_ERROR_WITH_TAG(message,tag)             \
-  if (::ccapi::AppLogger::logger) {           \
-    ::ccapi::AppLogger::logger->log(message,"ERROR:"+tag+":"); \
+#define APP_LOGGER_ERROR_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                 \
+    ::ccapi::AppLogger::logger->log(message, "ERROR:" + tag + ":"); \
   }
 #else
 #define APP_LOGGER_ERROR(message)
-#define APP_LOGGER_ERROR_WITH_TAG(message,tag)
+#define APP_LOGGER_ERROR_WITH_TAG(message, tag)
 #endif
 #if defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_WARN(message)              \
-  if (::ccapi::AppLogger::logger) {           \
-    ::ccapi::AppLogger::logger->log(message,"WARN:"); \
+#define APP_LOGGER_WARN(message)                       \
+  if (::ccapi::AppLogger::logger) {                    \
+    ::ccapi::AppLogger::logger->log(message, "WARN:"); \
   }
-  #define APP_LOGGER_WARN_WITH_TAG(message,tag)             \
-    if (::ccapi::AppLogger::logger) {           \
-      ::ccapi::AppLogger::logger->log(message,"WARN:"+tag+":"); \
-    }
+#define APP_LOGGER_WARN_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                \
+    ::ccapi::AppLogger::logger->log(message, "WARN:" + tag + ":"); \
+  }
 #else
 #define APP_LOGGER_WARN(message)
-#define APP_LOGGER_WARN_WITH_TAG(message,tag)
+#define APP_LOGGER_WARN_WITH_TAG(message, tag)
 #endif
 #if defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_INFO(message)              \
-  if (::ccapi::AppLogger::logger) {           \
-    ::ccapi::AppLogger::logger->log(message,"INFO:"); \
+#define APP_LOGGER_INFO(message)                       \
+  if (::ccapi::AppLogger::logger) {                    \
+    ::ccapi::AppLogger::logger->log(message, "INFO:"); \
   }
-  #define APP_LOGGER_INFO_WITH_TAG(message)              \
-    if (::ccapi::AppLogger::logger) {           \
-      ::ccapi::AppLogger::logger->log(message,"INFO:"+tag+":"); \
-    }
+#define APP_LOGGER_INFO_WITH_TAG(message)                          \
+  if (::ccapi::AppLogger::logger) {                                \
+    ::ccapi::AppLogger::logger->log(message, "INFO:" + tag + ":"); \
+  }
 #else
 #define APP_LOGGER_INFO(message)
-#define APP_LOGGER_INFO_WITH_TAG(message,tag)
+#define APP_LOGGER_INFO_WITH_TAG(message, tag)
 #endif
 #if defined(CCAPI_APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_DEBUG(message)             \
-  if (::ccapi::AppLogger::logger) {           \
-    ::ccapi::AppLogger::logger->log(message,"DEBUG:"); \
+#define APP_LOGGER_DEBUG(message)                       \
+  if (::ccapi::AppLogger::logger) {                     \
+    ::ccapi::AppLogger::logger->log(message, "DEBUG:"); \
   }
-  #define APP_LOGGER_DEBUG_WITH_TAG(message,tag)             \
-    if (::ccapi::AppLogger::logger) {           \
-      ::ccapi::AppLogger::logger->log(message,"DEBUG:"+tag+":"); \
-    }
+#define APP_LOGGER_DEBUG_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                 \
+    ::ccapi::AppLogger::logger->log(message, "DEBUG:" + tag + ":"); \
+  }
 #else
 #define APP_LOGGER_DEBUG(message)
-#define APP_LOGGER_DEBUG_WITH_TAG(message,tag)
+#define APP_LOGGER_DEBUG_WITH_TAG(message, tag)
 #endif
 #include <cmath>
 #include <fstream>
@@ -135,17 +135,17 @@ class AppUtil {
 };
 class AppLogger {
  public:
-  void log(const std::string& message, const std::string& tag="") { this->log(std::chrono::system_clock::now(), message,tag); }
-  void log(const std::string& filename, const std::string& lineNumber, const std::string& message, const std::string& tag="") {
-    this->log(std::chrono::system_clock::now(), filename, lineNumber, message,tag);
+  void log(const std::string& message, const std::string& tag = "") { this->log(std::chrono::system_clock::now(), message, tag); }
+  void log(const std::string& filename, const std::string& lineNumber, const std::string& message, const std::string& tag = "") {
+    this->log(std::chrono::system_clock::now(), filename, lineNumber, message, tag);
   }
   void log(const TimePoint& now, const std::string& message, const std::string& tag) {
     std::lock_guard<std::mutex> lock(m);
-    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << tag << " "<<message << std::endl;
+    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << tag << " " << message << std::endl;
   }
   void log(const TimePoint& now, const std::string& filename, const std::string& lineNumber, const std::string& message, const std::string& tag) {
     std::lock_guard<std::mutex> lock(m);
-    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << tag<< " " << message << std::endl;
+    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << tag << " " << message << std::endl;
   }
   static AppLogger* logger;
 

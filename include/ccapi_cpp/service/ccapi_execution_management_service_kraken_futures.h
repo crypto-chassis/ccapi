@@ -43,8 +43,8 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
  protected:
 #endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("result":"success")") == std::string::npos; }
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, std::string& methodString, std::string& headerString, std::string& path,
-                                               std::string& queryString, std::string& body, const TimePoint& now,
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     std::string preSignedText = queryString;
