@@ -532,13 +532,6 @@ class EventHandlerBase : public EventHandler {
         if (this->accountBalanceRefreshWaitSeconds == 0) {
           this->getAccountBalances(requestList, messageTimeReceived, messageTimeReceivedISO);
         }
-        // APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " +
-        // quoteBalanceDecimalNotation +
-        //                 ".");
-        // APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
-        //                 ", best ask size is " + this->bestAskSize + ".");
-        // this->placeOrders(requestList, messageTimeReceived);
-        // this->numOpenOrders = requestList.size();
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
         if (this->tradingMode == TradingMode::LIVE) {
           for (const auto& element : firstMessage.getElementList()) {
@@ -563,12 +556,6 @@ class EventHandlerBase : public EventHandler {
           this->accountBalanceCsvWriter->flush();
         }
         if (this->numOpenOrders == 0) {
-          // APP_LOGGER_INFO(this->baseAsset + " balance is " + baseBalanceDecimalNotation + ", " + this->quoteAsset + " balance is " +
-          // quoteBalanceDecimalNotation +
-          //                 ".");
-          // APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice
-          // +
-          //                 ", best ask size is " + this->bestAskSize + ".");
           this->placeOrders(requestList, messageTimeReceived);
           this->numOpenOrders = requestList.size();
         }
@@ -1034,10 +1021,6 @@ class EventHandlerBase : public EventHandler {
       this->numOpenOrders = 0;
       APP_LOGGER_INFO("Cancel open orders.");
     } else {
-      // APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
-      //                 ", best ask size is " + this->bestAskSize + ".");
-      // this->placeOrders(requestList, messageTime);
-      // this->numOpenOrders = requestList.size();
       this->getAccountBalances(requestList, messageTime, messageTimeISO);
     }
     this->orderRefreshLastTime = messageTime;
@@ -1362,34 +1345,6 @@ class EventHandlerBase : public EventHandler {
       }
     }
   }
-  // virtual std::string createClientOrderId(const std::string& exchange, const std::string& instrument, const std::string& side, const std::string& price,
-  //                                         const std::string& quantity, const TimePoint& now) {
-  //   std::string clientOrderId;
-  //   if (this->tradingMode == TradingMode::BACKTEST || this->tradingMode == TradingMode::PAPER) {
-  //     clientOrderId += UtilTime::getISOTimestamp<std::chrono::milliseconds>(std::chrono::time_point_cast<std::chrono::milliseconds>(now));
-  //     clientOrderId += "_";
-  //     clientOrderId += side;
-  //   } else {
-  //     if (exchange == "coinbase") {
-  //       clientOrderId = AppUtil::generateUuidV4();
-  //     } else if (exchange.rfind("binance", 0) == 0 || exchange == "kraken") {
-  //       clientOrderId = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
-  //     } else if (exchange == "gateio") {
-  //       clientOrderId = "t-" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
-  //     } else {
-  //       clientOrderId += instrument;
-  //       clientOrderId += "_";
-  //       clientOrderId += UtilTime::getISOTimestamp<std::chrono::milliseconds>(std::chrono::time_point_cast<std::chrono::milliseconds>(now));
-  //       clientOrderId += "_";
-  //       clientOrderId += side;
-  //       clientOrderId += "_";
-  //       clientOrderId += price;
-  //       clientOrderId += "_";
-  //       clientOrderId += quantity;
-  //     }
-  //   }
-  //   return clientOrderId;
-  // }
   virtual Request createRequestForCreateOrder(const std::string& side, const std::string& price, const std::string& quantity, const TimePoint& now) {
     Request request(Request::Operation::CREATE_ORDER, this->exchange, this->instrumentRest);
     std::map<std::string, std::string> param = {
