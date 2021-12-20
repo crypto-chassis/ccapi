@@ -149,6 +149,7 @@ class Request CCAPI_FINAL {
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
   int getIndex() const { return index; }
   void setIndex(int index) { this->index = index; }
+  void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
