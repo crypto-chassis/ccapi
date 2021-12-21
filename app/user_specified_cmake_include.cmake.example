@@ -1,7 +1,9 @@
 include_guard(DIRECTORY)
 
 # If you encountered segmentation fault at run-time, comment out the following line.
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
 
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
 #
@@ -25,8 +27,6 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 # link_libraries(ZLIB::ZLIB)
 
 # If backtesting, you may want to comment out the following line to improve run-time speed.
-add_compile_definitions(CCAPI_APP_ENABLE_LOG_ERROR)
-add_compile_definitions(CCAPI_APP_ENABLE_LOG_WARN)
 add_compile_definitions(CCAPI_APP_ENABLE_LOG_INFO)
 
 # If uncommented, the program will print out more information.

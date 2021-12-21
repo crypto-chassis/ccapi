@@ -28,6 +28,13 @@
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
+  static std::string replaceFirstOccurrence(std::string& s, const std::string& toReplace, const std::string& replaceWith) {
+    std::size_t pos = s.find(toReplace);
+    if (pos == std::string::npos) {
+      return s;
+    };
+    return s.replace(pos, toReplace.length(), replaceWith);
+  }
   static bool endsWith(const std::string& mainStr, const std::string& toMatch) {
     if (mainStr.size() >= toMatch.size() && mainStr.compare(mainStr.size() - toMatch.size(), toMatch.size(), toMatch) == 0) {
       return true;

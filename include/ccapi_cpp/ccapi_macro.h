@@ -339,6 +339,9 @@
 #ifndef CCAPI_EM_ASSET
 #define CCAPI_EM_ASSET "ASSET"
 #endif
+#ifndef CCAPI_EM_QUANTITY_TOTAL
+#define CCAPI_EM_QUANTITY_TOTAL "QUANTITY_TOTAL"
+#endif
 #ifndef CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING
 #define CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING "QUANTITY_AVAILABLE_FOR_TRADING"
 #endif
@@ -452,8 +455,14 @@
 #ifndef CCAPI_BITSTAMP_URL_REST_BASE
 #define CCAPI_BITSTAMP_URL_REST_BASE "https://www.bitstamp.net"
 #endif
-#ifndef CCAPI_BITFINEX_URL_REST_BASE
-#define CCAPI_BITFINEX_URL_REST_BASE "https://api-pub.bitfinex.com"
+#ifndef CCAPI_BITFINEX_PUBLIC_URL_REST_BASE
+#define CCAPI_BITFINEX_PUBLIC_URL_REST_BASE "https://api-pub.bitfinex.com"
+#endif
+#ifndef CCAPI_BITFINEX_PRIVATE_URL_REST_BASE
+#define CCAPI_BITFINEX_PRIVATE_URL_REST_BASE "https://api.bitfinex.com"
+#endif
+#ifndef CCAPI_BITFINEX_GET_INSTRUMENTS_PATH
+#define CCAPI_BITFINEX_GET_INSTRUMENTS_PATH "/v2/conf/pub:info:pair"  // use conf/pub:info:pair:futures for futures
 #endif
 #ifndef CCAPI_BITMEX_URL_REST_BASE
 #define CCAPI_BITMEX_URL_REST_BASE "https://www.bitmex.com"
@@ -608,8 +617,11 @@
 #ifndef CCAPI_BITSTAMP_URL_WS_BASE
 #define CCAPI_BITSTAMP_URL_WS_BASE "wss://ws.bitstamp.net"
 #endif
-#ifndef CCAPI_BITFINEX_URL_WS_BASE
-#define CCAPI_BITFINEX_URL_WS_BASE "wss://api-pub.bitfinex.com/ws/2"
+#ifndef CCAPI_BITFINEX_PUBLIC_URL_WS_BASE
+#define CCAPI_BITFINEX_PUBLIC_URL_WS_BASE "wss://api-pub.bitfinex.com"
+#endif
+#ifndef CCAPI_BITFINEX_PRIVATE_URL_WS_BASE
+#define CCAPI_BITFINEX_PRIVATE_URL_WS_BASE "wss://api.bitfinex.com"
 #endif
 #ifndef CCAPI_BITMEX_URL_WS_BASE
 #define CCAPI_BITMEX_URL_WS_BASE "wss://www.bitmex.com"
@@ -739,6 +751,12 @@
 #endif
 #ifndef CCAPI_KRAKEN_FUTURES_API_SECRET
 #define CCAPI_KRAKEN_FUTURES_API_SECRET "KRAKEN_FUTURES_API_SECRET"
+#endif
+#ifndef CCAPI_BITFINEX_API_KEY
+#define CCAPI_BITFINEX_API_KEY "BITFINEX_API_KEY"
+#endif
+#ifndef CCAPI_BITFINEX_API_SECRET
+#define CCAPI_BITFINEX_API_SECRET "BITFINEX_API_SECRET"
 #endif
 #ifndef CCAPI_BITMEX_API_KEY
 #define CCAPI_BITMEX_API_KEY "BITMEX_API_KEY"
