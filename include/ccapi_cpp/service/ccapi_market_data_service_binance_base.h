@@ -275,6 +275,9 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         element.insert(CCAPI_ORDER_PRICE_INCREMENT, y["tickSize"].GetString());
       } else if (filterType == "LOT_SIZE") {
         element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, y["stepSize"].GetString());
+        element.insert(CCAPI_ORDER_QUANTITY_MIN, y["minQty"].GetString());
+      } else if (filterType == "MIN_NOTIONAL") {
+        element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, y["minNotional"].GetString());
       }
     }
   }

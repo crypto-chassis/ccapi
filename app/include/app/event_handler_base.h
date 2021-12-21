@@ -565,12 +565,7 @@ class EventHandlerBase : public EventHandler {
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
         if (this->tradingMode == TradingMode::LIVE) {
           for (const auto& element : firstMessage.getElementList()) {
-            const auto& asset = element.getValue(CCAPI_EM_ASSET);
-            if (asset == this->baseAsset) {
-              this->baseBalance = std::stod(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING)) * this->baseAvailableBalanceProportion;
-            } else if (asset == this->quoteAsset) {
-              this->quoteBalance = std::stod(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING)) * this->quoteAvailableBalanceProportion;
-            }
+            this->extractBalanceInfo(element);
           }
         }
         const auto& baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
@@ -591,14 +586,7 @@ class EventHandlerBase : public EventHandler {
         }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
         const auto& element = firstMessage.getElementList().at(0);
-        this->baseAsset = element.getValue(CCAPI_BASE_ASSET);
-        APP_LOGGER_INFO("Base asset is " + this->baseAsset);
-        this->quoteAsset = element.getValue(CCAPI_QUOTE_ASSET);
-        APP_LOGGER_INFO("Quote asset is " + this->quoteAsset);
-        this->orderPriceIncrement = Decimal(element.getValue(CCAPI_ORDER_PRICE_INCREMENT)).toString();
-        APP_LOGGER_INFO("Order price increment is " + this->orderPriceIncrement);
-        this->orderQuantityIncrement = Decimal(element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT)).toString();
-        APP_LOGGER_INFO("Order quantity increment is " + this->orderQuantityIncrement);
+        this->extractInstrumentInfo(element);
         if (this->tradingMode == TradingMode::BACKTEST) {
           HistoricalMarketDataEventProcessor historicalMarketDataEventProcessor(
               std::bind(&EventHandlerBase::processEvent, this, std::placeholders::_1, nullptr));
@@ -1044,6 +1032,32 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
+  virtual void extractInstrumentInfo(const Element& element) {
+    this->baseAsset = element.getValue(CCAPI_BASE_ASSET);
+    APP_LOGGER_INFO("Base asset is " + this->baseAsset);
+    this->quoteAsset = element.getValue(CCAPI_QUOTE_ASSET);
+    APP_LOGGER_INFO("Quote asset is " + this->quoteAsset);
+    if (this->exchange == "bitfinex") {
+      this->orderPriceIncrement = "0.00000001";
+    } else {
+      this->orderPriceIncrement = Decimal(element.getValue(CCAPI_ORDER_PRICE_INCREMENT)).toString();
+    }
+    APP_LOGGER_INFO("Order price increment is " + this->orderPriceIncrement);
+    if (this->exchange == "bitfinex") {
+      this->orderQuantityIncrement = "0.00000001";
+    } else {
+      this->orderQuantityIncrement = Decimal(element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT)).toString();
+    }
+    APP_LOGGER_INFO("Order quantity increment is " + this->orderQuantityIncrement);
+  }
+  virtual void extractBalanceInfo(const Element& element) {
+    const auto& asset = element.getValue(CCAPI_EM_ASSET);
+    if (asset == this->baseAsset) {
+      this->baseBalance = std::stod(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING)) * this->baseAvailableBalanceProportion;
+    } else if (asset == this->quoteAsset) {
+      this->quoteBalance = std::stod(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING)) * this->quoteAvailableBalanceProportion;
+    }
+  }
   virtual void updateAccountBalancesByFee(const std::string& feeAsset, double feeQuantity, const std::string& side, bool isMaker) {
     if (feeAsset == this->baseAsset) {
       this->baseBalance -= feeQuantity;
