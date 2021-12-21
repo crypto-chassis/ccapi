@@ -226,7 +226,6 @@ class ExecutionManagementService : public Service {
       CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
       ErrorCode ec;
       rj::Document document;
-      document.SetObject();
       rj::Document::AllocatorType& allocator = document.GetAllocator();
       auto credential = request.getCredential();
       if (credential.empty()) {

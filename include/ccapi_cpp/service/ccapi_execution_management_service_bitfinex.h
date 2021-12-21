@@ -23,10 +23,8 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     this->setupCredential({this->apiKeyName, this->apiSecretName});
     this->createOrderTarget = "/v2/auth/w/order/submit";
     this->cancelOrderTarget = "/v2/auth/w/order/cancel";
-
     this->getOrderTarget = "/v2/auth/r/orders/:Symbol/hist";
     this->getOpenOrdersTarget = "/v2/auth/r/orders/:Symbol";
-
     this->getAccountBalancesTarget = "/v2/auth/r/wallets";
     this->getAccountPositionsTarget = "/v2/auth/r/positions";
   }
@@ -187,9 +185,45 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
+                                  int wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                  const std::map<std::string, std::string>& credential) override {
+    switch (request.getOperation()) {
+      case Request::Operation::CREATE_ORDER: {
+        document.SetArray();
+        document.PushBack(rj::Value(0).Move(), allocator);
+        document.PushBack(rj::Value("on", allocator).Move(), allocator);
+        document.PushBack(rj::Value().Move(), allocator);
+        rj::Value inputDetails(rj::kObjectType);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(request, inputDetails, allocator, param);
+        this->appendSymbolId(inputDetails, allocator, symbolId);
+        auto orderQuantity = mapGetWithDefault(param, std::string(CCAPI_EM_ORDER_QUANTITY));
+        auto orderSide = mapGetWithDefault(param, std::string(CCAPI_EM_ORDER_SIDE));
+        std::string amount = orderSide == CCAPI_EM_ORDER_SIDE_BUY ? orderQuantity : "-" + orderQuantity;
+        inputDetails.AddMember("amount", rj::Value(amount.c_str(), allocator).Move(), allocator);
+        if (param.find("type") == param.end()) {
+          inputDetails.AddMember("type", rj::Value("EXCHANGE LIMIT").Move(), allocator);
+        }
+        document.PushBack(inputDetails, allocator);
+      } break;
+      case Request::Operation::CANCEL_ORDER: {
+        document.SetArray();
+        document.PushBack(rj::Value(0).Move(), allocator);
+        document.PushBack(rj::Value("oc", allocator).Move(), allocator);
+        document.PushBack(rj::Value().Move(), allocator);
+        rj::Value inputDetails(rj::kObjectType);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(request, inputDetails, allocator, param);
+        document.PushBack(inputDetails, allocator);
+      } break;
+      default:
+        this->convertRequestForWebsocketCustom(document, allocator, wsConnection, request, wsRequestId, now, symbolId, credential);
+    }
+  }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    if (operation == Request::Operation::CREATE_ORDER) {
+    if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CREATE_ORDER) {
       Element element;
       this->extractOrderInfo(element, document[4][0]);
       elementList.emplace_back(std::move(element));
@@ -205,16 +239,21 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
       }
     }
   }
+  void extractOrderInfoFromRequestForWebsocket(std::vector<Element>& elementList, const rj::Value& value) {
+    Element element;
+    this->extractOrderInfo(element, value);
+    elementList.emplace_back(std::move(element));
+  }
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         for (const auto& x : document.GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_ACCOUNT_TYPE, x["0"].GetString());
-          element.insert(CCAPI_EM_ASSET, x["1"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["2"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["4"].GetString());
+          element.insert(CCAPI_EM_ACCOUNT_TYPE, x[0].GetString());
+          element.insert(CCAPI_EM_ASSET, x[1].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x[2].GetString());
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x[4].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -314,8 +353,8 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     auto instrumentSet = subscription.getInstrumentSet();
     if (document.IsArray() && document.Size() >= 3 && std::string(document[0].GetString()) == "0") {
       std::string type = document[1].GetString();
-      event.setType(Event::Type::SUBSCRIPTION_DATA);
       if ((type == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+        event.setType(Event::Type::SUBSCRIPTION_DATA);
         const rj::Value& data = document[2];
         std::string instrument = data[1].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
@@ -354,6 +393,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
           messageList.emplace_back(std::move(message));
         }
       } else if ((type == "on" || type == "ou" || type == "oc") && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+        event.setType(Event::Type::SUBSCRIPTION_DATA);
         const rj::Value& data = document[2];
         std::string instrument = data[3].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
@@ -363,6 +403,28 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
           this->extractOrderInfo(info, data);
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
+          message.setElementList(elementList);
+          messageList.emplace_back(std::move(message));
+        }
+      } else if (type == "n") {
+        event.setType(Event::Type::RESPONSE);
+        const rj::Value& data = document[2];
+        std::string status = data[6].GetString();
+        if (status != "SUCCESS") {
+          message.setType(Message::Type::RESPONSE_ERROR);
+          Element element;
+          element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+          message.setElementList({element});
+          messageList.emplace_back(std::move(message));
+        } else {
+          std::vector<Element> elementList;
+          std::string notificationType = data[1].GetString();
+          if (notificationType == "on-req") {
+            message.setType(Message::Type::CREATE_ORDER);
+          } else if (notificationType == "oc-req") {
+            message.setType(Message::Type::CANCEL_ORDER);
+          }
+          this->extractOrderInfoFromRequestForWebsocket(elementList, data[4]);
           message.setElementList(elementList);
           messageList.emplace_back(std::move(message));
         }
