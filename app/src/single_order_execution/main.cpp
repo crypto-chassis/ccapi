@@ -163,18 +163,6 @@ int main(int argc, char** argv) {
   } else if (exchange.rfind("binance", 0) == 0) {
     eventHandler.instrumentWebsocket = UtilString::toLower(instrumentRest);
   }
-  std::set<std::string> needSecondCredentialExchangeSet{"gemini", "kraken", "bitfinex"};
-  if (needSecondCredentialExchangeSet.find(eventHandler.exchange) != needSecondCredentialExchangeSet.end()) {
-    const auto& exchangeUpper = UtilString::toUpper(eventHandler.exchange);
-    eventHandler.credential_2 = {
-        {exchangeUpper + "_API_KEY", UtilSystem::getEnvAsString(exchangeUpper + "_API_KEY")},
-        {exchangeUpper + "_API_SECRET", UtilSystem::getEnvAsString(exchangeUpper + "_API_SECRET")},
-    };
-  }
-  std::set<std::string> useCancelOrderToCancelOpenOrdersExchangeSet{"gemini", "kraken", "bitfinex"};
-  if (useCancelOrderToCancelOpenOrdersExchangeSet.find(eventHandler.exchange) != useCancelOrderToCancelOpenOrdersExchangeSet.end()) {
-    eventHandler.useCancelOrderToCancelOpenOrders = true;
-  }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
   if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST && !eventHandler.baseAsset.empty() && !eventHandler.quoteAsset.empty() &&
       !eventHandler.orderPriceIncrement.empty() && !eventHandler.orderQuantityIncrement.empty()) {

@@ -47,6 +47,7 @@ class Session {
   virtual void subscribe(std::vector<Subscription>& subscriptionList) {}
   virtual void sendRequest(std::vector<Request>& requestList) {}
   virtual void sendRequest(Request& request) {}
+  virtual void sendRequestByWebsocket(Request& request) {}
   virtual void stop() {}
 };
 }  // namespace ccapi
@@ -528,20 +529,25 @@ class EventHandlerBase : public EventHandler {
           APP_LOGGER_ERROR("Received an error: " + element.getValue(CCAPI_ERROR_MESSAGE) + ".");
         }
       }
-      if (std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_BUY) != correlationIdList.end()) {
+      if (std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_BUY) != correlationIdList.end() ||
+          std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_SELL) != correlationIdList.end() ||
+          (std::find(correlationIdList.begin(), correlationIdList.end(), PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) != correlationIdList.end() &&
+           firstMessage.getType() == Message::Type::CREATE_ORDER)) {
         const auto& element = firstMessage.getElementList().at(0);
         Order order;
-        order.orderId = element.getValue("CCAPI_EM_ORDER_ID");
-        this->openBuyOrder = order;
-      } else if (std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_SELL) !=
-                 correlationIdList.end()) {
-        const auto& element = firstMessage.getElementList().at(0);
-        Order order;
-        order.orderId = element.getValue("CCAPI_EM_ORDER_ID");
-        this->openSellOrder = order;
+        order.orderId = element.getValue(CCAPI_EM_ORDER_ID);
+        bool isBuy = element.getValue(CCAPI_EM_ORDER_SIDE) == CCAPI_EM_ORDER_SIDE_BUY;
+        if (isBuy) {
+          this->openBuyOrder = order;
+        } else {
+          this->openSellOrder = order;
+        }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), this->cancelBuyOrderRequestCorrelationId) != correlationIdList.end() ||
-                 std::find(correlationIdList.begin(), correlationIdList.end(), this->cancelSellOrderRequestCorrelationId) != correlationIdList.end()) {
-        bool isBuy = std::find(correlationIdList.begin(), correlationIdList.end(), this->cancelBuyOrderRequestCorrelationId) != correlationIdList.end();
+                 std::find(correlationIdList.begin(), correlationIdList.end(), this->cancelSellOrderRequestCorrelationId) != correlationIdList.end() ||
+                 (std::find(correlationIdList.begin(), correlationIdList.end(), PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) != correlationIdList.end() &&
+                  firstMessage.getType() == Message::Type::CANCEL_ORDER)) {
+        const auto& element = firstMessage.getElementList().at(0);
+        bool isBuy = element.getValue(CCAPI_EM_ORDER_SIDE) == CCAPI_EM_ORDER_SIDE_BUY;
         if (isBuy) {
           this->openBuyOrder = boost::none;
         } else {
@@ -970,7 +976,18 @@ class EventHandlerBase : public EventHandler {
           }
         }
       } else {
-        session->sendRequest(requestList);
+        if (this->useWebsocketToExecuteOrder) {
+          for (auto& request : requestList) {
+            auto operation = request.getOperation();
+            if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER) {
+              session->sendRequestByWebsocket(request);
+            } else {
+              session->sendRequest(request);
+            }
+          }
+        } else {
+          session->sendRequest(requestList);
+        }
       }
     }
     return true;
@@ -992,12 +1009,13 @@ class EventHandlerBase : public EventHandler {
       adverseSelectionGuardTriggerRocNumObservations{}, adverseSelectionGuardTriggerRsiNumObservations{};
   TimePoint orderRefreshLastTime{std::chrono::seconds{0}}, cancelOpenOrdersLastTime{std::chrono::seconds{0}},
       getAccountBalancesLastTime{std::chrono::seconds{0}};
-  bool useGetAccountsToGetAccountBalances{}, useCancelOrderToCancelOpenOrders{}, useWeightedMidPrice{}, privateDataOnlySaveFinalSummary{},
-      enableAdverseSelectionGuard{}, enableAdverseSelectionGuardByInventoryLimit{}, enableAdverseSelectionGuardByInventoryDepletion{},
-      enableAdverseSelectionGuardByRollCorrelationCoefficient{}, adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset{},
-      enableAdverseSelectionGuardByRoc{}, enableAdverseSelectionGuardByRsi{}, enableUpdateOrderBookTickByTick{}, immediatelyPlaceNewOrders{},
-      adverseSelectionGuardTriggerRocOrderDirectionReverse{}, adverseSelectionGuardTriggerRsiOrderDirectionReverse{},
-      adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse{}, enableMarketMaking{};
+  bool useGetAccountsToGetAccountBalances{}, useCancelOrderToCancelOpenOrders{}, useWebsocketToExecuteOrder{}, useWeightedMidPrice{},
+      privateDataOnlySaveFinalSummary{}, enableAdverseSelectionGuard{}, enableAdverseSelectionGuardByInventoryLimit{},
+      enableAdverseSelectionGuardByInventoryDepletion{}, enableAdverseSelectionGuardByRollCorrelationCoefficient{},
+      adverseSelectionGuardActionOrderQuantityProportionRelativeToOneAsset{}, enableAdverseSelectionGuardByRoc{}, enableAdverseSelectionGuardByRsi{},
+      enableUpdateOrderBookTickByTick{}, immediatelyPlaceNewOrders{}, adverseSelectionGuardTriggerRocOrderDirectionReverse{},
+      adverseSelectionGuardTriggerRsiOrderDirectionReverse{}, adverseSelectionGuardTriggerRollCorrelationCoefficientOrderDirectionReverse{},
+      enableMarketMaking{};
   TradingMode tradingMode{TradingMode::LIVE};
   AdverseSelectionGuardActionType adverseSelectionGuardActionType{AdverseSelectionGuardActionType::NONE};
   std::shared_ptr<std::promise<void>> promisePtr{nullptr};
