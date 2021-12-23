@@ -848,6 +848,36 @@ class EventHandlerBase : public EventHandler {
             std::vector<Message> messageList_2;
             messageList_2.emplace_back(std::move(message_2));
             virtualEvent_2.setMessageList(messageList_2);
+          } else if (operation == Request::Operation::CANCEL_ORDER) {
+            virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
+            message.setCorrelationIdList({PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID});
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+            if (this->openBuyOrder && request.getCorrelationId() == this->cancelBuyOrderRequestCorrelationId) {
+              this->openBuyOrder.get().status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_CANCELED;
+              Element element;
+              this->extractOrderInfo(element, this->openBuyOrder.get());
+              elementList.emplace_back(std::move(element));
+              this->openBuyOrder = boost::none;
+            }
+            if (this->openSellOrder && request.getCorrelationId() == this->cancelSellOrderRequestCorrelationId) {
+              this->openSellOrder.get().status = APP_EVENT_HANDLER_BASE_ORDER_STATUS_CANCELED;
+              Element element;
+              this->extractOrderInfo(element, this->openSellOrder.get());
+              elementList.emplace_back(std::move(element));
+              this->openSellOrder = boost::none;
+            }
+            std::vector<Element> elementList_2;
+            if (!elementList.empty()) {
+              elementList_2 = elementList;
+              message.setElementList(elementList);
+              virtualEvent.setMessageList({message});
+            }
+            virtualEvent_2.setType(Event::Type::RESPONSE);
+            message_2.setType(Message::Type::CANCEL_ORDER);
+            message_2.setElementList(elementList_2);
+            std::vector<Message> messageList_2;
+            messageList_2.emplace_back(std::move(message_2));
+            virtualEvent_2.setMessageList(messageList_2);
           }
           if (!virtualEvent.getMessageList().empty()) {
             APP_LOGGER_DEBUG("Generated a virtual event: " + virtualEvent.toStringPretty());
@@ -968,6 +998,7 @@ class EventHandlerBase : public EventHandler {
           for (auto& request : requestList) {
             auto operation = request.getOperation();
             if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER) {
+              request.setCorrelationId(PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID);
               session->sendRequestByWebsocket(request);
             } else {
               session->sendRequest(request);
@@ -1067,8 +1098,8 @@ class EventHandlerBase : public EventHandler {
   }
   virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO, bool alwaysCancel) {
     if (alwaysCancel || this->numOpenOrders != 0) {
-      if (useCancelOrderToCancelOpenOrders) {
-        if (this->openBuyOrder) {
+      if (this->useCancelOrderToCancelOpenOrders) {
+        if (this->openBuyOrder && !this->openBuyOrder.get().orderId.empty()) {
 #ifdef CANCEL_BUY_ORDER_REQUEST_CORRELATION_ID
           this->cancelBuyOrderRequestCorrelationId = CANCEL_BUY_ORDER_REQUEST_CORRELATION_ID;
 #else
@@ -1081,7 +1112,7 @@ class EventHandlerBase : public EventHandler {
           request.setTimeSent(messageTime);
           requestList.emplace_back(std::move(request));
         }
-        if (this->openSellOrder) {
+        if (this->openSellOrder && !this->openSellOrder.get().orderId.empty()) {
 #ifdef CANCEL_SELL_ORDER_REQUEST_CORRELATION_ID
           this->cancelSellOrderRequestCorrelationId = CANCEL_SELL_ORDER_REQUEST_CORRELATION_ID;
 #else

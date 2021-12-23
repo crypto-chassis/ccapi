@@ -150,6 +150,7 @@ class Request CCAPI_FINAL {
   int getIndex() const { return index; }
   void setIndex(int index) { this->index = index; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
+  void setCorrelationId(const std::string& correlationId) { this->correlationId = correlationId; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
