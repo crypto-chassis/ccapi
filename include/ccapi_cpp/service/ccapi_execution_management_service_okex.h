@@ -213,6 +213,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
   void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
                                   int wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
+    document.SetObject();
     document.AddMember("id", rj::Value(std::to_string(wsRequestId).c_str(), allocator).Move(), allocator);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {

@@ -20,6 +20,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
     }
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
     this->getInstrumentsTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
+    this->getInstrumentTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
   }
   virtual ~MarketDataServiceBitfinex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -402,9 +403,26 @@ class MarketDataServiceBitfinex : public MarketDataService {
         auto target = this->getInstrumentsTarget;
         req.target(target);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentsTarget;
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  void extractInstrumentInfo(Element& element, const std::string& pair, const rj::Value& z) {
+    element.insert(CCAPI_INSTRUMENT, "t" + pair);
+    if (pair.find(':') != std::string::npos) {
+      auto splitted = UtilString::split(pair, ':');
+      element.insert(CCAPI_BASE_ASSET, splitted.at(0));
+      element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
+    } else {
+      element.insert(CCAPI_BASE_ASSET, pair.substr(0, 3));
+      element.insert(CCAPI_QUOTE_ASSET, pair.substr(3, 6));
+    }
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, z[3].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -433,19 +451,31 @@ class MarketDataServiceBitfinex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document[0].GetArray()) {
-          for (const auto& y : x.GetArray()) {
-            std::string pair = y[0].GetString();
+          std::string pair = x[0].GetString();
+          Element element;
+          this->extractInstrumentInfo(element, pair, x[1]);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        bool found{};
+        for (const auto& x : document[0].GetArray()) {
+          std::string pair = x[0].GetString();
+          if ("t" + pair == request.getInstrument()) {
             Element element;
-            element.insert(CCAPI_INSTRUMENT, "t" + pair);
-            if (pair.find(':') != std::string::npos) {
-              auto splitted = UtilString::split(pair, ':');
-              element.insert(CCAPI_BASE_ASSET, splitted.at(0));
-              element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
-            } else {
-              element.insert(CCAPI_BASE_ASSET, pair.substr(0, 3));
-              element.insert(CCAPI_QUOTE_ASSET, pair.substr(3, 6));
-            }
+            this->extractInstrumentInfo(element, pair, x[1]);
             elementList.push_back(element);
+            found = true;
+          }
+          if (found) {
+            break;
           }
         }
         message.setElementList(elementList);

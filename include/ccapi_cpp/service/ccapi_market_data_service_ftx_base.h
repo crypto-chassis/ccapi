@@ -277,6 +277,9 @@ class MarketDataServiceFtxBase : public MarketDataService {
     if (!x["underlying"].IsNull()) {
       element.insert(CCAPI_UNDERLYING_SYMBOL, x["underlying"].GetString());
     }
+    if (!x["minProvideSize"].IsNull()) {
+      element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minProvideSize"].GetString());
+    }
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
