@@ -37,11 +37,11 @@
 %template(map_string_string) std::map<std::string, std::string>;
 %template(pair_int_string) std::pair<int, std::string>;
 %template(vector_pair_int_string) std::vector<std::pair<int, std::string> >;
-%template(vector_Element) std::vector<ccapi::Element>;
+%template(ElementList) std::vector<ccapi::Element>;
 %template(vector_string) std::vector<std::string>;
-%template(vector_Message) std::vector<ccapi::Message>;
+%template(MessageList) std::vector<ccapi::Message>;
 %template(map_string_map_string_string) std::map<std::string, std::map<std::string, std::string> >;
-%template(vector_Event) std::vector<ccapi::Event>;
+%template(EventList) std::vector<ccapi::Event>;
 %template(SubscriptionList) std::vector<ccapi::Subscription>;
 %template(RequestList) std::vector<ccapi::Request>;
 %include "ccapi_cpp/ccapi_macro.h"
@@ -58,4 +58,4 @@
 %include "ccapi_cpp/ccapi_queue.h"
 %include "ccapi_cpp/ccapi_session.h"
 %include "ccapi_cpp/ccapi_logger.h"
-%template(Queue_Event) ccapi::Queue<ccapi::Event>;
+%template(EventQueue) ccapi::Queue<ccapi::Event>;
