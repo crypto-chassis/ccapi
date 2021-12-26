@@ -123,6 +123,10 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_ORDER_BOOK},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapCryptocom = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_CRYPTOCOM_CHANNEL_TRADE},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_CRYPTOCOM_CHANNEL_BOOK},
+    };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -192,6 +196,9 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapGateioPerpetualFutures) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCryptocom) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_CRYPTOCOM].push_back(fieldWebsocketChannel.first);
+    }
     for (auto& x : this->exchangeFieldMap) {
       x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
     }
@@ -220,6 +227,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_DERIBIT, fieldWebsocketChannelMapDeribit},
         {CCAPI_EXCHANGE_NAME_GATEIO, fieldWebsocketChannelMapGateio},
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, fieldWebsocketChannelMapGateioPerpetualFutures},
+        {CCAPI_EXCHANGE_NAME_CRYPTOCOM, fieldWebsocketChannelMapCryptocom},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -228,7 +236,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES, CCAPI_KRAKEN_FUTURES_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITSTAMP, CCAPI_BITSTAMP_URL_WS_BASE},
         // Bitfinex has different urls for public and private APIs. Here it is only a placeholder for subscription grouping purposes.
-        {CCAPI_EXCHANGE_NAME_BITFINEX, "CCAPI_BITFINEX_URL_WS_BASE"},
+        {CCAPI_EXCHANGE_NAME_BITFINEX, ""},
         {CCAPI_EXCHANGE_NAME_BITMEX, CCAPI_BITMEX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE_US, CCAPI_BINANCE_US_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BINANCE, CCAPI_BINANCE_URL_WS_BASE},
@@ -248,6 +256,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO, CCAPI_GATEIO_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, CCAPI_GATEIO_PERPETUAL_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_CRYPTOCOM, ""},
     };
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
@@ -277,6 +286,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_DERIBIT, CCAPI_DERIBIT_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO, CCAPI_GATEIO_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, CCAPI_GATEIO_PERPETUAL_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_CRYPTOCOM, CCAPI_CRYPTOCOM_URL_REST_BASE},
     };
   }
   void initializUrlFixBase() {

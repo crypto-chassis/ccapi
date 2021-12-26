@@ -261,7 +261,7 @@ class MarketDataServiceDeribit : public MarketDataService {
     } else {
       auto it = document.FindMember("id");
       if (it != document.MemberEnd()) {
-        int id = std::stoll(it->value.GetString());
+        int64_t id = std::stoll(it->value.GetString());
         if (this->subscriptionJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).find(id) !=
             this->subscriptionJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).end()) {
           if (document["result"].GetArray().Empty()) {
