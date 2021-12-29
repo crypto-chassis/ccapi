@@ -166,9 +166,9 @@ class EventHandlerBase : public EventHandler {
               auto remainingQuantity = element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY);
               bool filled = false;
               if (!quantity.empty() && !cumulativeFilledQuantity.empty()) {
-                filled = UtilString::normalizeDecimalString(quantity) == UtilString::normalizeDecimalString(cumulativeFilledQuantity);
+                filled = Decimal(quantity).toString() == Decimal(cumulativeFilledQuantity).toString();
               } else if (!remainingQuantity.empty()) {
-                filled = UtilString::normalizeDecimalString(remainingQuantity) == "0";
+                filled = Decimal(remainingQuantity).toString() == "0";
               }
               if (filled) {
                 this->numOpenOrders -= 1;
@@ -525,9 +525,7 @@ class EventHandlerBase : public EventHandler {
       const auto& messageTimeReceived = firstMessage.getTimeReceived();
       const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
       if (firstMessage.getType() == Message::Type::RESPONSE_ERROR) {
-        for (const auto& element : firstMessage.getElementList()) {
-          APP_LOGGER_ERROR("Received an error: " + element.getValue(CCAPI_ERROR_MESSAGE) + ".");
-        }
+        APP_LOGGER_ERROR(event.toStringPretty() + ".");
       }
       if (std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_BUY) != correlationIdList.end() ||
           std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_SELL) != correlationIdList.end() ||
@@ -581,8 +579,9 @@ class EventHandlerBase : public EventHandler {
           this->accountBalanceCsvWriter->flush();
         }
         if (this->numOpenOrders == 0) {
+          size_t oldRequestListSize = requestList.size();
           this->placeOrders(requestList, messageTimeReceived);
-          this->numOpenOrders = requestList.size();
+          this->numOpenOrders = requestList.size() - oldRequestListSize;
         }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
         const auto& element = firstMessage.getElementList().at(0);
@@ -691,9 +690,9 @@ class EventHandlerBase : public EventHandler {
         if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
           for (const auto& correlationId : message.getCorrelationIdList()) {
             if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
-              const auto& messageTime = message.getTime();
-              const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
-              this->cancelOpenOrders(requestList, messageTime, messageTimeISO, true);
+              const auto& messageTimeReceived = message.getTimeReceived();
+              const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
+              this->cancelOpenOrders(requestList, messageTimeReceived, messageTimeReceivedISO, true);
             }
           }
         }
