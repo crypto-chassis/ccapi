@@ -525,8 +525,9 @@ class EventHandlerBase : public EventHandler {
       const auto& messageTimeReceived = firstMessage.getTimeReceived();
       const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
       if (firstMessage.getType() == Message::Type::RESPONSE_ERROR) {
+        APP_LOGGER_ERROR(message.toStringPretty() + ".");
         for (const auto& element : firstMessage.getElementList()) {
-          APP_LOGGER_ERROR("Received an error: " + element.getValue(CCAPI_ERROR_MESSAGE) + ".");
+          APP_LOGGER_ERROR(element.getValue(CCAPI_ERROR_MESSAGE) + ".");
         }
       }
       if (std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_BUY) != correlationIdList.end() ||
@@ -691,9 +692,9 @@ class EventHandlerBase : public EventHandler {
         if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
           for (const auto& correlationId : message.getCorrelationIdList()) {
             if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
-              const auto& messageTime = message.getTime();
-              const auto& messageTimeISO = UtilTime::getISOTimestamp(messageTime);
-              this->cancelOpenOrders(requestList, messageTime, messageTimeISO, true);
+              const auto& messageTimeReceived = message.getTimeReceived();
+              const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
+              this->cancelOpenOrders(requestList, messageTimeReceived, messageTimeReceivedISO, true);
             }
           }
         }
