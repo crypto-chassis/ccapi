@@ -579,8 +579,9 @@ class EventHandlerBase : public EventHandler {
           this->accountBalanceCsvWriter->flush();
         }
         if (this->numOpenOrders == 0) {
+          size_t oldRequestListSize = requestList.size();
           this->placeOrders(requestList, messageTimeReceived);
-          this->numOpenOrders = requestList.size();
+          this->numOpenOrders = requestList.size() - oldRequestListSize;
         }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
         const auto& element = firstMessage.getElementList().at(0);
