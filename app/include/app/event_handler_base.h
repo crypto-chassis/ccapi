@@ -525,10 +525,7 @@ class EventHandlerBase : public EventHandler {
       const auto& messageTimeReceived = firstMessage.getTimeReceived();
       const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
       if (firstMessage.getType() == Message::Type::RESPONSE_ERROR) {
-        APP_LOGGER_ERROR(message.toStringPretty() + ".");
-        for (const auto& element : firstMessage.getElementList()) {
-          APP_LOGGER_ERROR(element.getValue(CCAPI_ERROR_MESSAGE) + ".");
-        }
+        APP_LOGGER_ERROR(event.toStringPretty() + ".");
       }
       if (std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_BUY) != correlationIdList.end() ||
           std::find(correlationIdList.begin(), correlationIdList.end(), std::string("CREATE_ORDER_") + CCAPI_EM_ORDER_SIDE_SELL) != correlationIdList.end() ||
