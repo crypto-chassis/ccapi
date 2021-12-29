@@ -694,11 +694,8 @@
 #ifndef CCAPI_GATEIO_PERPETUAL_FUTURES_URL_WS_BASE
 #define CCAPI_GATEIO_PERPETUAL_FUTURES_URL_WS_BASE "wss://fx-ws.gateio.ws"
 #endif
-#ifndef CCAPI_CRYPTOCOM_PUBLIC_URL_WS_BASE
-#define CCAPI_CRYPTOCOM_PUBLIC_URL_WS_BASE "wss://stream.crypto.com"
-#endif
-#ifndef CCAPI_CRYPTOCOM_PRIVATE_URL_WS_BASE
-#define CCAPI_CRYPTOCOM_PRIVATE_URL_WS_BASE "wss://stream.crypto.com"
+#ifndef CCAPI_CRYPTOCOM_URL_WS_BASE
+#define CCAPI_CRYPTOCOM_URL_WS_BASE "wss://stream.crypto.com"
 #endif
 // #ifndef CCAPI_BYBIT_URL_WS_BASE
 // #define CCAPI_BYBIT_URL_WS_BASE "https://api.bybit.com"

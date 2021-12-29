@@ -10,7 +10,7 @@ class MarketDataServiceCryptocom : public MarketDataService {
                              std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_CRYPTOCOM;
-    this->baseUrl = std::string(CCAPI_CRYPTOCOM_PUBLIC_URL_WS_BASE) + "/v2/market";
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v2/market";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -232,24 +232,25 @@ class MarketDataServiceCryptocom : public MarketDataService {
     }
     document.AddMember("params", params, allocator);
   }
+  void prepareReq(http::request<http::string_body>& req) {
+    req.set(beast::http::field::content_type, "application/json");
+    req.method(http::verb::get);
+  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
-    int64_t requestId = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+    this->prepareReq(req);
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PUBLIC_REQUEST: {
         MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
       } break;
       case Request::Operation::GET_RECENT_TRADES: {
-        req.method(http::verb::get);
         std::string target = this->getRecentTradesTarget + "?instrument_name=" + symbolId;
         req.target(target);
       } break;
       case Request::Operation::GET_INSTRUMENT: {
-        req.method(http::verb::get);
         req.target(this->getInstrumentTarget);
       } break;
       case Request::Operation::GET_INSTRUMENTS: {
-        req.method(http::verb::get);
         req.target(this->getInstrumentsTarget);
       } break;
       default:

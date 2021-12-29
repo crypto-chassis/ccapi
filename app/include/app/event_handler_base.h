@@ -166,9 +166,9 @@ class EventHandlerBase : public EventHandler {
               auto remainingQuantity = element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY);
               bool filled = false;
               if (!quantity.empty() && !cumulativeFilledQuantity.empty()) {
-                filled = UtilString::normalizeDecimalString(quantity) == UtilString::normalizeDecimalString(cumulativeFilledQuantity);
+                filled = Decimal(quantity).toString() == Decimal(cumulativeFilledQuantity).toString();
               } else if (!remainingQuantity.empty()) {
-                filled = UtilString::normalizeDecimalString(remainingQuantity) == "0";
+                filled = Decimal(remainingQuantity).toString() == "0";
               }
               if (filled) {
                 this->numOpenOrders -= 1;
