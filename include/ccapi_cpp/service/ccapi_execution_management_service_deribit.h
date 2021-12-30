@@ -57,7 +57,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
     }
   }
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& httpMethodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     std::string authorizationHeader("deri-hmac-sha256 id=");
@@ -67,7 +67,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     authorizationHeader += ts;
     authorizationHeader += ",sig=";
     std::string nonce = ts;
-    auto requestData = methodString;
+    auto requestData = httpMethodString;
     requestData += "\n";
     std::string target = path;
     if (!queryString.empty()) {
@@ -115,11 +115,11 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     authorizationHeader += nonce;
     req.set(http::field::authorization, authorizationHeader);
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& method,
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& appMethod,
                    const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
     document.AddMember("jsonrpc", rj::Value("2.0").Move(), allocator);
     document.AddMember("id", rj::Value(requestId).Move(), allocator);
-    document.AddMember("method", rj::Value(method.c_str(), allocator).Move(), allocator);
+    document.AddMember("method", rj::Value(appMethod.c_str(), allocator).Move(), allocator);
     rj::Value params(rj::kObjectType);
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
@@ -149,7 +149,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     this->appendParam(document, allocator, requestId, jsonrpcMethod, param, standardizationMap);
-    this->appendSymbolId(document, allocator, symbolId);
+    if (!symbolId.empty()) {
+      this->appendSymbolId(document, allocator, symbolId);
+    }
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
@@ -446,7 +448,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             } else if (field == CCAPI_EM_ORDER_UPDATE && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
               const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
-                  {CCAPI_EM_ORDER_ID, std::make_pair("price", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("direction", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
