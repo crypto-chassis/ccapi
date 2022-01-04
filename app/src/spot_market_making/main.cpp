@@ -207,11 +207,11 @@ int main(int argc, char** argv) {
         {exchangeUpper + "_API_SECRET", UtilSystem::getEnvAsString(exchangeUpper + "_API_SECRET")},
     };
   }
-  std::set<std::string> useCancelOrderToCancelOpenOrdersExchangeSet{"gemini", "kraken", "bitfinex"};
+  std::set<std::string> useCancelOrderToCancelOpenOrdersExchangeSet{"gemini", "kraken", "bitfinex", "okex"};
   if (useCancelOrderToCancelOpenOrdersExchangeSet.find(eventHandler.exchange) != useCancelOrderToCancelOpenOrdersExchangeSet.end()) {
     eventHandler.useCancelOrderToCancelOpenOrders = true;
   }
-  std::set<std::string> useWebsocketToExecuteOrderExchangeSet{"bitfinex"};
+  std::set<std::string> useWebsocketToExecuteOrderExchangeSet{"bitfinex", "okex"};
   if (useWebsocketToExecuteOrderExchangeSet.find(eventHandler.exchange) != useWebsocketToExecuteOrderExchangeSet.end()) {
     eventHandler.useWebsocketToExecuteOrder = true;
   }
