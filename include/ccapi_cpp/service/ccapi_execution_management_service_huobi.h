@@ -27,6 +27,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     this->getOrderTarget = "/v1/order/orders/{order-id}";
     this->getOrderByClientOrderIdTarget = "/v1/order/orders/getClientOrder";
     this->getOpenOrdersTarget = "/v1/order/openOrders";
+    this->cancelOpenOrdersTarget = "/v1/order/orders/batchCancelOpenOrders";
     this->getAccountsTarget = "/v1/account/accounts";
     this->getAccountBalancesTarget = "/v1/account/accounts/{account-id}/balance";
   }
@@ -125,6 +126,17 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           this->appendSymbolId(queryParamMap, symbolId);
         }
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
+      } break;
+      case Request::Operation::CANCEL_OPEN_ORDERS: {
+        req.method(http::verb::post);
+        ExecutionManagementServiceHuobiBase::appendParam(queryParamMap, {},
+                                                         {
+                                                             {CCAPI_EM_ACCOUNT_ID, "account-id"},
+                                                         });
+        if (!symbolId.empty()) {
+          this->appendSymbolId(queryParamMap, symbolId);
+        }
+        this->signRequest(req, this->cancelOpenOrdersTarget, queryParamMap, credential);
       } break;
       case Request::Operation::GET_ACCOUNTS: {
         req.method(http::verb::get);

@@ -183,8 +183,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ORDER_TYPE, "ordType"},
-                              // {CCAPI_EM_ORDER_ID, "ordId"},
-                              // {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
                               {CCAPI_SYMBOL_ID, "instId"},
                           });
         if (!symbolId.empty()) {
@@ -193,7 +191,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         if (queryString.back() == '&') {
           queryString.pop_back();
         }
-        req.target(this->getOpenOrdersTarget + "?" + queryString);
+        req.target(queryString.empty() ? this->getOpenOrdersTarget : this->getOpenOrdersTarget + "?" + queryString);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {

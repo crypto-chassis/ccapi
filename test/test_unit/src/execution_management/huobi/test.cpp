@@ -76,7 +76,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, signRequest) {
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
       {CCAPI_EM_ORDER_QUANTITY, "10.1"},
@@ -91,7 +91,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCreateOrder) {
   EXPECT_EQ(std::string(document["account-id"].GetString()), "100009");
   EXPECT_EQ(std::string(document["amount"].GetString()), "10.1");
   EXPECT_EQ(std::string(document["price"].GetString()), "100.1");
-  EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusdt");
+  EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusdtt");
   EXPECT_EQ(std::string(document["type"].GetString()), "buy-limit");
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/v1/order/orders/place");
@@ -101,7 +101,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCreateOrder) {
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   std::string textMessage =
       R"(
   {
@@ -120,7 +120,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestCreat
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_ORDER_ID, "59378"},
   };
@@ -135,7 +135,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByOrderId) 
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByClientOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_CLIENT_ORDER_ID, "a0001"},
   };
@@ -153,7 +153,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOrderByClientOrd
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestCancelOrder) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   std::string textMessage =
       R"(
   {
@@ -172,7 +172,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestCance
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByOrderId) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_ORDER_ID, "59378"},
   };
@@ -187,7 +187,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByOrderId) {
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOrderByClientOrderId) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_CLIENT_ORDER_ID, "a0001"},
   };
@@ -244,7 +244,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOr
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOpenOrdersOneInstrument) {
-  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", "foo", this->credential);
   request.appendParam({
       {"ACCOUNT_ID", "100009"},
   });
@@ -253,7 +253,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetOpenOrdersOneInstru
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/v1/order/openOrders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
-  EXPECT_EQ(paramMap.at("symbol"), "btcusdt");
+  EXPECT_EQ(paramMap.at("symbol"), "btcusdtt");
   verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
   verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
 }
@@ -295,6 +295,39 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.453000000000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0");
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOpenOrders) {
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  rj::Document document;
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
+  EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusdt");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/order/orders/batchCancelOpenOrders");
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestCancelOpenOrders) {
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+          "status":"ok",
+          "data":{
+              "success-count":2,
+              "failed-count":0,
+              "next-id":5454600
+          }
+      }
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccounts) {
@@ -380,14 +413,14 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetAc
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, createEventTradeDetails) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_PRIVATE_TRADE);
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", CCAPI_EM_PRIVATE_TRADE);
   std::string textMessage = R"(
     {
       "action": "push",
-    "ch": "trade.clearing#btcusdt#0",
+    "ch": "trade.clearing#btcusdtt#0",
     "data": {
          "eventType": "trade",
-         "symbol": "btcusdt",
+         "symbol": "btcusdtt",
          "orderId": 99998888,
          "tradePrice": "9999.99",
          "tradeVolume": "0.96",
@@ -425,24 +458,24 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventTradeDetails) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_IS_MAKER), "0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "99998888");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdtt");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY), "19.88");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_ASSET), "btc");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesTrigger) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", CCAPI_EM_ORDER_UPDATE);
   std::string textMessage = R"###(
     {
     "action":"push",
-    "ch":"orders#btcusdt",
+    "ch":"orders#btcusdtt",
     "data":
     {
         "orderSide":"buy",
         "lastActTime":1583853365586,
         "clientOrderId":"abc123",
         "orderStatus":"rejected",
-        "symbol":"btcusdt",
+        "symbol":"btcusdtt",
         "eventType":"trigger",
         "errCode": 2002,
         "errMessage":"invalid.client.order.id (NT)"
@@ -462,22 +495,22 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesTrigger) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "rejected");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdtt");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesDeletion) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", CCAPI_EM_ORDER_UPDATE);
   std::string textMessage = R"(
     {
     "action":"push",
-    "ch":"orders#btcusdt",
+    "ch":"orders#btcusdtt",
     "data":
     {
         "orderSide":"buy",
         "lastActTime":1583853365586,
         "clientOrderId":"abc123",
         "orderStatus":"canceled",
-        "symbol":"btcusdt",
+        "symbol":"btcusdtt",
         "eventType":"deletion"
     }
 }
@@ -495,15 +528,15 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesDeletion) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "canceled");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdtt");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCreation) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", CCAPI_EM_ORDER_UPDATE);
   std::string textMessage = R"(
     {
     "action":"push",
-    "ch":"orders#btcusdt",
+    "ch":"orders#btcusdtt",
     "data":
     {
         "orderSize":"2.000000000000000000",
@@ -515,7 +548,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCreation) {
         "clientOrderId":"abc123",
         "orderSource":"spot-api",
         "orderStatus":"submitted",
-        "symbol":"btcusdt",
+        "symbol":"btcusdtt",
         "eventType":"creation"
     }
 }
@@ -536,15 +569,15 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCreation) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "27163533");
   EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "submitted");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdtt");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesTrade) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", CCAPI_EM_ORDER_UPDATE);
   std::string textMessage = R"(
     {
         "action":"push",
-        "ch":"orders#btcusdt",
+        "ch":"orders#btcusdtt",
         "data":
         {
             "tradePrice":"76.000000000000000000",
@@ -561,7 +594,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesTrade) {
             "orderPrice":"15000",
             "orderSize":"0.01",
             "orderStatus":"filled",
-            "symbol":"btcusdt",
+            "symbol":"btcusdtt",
             "eventType":"trade"
         }
     }
@@ -582,17 +615,17 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesTrade) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "27163536");
   EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "filled");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdtt");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "2");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "0.000000000000000400000000000000000000");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCancellation) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", CCAPI_EM_ORDER_UPDATE);
+  Subscription subscription(CCAPI_EXCHANGE_NAME_HUOBI, "btcusdtt", CCAPI_EM_ORDER_UPDATE);
   std::string textMessage = R"(
     {
         "action":"push",
-        "ch":"orders#btcusdt",
+        "ch":"orders#btcusdtt",
         "data":
         {
             "lastActTime":1583853475406,
@@ -605,7 +638,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCancellation)
             "orderPrice":"15000",
             "orderSize":"0.01",
             "orderStatus":"canceled",
-            "symbol":"btcusdt",
+            "symbol":"btcusdtt",
             "eventType":"cancellation"
         }
     }
@@ -626,7 +659,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCancellation)
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "27163533");
   EXPECT_EQ(element.getValue(CCAPI_EM_CLIENT_ORDER_ID), "abc123");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "canceled");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdt");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "btcusdtt");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "2");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "2.000000000000000000");
 }
