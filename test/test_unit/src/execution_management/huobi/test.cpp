@@ -299,6 +299,9 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOp
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOpenOrders) {
   Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  request.appendParam({
+      {CCAPI_EM_ACCOUNT_ID, "100009"},
+  });
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   rj::Document document;
@@ -306,6 +309,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOpenOrders) {
   EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusdt");
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/v1/order/orders/batchCancelOpenOrders");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
   verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
 }

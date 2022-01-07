@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
   eventHandler.privateDataFilePrefix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_PREFIX");
   eventHandler.privateDataFileSuffix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_SUFFIX");
   eventHandler.privateDataOnlySaveFinalSummary = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_SUMMARY")) == "true";
-  eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
+  eventHandler.clockStepMilliseconds = UtilSystem::getEnvAsInt("CLOCK_STEP_MILLISECONDS", 1000);
   eventHandler.baseAsset = UtilSystem::getEnvAsString("BASE_ASSET_OVERRIDE");
   eventHandler.quoteAsset = UtilSystem::getEnvAsString("QUOTE_ASSET_OVERRIDE");
   eventHandler.orderPriceIncrement = UtilString::normalizeDecimalString(UtilSystem::getEnvAsString("ORDER_PRICE_INCREMENT_OVERRIDE"));
@@ -132,6 +132,8 @@ int main(int argc, char** argv) {
 #ifndef CCAPI_APP_IS_BACKTEST
   SessionOptions sessionOptions;
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1;
+  sessionOptions.httpMaxNumRetry = 0;
+  sessionOptions.httpMaxNumRedirect = 0;
   SessionConfigs sessionConfigs;
   eventHandler.onInit();
   Session session(sessionOptions, sessionConfigs, &eventHandler);
