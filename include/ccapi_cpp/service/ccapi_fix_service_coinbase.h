@@ -12,7 +12,7 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
       : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
     this->baseUrlFix = this->sessionConfigs.getUrlFixBase().at(this->exchangeName);
-    this->setHostFixFromUrlFix(this->baseUrlFix);
+    this->setHostFixFromUrlFix(this->hostFix,this->portFix,this->baseUrlFix);
     try {
       this->tcpResolverResultsFix = this->resolver.resolve(this->hostFix, this->portFix);
     } catch (const std::exception& e) {
