@@ -26,7 +26,7 @@ class FixService : public Service {
     std::replace(output.begin(), output.end(), '\x01', '^');
     return output;
   }
-  void setHostFixFromUrlFix( std::string& std::string aHostFix, std::string& std::string aPortFix,const std::string& std::string baseUrlFix) {
+  void setHostFixFromUrlFix(std::string& aHostFix, std::string& aPortFix, const std::string& baseUrlFix) {
     auto hostPort = this->extractHostFromUrl(baseUrlFix);
     aHostFix = hostPort.first;
     aPortFix = hostPort.second;
@@ -99,10 +99,10 @@ class FixService : public Service {
     std::string aHostFix = this->hostFix;
     std::string aPortFix = this->portFix;
     std::string field = subscription.getField();
-    if (field == CCAPI_FIX_MARKET_DATA){
+    if (field == CCAPI_FIX_MARKET_DATA) {
       aHostFix = this->hostFixMarketData;
       aPortFix = this->portFixMarketData;
-    }else if (field == CCAPI_FIX_EXECUTION_MANAGEMENT){
+    } else if (field == CCAPI_FIX_EXECUTION_MANAGEMENT) {
       aHostFix = this->hostFixExecutionManagement;
       aPortFix = this->portFixExecutionManagement;
     }
@@ -118,9 +118,10 @@ class FixService : public Service {
     fixConnectionPtr->status = FixConnection<T>::Status::CONNECTING;
     CCAPI_LOGGER_TRACE("before async_connect");
     T& stream = *streamPtr;
-    beast::get_lowest_layer(stream).async_connect(field==CCAPI_FIX_MARKET_DATA ? this->tcpResolverResultsFixMarketData
-    : field==CCAPI_FIX_EXECUTION_MANAGEMENT ? this->tcpResolverResultsFixExecutionManagement
-    : this->tcpResolverResultsFix, beast::bind_front_handler(&FixService::onConnect_3, shared_from_base<FixService>(), fixConnectionPtr));
+    beast::get_lowest_layer(stream).async_connect(field == CCAPI_FIX_MARKET_DATA            ? this->tcpResolverResultsFixMarketData
+                                                  : field == CCAPI_FIX_EXECUTION_MANAGEMENT ? this->tcpResolverResultsFixExecutionManagement
+                                                                                            : this->tcpResolverResultsFix,
+                                                  beast::bind_front_handler(&FixService::onConnect_3, shared_from_base<FixService>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
   void onConnect_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {

@@ -305,20 +305,7 @@ class EventHandlerBase : public EventHandler {
               }
             }
           }
-          if (this->enableAdverseSelectionGuard) {
-            int intervalStart = UtilTime::getUnixTimestamp(messageTime) / this->adverseSelectionGuardMarketDataSampleIntervalSeconds *
-                                this->adverseSelectionGuardMarketDataSampleIntervalSeconds;
-            for (auto& kv : this->publicTradeMap) {
-              kv.second.erase(kv.second.begin(), kv.second.upper_bound(intervalStart - this->adverseSelectionGuardMarketDataSampleBufferSizeSeconds));
-            }
-            const auto& elementList = message.getElementList();
-            auto rit = elementList.rbegin();
-            if (rit != elementList.rend()) {
-#if APP_PUBLIC_TRADE_LAST != -1
-              this->publicTradeMap[APP_PUBLIC_TRADE_LAST][intervalStart] = std::stod(rit->getValue(CCAPI_LAST_PRICE));
-#endif
-            }
-          }
+          this->postProcessMessageMarketDataEventTrade();
         }
       }
       if (index != -1) {
@@ -518,6 +505,7 @@ class EventHandlerBase : public EventHandler {
                    this->cancelOpenOrdersLastTime + std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) >= this->orderRefreshLastTime) {
           this->getAccountBalances(requestList, messageTime, messageTimeISO);
         }
+        this->postProcessMessageMarketDataEventMarketDepth();
       }
     } else if (eventType == Event::Type::RESPONSE) {
       const auto& firstMessage = event.getMessageList().at(0);
@@ -1062,6 +1050,23 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
+  virtual void postProcessMessageMarketDataEventMarketDepth(const Message& message, const TimePoint& messageTime) {}
+  virtual void postProcessMessageMarketDataEventTrade(const Message& message, const TimePoint& messageTime) {
+    if (this->enableAdverseSelectionGuard) {
+      int intervalStart = UtilTime::getUnixTimestamp(messageTime) / this->adverseSelectionGuardMarketDataSampleIntervalSeconds *
+                          this->adverseSelectionGuardMarketDataSampleIntervalSeconds;
+      for (auto& kv : this->publicTradeMap) {
+        kv.second.erase(kv.second.begin(), kv.second.upper_bound(intervalStart - this->adverseSelectionGuardMarketDataSampleBufferSizeSeconds));
+      }
+      const auto& elementList = message.getElementList();
+      auto rit = elementList.rbegin();
+      if (rit != elementList.rend()) {
+#if APP_PUBLIC_TRADE_LAST != -1
+        this->publicTradeMap[APP_PUBLIC_TRADE_LAST][intervalStart] = std::stod(rit->getValue(CCAPI_LAST_PRICE));
+#endif
+      }
+    }
+  }
   virtual void extractInstrumentInfo(const Element& element) {
     this->baseAsset = element.getValue(CCAPI_BASE_ASSET);
     APP_LOGGER_INFO("Base asset is " + this->baseAsset);
