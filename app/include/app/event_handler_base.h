@@ -305,7 +305,7 @@ class EventHandlerBase : public EventHandler {
               }
             }
           }
-          this->postProcessMessageMarketDataEventTrade();
+          this->postProcessMessageMarketDataEventTrade(message, messageTime);
         }
       }
       if (index != -1) {
@@ -505,7 +505,7 @@ class EventHandlerBase : public EventHandler {
                    this->cancelOpenOrdersLastTime + std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) >= this->orderRefreshLastTime) {
           this->getAccountBalances(requestList, messageTime, messageTimeISO);
         }
-        this->postProcessMessageMarketDataEventMarketDepth();
+        this->postProcessMessageMarketDataEventMarketDepth(message, messageTime);
       }
     } else if (eventType == Event::Type::RESPONSE) {
       const auto& firstMessage = event.getMessageList().at(0);
