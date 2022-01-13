@@ -35,6 +35,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
 
  private:
 #endif
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
@@ -183,8 +184,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ORDER_TYPE, "ordType"},
-                              {CCAPI_EM_ORDER_ID, "ordId"},
-                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
                               {CCAPI_SYMBOL_ID, "instId"},
                           });
         if (!symbolId.empty()) {
@@ -193,7 +192,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         if (queryString.back() == '&') {
           queryString.pop_back();
         }
-        req.target(this->getOpenOrdersTarget + "?" + queryString);
+        req.target(queryString.empty() ? this->getOpenOrdersTarget : this->getOpenOrdersTarget + "?" + queryString);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
@@ -286,6 +285,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
           element.insert(CCAPI_EM_ASSET, x["ccy"].GetString());
           std::string availEq = x["availEq"].GetString();
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, availEq.empty() ? x["availBal"].GetString() : availEq);
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["eq"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;

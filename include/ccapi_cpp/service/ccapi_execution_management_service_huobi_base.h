@@ -14,6 +14,10 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
 
  protected:
 #endif
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    auto now = UtilTime::now();
+    this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
+  }
   void createSignature(std::string& signature, std::string& queryString, const std::string& reqMethod, const std::string& host, const std::string& path,
                        const std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& credential) {
     std::string preSignedText;

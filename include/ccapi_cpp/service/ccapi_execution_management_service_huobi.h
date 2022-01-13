@@ -27,6 +27,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     this->getOrderTarget = "/v1/order/orders/{order-id}";
     this->getOrderByClientOrderIdTarget = "/v1/order/orders/getClientOrder";
     this->getOpenOrdersTarget = "/v1/order/openOrders";
+    this->cancelOpenOrdersTarget = "/v1/order/orders/batchCancelOpenOrders";
     this->getAccountsTarget = "/v1/account/accounts";
     this->getAccountBalancesTarget = "/v1/account/accounts/{account-id}/balance";
   }
@@ -126,6 +127,27 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         }
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
+      case Request::Operation::CANCEL_OPEN_ORDERS: {
+        req.method(http::verb::post);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ACCOUNT_ID, "account-id"},
+                          });
+        if (!symbolId.empty()) {
+          this->appendSymbolId(document, allocator, symbolId);
+        }
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        auto body = stringBuffer.GetString();
+        req.body() = body;
+        req.prepare_payload();
+        this->signRequest(req, this->cancelOpenOrdersTarget, queryParamMap, credential);
+      } break;
       case Request::Operation::GET_ACCOUNTS: {
         req.method(http::verb::get);
         this->signRequest(req, this->getAccountsTarget, queryParamMap, credential);
@@ -188,6 +210,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
             Element element;
             element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
             element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["balance"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x["balance"].GetString());
             elementList.emplace_back(std::move(element));
           }
         }

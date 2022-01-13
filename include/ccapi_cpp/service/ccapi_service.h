@@ -1095,7 +1095,6 @@ class Service : public std::enable_shared_from_this<Service> {
   std::string hostRest;
   std::string portRest;
   tcp::resolver::results_type tcpResolverResultsRest;
-  tcp::resolver::results_type tcpResolverResultsFix;
   Queue<std::shared_ptr<HttpConnection>> httpConnectionPool;
   TimePoint lastHttpConnectionPoolPushBackTp{std::chrono::seconds{0}};
   TimerPtr httpConnectionPoolPurgeTimer;
