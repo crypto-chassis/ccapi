@@ -1485,12 +1485,16 @@ class EventHandlerBase : public EventHandler {
         {CCAPI_EM_ORDER_QUANTITY, quantity},
         {CCAPI_EM_ORDER_LIMIT_PRICE, price},
     };
-    if (this->tradingMode == TradingMode::BACKTEST || this->tradingMode == TradingMode::PAPER) {
-      std::string clientOrderId;
-      clientOrderId += messageTimeISO;
-      clientOrderId += "_";
-      clientOrderId += side;
-      param.insert({CCAPI_EM_CLIENT_ORDER_ID, clientOrderId});
+    if (this->exchange == "kucoin") {
+      param.insert({CCAPI_EM_CLIENT_ORDER_ID, AppUtil::generateUuidV4()});
+    } else {
+      if (this->tradingMode == TradingMode::BACKTEST || this->tradingMode == TradingMode::PAPER) {
+        std::string clientOrderId;
+        clientOrderId += messageTimeISO;
+        clientOrderId += "_";
+        clientOrderId += side;
+        param.insert({CCAPI_EM_CLIENT_ORDER_ID, clientOrderId});
+      }
     }
     if (this->exchange == "huobi") {
       param.insert({CCAPI_EM_ACCOUNT_ID, this->accountId});

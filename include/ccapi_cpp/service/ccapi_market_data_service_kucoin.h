@@ -41,6 +41,7 @@ class MarketDataServiceKucoin : public MarketDataServiceKucoinBase {
     element.insert(CCAPI_QUOTE_ASSET, x["quoteCurrency"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["priceIncrement"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["baseIncrement"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["baseMinSize"].GetString());
   }
 };
 } /* namespace ccapi */
