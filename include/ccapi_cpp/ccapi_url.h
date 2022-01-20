@@ -65,6 +65,19 @@ class Url CCAPI_FINAL {
     }
     return output;
   }
+  static std::string convertMapToQueryString(const std::map<std::string, std::string> &input) {
+    std::string output;
+    for (const auto &x : input) {
+      output += x.first;
+      output += "=";
+      output += x.second;
+      output += "&";
+    }
+    if (!output.empty()){
+      output.pop_back();
+    }
+    return output;
+  }
   static std::string convertMapToFormUrlEncoded(const std::map<std::string, std::string> &input) {
     std::string output;
     int i = 0;

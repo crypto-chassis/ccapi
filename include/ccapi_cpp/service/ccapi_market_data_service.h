@@ -132,6 +132,7 @@ class MarketDataService : public Service {
         }
 
         std::string& exchangeSubscriptionId = marketDataMessage.exchangeSubscriptionId;
+        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " + toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
         std::string& channelId =
             this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
         std::string& symbolId =
