@@ -11,6 +11,7 @@ class WsConnection CCAPI_FINAL {
   WsConnection(std::string url, std::string group, std::vector<Subscription> subscriptionList) : url(url), group(group), subscriptionList(subscriptionList) {
     this->assignDummyId();
   }
+  WsConnection() {}
   void assignDummyId() {
     this->id = this->url + "||" + this->group + "||" + ccapi::toString(this->subscriptionList);
     this->hdl.reset();
