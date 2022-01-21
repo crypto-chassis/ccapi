@@ -90,6 +90,10 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         },
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    auto now = UtilTime::now();
+    this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
+  }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -309,6 +313,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
           element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
           element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
           element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["balance"].GetString());
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
           elementList.emplace_back(std::move(element));
         }
@@ -316,6 +321,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         Element element;
         element.insert(CCAPI_EM_ASSET, data["currency"].GetString());
+        element.insert(CCAPI_EM_QUANTITY_TOTAL, data["balance"].GetString());
         element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, data["available"].GetString());
         elementList.emplace_back(std::move(element));
       } break;
@@ -354,13 +360,13 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(hdl, subscription, textMessage, document, timeReceived);
+    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
     }
   }
-  Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
-                    const TimePoint& timeReceived) {
+  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
+                    const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -431,7 +437,19 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       message.setElementList({element});
       messageList.emplace_back(std::move(message));
     } else if (type == "welcome") {
+      this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+          std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
+      this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+          std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
+      if (this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
+          this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
+        this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+            this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
+      }
       ExecutionManagementService::onOpen(hdl);
+    } else if (type == "pong") {
+      auto now = UtilTime::now();
+      this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = now;
     }
     event.setMessageList(messageList);
     return event;

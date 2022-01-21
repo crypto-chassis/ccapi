@@ -280,6 +280,8 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     } else {
       element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
     }
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["limit-order-min-order-amt"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["min-order-value"].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {

@@ -305,20 +305,7 @@ class EventHandlerBase : public EventHandler {
               }
             }
           }
-          if (this->enableAdverseSelectionGuard) {
-            int intervalStart = UtilTime::getUnixTimestamp(messageTime) / this->adverseSelectionGuardMarketDataSampleIntervalSeconds *
-                                this->adverseSelectionGuardMarketDataSampleIntervalSeconds;
-            for (auto& kv : this->publicTradeMap) {
-              kv.second.erase(kv.second.begin(), kv.second.upper_bound(intervalStart - this->adverseSelectionGuardMarketDataSampleBufferSizeSeconds));
-            }
-            const auto& elementList = message.getElementList();
-            auto rit = elementList.rbegin();
-            if (rit != elementList.rend()) {
-#if APP_PUBLIC_TRADE_LAST != -1
-              this->publicTradeMap[APP_PUBLIC_TRADE_LAST][intervalStart] = std::stod(rit->getValue(CCAPI_LAST_PRICE));
-#endif
-            }
-          }
+          this->postProcessMessageMarketDataEventTrade(message, messageTime);
         }
       }
       if (index != -1) {
@@ -518,6 +505,7 @@ class EventHandlerBase : public EventHandler {
                    this->cancelOpenOrdersLastTime + std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) >= this->orderRefreshLastTime) {
           this->getAccountBalances(requestList, messageTime, messageTimeISO);
         }
+        this->postProcessMessageMarketDataEventMarketDepth(message, messageTime);
       }
     } else if (eventType == Event::Type::RESPONSE) {
       const auto& firstMessage = event.getMessageList().at(0);
@@ -597,7 +585,7 @@ class EventHandlerBase : public EventHandler {
           historicalMarketDataEventProcessor.historicalMarketDataDirectory = this->historicalMarketDataDirectory;
           historicalMarketDataEventProcessor.historicalMarketDataFilePrefix = this->historicalMarketDataFilePrefix;
           historicalMarketDataEventProcessor.historicalMarketDataFileSuffix = this->historicalMarketDataFileSuffix;
-          historicalMarketDataEventProcessor.clockStepSeconds = this->clockStepSeconds;
+          historicalMarketDataEventProcessor.clockStepSeconds = this->clockStepMilliseconds / 1000;
           historicalMarketDataEventProcessor.startTimeTp = this->startTimeTp;
           historicalMarketDataEventProcessor.totalDurationSeconds = this->totalDurationSeconds;
           historicalMarketDataEventProcessor.processEvent();
@@ -663,7 +651,7 @@ class EventHandlerBase : public EventHandler {
               }
             }
             if (!this->enableUpdateOrderBookTickByTick) {
-              options += "&" + std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepSeconds * 1000) + "&" +
+              options += "&" + std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepMilliseconds) + "&" +
                          CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0";
             }
             subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, CCAPI_MARKET_DEPTH, options,
@@ -1021,7 +1009,7 @@ class EventHandlerBase : public EventHandler {
       adverseSelectionGuardTriggerRocMinimum{}, adverseSelectionGuardTriggerRocMaximum{}, adverseSelectionGuardTriggerRsiMinimum{},
       adverseSelectionGuardTriggerRsiMaximum{}, privateTradeVolumeInBaseSum{}, privateTradeVolumeInQuoteSum{}, privateTradeFeeInBaseSum{},
       privateTradeFeeInQuoteSum{}, midPrice{};
-  int orderRefreshIntervalSeconds{}, orderRefreshIntervalOffsetSeconds{}, accountBalanceRefreshWaitSeconds{}, clockStepSeconds{},
+  int orderRefreshIntervalSeconds{}, orderRefreshIntervalOffsetSeconds{}, accountBalanceRefreshWaitSeconds{}, clockStepMilliseconds{},
       adverseSelectionGuardActionOrderRefreshIntervalSeconds{}, originalOrderRefreshIntervalSeconds{}, adverseSelectionGuardMarketDataSampleIntervalSeconds{},
       adverseSelectionGuardMarketDataSampleBufferSizeSeconds{}, adverseSelectionGuardTriggerRollCorrelationCoefficientNumObservations{},
       adverseSelectionGuardTriggerRocNumObservations{}, adverseSelectionGuardTriggerRsiNumObservations{};
@@ -1062,6 +1050,23 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
+  virtual void postProcessMessageMarketDataEventMarketDepth(const Message& message, const TimePoint& messageTime) {}
+  virtual void postProcessMessageMarketDataEventTrade(const Message& message, const TimePoint& messageTime) {
+    if (this->enableAdverseSelectionGuard) {
+      int intervalStart = UtilTime::getUnixTimestamp(messageTime) / this->adverseSelectionGuardMarketDataSampleIntervalSeconds *
+                          this->adverseSelectionGuardMarketDataSampleIntervalSeconds;
+      for (auto& kv : this->publicTradeMap) {
+        kv.second.erase(kv.second.begin(), kv.second.upper_bound(intervalStart - this->adverseSelectionGuardMarketDataSampleBufferSizeSeconds));
+      }
+      const auto& elementList = message.getElementList();
+      auto rit = elementList.rbegin();
+      if (rit != elementList.rend()) {
+#if APP_PUBLIC_TRADE_LAST != -1
+        this->publicTradeMap[APP_PUBLIC_TRADE_LAST][intervalStart] = std::stod(rit->getValue(CCAPI_LAST_PRICE));
+#endif
+      }
+    }
+  }
   virtual void extractInstrumentInfo(const Element& element) {
     this->baseAsset = element.getValue(CCAPI_BASE_ASSET);
     APP_LOGGER_INFO("Base asset is " + this->baseAsset);
@@ -1134,6 +1139,11 @@ class EventHandlerBase : public EventHandler {
         this->cancelOpenOrdersRequestCorrelationId = messageTimeISO + "-CANCEL_OPEN_ORDERS";
 #endif
         Request request(Request::Operation::CANCEL_OPEN_ORDERS, this->exchange, this->instrumentRest, this->cancelOpenOrdersRequestCorrelationId);
+        if (this->exchange == "huobi") {
+          request.appendParam({
+              {CCAPI_EM_ACCOUNT_ID, this->accountId},
+          });
+        }
         request.setTimeSent(messageTime);
         requestList.emplace_back(std::move(request));
       }
@@ -1154,7 +1164,7 @@ class EventHandlerBase : public EventHandler {
     Request request(this->useGetAccountsToGetAccountBalances ? Request::Operation::GET_ACCOUNTS : Request::Operation::GET_ACCOUNT_BALANCES, this->exchange, "",
                     this->getAccountBalancesRequestCorrelationId);
     request.setTimeSent(messageTime);
-    if (!this->accountId.empty()) {
+    if (this->exchange == "huobi") {
       request.appendParam({
           {CCAPI_EM_ACCOUNT_ID, this->accountId},
       });
@@ -1475,12 +1485,19 @@ class EventHandlerBase : public EventHandler {
         {CCAPI_EM_ORDER_QUANTITY, quantity},
         {CCAPI_EM_ORDER_LIMIT_PRICE, price},
     };
-    if (this->tradingMode == TradingMode::BACKTEST || this->tradingMode == TradingMode::PAPER) {
-      std::string clientOrderId;
-      clientOrderId += messageTimeISO;
-      clientOrderId += "_";
-      clientOrderId += side;
-      param.insert({CCAPI_EM_CLIENT_ORDER_ID, clientOrderId});
+    if (this->exchange == "kucoin") {
+      param.insert({CCAPI_EM_CLIENT_ORDER_ID, AppUtil::generateUuidV4()});
+    } else {
+      if (this->tradingMode == TradingMode::BACKTEST || this->tradingMode == TradingMode::PAPER) {
+        std::string clientOrderId;
+        clientOrderId += messageTimeISO;
+        clientOrderId += "_";
+        clientOrderId += side;
+        param.insert({CCAPI_EM_CLIENT_ORDER_ID, clientOrderId});
+      }
+    }
+    if (this->exchange == "huobi") {
+      param.insert({CCAPI_EM_ACCOUNT_ID, this->accountId});
     }
     request.appendParam(param);
     request.setTimeSent(now);

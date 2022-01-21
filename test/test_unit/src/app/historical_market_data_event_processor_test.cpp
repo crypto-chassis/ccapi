@@ -19,7 +19,7 @@ class HistoricalMarketDataEventProcessorTest : public ::testing::Test {
     this->historicalMarketDataEventProcessor->historicalMarketDataEndDateTp =
         UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE", splitted.at(4)), "%F");
     this->historicalMarketDataEventProcessor->historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY", splitted.at(5));
-    this->historicalMarketDataEventProcessor->clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
+    this->historicalMarketDataEventProcessor->clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_MILLISECONDS", 1000) / 1000;
   }
   void TearDown() override { delete this->historicalMarketDataEventProcessor; }
   std::vector<Event> eventList;

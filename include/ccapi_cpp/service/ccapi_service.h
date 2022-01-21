@@ -1,7 +1,9 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #include "ccapi_cpp/ccapi_logger.h"
+#ifndef RAPIDJSON_HAS_CXX11_NOEXCEPT
 #define RAPIDJSON_HAS_CXX11_NOEXCEPT 0
+#endif
 #ifndef RAPIDJSON_ASSERT
 #define RAPIDJSON_ASSERT(x)                                           \
   if (!(x)) {                                                         \
@@ -1095,7 +1097,6 @@ class Service : public std::enable_shared_from_this<Service> {
   std::string hostRest;
   std::string portRest;
   tcp::resolver::results_type tcpResolverResultsRest;
-  tcp::resolver::results_type tcpResolverResultsFix;
   Queue<std::shared_ptr<HttpConnection>> httpConnectionPool;
   TimePoint lastHttpConnectionPoolPushBackTp{std::chrono::seconds{0}};
   TimerPtr httpConnectionPoolPurgeTimer;

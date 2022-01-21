@@ -270,6 +270,7 @@ class MarketDataServiceOkex : public MarketDataService {
     element.insert(CCAPI_QUOTE_ASSET, x["quoteCcy"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSz"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSz"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minSz"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["settleCcy"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["uly"].GetString());
   }

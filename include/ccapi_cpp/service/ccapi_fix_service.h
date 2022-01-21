@@ -26,10 +26,10 @@ class FixService : public Service {
     std::replace(output.begin(), output.end(), '\x01', '^');
     return output;
   }
-  void setHostFixFromUrlFix(std::string baseUrlFix) {
+  void setHostFixFromUrlFix(std::string& aHostFix, std::string& aPortFix, const std::string& baseUrlFix) {
     auto hostPort = this->extractHostFromUrl(baseUrlFix);
-    this->hostFix = hostPort.first;
-    this->portFix = hostPort.second;
+    aHostFix = hostPort.first;
+    aPortFix = hostPort.second;
   }
   void subscribeByFix(Subscription& subscription) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -96,19 +96,31 @@ class FixService : public Service {
   }
   std::shared_ptr<T> createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host);
   void connect(Subscription& subscription) {
+    std::string aHostFix = this->hostFix;
+    std::string aPortFix = this->portFix;
+    std::string field = subscription.getField();
+    if (field == CCAPI_FIX_MARKET_DATA) {
+      aHostFix = this->hostFixMarketData;
+      aPortFix = this->portFixMarketData;
+    } else if (field == CCAPI_FIX_EXECUTION_MANAGEMENT) {
+      aHostFix = this->hostFixExecutionManagement;
+      aPortFix = this->portFixExecutionManagement;
+    }
     std::shared_ptr<T> streamPtr(nullptr);
     try {
-      streamPtr = this->createStreamFix(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostFix);
+      streamPtr = this->createStreamFix(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, aHostFix);
     } catch (const beast::error_code& ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
       return;
     }
-    std::shared_ptr<FixConnection<T>> fixConnectionPtr(new FixConnection<T>(this->hostFix, this->portFix, subscription, streamPtr));
+    std::shared_ptr<FixConnection<T>> fixConnectionPtr(new FixConnection<T>(aHostFix, aPortFix, subscription, streamPtr));
     fixConnectionPtr->status = FixConnection<T>::Status::CONNECTING;
     CCAPI_LOGGER_TRACE("before async_connect");
     T& stream = *streamPtr;
-    beast::get_lowest_layer(stream).async_connect(this->tcpResolverResultsFix,
+    beast::get_lowest_layer(stream).async_connect(field == CCAPI_FIX_MARKET_DATA            ? this->tcpResolverResultsFixMarketData
+                                                  : field == CCAPI_FIX_EXECUTION_MANAGEMENT ? this->tcpResolverResultsFixExecutionManagement
+                                                                                            : this->tcpResolverResultsFix,
                                                   beast::bind_front_handler(&FixService::onConnect_3, shared_from_base<FixService>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
@@ -487,11 +499,20 @@ class FixService : public Service {
   std::map<std::string, std::shared_ptr<FixConnection<T>>> fixConnectionPtrByIdMap;
   std::map<std::string, int> sequenceSentByConnectionIdMap;
   std::map<std::string, std::map<std::string, std::string>> credentialByConnectionIdMap;
-  std::string baseUrlFix;
   std::string apiKeyName;
   std::string apiSecretName;
+  std::string baseUrlFix;
   std::string hostFix;
   std::string portFix;
+  tcp::resolver::results_type tcpResolverResultsFix;
+  std::string baseUrlFixMarketData;
+  std::string hostFixMarketData;
+  std::string portFixMarketData;
+  tcp::resolver::results_type tcpResolverResultsFixMarketData;
+  std::string baseUrlFixExecutionManagement;
+  std::string hostFixExecutionManagement;
+  std::string portFixExecutionManagement;
+  tcp::resolver::results_type tcpResolverResultsFixExecutionManagement;
   std::string protocolVersion;
   std::string senderCompID;
   std::string targetCompID;

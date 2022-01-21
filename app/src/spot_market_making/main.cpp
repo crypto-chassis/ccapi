@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
   eventHandler.privateDataFileSuffix = UtilSystem::getEnvAsString("PRIVATE_DATA_FILE_SUFFIX");
   eventHandler.privateDataOnlySaveFinalSummary = UtilString::toLower(UtilSystem::getEnvAsString("PRIVATE_DATA_ONLY_SAVE_FINAL_SUMMARY")) == "true";
   eventHandler.killSwitchMaximumDrawdown = UtilSystem::getEnvAsDouble("KILL_SWITCH_MAXIMUM_DRAWDOWN");
-  eventHandler.clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_SECONDS", 1);
+  eventHandler.clockStepMilliseconds = UtilSystem::getEnvAsInt("CLOCK_STEP_MILLISECONDS", 1000);
   eventHandler.enableAdverseSelectionGuard = UtilString::toLower(UtilSystem::getEnvAsString("ENABLE_ADVERSE_SELECTION_GUARD")) == "true";
   eventHandler.adverseSelectionGuardMarketDataSampleIntervalSeconds = UtilSystem::getEnvAsInt("ADVERSE_SELECTION_GUARD_MARKET_DATA_SAMPLE_INTERVAL_SECONDS");
   eventHandler.adverseSelectionGuardMarketDataSampleBufferSizeSeconds =
@@ -168,6 +168,8 @@ int main(int argc, char** argv) {
 #ifndef CCAPI_APP_IS_BACKTEST
   SessionOptions sessionOptions;
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
+  sessionOptions.httpMaxNumRetry = 0;
+  sessionOptions.httpMaxNumRedirect = 0;
   SessionConfigs sessionConfigs;
   eventHandler.onInit();
   Session session(sessionOptions, sessionConfigs, &eventHandler);
@@ -207,11 +209,11 @@ int main(int argc, char** argv) {
         {exchangeUpper + "_API_SECRET", UtilSystem::getEnvAsString(exchangeUpper + "_API_SECRET")},
     };
   }
-  std::set<std::string> useCancelOrderToCancelOpenOrdersExchangeSet{"gemini", "kraken", "bitfinex"};
+  std::set<std::string> useCancelOrderToCancelOpenOrdersExchangeSet{"gemini", "kraken", "bitfinex", "okex"};
   if (useCancelOrderToCancelOpenOrdersExchangeSet.find(eventHandler.exchange) != useCancelOrderToCancelOpenOrdersExchangeSet.end()) {
     eventHandler.useCancelOrderToCancelOpenOrders = true;
   }
-  std::set<std::string> useWebsocketToExecuteOrderExchangeSet{"bitfinex"};
+  std::set<std::string> useWebsocketToExecuteOrderExchangeSet{"bitfinex", "okex"};
   if (useWebsocketToExecuteOrderExchangeSet.find(eventHandler.exchange) != useWebsocketToExecuteOrderExchangeSet.end()) {
     eventHandler.useWebsocketToExecuteOrder = true;
   }
