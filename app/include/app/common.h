@@ -40,7 +40,7 @@
   if (::ccapi::AppLogger::logger) {                    \
     ::ccapi::AppLogger::logger->log(message, "INFO:"); \
   }
-#define APP_LOGGER_INFO_WITH_TAG(message)                          \
+#define APP_LOGGER_INFO_WITH_TAG(message, tag)                     \
   if (::ccapi::AppLogger::logger) {                                \
     ::ccapi::AppLogger::logger->log(message, "INFO:" + tag + ":"); \
   }

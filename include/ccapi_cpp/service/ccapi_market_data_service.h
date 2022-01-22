@@ -892,6 +892,11 @@ class MarketDataService : public Service {
       }
       long waitMilliseconds =
           std::chrono::duration_cast<std::chrono::milliseconds>(previousConflateTp + interval + gracePeriod - std::chrono::system_clock::now()).count();
+      if (std::chrono::duration_cast<std::chrono::milliseconds>(interval + gracePeriod).count() > 0) {
+        while (waitMilliseconds <= 0) {
+          waitMilliseconds += std::chrono::duration_cast<std::chrono::milliseconds>(interval + gracePeriod).count();
+        }
+      }
       if (waitMilliseconds > 0) {
         this->conflateTimerMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = this->serviceContextPtr->tlsClientPtr->set_timer(
             waitMilliseconds,
