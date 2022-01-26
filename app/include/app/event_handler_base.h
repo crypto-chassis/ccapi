@@ -522,6 +522,13 @@ class EventHandlerBase : public EventHandler {
         const auto& element = firstMessage.getElementList().at(0);
         Order order;
         order.orderId = element.getValue(CCAPI_EM_ORDER_ID);
+        order.clientOrderId = element.getValue(CCAPI_EM_CLIENT_ORDER_ID);
+        order.side = element.getValue(CCAPI_EM_ORDER_SIDE);
+        order.limitPrice = Decimal(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE));
+        order.quantity = Decimal(element.getValue(CCAPI_EM_ORDER_QUANTITY));
+        order.cumulativeFilledQuantity = Decimal("0");
+        order.remainingQuantity = order.quantity;
+        order.status = element.getValue(CCAPI_EM_ORDER_STATUS);
         bool isBuy = element.getValue(CCAPI_EM_ORDER_SIDE) == CCAPI_EM_ORDER_SIDE_BUY;
         if (isBuy) {
           this->openBuyOrder = order;

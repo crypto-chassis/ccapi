@@ -218,6 +218,11 @@ int main(int argc, char** argv) {
     eventHandler.useWebsocketToExecuteOrder = true;
   }
   Request request(Request::Operation::GET_INSTRUMENT, eventHandler.exchange, eventHandler.instrumentRest, "GET_INSTRUMENT");
+  if (exchange == "okex") {
+    request.appendParam({
+        {"instType", "SPOT"},
+    });
+  }
   if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST && !eventHandler.baseAsset.empty() && !eventHandler.quoteAsset.empty() &&
       !eventHandler.orderPriceIncrement.empty() && !eventHandler.orderQuantityIncrement.empty()) {
     Event virtualEvent;
