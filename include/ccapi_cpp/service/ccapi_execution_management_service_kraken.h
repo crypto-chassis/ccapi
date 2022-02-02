@@ -292,12 +292,14 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
             try {
               rj::Document document;
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
-              std::string token = document["result"]["token"].GetString();
-              thisWsConnection.url = that->baseUrl;
-              that->connect(thisWsConnection);
-              that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                  {"token", token},
-              });
+              if (document.HasMember("result") && document["result"].HasMember("token")) {
+                std::string token = document["result"]["token"].GetString();
+                thisWsConnection.url = that->baseUrl;
+                that->connect(thisWsConnection);
+                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
+                    {"token", token},
+                });
+              }
               return;
             } catch (const std::runtime_error& e) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
