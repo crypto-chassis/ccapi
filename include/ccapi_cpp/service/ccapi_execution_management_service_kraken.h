@@ -292,12 +292,14 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
             try {
               rj::Document document;
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
-              std::string token = document["result"]["token"].GetString();
-              thisWsConnection.url = that->baseUrl;
-              that->connect(thisWsConnection);
-              that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                  {"token", token},
-              });
+              if (document.HasMember("result") && document["result"].HasMember("token")) {
+                std::string token = document["result"]["token"].GetString();
+                thisWsConnection.url = that->baseUrl;
+                that->connect(thisWsConnection);
+                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
+                    {"token", token},
+                });
+              }
               return;
             } catch (const std::runtime_error& e) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
@@ -393,16 +395,29 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
           };
           for (const auto& x : document[0].GetArray()) {
             for (auto itr = x.MemberBegin(); itr != x.MemberEnd(); ++itr) {
-              const rj::Value& descr = itr->value["descr"];
-              std::string instrument = descr["pair"].GetString();
-              if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+              if (itr->value.HasMember("descr")) {
+                const rj::Value& descr = itr->value["descr"];
+                std::string instrument = descr["pair"].GetString();
+                if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+                  Element element;
+                  this->extractOrderInfo(element, itr->value, extractionFieldNameMap);
+                  const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionMoreFieldNameMap = {
+                      {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
+                      {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+                      {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("pair", JsonDataType::STRING)}};
+                  this->extractOrderInfo(element, descr, extractionMoreFieldNameMap);
+                  auto it1 = itr->value.FindMember("vol_exec");
+                  auto it2 = itr->value.FindMember("avg_price");
+                  if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
+                    element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                                   std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                  }
+                  element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
+                  elementList.emplace_back(std::move(element));
+                }
+              } else {
                 Element element;
                 this->extractOrderInfo(element, itr->value, extractionFieldNameMap);
-                const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionMoreFieldNameMap = {
-                    {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
-                    {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-                    {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("pair", JsonDataType::STRING)}};
-                this->extractOrderInfo(element, descr, extractionMoreFieldNameMap);
                 auto it1 = itr->value.FindMember("vol_exec");
                 auto it2 = itr->value.FindMember("avg_price");
                 if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
