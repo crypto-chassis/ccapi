@@ -1,23 +1,39 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BYBIT_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BYBIT_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || \
-    defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceBinanceBase : public ExecutionManagementService {
+class ExecutionManagementServiceBybit : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceBinanceBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                        ServiceContextPtr serviceContextPtr)
+  ExecutionManagementServiceBybit(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->enableCheckPingPongWebsocketApplicationLevel = false;
-    this->pingListenKeyIntervalSeconds = 600;
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/ws";
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+    this->apiKeyName = CCAPI_BYBIT_API_KEY;
+    this->apiSecretName = CCAPI_BYBIT_API_SECRET;
+    this->setupCredential({this->apiKeyName, this->apiSecretName});
+    this->createOrderTarget = "/spot/v1/order";
+    this->cancelOrderTarget = "/spot/v1/order/fast";
+    this->getOrderTarget = "/spot/v1/order";
+    this->getOpenOrdersTarget = "/spot/v1/open-orders";
+    this->cancelOpenOrdersTarget = "/spot/v1/order/fast";
+    this->getAccountBalancesTarget = "/spot/v1/account";
   }
-  virtual ~ExecutionManagementServiceBinanceBase() {}
+  virtual ~ExecutionManagementServiceBybit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -36,9 +52,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     if (queryString.back() == '&') {
       queryString.pop_back();
     }
+    auto queryMap = Url::convertQueryStringToMap(queryString);
+    auto queryString = Url::convertMapToQueryString(queryMap);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
-    queryString += "&signature=";
+    queryString += "&sign=";
     queryString += signature;
   }
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
@@ -55,9 +73,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void prepareReq(http::request<http::string_body>& req, const std::map<std::string, std::string>& credential) {
+  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set("X-MBX-APIKEY", apiKey);
+    req.set("api_key", apiKey);
+    req.set("timestamp", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -73,9 +92,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ORDER_SIDE, "side"},
-                              {CCAPI_EM_ORDER_QUANTITY, "quantity"},
+                              {CCAPI_EM_ORDER_QUANTITY, "qty"},
                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                              {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "orderLinkId"},
                           });
         this->appendSymbolId(queryString, symbolId);
         if (param.find("type") == param.end()) {
@@ -85,7 +104,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           }
         }
         this->signRequest(queryString, param, now, credential);
-        req.target(std::string(this->createOrderTarget) + "?" + queryString);
+        req.target(std::string(this->createOrderTarget));
+        req.set(beast::http::field::content_type, "application/x-www-form-urlencoded; charset=utf-8");
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
@@ -213,11 +233,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     req.set("X-MBX-APIKEY", apiKey);
     this->sendRequest(
         req,
-        [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](const beast::error_code& ec) {
+        [wsConnection, that = shared_from_base<ExecutionManagementServiceBybit>()](const beast::error_code& ec) {
           WsConnection thisWsConnection = wsConnection;
           that->onFail_(thisWsConnection);
         },
-        [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](const http::response<http::string_body>& res) {
+        [wsConnection, that = shared_from_base<ExecutionManagementServiceBybit>()](const http::response<http::string_body>& res) {
           WsConnection thisWsConnection = wsConnection;
           int statusCode = res.result_int();
           std::string body = res.body();
@@ -254,7 +274,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     event.setMessageList({message});
     this->eventHandler(event, nullptr);
     this->pingListenKeyTimerMapByConnectionIdMap[wsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
-        this->pingListenKeyIntervalSeconds * 1000, [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](ErrorCode const& ec) {
+        this->pingListenKeyIntervalSeconds * 1000, [wsConnection, that = shared_from_base<ExecutionManagementServiceBybit>()](ErrorCode const& ec) {
           http::request<http::string_body> req;
           req.set(http::field::host, that->hostRest);
           req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
@@ -283,11 +303,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           req.set("X-MBX-APIKEY", apiKey);
           that->sendRequest(
               req,
-              [wsConnection, that_2 = that->shared_from_base<ExecutionManagementServiceBinanceBase>()](const beast::error_code& ec) {
+              [wsConnection, that_2 = that->shared_from_base<ExecutionManagementServiceBybit>()](const beast::error_code& ec) {
                 CCAPI_LOGGER_ERROR("ping listen key fail");
                 that_2->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "ping listen key");
               },
-              [wsConnection, that_2 = that->shared_from_base<ExecutionManagementServiceBinanceBase>()](const http::response<http::string_body>& res) {
+              [wsConnection, that_2 = that->shared_from_base<ExecutionManagementServiceBybit>()](const http::response<http::string_body>& res) {
                 CCAPI_LOGGER_DEBUG("ping listen key success");
               },
               that->sessionOptions.httpRequestTimeoutMilliSeconds);
@@ -389,4 +409,4 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BYBIT_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
