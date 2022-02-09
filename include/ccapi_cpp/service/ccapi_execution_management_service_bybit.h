@@ -7,33 +7,33 @@ namespace ccapi {
 class ExecutionManagementServiceBybit : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBybit(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                        ServiceContextPtr serviceContextPtr)
+                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-        this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
-        this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/ws";
-        this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
-        this->setHostRestFromUrlRest(this->baseUrlRest);
-        try {
-          this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-        } catch (const std::exception& e) {
-          CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-        }
-        this->apiKeyName = CCAPI_BYBIT_API_KEY;
-        this->apiSecretName = CCAPI_BYBIT_API_SECRET;
-        this->setupCredential({this->apiKeyName, this->apiSecretName});
-        this->createOrderTarget = "/spot/v1/order";
-        this->cancelOrderTarget = "/spot/v1/order/fast";
-        this->getOrderTarget = "/spot/v1/order";
-        this->getOpenOrdersTarget = "/spot/v1/open-orders";
-        this->cancelOpenOrdersTarget = "/spot/v1/order/fast";
-        this->getAccountBalancesTarget = "/spot/v1/account";
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/ws";
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+    this->apiKeyName = CCAPI_BYBIT_API_KEY;
+    this->apiSecretName = CCAPI_BYBIT_API_SECRET;
+    this->setupCredential({this->apiKeyName, this->apiSecretName});
+    this->createOrderTarget = "/spot/v1/order";
+    this->cancelOrderTarget = "/spot/v1/order/fast";
+    this->getOrderTarget = "/spot/v1/order";
+    this->getOpenOrdersTarget = "/spot/v1/open-orders";
+    this->cancelOpenOrdersTarget = "/spot/v1/order/fast";
+    this->getAccountBalancesTarget = "/spot/v1/account";
   }
   virtual ~ExecutionManagementServiceBybit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -73,7 +73,7 @@ void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { 
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
-  void prepareReq(http::request<http::string_body>& req, const TimePoint& now,const std::map<std::string, std::string>& credential) {
+  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("api_key", apiKey);
     req.set("timestamp", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));

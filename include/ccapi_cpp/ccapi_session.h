@@ -79,6 +79,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
 #include "ccapi_cpp/service/ccapi_market_data_service_bybit.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+#include "ccapi_cpp/service/ccapi_market_data_service_ascendex.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -155,6 +158,9 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service_bybit.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+#include "ccapi_cpp/service/ccapi_execution_management_service_ascendex.h"
 #endif
 #endif
 // end: enable exchanges for execution management
@@ -331,6 +337,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BYBIT] =
         std::make_shared<MarketDataServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ASCENDEX] =
+        std::make_shared<MarketDataServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -429,6 +439,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_CRYPTOCOM] =
         std::make_shared<ExecutionManagementServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ASCENDEX] =
+        std::make_shared<ExecutionManagementServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX

@@ -73,7 +73,7 @@ class Url CCAPI_FINAL {
       output += x.second;
       output += "&";
     }
-    if (!output.empty()){
+    if (!output.empty()) {
       output.pop_back();
     }
     return output;

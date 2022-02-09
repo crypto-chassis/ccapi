@@ -7,27 +7,27 @@ namespace ccapi {
 class MarketDataServiceBybit : public MarketDataService {
  public:
   MarketDataServiceBybit(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                               std::shared_ptr<ServiceContext> serviceContextPtr)
+                         std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-        this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
-        this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName)+"/spot/quote/ws/v2";
-        this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
-        this->setHostRestFromUrlRest(this->baseUrlRest);
-        try {
-          this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-        } catch (const std::exception& e) {
-          CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-        }
-        this->getRecentTradesTarget = "/spot/quote/v1/trades";
-        this->getInstrumentTarget = "/spot/v1/symbols";
-        this->getInstrumentsTarget = "/spot/v1/symbols";
+    this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/quote/ws/v2";
+    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->setHostRestFromUrlRest(this->baseUrlRest);
+    try {
+      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+    this->getRecentTradesTarget = "/spot/quote/v1/trades";
+    this->getInstrumentTarget = "/spot/v1/symbols";
+    this->getInstrumentsTarget = "/spot/v1/symbols";
   }
   virtual ~MarketDataServiceBybit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -84,22 +84,22 @@ void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { 
       message.setTimeReceived(timeReceived);
       std::vector<std::string> correlationIdList;
       if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
-            std::string channelId = document["topic"].GetString();
-            std::string symbolId = document["params"]["symbol"].GetString();
-            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
-                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                std::vector<std::string> correlationIdList_2 =
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
-                correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
-              }
-            }
+        std::string channelId = document["topic"].GetString();
+        std::string symbolId = document["params"]["symbol"].GetString();
+        if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
+              this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+            std::vector<std::string> correlationIdList_2 =
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+            correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+          }
+        }
       }
       message.setCorrelationIdList(correlationIdList);
-      message.setType(code=="0"?Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
+      message.setType(code == "0" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
-      element.insert(code=="0"?CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+      element.insert(code == "0" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
       messageList.emplace_back(std::move(message));
       event.setMessageList(messageList);
@@ -115,7 +115,7 @@ void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { 
         marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                           ? MarketDataMessage::RecapType::NONE
                                           : MarketDataMessage::RecapType::SOLICITED;
-        marketDataMessage.tp =  TimePoint(std::chrono::milliseconds(std::stoll(data["time"].GetString()))) ;
+        marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(data["time"].GetString())));
         marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         {
           MarketDataMessage::TypeForDataPoint dataPoint;
@@ -135,7 +135,7 @@ void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { 
         marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
                                           ? MarketDataMessage::RecapType::NONE
                                           : MarketDataMessage::RecapType::SOLICITED;
-        marketDataMessage.tp =  TimePoint(std::chrono::milliseconds(std::stoll(data["t"].GetString()))) ;
+        marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(data["t"].GetString())));
         marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
         const char* bidsName = "b";
         int bidIndex = 0;
@@ -150,7 +150,7 @@ void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { 
           marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
           ++bidIndex;
         }
-        const char* asksName = "a" ;
+        const char* asksName = "a";
         int askIndex = 0;
         for (const auto& x : data[asksName].GetArray()) {
           if (askIndex >= maxMarketDepth) {
@@ -215,10 +215,10 @@ void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { 
     element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseCurrency"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quoteCurrency"].GetString());
-        element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["minPricePrecision"].GetString());
-        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["basePrecision"].GetString());
-        element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minTradeQuantity"].GetString());
-        element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["minTradeAmount"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["minPricePrecision"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["basePrecision"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minTradeQuantity"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["minTradeAmount"].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
