@@ -127,7 +127,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param);
         if (param.find("time") == param.end()) {
-          document.AddMember("time", rj::Value(std::stoll(req.base().at("x-auth-timestamp").to_string())).Move(), allocator);
+          document.AddMember("time", rj::Value(static_cast<int64_t>(std::stoll(req.base().at("x-auth-timestamp").to_string()))).Move(), allocator);
         }
         if (param.find("orderType") == param.end()) {
           document.AddMember("orderType", rj::Value("limit").Move(), allocator);
@@ -153,7 +153,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param);
         if (param.find("time") == param.end()) {
-          document.AddMember("time", rj::Value(std::stoll(req.base().at("x-auth-timestamp").to_string())).Move(), allocator);
+          document.AddMember("time", rj::Value(static_cast<int64_t>(std::stoll(req.base().at("x-auth-timestamp").to_string()))).Move(), allocator);
         }
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
