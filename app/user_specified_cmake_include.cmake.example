@@ -27,6 +27,8 @@ endif()
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_CRYPTOCOM)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ASCENDEX)
+#
 # find_package(ZLIB REQUIRED)
 # link_libraries(ZLIB::ZLIB)
 
