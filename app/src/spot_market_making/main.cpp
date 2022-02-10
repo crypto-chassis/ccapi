@@ -144,6 +144,7 @@ int main(int argc, char** argv) {
     eventHandler.takerSellerFeeAsset = UtilSystem::getEnvAsString("TAKER_SELLER_FEE_ASSET");
     eventHandler.baseBalance = UtilSystem::getEnvAsDouble("INITIAL_BASE_BALANCE") * eventHandler.baseAvailableBalanceProportion;
     eventHandler.quoteBalance = UtilSystem::getEnvAsDouble("INITIAL_QUOTE_BALANCE") * eventHandler.quoteAvailableBalanceProportion;
+    eventHandler.marketImpfactFactor = UtilSystem::getEnvAsDouble("MARKET_IMPACT_FACTOR");
   }
   if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
     eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"), "%F");
