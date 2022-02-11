@@ -366,7 +366,7 @@ class EventHandlerBase : public EventHandler {
         if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
           bool buySideCrossed = !this->bestAskPrice.empty() && this->openBuyOrder && Decimal(this->bestAskPrice) <= this->openBuyOrder.get().limitPrice;
           bool sellSideCrossed = !this->bestBidPrice.empty() && this->openSellOrder && Decimal(this->bestBidPrice) >= this->openSellOrder.get().limitPrice;
-          if (buySideCrossed || sellSideCrossed) {
+          if ((buySideCrossed || sellSideCrossed) && this->marketImpfactFactor > 0) {
             Event virtualEvent;
             virtualEvent.setType(Event::Type::SUBSCRIPTION_DATA);
             Message message;
@@ -379,7 +379,8 @@ class EventHandlerBase : public EventHandler {
             Element element;
             const Order& order = buySideCrossed ? this->openBuyOrder.get() : this->openSellOrder.get();
             element.insert(CCAPI_LAST_PRICE, order.limitPrice.toString());
-            element.insert(CCAPI_LAST_SIZE, order.remainingQuantity.toString());
+            element.insert(CCAPI_LAST_SIZE,
+                           Decimal(UtilString::printDoubleScientific(order.remainingQuantity.toDouble() * this->marketImpfactFactor)).toString());
             element.insert(CCAPI_IS_BUYER_MAKER, buySideCrossed ? "1" : "0");
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
@@ -643,7 +644,11 @@ class EventHandlerBase : public EventHandler {
           });
           privateDataFinalSummaryCsvWriter->flush();
           delete privateDataFinalSummaryCsvWriter;
-          this->promisePtr->set_value();
+          try {
+            this->promisePtr->set_value();
+          } catch (const std::future_error& e) {
+            APP_LOGGER_DEBUG(e.what());
+          }
         } else {
           std::vector<Subscription> subscriptionList;
           {
@@ -1047,7 +1052,7 @@ class EventHandlerBase : public EventHandler {
   // end: only single order execution
 
   // start: only applicable to paper trade and backtest
-  double makerFee{}, takerFee{};
+  double makerFee{}, takerFee{}, marketImpfactFactor{};
   std::string makerBuyerFeeAsset, makerSellerFeeAsset, takerBuyerFeeAsset, takerSellerFeeAsset;
   // end: only applicable to paper trade and backtest
 
