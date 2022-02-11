@@ -447,6 +447,10 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
                 info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
                             UtilString::printDoubleScientific(std::stod(it->value.GetString()) * std::stod(data["cfq"].GetString())));
               }
+              info.insert(CCAPI_EM_BASE_ASSET_QUANTITY_AVAILABLE_FOR_TRADING, data["bab"].GetString());
+              info.insert(CCAPI_EM_BASE_ASSET_QUANTITY_TOTAL, data["btb"].GetString());
+              info.insert(CCAPI_EM_QUOTE_ASSET_QUANTITY_AVAILABLE_FOR_TRADING, data["qab"].GetString());
+              info.insert(CCAPI_EM_QUOTE_ASSET_QUANTITY_TOTAL, data["qtb"].GetString());
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));
               message.setElementList(elementList);
