@@ -689,7 +689,7 @@ typename std::enable_if<std::is_same<decltype(std::declval<const T&>().toStringP
   return t.toStringPretty(space, leftToIndent, indentFirstLine);
 }
 template <typename T>
-typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())), std::string>::value, std::string>::type toString(const T& t) {
+typename std::enable_if<std::is_integral<T>::value, std::string>::type toString(const T& t) {
   return std::to_string(t);
 }
 template <typename T>
@@ -698,6 +698,14 @@ typename std::enable_if<std::is_same<decltype(std::to_string(std::declval<T&>())
   std::string sl(leftToIndent, ' ');
   std::string output = (indentFirstLine ? sl : "") + std::to_string(t);
   return output;
+}
+template <typename T>
+typename std::enable_if<std::is_floating_point<T>::value, std::string>::type toString(const T& t) {
+  std::stringstream ss;
+  ss << std::fixed;
+  ss << std::setprecision(CCAPI_PRINT_DOUBLE_PRECISION_DEFAULT);
+  ss << t;
+  return ss.str();
 }
 template <typename T>
 typename std::enable_if<std::is_same<T, std::string>::value, std::string>::type toString(const T& t) {
