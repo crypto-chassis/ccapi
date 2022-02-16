@@ -125,23 +125,23 @@ class FixService : public Service {
     CCAPI_LOGGER_TRACE("after async_connect");
   }
   void onConnect_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
-    CCAPI_LOGGER_TRACE("async_connect callback start");
-    auto now = UtilTime::now();
-    if (ec) {
-      CCAPI_LOGGER_TRACE("fail");
-      this->onFail(fixConnectionPtr, ec, "connect");
-      return;
-    }
-    CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
-    CCAPI_LOGGER_TRACE("connected");
-    T& stream = *fixConnectionPtr->streamPtr;
-    if (this->useSsl) {
-      CCAPI_LOGGER_TRACE("before async_handshake");
-      stream.async_handshake(ssl::stream_base::client, beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(), fixConnectionPtr));
-      CCAPI_LOGGER_TRACE("after async_handshake");
-    } else {
-      this->start(fixConnectionPtr);
-    }
+    // CCAPI_LOGGER_TRACE("async_connect callback start");
+    // auto now = UtilTime::now();
+    // if (ec) {
+    //   CCAPI_LOGGER_TRACE("fail");
+    //   this->onFail(fixConnectionPtr, ec, "connect");
+    //   return;
+    // }
+    // CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
+    // CCAPI_LOGGER_TRACE("connected");
+    // T& stream = *fixConnectionPtr->streamPtr;
+    // if (this->useSsl) {
+    //   CCAPI_LOGGER_TRACE("before async_handshake");
+    //   stream.async_handshake(ssl::stream_base::client, beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(),
+    //   fixConnectionPtr)); CCAPI_LOGGER_TRACE("after async_handshake");
+    // } else {
+    //   this->start(fixConnectionPtr);
+    // }
   }
   void onHandshake_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_handshake callback start");
