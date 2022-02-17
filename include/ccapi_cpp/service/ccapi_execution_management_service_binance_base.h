@@ -311,9 +311,6 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
-    Message message;
-    message.setTimeReceived(timeReceived);
-    message.setCorrelationIdList({subscription.getCorrelationId()});
     auto fieldSet = subscription.getFieldSet();
     auto instrumentSet = subscription.getInstrumentSet();
     std::string type = document["e"].GetString();
@@ -324,8 +321,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       std::string instrument = data["s"].GetString();
       if (instrumentSet.empty() || instrumentSet.find(UtilString::toUpper(instrument)) != instrumentSet.end() ||
           instrumentSet.find(UtilString::toLower(instrument)) != instrumentSet.end()) {
-        message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
         if (executionType == "TRADE" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+          Message message;
+          message.setTimeReceived(timeReceived);
+          message.setCorrelationIdList({subscription.getCorrelationId()});
+          message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
           std::vector<Element> elementList;
           Element element;
@@ -353,6 +353,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           messageList.emplace_back(std::move(message));
         }
         if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+          Message message;
+          message.setTimeReceived(timeReceived);
+          message.setCorrelationIdList({subscription.getCorrelationId()});
+          message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::INTEGER)},
