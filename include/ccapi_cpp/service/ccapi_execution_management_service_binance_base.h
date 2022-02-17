@@ -351,7 +351,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
           messageList.emplace_back(std::move(message));
-        } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+        }
+        if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::INTEGER)},
