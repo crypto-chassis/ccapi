@@ -239,9 +239,16 @@ class FixService : public Service {
           element.insert(it->tag(), messageType);
           if (messageType == "0") {
             shouldEmitEvent = false;
-            CCAPI_LOGGER_DEBUG("heartbeat: " + toString(*fixConnectionPtr));
+            CCAPI_LOGGER_DEBUG("Heartbeat: " + toString(*fixConnectionPtr));
+#ifdef CCAPI_FIX_SERVICE_SHOULD_RESPOND_HEARTBEAT_WITH_HEARTBEAT
+            this->writeMessage(fixConnectionPtr, nowFixTimeStr,
+                               {{
+                                   {hff::tag::MsgType, "0"},
+                               }});
+#endif
           } else if (messageType == "1") {
             shouldEmitEvent = false;
+            CCAPI_LOGGER_DEBUG("Test Request: " + toString(*fixConnectionPtr));
             if (reader.find_with_hint(hff::tag::TestReqID, it)) {
               this->writeMessage(fixConnectionPtr, nowFixTimeStr,
                                  {{
@@ -458,7 +465,7 @@ class FixService : public Service {
                       pongTimeoutMilliSeconds, [fixConnectionPtr, that, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
                         if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
                           if (ec) {
-                            CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong time out timer error: " + ec.message());
+                            CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong timeout timer error: " + ec.message());
                             that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                           } else {
                             if (that->fixConnectionPtrByIdMap.at(fixConnectionPtr->id)->status == FixConnection<T>::Status::OPEN) {
