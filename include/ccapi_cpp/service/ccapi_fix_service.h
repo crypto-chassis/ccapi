@@ -209,6 +209,18 @@ class FixService : public Service {
     auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
+      Event event;
+      event.setType(Event::Type::SESSION_STATUS);
+      Message message;
+      message.setTimeReceived(now);
+      message.setType(Message::Type::SESSION_CONNECTION_DOWN);
+      message.setCorrelationIdList({fixConnectionPtr->subscription.getCorrelationId()});
+      Element element(true);
+      auto& connectionId = fixConnectionPtr->id;
+      element.insert(CCAPI_CONNECTION_ID, connectionId);
+      message.setElementList({element});
+      event.setMessageList({message});
+      this->eventHandler(event, nullptr);
       this->onFail(fixConnectionPtr, ec, "read");
       return;
     }
@@ -232,7 +244,7 @@ class FixService : public Service {
       message.setCorrelationIdList(correlationIdList);
       if (reader.is_valid()) {
         try {
-          CCAPI_LOGGER_TRACE("recevied " + printableString(reader.message_begin(), reader.message_end() - reader.message_begin()));
+          CCAPI_LOGGER_DEBUG("received " + printableString(reader.message_begin(), reader.message_end() - reader.message_begin()));
           auto it = reader.message_type();
           auto messageType = it->value().as_string();
           CCAPI_LOGGER_DEBUG("received a " + messageType + " message");
@@ -240,12 +252,12 @@ class FixService : public Service {
           if (messageType == "0") {
             shouldEmitEvent = false;
             CCAPI_LOGGER_DEBUG("Heartbeat: " + toString(*fixConnectionPtr));
-#ifdef CCAPI_FIX_SERVICE_SHOULD_RESPOND_HEARTBEAT_WITH_HEARTBEAT
-            this->writeMessage(fixConnectionPtr, nowFixTimeStr,
-                               {{
-                                   {hff::tag::MsgType, "0"},
-                               }});
-#endif
+            // #ifdef CCAPI_FIX_SERVICE_SHOULD_RESPOND_HEARTBEAT_WITH_HEARTBEAT
+            //             this->writeMessage(fixConnectionPtr, nowFixTimeStr,
+            //                                {{
+            //                                    {hff::tag::MsgType, "0"},
+            //                                }});
+            // #endif
           } else if (messageType == "1") {
             shouldEmitEvent = false;
             CCAPI_LOGGER_DEBUG("Test Request: " + toString(*fixConnectionPtr));
@@ -289,6 +301,12 @@ class FixService : public Service {
             } else {
               event.setType(Event::Type::FIX);
               message.setType(Message::Type::FIX);
+              if (messageType == "5") {
+                this->writeMessage(fixConnectionPtr, nowFixTimeStr,
+                                   {{
+                                       {hff::tag::MsgType, "5"},
+                                   }});
+              }
             }
           }
         } catch (const std::exception& e) {
@@ -376,7 +394,7 @@ class FixService : public Service {
       messageWriter.push_back_trailer();
       n += messageWriter.message_end() - messageWriter.message_begin();
     }
-    CCAPI_LOGGER_TRACE("about to send " + printableString(writeMessageBuffer.data(), n));
+    CCAPI_LOGGER_DEBUG("about to send " + printableString(writeMessageBuffer.data(), n));
     if (writeMessageBufferWrittenLength == 0) {
       CCAPI_LOGGER_TRACE("about to start write");
       this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), n);
