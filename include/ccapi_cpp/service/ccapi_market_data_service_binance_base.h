@@ -50,8 +50,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
-        auto symbolId = UtilString::toLower(subscriptionListByInstrument.first);
-        auto exchangeSubscriptionId = symbolId + "@";
+        auto symbolId = subscriptionListByInstrument.first;
+        auto exchangeSubscriptionId = UtilString::toLower(subscriptionListByInstrument.first) + "@";
         if (channelId.rfind(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER, 0) == 0) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
           exchangeSubscriptionId += CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;

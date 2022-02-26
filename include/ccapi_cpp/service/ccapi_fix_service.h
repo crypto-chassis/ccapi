@@ -125,23 +125,23 @@ class FixService : public Service {
     CCAPI_LOGGER_TRACE("after async_connect");
   }
   void onConnect_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
-    CCAPI_LOGGER_TRACE("async_connect callback start");
-    auto now = UtilTime::now();
-    if (ec) {
-      CCAPI_LOGGER_TRACE("fail");
-      this->onFail(fixConnectionPtr, ec, "connect");
-      return;
-    }
-    CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
-    CCAPI_LOGGER_TRACE("connected");
-    T& stream = *fixConnectionPtr->streamPtr;
-    if (this->useSsl) {
-      CCAPI_LOGGER_TRACE("before async_handshake");
-      stream.async_handshake(ssl::stream_base::client, beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(), fixConnectionPtr));
-      CCAPI_LOGGER_TRACE("after async_handshake");
-    } else {
-      this->start(fixConnectionPtr);
-    }
+    // CCAPI_LOGGER_TRACE("async_connect callback start");
+    // auto now = UtilTime::now();
+    // if (ec) {
+    //   CCAPI_LOGGER_TRACE("fail");
+    //   this->onFail(fixConnectionPtr, ec, "connect");
+    //   return;
+    // }
+    // CCAPI_LOGGER_TRACE("fixConnectionPtr = " + toString(*fixConnectionPtr));
+    // CCAPI_LOGGER_TRACE("connected");
+    // T& stream = *fixConnectionPtr->streamPtr;
+    // if (this->useSsl) {
+    //   CCAPI_LOGGER_TRACE("before async_handshake");
+    //   stream.async_handshake(ssl::stream_base::client, beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(),
+    //   fixConnectionPtr)); CCAPI_LOGGER_TRACE("after async_handshake");
+    // } else {
+    //   this->start(fixConnectionPtr);
+    // }
   }
   void onHandshake_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_handshake callback start");
@@ -209,6 +209,18 @@ class FixService : public Service {
     auto nowFixTimeStr = UtilTime::convertTimePointToFIXTime(now);
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
+      Event event;
+      event.setType(Event::Type::SESSION_STATUS);
+      Message message;
+      message.setTimeReceived(now);
+      message.setType(Message::Type::SESSION_CONNECTION_DOWN);
+      message.setCorrelationIdList({fixConnectionPtr->subscription.getCorrelationId()});
+      Element element(true);
+      auto& connectionId = fixConnectionPtr->id;
+      element.insert(CCAPI_CONNECTION_ID, connectionId);
+      message.setElementList({element});
+      event.setMessageList({message});
+      this->eventHandler(event, nullptr);
       this->onFail(fixConnectionPtr, ec, "read");
       return;
     }
@@ -232,16 +244,23 @@ class FixService : public Service {
       message.setCorrelationIdList(correlationIdList);
       if (reader.is_valid()) {
         try {
-          CCAPI_LOGGER_TRACE("recevied " + printableString(reader.message_begin(), reader.message_end() - reader.message_begin()));
+          CCAPI_LOGGER_DEBUG("received " + printableString(reader.message_begin(), reader.message_end() - reader.message_begin()));
           auto it = reader.message_type();
           auto messageType = it->value().as_string();
           CCAPI_LOGGER_DEBUG("received a " + messageType + " message");
           element.insert(it->tag(), messageType);
           if (messageType == "0") {
             shouldEmitEvent = false;
-            CCAPI_LOGGER_DEBUG("heartbeat: " + toString(*fixConnectionPtr));
+            CCAPI_LOGGER_DEBUG("Heartbeat: " + toString(*fixConnectionPtr));
+            // #ifdef CCAPI_FIX_SERVICE_SHOULD_RESPOND_HEARTBEAT_WITH_HEARTBEAT
+            //             this->writeMessage(fixConnectionPtr, nowFixTimeStr,
+            //                                {{
+            //                                    {hff::tag::MsgType, "0"},
+            //                                }});
+            // #endif
           } else if (messageType == "1") {
             shouldEmitEvent = false;
+            CCAPI_LOGGER_DEBUG("Test Request: " + toString(*fixConnectionPtr));
             if (reader.find_with_hint(hff::tag::TestReqID, it)) {
               this->writeMessage(fixConnectionPtr, nowFixTimeStr,
                                  {{
@@ -282,6 +301,12 @@ class FixService : public Service {
             } else {
               event.setType(Event::Type::FIX);
               message.setType(Message::Type::FIX);
+              if (messageType == "5") {
+                this->writeMessage(fixConnectionPtr, nowFixTimeStr,
+                                   {{
+                                       {hff::tag::MsgType, "5"},
+                                   }});
+              }
             }
           }
         } catch (const std::exception& e) {
@@ -369,7 +394,7 @@ class FixService : public Service {
       messageWriter.push_back_trailer();
       n += messageWriter.message_end() - messageWriter.message_begin();
     }
-    CCAPI_LOGGER_TRACE("about to send " + printableString(writeMessageBuffer.data(), n));
+    CCAPI_LOGGER_DEBUG("about to send " + printableString(writeMessageBuffer.data(), n));
     if (writeMessageBufferWrittenLength == 0) {
       CCAPI_LOGGER_TRACE("about to start write");
       this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), n);
@@ -458,7 +483,7 @@ class FixService : public Service {
                       pongTimeoutMilliSeconds, [fixConnectionPtr, that, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
                         if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
                           if (ec) {
-                            CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong time out timer error: " + ec.message());
+                            CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong timeout timer error: " + ec.message());
                             that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                           } else {
                             if (that->fixConnectionPtrByIdMap.at(fixConnectionPtr->id)->status == FixConnection<T>::Status::OPEN) {

@@ -134,7 +134,8 @@ class EventHandlerBase : public EventHandler {
           for (const auto& element : message.getElementList()) {
             double lastExecutedPrice = std::stod(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE));
             double lastExecutedSize = std::stod(element.getValue(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE));
-            double feeQuantity = std::stod(element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY));
+            const auto& feeQuantityStr = element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY);
+            double feeQuantity = feeQuantityStr.empty() ? 0 : std::stod(feeQuantityStr);
             std::string feeAsset = element.getValue(CCAPI_EM_ORDER_FEE_ASSET);
             bool isMaker = element.getValue(CCAPI_IS_MAKER) == "1";
             if (this->tradingMode == TradingMode::LIVE) {

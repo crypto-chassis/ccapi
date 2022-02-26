@@ -940,7 +940,7 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     auto opcode = msg->get_opcode();
-    CCAPI_LOGGER_DEBUG("opcode = " + toString(opcode));
+    // CCAPI_LOGGER_DEBUG("opcode = " + toString(opcode));
     if (msg->get_opcode() == websocketpp::frame::opcode::text) {
       const std::string& textMessage = msg->get_payload();
       CCAPI_LOGGER_DEBUG("received a text message: " + textMessage);
