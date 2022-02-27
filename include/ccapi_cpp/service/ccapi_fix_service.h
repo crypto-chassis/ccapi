@@ -244,7 +244,7 @@ class FixService : public Service {
       message.setCorrelationIdList(correlationIdList);
       if (reader.is_valid()) {
         try {
-          CCAPI_LOGGER_DEBUG("received " + printableString(reader.message_begin(), reader.message_end() - reader.message_begin()));
+          CCAPI_LOGGER_INFO("received " + printableString(reader.message_begin(), reader.message_end() - reader.message_begin()));
           auto it = reader.message_type();
           auto messageType = it->value().as_string();
           CCAPI_LOGGER_DEBUG("received a " + messageType + " message");
@@ -394,7 +394,7 @@ class FixService : public Service {
       messageWriter.push_back_trailer();
       n += messageWriter.message_end() - messageWriter.message_begin();
     }
-    CCAPI_LOGGER_DEBUG("about to send " + printableString(writeMessageBuffer.data(), n));
+    CCAPI_LOGGER_INFO("about to send " + printableString(writeMessageBuffer.data(), n));
     if (writeMessageBufferWrittenLength == 0) {
       CCAPI_LOGGER_TRACE("about to start write");
       this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), n);
@@ -495,7 +495,7 @@ class FixService : public Service {
                                       now - that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method))
                                           .count() >= pongTimeoutMilliSeconds) {
                                 auto thisFixConnectionPtr = fixConnectionPtr;
-                                that->onFail(fixConnectionPtr, "pong timeout");
+                                // that->onFail(fixConnectionPtr, "pong timeout");
                               } else {
                                 auto thisFixConnectionPtr = fixConnectionPtr;
                                 that->setPingPongTimer(method, thisFixConnectionPtr, pingMethod);
