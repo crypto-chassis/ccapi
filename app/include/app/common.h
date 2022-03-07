@@ -172,6 +172,10 @@ class CsvWriter {
     std::lock_guard<std::mutex> lock(m);
     this->f.close();
   }
+  void writeString(const std::string& str) {
+    std::lock_guard<std::mutex> lock(m);
+    this->f << str.c_str();
+  }
   void writeRow(const std::vector<std::string>& row) {
     std::lock_guard<std::mutex> lock(m);
     size_t numCol = row.size();
