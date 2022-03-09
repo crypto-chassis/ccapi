@@ -12,7 +12,7 @@ class FixServiceFtx : public FixServiceFtxBase {
       : FixServiceFtxBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX;
     this->baseUrlFix = this->sessionConfigs.getUrlFixBase().at(this->exchangeName);
-    this->setHostFixFromUrlFix(this->baseUrlFix);
+    this->setHostFixFromUrlFix(this->hostFix, this->portFix, this->baseUrlFix);
     this->apiKeyName = CCAPI_FTX_API_KEY;
     this->apiSecretName = CCAPI_FTX_API_SECRET;
     this->apiSubaccountName = CCAPI_FTX_API_SUBACCOUNT;

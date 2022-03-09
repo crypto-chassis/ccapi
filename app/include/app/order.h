@@ -10,6 +10,16 @@ class Order {
                          ", remainingQuantity = " + remainingQuantity.toString() + ", status = " + status + "]";
     return output;
   }
+  void reset() {
+    this->orderId = "";
+    this->clientOrderId = "";
+    this->side = "";
+    this->limitPrice = Decimal();
+    this->quantity = Decimal();
+    this->cumulativeFilledQuantity = Decimal();
+    this->remainingQuantity = Decimal();
+    this->status = "";
+  }
   std::string orderId;
   std::string clientOrderId;
   std::string side;

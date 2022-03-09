@@ -57,6 +57,38 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
     }
   }
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& httpMethodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    std::string authorizationHeader("deri-hmac-sha256 id=");
+    authorizationHeader += mapGetWithDefault(credential, this->clientIdName);
+    authorizationHeader += ",ts=";
+    std::string ts = std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+    authorizationHeader += ts;
+    authorizationHeader += ",sig=";
+    std::string nonce = ts;
+    auto requestData = httpMethodString;
+    requestData += "\n";
+    std::string target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    requestData += target;
+    requestData += "\n";
+    requestData += body;
+    requestData += "\n";
+    std::string stringToSign = ts;
+    stringToSign += "\n";
+    stringToSign += nonce;
+    stringToSign += "\n";
+    stringToSign += requestData;
+    auto clientSecret = mapGetWithDefault(credential, this->clientSecretName);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, clientSecret, stringToSign, true);
+    authorizationHeader += signature;
+    authorizationHeader += ",nonce=";
+    authorizationHeader += nonce;
+    headerString += "\r\nAuthorization:" + authorizationHeader;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     std::string authorizationHeader("deri-hmac-sha256 id=");
     authorizationHeader += mapGetWithDefault(credential, this->clientIdName);
@@ -83,11 +115,11 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     authorizationHeader += nonce;
     req.set(http::field::authorization, authorizationHeader);
   }
-  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& method,
+  void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& appMethod,
                    const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
     document.AddMember("jsonrpc", rj::Value("2.0").Move(), allocator);
     document.AddMember("id", rj::Value(requestId).Move(), allocator);
-    document.AddMember("method", rj::Value(method.c_str(), allocator).Move(), allocator);
+    document.AddMember("method", rj::Value(appMethod.c_str(), allocator).Move(), allocator);
     rj::Value params(rj::kObjectType);
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
@@ -117,7 +149,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     this->appendParam(document, allocator, requestId, jsonrpcMethod, param, standardizationMap);
-    this->appendSymbolId(document, allocator, symbolId);
+    if (!symbolId.empty()) {
+      this->appendSymbolId(document, allocator, symbolId);
+    }
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
     document.Accept(writer);
@@ -130,6 +164,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string side = mapGetWithDefault(param, std::string(CCAPI_EM_ORDER_SIDE));
@@ -185,7 +222,8 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("direction", JsonDataType::STRING)},
@@ -194,7 +232,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_amount", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("order_state", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_name", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (operation == Request::Operation::CREATE_ORDER) {
       Element element;
       this->extractOrderInfo(element, document["result"]["order"], extractionFieldNameMap);
@@ -210,10 +247,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         Element element;
@@ -225,7 +261,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document["result"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["instrument_name"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["instrument_name"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
           element.insert(CCAPI_EM_POSITION_COST,
                          std::to_string(std::stod(x["average_price"].GetString()) * std::stod(x["size"].GetString()) / std::stod(x["leverage"].GetString())));
@@ -236,7 +272,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap) override {
@@ -307,7 +342,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
           if (it != document.MemberEnd()) {
             this->authorizationJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).erase(std::stoll(it->value.GetString()));
           }
@@ -364,7 +399,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             Element element;
             element.insert(CCAPI_INFO_MESSAGE, textMessage);
             message.setElementList({element});
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
             if (it != document.MemberEnd()) {
               this->subscriptionJsonrpcIdSetByConnectionIdMap.at(wsConnection.id).erase(std::stoll(it->value.GetString()));
             }
@@ -408,12 +443,12 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
                 element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fee_currency"].GetString()));
                 elementList.emplace_back(std::move(element));
                 message.setElementList(elementList);
-                messageList.push_back(std::move(message));
+                messageList.emplace_back(std::move(message));
               }
             } else if (field == CCAPI_EM_ORDER_UPDATE && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
               const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
-                  {CCAPI_EM_ORDER_ID, std::make_pair("price", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("direction", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
@@ -434,7 +469,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));
               message.setElementList(elementList);
-              messageList.push_back(std::move(message));
+              messageList.emplace_back(std::move(message));
             }
           }
         } else if (method == "heartbeat") {

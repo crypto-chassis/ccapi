@@ -34,10 +34,21 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
 
  protected:
 #endif
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto headerMap = ExecutionManagementService::convertHeaderStringToMap(headerString);
+    auto base64Payload = mapGetWithDefault(headerMap, std::string("X-GEMINI-PAYLOAD"));
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true);
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "X-GEMINI-SIGNATURE:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,
-                   const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+                   const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential, int64_t nonce) {
     document.AddMember("request", rj::Value(req.target().to_string().c_str(), allocator).Move(), allocator);
-    int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     document.AddMember("nonce", rj::Value(nonce).Move(), allocator);
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -58,7 +69,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
-        value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
+        value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
       if (key == "order_id") {
         document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(static_cast<int64_t>(std::stoll(value))).Move(), allocator);
@@ -77,7 +88,11 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     req.set("Content-Type", "text/plain");
     req.set("X-GEMINI-APIKEY", apiKey);
     req.set("Cache-Control", "no-cache");
+    int64_t nonce = this->generateNonce(now, request.getIndex());
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -96,7 +111,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         if (param.find("type") == param.end()) {
           document.AddMember("type", rj::Value("exchange limit").Move(), allocator);
         }
-        this->signRequest(req, document, allocator, param, now, credential);
+        this->signRequest(req, document, allocator, param, now, credential, nonce);
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::post);
@@ -109,7 +124,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ORDER_ID, "order_id"},
                           });
-        this->signRequest(req, document, allocator, param, now, credential);
+        this->signRequest(req, document, allocator, param, now, credential, nonce);
       } break;
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::post);
@@ -124,7 +139,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                               {CCAPI_EM_CLIENT_ORDER_ID, "client_order_id"},
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, param, now, credential);
+        this->signRequest(req, document, allocator, param, now, credential, nonce);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::post);
@@ -136,7 +151,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::post);
@@ -148,7 +163,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       case Request::Operation::GET_ACCOUNTS: {
         req.method(http::verb::post);
@@ -156,7 +171,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::post);
@@ -168,13 +183,14 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
                           });
-        this->signRequest(req, document, allocator, {}, now, credential);
+        this->signRequest(req, document, allocator, {}, now, credential, nonce);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
@@ -183,7 +199,6 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executed_amount", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document["details"]["cancelledOrders"].GetArray()) {
         Element element;
@@ -201,10 +216,9 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document.GetArray()) {
@@ -225,7 +239,6 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
@@ -302,7 +315,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         Element element;
         element.insert(CCAPI_INFO_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
     } else if (document.IsArray()) {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
@@ -337,11 +350,11 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
               element.insert(CCAPI_EM_ORDER_FEE_ASSET, fill["fee_currency"].GetString());
               elementList.emplace_back(std::move(element));
               message.setElementList(elementList);
-              messageList.push_back(std::move(message));
+              messageList.emplace_back(std::move(message));
             }
             if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+              const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
                   {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
                   {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -376,7 +389,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));
               message.setElementList(elementList);
-              messageList.push_back(std::move(message));
+              messageList.emplace_back(std::move(message));
             }
           }
         }

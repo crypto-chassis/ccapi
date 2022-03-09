@@ -35,6 +35,24 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
 
  protected:
 #endif
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = methodString;
+    std::string target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    preSignedText += target;
+    preSignedText += req.base().at("api-expires").to_string();
+    preSignedText += body;
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "api-signature:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = std::string(req.method_string());
@@ -52,7 +70,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
-        value = value == CCAPI_EM_ORDER_SIDE_BUY ? "Buy" : "Sell";
+        value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "Buy") ? "Buy" : "Sell";
       }
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
@@ -83,6 +101,9 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("api-key", apiKey);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -192,7 +213,8 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdID", JsonDataType::STRING)},
@@ -202,7 +224,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("ordStatus", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (document.IsObject()) {
       Element element;
       this->extractOrderInfo(element, document, extractionFieldNameMap);
@@ -214,10 +235,9 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         Element element;
@@ -230,7 +250,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
         for (const auto& x : document.GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ACCOUNT_ID, x["account"].GetString());
-          element.insert(CCAPI_EM_SYMBOL, x["symbol"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
           element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["currentQty"].GetString());
           element.insert(CCAPI_EM_POSITION_COST, x["openingCost"].GetString());
@@ -241,7 +261,6 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
@@ -309,7 +328,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       }
     } else {
@@ -322,7 +341,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
             Element element;
             element.insert(CCAPI_INFO_MESSAGE, textMessage);
             message.setElementList({element});
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
             rj::Document document;
             document.SetObject();
             rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -391,7 +410,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
                       element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["commission"].GetString()));
                       elementList.emplace_back(std::move(element));
                       message.setElementList(elementList);
-                      messageList.push_back(std::move(message));
+                      messageList.emplace_back(std::move(message));
                     }
                   } else if (table == "order" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
                     message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
@@ -416,7 +435,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
                     std::vector<Element> elementList;
                     elementList.emplace_back(std::move(info));
                     message.setElementList(elementList);
-                    messageList.push_back(std::move(message));
+                    messageList.emplace_back(std::move(message));
                   }
                 }
               }

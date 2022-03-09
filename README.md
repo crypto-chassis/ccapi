@@ -23,6 +23,7 @@
       - [Receive subscription OHLC events at periodic intervals](#receive-subscription-ohlc-events-at-periodic-intervals)
       - [Send generic public requests](#send-generic-public-requests)
       - [Make generic public subscriptions](#make-generic-public-subscriptions)
+      - [Send generic private requests](#send-generic-private-requests)
     - [Simple Execution Management](#simple-execution-management)
     - [Advanced Execution Management](#advanced-execution-management)
       - [Specify correlation id](#specify-correlation-id-1)
@@ -42,7 +43,8 @@
       - [Custom service class](#custom-service-class)
   - [Performance Tuning](#performance-tuning)
   - [Applications](#applications)
-    - [Spot Market Making (Beta)](#spot-market-making-beta)
+    - [Spot Market Making](#spot-market-making)
+    - [Single Order Execution](#single-order-execution)
   - [Known Issues and Workarounds](#known-issues-and-workarounds)
   - [Contributing](#contributing)
 
@@ -53,10 +55,11 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures.
-  * Execution Management: coinbase, gemini, kraken, kraken-futures, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit.
+  * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, kucoin-futures, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, ascendex.
+  * Execution Management: coinbase, gemini, kraken, kraken-futures, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, ascendex.
   * FIX: coinbase, gemini, ftx, ftx-us.
-* A spot market making application is also provided as an end-to-end solution for liquidity providers.
+* A spot market making application is provided as an end-to-end solution for liquidity providers.
+* A single order execution application is provided as an end-to-end solution for executing large orders.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
 * For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
@@ -93,7 +96,7 @@
   * Windows: MinGW.
 * Troubleshoot:
   * Try to remove all build artifacts and start from scratch (e.g. for cmake remove all the contents inside your build directory).
-  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
+  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Ubuntu, `sudo apt-get install libssl-dev`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
   * "Fatal error: can't write \<a> bytes to section .text of \<b>: 'File too big'". Try to add compiler flag `-Wa,-mbig-obj`. See https://github.com/assimp/assimp/issues/2067.
   * "string table overflow at offset \<a>". Try to add optimization flag `-O1` or `-O2`. See https://stackoverflow.com/questions/14125007/gcc-string-table-overflow-error-during-compilation.
   * On Windows, if you still encounter resource related issues, try to add optimization flag `-O3 -DNDEBUG`.
@@ -109,13 +112,16 @@ mkdir binding/build
 cd binding/build
 rm -rf * (if rebuild from scratch)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> -DBUILD_VERSION=<any-string-you-like> -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON ..
-cmake --build . -j
+cmake --build .
 cmake --install .
 ```
 * If a virtual environment (managed by `venv` or `conda`) is active (i.e. the `activate` script has been evaluated), the package will be installed into the virtual environment rather than globally.
 * Currently not working on Windows.
 * Troubleshoot:
   * "CMake Error at python/CMakeLists.txt:... (message): Require Python 3". Try to create and activate a virtual environment (managed by `venv` or `conda`) with Python 3.
+  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Ubuntu, `sudo apt-get install libssl-dev`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
+  * "Fatal Python error: Segmentation fault". If the macOS version is relatively new and the Python version is relatively old, please upgrade Python to a relatively new version.
+  * "‘_PyObject_GC_UNTRACK’ was not declared in this scope". If you use Python >= 3.8, please use SWIG >= 4.0.
 
 ## Constants
 [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h)
@@ -289,6 +295,7 @@ Instantiate `Subscription` with the desired correlationId.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id");
 ```
+This is used to match a particular request or subscription with its returned data. Within each `Message` there is a `correlationIdList` to identify the request or subscription that requested the data.
 
 #### Multiple exchanges and/or instruments
 
@@ -323,7 +330,7 @@ Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "CONFLATE_INTER
 
 #### Receive subscription market depth updates
 
-Instantiate `Subscription` with option `MARKET_DEPTH_RETURN_UPDATE` set to 1.
+Instantiate `Subscription` with option `MARKET_DEPTH_RETURN_UPDATE` set to 1. This will return the order book updates instead of snapshots.
 ```
 Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_RETURN_UPDATE=1&MARKET_DEPTH_MAX=2");
 ```
@@ -344,7 +351,7 @@ Subscription subscription("coinbase", "BTC-USD", "TRADE", "CONFLATE_INTERVAL_MIL
 
 #### Send generic public requests
 
-Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (should be url-encoded), `HTTP_BODY`.
+Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (query string parameter values should be url-encoded), `HTTP_BODY`.
 ```
 Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "binance");
 request.appendParam({
@@ -359,6 +366,18 @@ request.appendParam({
 Instantiate `Subscription` with empty instrument, field `GENERIC_PUBLIC_SUBSCRIPTION` and options set to be the desired websocket payload.
 ```
 Subscription subscription("coinbase", "", "GENERIC_PUBLIC_SUBSCRIPTION", R"({"type":"subscribe","channels":[{"name":"status"}]})");
+```
+
+#### Send generic private requests
+
+Instantiate `Request` with operation `GENERIC_PRIVATE_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (query string parameter values should be url-encoded), `HTTP_BODY`.
+```
+Request request(Request::Operation::GENERIC_PRIVATE_REQUEST, "coinbase");
+request.appendParam({
+    {"HTTP_METHOD", "GET"},
+    {"HTTP_PATH", "/fills"},
+    {"HTTP_QUERY_STRING", "product_id=BTC-USD"},
+});
 ```
 
 ### Simple Execution Management
@@ -451,7 +470,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
-* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_advanced_request/main.cpp).
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_advanced_request/main.cpp).
 
 **Objective 2:**
 
@@ -605,6 +624,7 @@ Instantiate `Subscription` with the desired correlationId.
 ```
 Subscription subscription("coinbase", "BTC-USD", "ORDER_UPDATE", "", "cool correlation id");
 ```
+This is used to match a particular request or subscription with its returned data. Within each `Message` there is a `correlationIdList` to identify the request or subscription that requested the data.
 
 #### Multiple exchanges and/or instruments
 
@@ -897,22 +917,41 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 
 ## Applications
 
-### Spot Market Making (Beta)
+### Spot Market Making
 * Source code: [app](app)
 * The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details. And read more at https://medium.com/open-crypto-market-data-initiative/simplified-avellaneda-stoikov-market-making-608b9d437403.
 * Require CMake.
   * CMake: https://cmake.org/download/.
-* Copy file [`app/src/spot_market_making/user_specified_cmake_include.cmake.example`](app/src/spot_market_making/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
+* Copy file [`app/user_specified_cmake_include.cmake.example`](app/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
 * Run the following commands.
 ```
 mkdir app/build
 cd app/build
 rm -rf * (if rebuild from scratch)
 cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
-cmake --build . -j
+cmake --build . --target spot_market_making
 ```
 * The executable is `app/build/src/spot_market_making/spot_market_making`. Run it after setting relevant environment variables shown in [`app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`. To enable and configure advanced parameters, set additional environment variables shown in [`app/src/spot_market_making/config_advanced.env.example`](app/src/spot_market_making/config_advanced.env.example).
+* For live trade mode, please set the desired exchange's credential environment variables shown in [app/credential.env.example](app/credential.env.example).
 * For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details.
+
+### Single Order Execution
+* Source code: [app](app)
+* The supported strategies are listed in [`app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example).
+* Require CMake.
+  * CMake: https://cmake.org/download/.
+* Copy file [`app/user_specified_cmake_include.cmake.example`](app/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
+* Run the following commands.
+```
+mkdir app/build
+cd app/build
+rm -rf * (if rebuild from scratch)
+cmake -DCMAKE_PROJECT_INCLUDE=<path-to-user_specified_cmake_include> ..
+cmake --build . --target single_order_execution
+```
+* The executable is `app/build/src/single_order_execution/single_order_execution`. Run it after setting relevant environment variables shown in [`app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example). For example, we can copy file `config.env.example` to `config.env`, edit it, and `export $(grep -v '^#' config.env | xargs)`. To enable and configure advanced parameters, set additional environment variables shown in [`app/src/single_order_execution/config_advanced.env.example`](app/src/single_order_execution/config_advanced.env.example).
+* For live trade mode, please set the desired exchange's credential environment variables shown in [app/credential.env.example](app/credential.env.example).
+* For paper trade mode and backtest mode, please see the [parameter configuration file `app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example) for more details.
 
 ## Known Issues and Workarounds
 * Kraken invalid nonce errors. Give the API key a nonce window (https://support.kraken.com/hc/en-us/articles/360001148023-What-is-a-nonce-window-). We use unix timestamp with microsecond resolution as nonce and therefore a nonce window of 500000 translates to a tolerance of 0.5 second.

@@ -297,6 +297,43 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0");
 }
 
+TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOpenOrders) {
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  request.appendParam({
+      {CCAPI_EM_ACCOUNT_ID, "100009"},
+  });
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  rj::Document document;
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
+  EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusdt");
+  auto splitted = UtilString::split(req.target().to_string(), "?");
+  EXPECT_EQ(splitted.at(0), "/v1/order/orders/batchCancelOpenOrders");
+  auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+  verifyApiKeyEtc(paramMap, this->credential.at(CCAPI_HUOBI_API_KEY), this->timestamp);
+  verifySignature(req, this->credential.at(CCAPI_HUOBI_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestCancelOpenOrders) {
+  Request request(Request::Operation::CANCEL_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_HUOBI, "btcusdt", "foo", this->credential);
+  std::string textMessage =
+      R"(
+        {
+          "status":"ok",
+          "data":{
+              "success-count":2,
+              "failed-count":0,
+              "next-id":5454600
+          }
+      }
+  )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::CANCEL_OPEN_ORDERS);
+}
+
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestGetAccounts) {
   Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_HUOBI, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);

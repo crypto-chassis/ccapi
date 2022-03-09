@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BYBIT_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BYBIT_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || \
     defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
@@ -18,6 +18,14 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
 
  protected:
 #endif
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
+    queryString += "&signature=";
+    queryString += signature;
+  }
   void signRequest(std::string& queryString, const std::map<std::string, std::string>& param, const TimePoint& now,
                    const std::map<std::string, std::string>& credential) {
     if (param.find("timestamp") == param.end()) {
@@ -55,6 +63,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, credential);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         std::string queryString;
@@ -131,18 +142,23 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
+    std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
-        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("origQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("executedQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair(this->isDerivatives ? "cumQuote" : "cummulativeQuoteQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
+    };
+    if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
+      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("origClientOrderId", JsonDataType::STRING)});
+    } else {
+      extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)});
+    }
     if (document.IsObject()) {
       Element element;
       this->extractOrderInfo(element, document, extractionFieldNameMap);
@@ -154,15 +170,19 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         for (const auto& x : document[this->isDerivatives ? "assets" : "balances"].GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
+          if (this->isDerivatives) {
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x["walletBalance"].GetString());
+          } else {
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(x["free"].GetString()).add(Decimal(x["locked"].GetString())).toString());
+          }
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x[this->isDerivatives ? "availableBalance" : "free"].GetString());
           elementList.emplace_back(std::move(element));
         }
@@ -170,7 +190,6 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void prepareConnect(WsConnection& wsConnection) override {
     auto hostPort = this->extractHostFromUrl(this->baseUrlRest);
@@ -292,9 +311,6 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
-    Message message;
-    message.setTimeReceived(timeReceived);
-    message.setCorrelationIdList({subscription.getCorrelationId()});
     auto fieldSet = subscription.getFieldSet();
     auto instrumentSet = subscription.getInstrumentSet();
     std::string type = document["e"].GetString();
@@ -305,8 +321,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       std::string instrument = data["s"].GetString();
       if (instrumentSet.empty() || instrumentSet.find(UtilString::toUpper(instrument)) != instrumentSet.end() ||
           instrumentSet.find(UtilString::toLower(instrument)) != instrumentSet.end()) {
-        message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
         if (executionType == "TRADE" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+          Message message;
+          message.setTimeReceived(timeReceived);
+          message.setCorrelationIdList({subscription.getCorrelationId()});
+          message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
           std::vector<Element> elementList;
           Element element;
@@ -331,8 +350,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           }
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
-        } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+          messageList.emplace_back(std::move(message));
+        }
+        if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+          Message message;
+          message.setTimeReceived(timeReceived);
+          message.setCorrelationIdList({subscription.getCorrelationId()});
+          message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::INTEGER)},
@@ -355,7 +379,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       }
     }
@@ -370,4 +394,4 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BYBIT_H_

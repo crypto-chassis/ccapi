@@ -55,6 +55,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
 #include "ccapi_cpp/service/ccapi_market_data_service_kucoin.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
+#include "ccapi_cpp/service/ccapi_market_data_service_kucoin_futures.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_market_data_service_ftx.h"
 #endif
@@ -69,6 +72,15 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_gateio_perpetual_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_CRYPTOCOM
+#include "ccapi_cpp/service/ccapi_market_data_service_cryptocom.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
+#include "ccapi_cpp/service/ccapi_market_data_service_bybit.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+#include "ccapi_cpp/service/ccapi_market_data_service_ascendex.h"
 #endif
 #endif
 // end: enable exchanges for market data
@@ -86,6 +98,9 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_kraken_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITFINEX
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitfinex.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitmex.h"
@@ -120,6 +135,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN
 #include "ccapi_cpp/service/ccapi_execution_management_service_kucoin.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_kucoin_futures.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_execution_management_service_ftx.h"
 #endif
@@ -128,6 +146,21 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service_deribit.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO
+#include "ccapi_cpp/service/ccapi_execution_management_service_gateio.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_gateio_perpetual_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_CRYPTOCOM
+#include "ccapi_cpp/service/ccapi_execution_management_service_cryptocom.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
+#include "ccapi_cpp/service/ccapi_execution_management_service_bybit.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+#include "ccapi_cpp/service/ccapi_execution_management_service_ascendex.h"
 #endif
 #endif
 // end: enable exchanges for execution management
@@ -272,6 +305,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KUCOIN] =
         std::make_shared<MarketDataServiceKucoin>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES] =
+        std::make_shared<MarketDataServiceKucoinFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_FTX] =
         std::make_shared<MarketDataServiceFtx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -292,6 +329,18 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES] =
         std::make_shared<MarketDataServiceGateioPerpetualFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_CRYPTOCOM
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_CRYPTOCOM] =
+        std::make_shared<MarketDataServiceCryptocom>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BYBIT] =
+        std::make_shared<MarketDataServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ASCENDEX] =
+        std::make_shared<MarketDataServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -310,6 +359,11 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KRAKEN_FUTURES] =
         std::make_shared<ExecutionManagementServiceKrakenFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITFINEX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITFINEX] =
+        std::make_shared<ExecutionManagementServiceBitfinex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITMEX] =
         std::make_shared<ExecutionManagementServiceBitmex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -354,6 +408,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KUCOIN] =
         std::make_shared<ExecutionManagementServiceKucoin>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES] =
+        std::make_shared<ExecutionManagementServiceKucoinFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_FTX] =
         std::make_shared<ExecutionManagementServiceFtx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -365,6 +423,26 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_DERIBIT] =
         std::make_shared<ExecutionManagementServiceDeribit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_GATEIO] =
+        std::make_shared<ExecutionManagementServiceGateio>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES] =
+        std::make_shared<ExecutionManagementServiceGateioPerpetualFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_CRYPTOCOM
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_CRYPTOCOM] =
+        std::make_shared<ExecutionManagementServiceCryptocom>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_CRYPTOCOM] =
+        std::make_shared<ExecutionManagementServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ASCENDEX] =
+        std::make_shared<ExecutionManagementServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX

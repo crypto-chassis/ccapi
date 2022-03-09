@@ -35,6 +35,24 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
 
  protected:
 #endif
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
+    preSignedText += methodString;
+    std::string target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    preSignedText += target;
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "CB-ACCESS-SIGN:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
@@ -57,7 +75,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
-        value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
+        value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
@@ -74,6 +92,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     req.set("CB-ACCESS-PASSPHRASE", apiPassphrase);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -153,7 +174,8 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
@@ -164,7 +186,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("executed_value", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("product_id", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     if (operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       element.insert(CCAPI_EM_ORDER_ID, document.GetString());
@@ -188,10 +209,9 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         }
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document.GetArray()) {
@@ -211,7 +231,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -298,22 +317,28 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             std::vector<Element> elementList;
             Element element;
             element.insert(CCAPI_TRADE_ID, std::string(document["trade_id"].GetString()));
-            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, document["price"].GetString());
-            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, document["size"].GetString());
-            std::string takerSide = document["side"].GetString();
+            std::string priceStr = document["price"].GetString();
+            std::string sizeStr = document["size"].GetString();
+            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, priceStr);
+            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, sizeStr);
+            std::string makerSide = document["side"].GetString();
             if (document.FindMember("taker_user_id") != document.MemberEnd()) {
-              element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+              element.insert(CCAPI_EM_ORDER_SIDE, makerSide == "buy" ? CCAPI_EM_ORDER_SIDE_SELL : CCAPI_EM_ORDER_SIDE_BUY);
               element.insert(CCAPI_IS_MAKER, "0");
               element.insert(CCAPI_EM_ORDER_ID, document["taker_order_id"].GetString());
+              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY,
+                             UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) * std::stod(document["taker_fee_rate"].GetString())));
             } else if (document.FindMember("maker_user_id") != document.MemberEnd()) {
-              element.insert(CCAPI_EM_ORDER_SIDE, takerSide == "sell" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+              element.insert(CCAPI_EM_ORDER_SIDE, makerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
               element.insert(CCAPI_IS_MAKER, "1");
               element.insert(CCAPI_EM_ORDER_ID, document["maker_order_id"].GetString());
+              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY,
+                             UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) * std::stod(document["maker_fee_rate"].GetString())));
             }
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           }
           if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
@@ -336,7 +361,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           }
         }
       }
@@ -346,14 +371,14 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       Element element;
       element.insert(CCAPI_INFO_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     } else if (type == "error") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       message.setType(Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
       element.insert(CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     }
     event.setMessageList(messageList);
     return event;

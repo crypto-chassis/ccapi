@@ -22,6 +22,25 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
 
  protected:
 #endif
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = req.base().at(this->ftx + "-TS").to_string();
+    preSignedText += methodString;
+    std::string target = path;
+    if (!queryString.empty()) {
+      target += "?" + queryString;
+    }
+    preSignedText += target;
+    preSignedText += body;
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += this->ftx + "-SIGN:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at(this->ftx + "-TS").to_string();
@@ -45,7 +64,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
-        value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
+        value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
       if (value != "null") {
         if (value == "true" || value == "false") {
@@ -87,6 +106,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, now, credential);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -176,7 +198,8 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientId", JsonDataType::STRING)},
@@ -187,7 +210,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
     };
-    std::vector<Element> elementList;
     const auto& result = document["result"];
     if (result.IsArray()) {
       for (const auto& x : result.GetArray()) {
@@ -200,10 +222,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       this->extractOrderInfo(element, result, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document["result"].GetArray()) {
@@ -216,6 +237,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         for (const auto& x : document["result"].GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ASSET, x["coin"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["total"].GetString());
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["free"].GetString());
           elementList.emplace_back(std::move(element));
         }
@@ -223,7 +245,6 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
@@ -231,9 +252,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     {
       auto it1 = x.FindMember("filledSize");
       auto it2 = x.FindMember("avgFillPrice");
-      if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
+      if (it1 != x.MemberEnd() && !it1->value.IsNull() && it2 != x.MemberEnd() && !it2->value.IsNull()) {
         element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                       std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                       Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
       }
     }
   }
@@ -325,7 +346,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
           element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(data["fee"].GetString()));
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         } else if (channel == "orders" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
@@ -341,15 +362,18 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
           };
           Element info;
           this->extractOrderInfo(info, data, extractionFieldNameMap);
-          auto it = data.FindMember("avgFillPrice");
-          if (it != data.MemberEnd()) {
-            info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                        std::to_string(std::stod(it->value.GetString()) * std::stod(data["filledSize"].GetString())));
+          {
+            auto it1 = data.FindMember("filledSize");
+            auto it2 = data.FindMember("avgFillPrice");
+            if (it1 != data.MemberEnd() && !it1->value.IsNull() && it2 != data.MemberEnd() && !it2->value.IsNull()) {
+              info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                          Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
+            }
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       }
     } else if (type == "subscribed") {
@@ -358,14 +382,14 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       Element element;
       element.insert(CCAPI_INFO_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     } else if (type == "error") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       message.setType(Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
       element.insert(CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     }
     event.setMessageList(messageList);
     return event;

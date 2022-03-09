@@ -33,6 +33,9 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
   void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                         const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -132,7 +135,8 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
@@ -142,7 +146,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("trade_volume", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("contract_code", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER) {
       Element element;
@@ -163,10 +166,9 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     const auto& data = document["data"];
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
@@ -183,7 +185,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : data.GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["contract_code"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["contract_code"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["direction"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["available"].GetString());
           element.insert(CCAPI_EM_POSITION_COST, x["cost_open"].GetString());
@@ -194,7 +196,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
@@ -335,7 +336,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       } else if (topic.rfind(this->matchOrderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         std::string instrument = document["contract_code"].GetString();
@@ -369,7 +370,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           }
         }
       }
@@ -381,14 +382,14 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         Element element;
         element.insert(CCAPI_ERROR_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       } else {
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         message.setType(Message::Type::SUBSCRIPTION_STARTED);
         Element element;
         element.insert(CCAPI_INFO_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
     }
     event.setMessageList(messageList);

@@ -482,7 +482,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "BTC-USDT");
+  EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "BTC-USDT");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "sell");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "2");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "51179.1");

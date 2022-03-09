@@ -27,6 +27,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     this->getOrderTarget = "/v1/order/orders/{order-id}";
     this->getOrderByClientOrderIdTarget = "/v1/order/orders/getClientOrder";
     this->getOpenOrdersTarget = "/v1/order/openOrders";
+    this->cancelOpenOrdersTarget = "/v1/order/orders/batchCancelOpenOrders";
     this->getAccountsTarget = "/v1/account/accounts";
     this->getAccountBalancesTarget = "/v1/account/accounts/{account-id}/balance";
   }
@@ -45,6 +46,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
   void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                         const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -123,6 +127,27 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         }
         this->signRequest(req, this->getOpenOrdersTarget, queryParamMap, credential);
       } break;
+      case Request::Operation::CANCEL_OPEN_ORDERS: {
+        req.method(http::verb::post);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ACCOUNT_ID, "account-id"},
+                          });
+        if (!symbolId.empty()) {
+          this->appendSymbolId(document, allocator, symbolId);
+        }
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        auto body = stringBuffer.GetString();
+        req.body() = body;
+        req.prepare_payload();
+        this->signRequest(req, this->cancelOpenOrdersTarget, queryParamMap, credential);
+      } break;
       case Request::Operation::GET_ACCOUNTS: {
         req.method(http::verb::get);
         this->signRequest(req, this->getAccountsTarget, queryParamMap, credential);
@@ -138,7 +163,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::INTEGER)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client-order-id", JsonDataType::STRING)},
@@ -149,7 +175,6 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("filled-cash-amount", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER) {
       Element element;
@@ -166,10 +191,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     const auto& data = document["data"];
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
@@ -186,6 +210,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
             Element element;
             element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
             element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["balance"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x["balance"].GetString());
             elementList.emplace_back(std::move(element));
           }
         }
@@ -193,7 +218,6 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -339,7 +363,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       } else if (ch.rfind("trade.clearing#", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         const rj::Value& data = document["data"];
@@ -361,7 +385,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(data["feeCurrency"].GetString()));
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         }
       }
     } else if (actionStr == "sub") {
@@ -372,7 +396,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         Element element;
         element.insert(CCAPI_INFO_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
       }
     }
     event.setMessageList(messageList);

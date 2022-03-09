@@ -43,6 +43,10 @@ include_guard(DIRECTORY)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GATEIO)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_CRYPTOCOM)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ASCENDEX)
+#
 # add_compile_definitions(CCAPI_ENABLE_LOG_TRACE)
 #
 # add_compile_definitions(CCAPI_ENABLE_LOG_DEBUG)

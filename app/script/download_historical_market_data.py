@@ -59,6 +59,14 @@ if __name__ == "__main__":
         default="",
         help="This value specifies the name suffix of the files in which historical market data are saved.",
     )
+    argumentParser.add_argument(
+        "--depth",
+        required=False,
+        type=int,
+        default=1,
+        choices=[1, 10],
+        help="The depth of market depth data.",
+    )
 
     args = argumentParser.parse_args()
 
@@ -71,6 +79,7 @@ if __name__ == "__main__":
     historicalMarketDataDirectory = args.historical_market_data_directory
     historicalMarketDataFilePrefix = args.historical_market_data_file_prefix
     historicalMarketDataFileSuffix = args.historical_market_data_file_suffix
+    depth = args.depth
     pathlib.Path(historicalMarketDataDirectory).mkdir(parents=True, exist_ok=True)
     urlBase = "https://api.cryptochassis.com/v1"
     session = requests.Session()
@@ -79,16 +88,14 @@ if __name__ == "__main__":
     tradeCsvHeader = "time_seconds,price,size,is_buyer_maker\n"
     while currentDate < endDate:
         for dataType in ["market-depth", "trade"]:
-            fileName = (
-                f"{historicalMarketDataFilePrefix}{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}{historicalMarketDataFileSuffix}"
-            )
+            fileName = f"{historicalMarketDataFilePrefix}{exchange}__{baseAsset}-{quoteAsset}__{currentDate.isoformat()}__{dataType}{historicalMarketDataFileSuffix}"
             fileNameWithDir = f"{historicalMarketDataDirectory}/{fileName}"
             tmpFileNameWithDir = f"{historicalMarketDataDirectory}/tmp__{fileName}"
             if not pathlib.Path(f"{fileNameWithDir}.csv").is_file():
                 print(f"Start download data for {dataType}, {exchange}, {baseAsset}-{quoteAsset}, {currentDate.isoformat()}.")
                 requestUrl = f"{urlBase}/{dataType}/{exchange}/{baseAsset}-{quoteAsset}?startTime={currentDate.isoformat()}"
                 if dataType == "market-depth":
-                    requestUrl += "&depth=1"
+                    requestUrl += f"&depth={depth}"
                 urls = session.get(requestUrl).json()["urls"]
                 time.sleep(0.1)
                 if not urls:
@@ -120,7 +127,6 @@ if __name__ == "__main__":
                                     splitted = tuple(line.split(","))
                                     fOut.write(
                                         ",".join((splitted[0] + "." + splitted[1].zfill(9).rstrip("0") if splitted[1] != "0" else splitted[0],) + splitted[2:5])
-                                        + "\n"
                                     )
                         os.remove(f"{tmpFileNameWithDir}.csv")
         currentDate += timedelta(days=1)

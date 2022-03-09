@@ -145,7 +145,7 @@ class MarketDataServiceOkex : public MarketDataService {
             Element element;
             element.insert(CCAPI_INFO_MESSAGE, textMessage);
             message.setElementList({element});
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
             event.setMessageList(messageList);
           } else if (eventStr == "error") {
             event.setType(Event::Type::SUBSCRIPTION_STATUS);
@@ -156,7 +156,7 @@ class MarketDataServiceOkex : public MarketDataService {
             Element element;
             element.insert(CCAPI_ERROR_MESSAGE, textMessage);
             message.setElementList({element});
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
             event.setMessageList(messageList);
           }
         } else {
@@ -188,15 +188,15 @@ class MarketDataServiceOkex : public MarketDataService {
                 MarketDataMessage::TypeForDataPoint dataPoint;
                 dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
                 dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-                marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+                marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
               }
               for (const auto& x : datum["asks"].GetArray()) {
                 MarketDataMessage::TypeForDataPoint dataPoint;
                 dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
                 dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-                marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+                marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
               }
-              marketDataMessageList.push_back(std::move(marketDataMessage));
+              marketDataMessageList.emplace_back(std::move(marketDataMessage));
             }
           } else if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE) {
             for (const auto& datum : document["data"].GetArray()) {
@@ -210,8 +210,8 @@ class MarketDataServiceOkex : public MarketDataService {
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["sz"].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString()});
               dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "sell" ? "1" : "0"});
-              marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-              marketDataMessageList.push_back(std::move(marketDataMessage));
+              marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+              marketDataMessageList.emplace_back(std::move(marketDataMessage));
             }
           }
         }
@@ -270,6 +270,7 @@ class MarketDataServiceOkex : public MarketDataService {
     element.insert(CCAPI_QUOTE_ASSET, x["quoteCcy"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSz"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSz"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minSz"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["settleCcy"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["uly"].GetString());
   }
@@ -288,8 +289,8 @@ class MarketDataServiceOkex : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["sz"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "sell" ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
       case Request::Operation::GET_INSTRUMENT: {

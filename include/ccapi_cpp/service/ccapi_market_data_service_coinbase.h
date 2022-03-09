@@ -85,12 +85,12 @@ class MarketDataServiceCoinbase : public MarketDataService {
         dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(change[1].GetString())});
         dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(change[2].GetString())});
         if (side == "buy") {
-          marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+          marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
         } else {
-          marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+          marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
         }
       }
-      marketDataMessageList.push_back(std::move(marketDataMessage));
+      marketDataMessageList.emplace_back(std::move(marketDataMessage));
     } else if (type == "match") {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_MATCH) + "|" + symbolId;
@@ -104,8 +104,8 @@ class MarketDataServiceCoinbase : public MarketDataService {
       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(document["size"].GetString()))});
       dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(document["trade_id"].GetString())});
       dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(document["side"].GetString()) == "buy" ? "1" : "0"});
-      marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-      marketDataMessageList.push_back(std::move(marketDataMessage));
+      marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+      marketDataMessageList.emplace_back(std::move(marketDataMessage));
     } else if (type == "snapshot") {
       auto symbolId = std::string(document["product_id"].GetString());
       auto exchangeSubscriptionId = std::string(CCAPI_WEBSOCKET_COINBASE_CHANNEL_LEVEL2) + "|" + symbolId;
@@ -119,16 +119,16 @@ class MarketDataServiceCoinbase : public MarketDataService {
         MarketDataMessage::TypeForDataPoint dataPoint;
         dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
         dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-        marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+        marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
       }
       const rj::Value& asks = document["asks"];
       for (const auto& x : asks.GetArray()) {
         MarketDataMessage::TypeForDataPoint dataPoint;
         dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
         dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
-        marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+        marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
       }
-      marketDataMessageList.push_back(std::move(marketDataMessage));
+      marketDataMessageList.emplace_back(std::move(marketDataMessage));
     } else if (type == "subscriptions") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       std::vector<Message> messageList;
@@ -157,7 +157,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       Element element;
       element.insert(CCAPI_INFO_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
       event.setMessageList(messageList);
     } else if (type == "error") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
@@ -168,7 +168,7 @@ class MarketDataServiceCoinbase : public MarketDataService {
       Element element;
       element.insert(CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
       event.setMessageList(messageList);
     }
   }
@@ -230,8 +230,8 @@ class MarketDataServiceCoinbase : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["size"].GetString()))});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["trade_id"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "buy" ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
       case Request::Operation::GET_INSTRUMENT: {

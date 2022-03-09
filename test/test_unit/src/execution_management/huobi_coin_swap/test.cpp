@@ -99,7 +99,7 @@ TEST_F(ExecutionManagementServiceHuobiCoinSwapTest, convertTextMessageToMessageR
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "THETA-USD");
+  EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "THETA-USD");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "buy");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "20.000000000000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "0.604834710743801652");

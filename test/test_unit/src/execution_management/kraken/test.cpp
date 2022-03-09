@@ -31,8 +31,7 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   std::string preSignedText = req.target().to_string();
   std::string body = req.body();
   std::string nonce = Url::convertFormUrlEncodedToMap(body).at("nonce");
-  std::string noncePlusBodySha256;
-  ExecutionManagementServiceKraken::computeHash(nonce + body, noncePlusBodySha256);
+  std::string noncePlusBodySha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, nonce + body);
   preSignedText += noncePlusBodySha256;
   auto signature = req.base().at("API-SIGN").to_string();
   EXPECT_EQ(UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedText)), signature);
@@ -604,7 +603,7 @@ TEST_F(ExecutionManagementServiceKrakenTest, convertTextMessageToMessageRestGetA
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 5);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_SYMBOL), "XXBTZUSD");
+  EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "XXBTZUSD");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "8.62212861");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "104610.52842");
 }

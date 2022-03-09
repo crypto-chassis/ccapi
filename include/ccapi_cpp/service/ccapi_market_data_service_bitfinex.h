@@ -10,8 +10,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
                             std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITFINEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
+    this->baseUrl = std::string(CCAPI_BITFINEX_PUBLIC_URL_WS_BASE) + "/ws/2";
+    this->baseUrlRest = CCAPI_BITFINEX_PUBLIC_URL_REST_BASE;
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
@@ -19,9 +19,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
-    // this->getInstrumentTarget = "/v2/conf/pub:list:pair:exchange";
-    this->getInstrumentsTarget = "/v2/conf/pub:list:pair:exchange";
-    // this->convertNumberToStringInJsonRegex = std::regex("([,\\[:])(-?\\d+\\.?\\d*[eE]?-?\\d*)");
+    this->getInstrumentsTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
+    this->getInstrumentTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
   }
   virtual ~MarketDataServiceBitfinex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -111,22 +110,22 @@ class MarketDataServiceBitfinex : public MarketDataService {
                   if (count != "0") {
                     if (amount.at(0) == '-') {
                       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount.substr(1)});
-                      marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+                      marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
                     } else {
                       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount});
-                      marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+                      marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
                     }
                   } else {
                     if (amount.at(0) == '-') {
                       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
-                      marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+                      marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
                     } else {
                       dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
-                      marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+                      marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
                     }
                   }
                 }
-                marketDataMessageList.push_back(std::move(marketDataMessage));
+                marketDataMessageList.emplace_back(std::move(marketDataMessage));
               } else {
                 for (const auto& x : content.GetArray()) {
                   MarketDataMessage marketDataMessage;
@@ -142,8 +141,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
                   dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount.at(0) == '-' ? amount.substr(1) : amount});
                   dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[0].GetString())});
                   dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, amount.at(0) == '-' ? "1" : "0"});
-                  marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-                  marketDataMessageList.push_back(std::move(marketDataMessage));
+                  marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+                  marketDataMessageList.emplace_back(std::move(marketDataMessage));
                 }
               }
             } else {
@@ -157,24 +156,24 @@ class MarketDataServiceBitfinex : public MarketDataService {
                   dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount.substr(1)});
                   this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
                                                                                           [MarketDataMessage::DataType::ASK]
-                                                                                              .push_back(std::move(dataPoint));
+                                                                                              .emplace_back(std::move(dataPoint));
                 } else {
                   dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, amount});
                   this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
                                                                                           [MarketDataMessage::DataType::BID]
-                                                                                              .push_back(std::move(dataPoint));
+                                                                                              .emplace_back(std::move(dataPoint));
                 }
               } else {
                 if (amount.at(0) == '-') {
                   dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
                   this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
                                                                                           [MarketDataMessage::DataType::ASK]
-                                                                                              .push_back(std::move(dataPoint));
+                                                                                              .emplace_back(std::move(dataPoint));
                 } else {
                   dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, "0"});
                   this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]
                                                                                           [MarketDataMessage::DataType::BID]
-                                                                                              .push_back(std::move(dataPoint));
+                                                                                              .emplace_back(std::move(dataPoint));
                 }
               }
             }
@@ -205,8 +204,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
                   dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[0].GetString())});
                 }
                 dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, amount.at(0) == '-' ? "1" : "0"});
-                marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-                marketDataMessageList.push_back(std::move(marketDataMessage));
+                marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+                marketDataMessageList.emplace_back(std::move(marketDataMessage));
               }
             } else if (str == "cs") {
               if (this->sessionOptions.enableCheckSequence) {
@@ -229,7 +228,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
               std::swap(marketDataMessage.data,
                         this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId]);
-              marketDataMessageList.push_back(std::move(marketDataMessage));
+              marketDataMessageList.emplace_back(std::move(marketDataMessage));
             }
           }
         }
@@ -267,7 +266,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               rj::Writer<rj::StringBuffer> writer(stringBuffer);
               document.Accept(writer);
               std::string sendString = stringBuffer.GetString();
-              sendStringList.push_back(std::move(sendString));
+              sendStringList.emplace_back(std::move(sendString));
             }
           }
         }
@@ -311,7 +310,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
         Element element;
         element.insert(eventStr == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
         message.setElementList({element});
-        messageList.push_back(std::move(message));
+        messageList.emplace_back(std::move(message));
         event.setMessageList(messageList);
       }
     }
@@ -404,9 +403,26 @@ class MarketDataServiceBitfinex : public MarketDataService {
         auto target = this->getInstrumentsTarget;
         req.target(target);
       } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        auto target = this->getInstrumentsTarget;
+        req.target(target);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  void extractInstrumentInfo(Element& element, const std::string& pair, const rj::Value& z) {
+    element.insert(CCAPI_INSTRUMENT, "t" + pair);
+    if (pair.find(':') != std::string::npos) {
+      auto splitted = UtilString::split(pair, ':');
+      element.insert(CCAPI_BASE_ASSET, splitted.at(0));
+      element.insert(CCAPI_QUOTE_ASSET, splitted.at(1));
+    } else {
+      element.insert(CCAPI_BASE_ASSET, pair.substr(0, 3));
+      element.insert(CCAPI_QUOTE_ASSET, pair.substr(3, 6));
+    }
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, z[3].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -425,8 +441,8 @@ class MarketDataServiceBitfinex : public MarketDataService {
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, isAmountNegative ? rawAmount.substr(1) : rawAmount});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x[0].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, isAmountNegative ? "1" : "0"});
-          marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
       case Request::Operation::GET_INSTRUMENTS: {
@@ -435,10 +451,32 @@ class MarketDataServiceBitfinex : public MarketDataService {
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         std::vector<Element> elementList;
         for (const auto& x : document[0].GetArray()) {
-          std::string pair = x.GetString();
+          std::string pair = x[0].GetString();
           Element element;
-          element.insert(CCAPI_INSTRUMENT, pair);
+          this->extractInstrumentInfo(element, pair, x[1]);
           elementList.push_back(element);
+        }
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        bool found{};
+        for (const auto& x : document[0].GetArray()) {
+          std::string pair = x[0].GetString();
+          if ("t" + pair == request.getInstrument()) {
+            Element element;
+            this->extractInstrumentInfo(element, pair, x[1]);
+            elementList.push_back(element);
+            found = true;
+          }
+          if (found) {
+            break;
+          }
         }
         message.setElementList(elementList);
         message.setCorrelationIdList({request.getCorrelationId()});

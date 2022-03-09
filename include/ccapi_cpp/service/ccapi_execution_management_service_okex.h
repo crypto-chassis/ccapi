@@ -35,7 +35,26 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
 
  private:
 #endif
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = req.base().at("OK-ACCESS-TIMESTAMP").to_string();
+    preSignedText += methodString;
+    auto target = path;
+    if (!queryString.empty()) {
+      target += queryString;
+    }
+    preSignedText += target;
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "OK-ACCESS-SIGN:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("OK-ACCESS-TIMESTAMP").to_string();
@@ -60,7 +79,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
-        value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
+        value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
@@ -96,6 +115,9 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       req.set("x-simulated-trading", "1");
     }
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
@@ -162,8 +184,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ORDER_TYPE, "ordType"},
-                              {CCAPI_EM_ORDER_ID, "ordId"},
-                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
                               {CCAPI_SYMBOL_ID, "instId"},
                           });
         if (!symbolId.empty()) {
@@ -172,7 +192,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         if (queryString.back() == '&') {
           queryString.pop_back();
         }
-        req.target(this->getOpenOrdersTarget + "?" + queryString);
+        req.target(queryString.empty() ? this->getOpenOrdersTarget : this->getOpenOrdersTarget + "?" + queryString);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
@@ -192,6 +212,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
   void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
                                   int wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
+    document.SetObject();
     document.AddMember("id", rj::Value(std::to_string(wsRequestId).c_str(), allocator).Move(), allocator);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
@@ -228,11 +249,11 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         this->convertRequestForWebsocketCustom(document, allocator, wsConnection, request, wsRequestId, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList = this->extractOrderInfoFromRequest(document);
-    return elementList;
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
+    this->extractOrderInfoFromRequest(elementList, document);
   }
-  std::vector<Element> extractOrderInfoFromRequest(const rj::Document& document) {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const rj::Document& document) {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
@@ -242,7 +263,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instId", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (data.IsObject()) {
       Element element;
@@ -255,10 +275,9 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
         elementList.emplace_back(std::move(element));
       }
     }
-    return elementList;
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         for (const auto& x : document["data"][0]["details"].GetArray()) {
@@ -266,13 +285,14 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
           element.insert(CCAPI_EM_ASSET, x["ccy"].GetString());
           std::string availEq = x["availEq"].GetString();
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, availEq.empty() ? x["availBal"].GetString() : availEq);
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["eq"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document["data"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_SYMBOL, x["instId"].GetString());
+          element.insert(CCAPI_INSTRUMENT, x["instId"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["posSide"].GetString());
           std::string availPos = x["availPos"].GetString();
           std::string positionQuantity = availPos.empty() ? x["pos"].GetString() : availPos;
@@ -285,7 +305,6 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
@@ -392,7 +411,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
-          messageList.push_back(std::move(message));
+          messageList.emplace_back(std::move(message));
         } else {
           std::vector<Element> elementList;
           if (op == "order") {
@@ -400,8 +419,9 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
           } else if (op == "cancel-order") {
             message.setType(Message::Type::CANCEL_ORDER);
           }
-          message.setElementList(this->extractOrderInfoFromRequest(document));
-          messageList.push_back(std::move(message));
+          this->extractOrderInfoFromRequest(elementList, document);
+          message.setElementList(elementList);
+          messageList.emplace_back(std::move(message));
         }
       } else {
         const rj::Value& arg = document["arg"];
@@ -434,7 +454,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
                 element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fillFeeCcy"].GetString()));
                 elementList.emplace_back(std::move(element));
                 message.setElementList(elementList);
-                messageList.push_back(std::move(message));
+                messageList.emplace_back(std::move(message));
               }
             }
           } else if (channel == "orders" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
@@ -459,7 +479,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));
               message.setElementList(elementList);
-              messageList.push_back(std::move(message));
+              messageList.emplace_back(std::move(message));
             }
           }
         }
@@ -470,14 +490,14 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       Element element;
       element.insert(CCAPI_INFO_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     } else if (eventStr == "error") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       message.setType(Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
       element.insert(CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     }
     event.setMessageList(messageList);
     return event;

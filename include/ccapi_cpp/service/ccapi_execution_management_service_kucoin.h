@@ -90,6 +90,28 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         },
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    auto now = UtilTime::now();
+    this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
+  }
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = req.base().at("KC-API-TIMESTAMP").to_string();
+    preSignedText += methodString;
+    auto target = path;
+    if (!queryString.empty()) {
+      target += queryString;
+    }
+    preSignedText += target;
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "KC-API-SIGN:" + signature;
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("KC-API-TIMESTAMP").to_string();
@@ -120,7 +142,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
-        value = value == CCAPI_EM_ORDER_SIDE_BUY ? "buy" : "sell";
+        value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
       if (key == "cancelAfter") {
         document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(static_cast<int64_t>(std::stoll(value))), allocator);
@@ -149,6 +171,9 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, now, credential);
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -229,7 +254,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
-  std::vector<Element> extractOrderInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
+  void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                   const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
@@ -237,7 +263,6 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    std::vector<Element> elementList;
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       if (data.FindMember("cancelledOrderIds") != data.MemberEnd()) {
@@ -267,7 +292,6 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       this->extractOrderInfo(element, data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     }
-    return elementList;
   }
   void extractOrderInfo(Element& element, const rj::Value& x,
                         const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
@@ -279,8 +303,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       }
     }
   }
-  std::vector<Element> extractAccountInfoFromRequest(const Request& request, const Request::Operation operation, const rj::Document& document) override {
-    std::vector<Element> elementList;
+  void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
+                                     const rj::Document& document) override {
     const auto& data = document["data"];
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
@@ -289,6 +313,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
           element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
           element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
           element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["balance"].GetString());
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
           elementList.emplace_back(std::move(element));
         }
@@ -296,13 +321,13 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         Element element;
         element.insert(CCAPI_EM_ASSET, data["currency"].GetString());
+        element.insert(CCAPI_EM_QUANTITY_TOTAL, data["balance"].GetString());
         element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, data["available"].GetString());
         elementList.emplace_back(std::move(element));
       } break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
-    return elementList;
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
@@ -335,13 +360,13 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(hdl, subscription, textMessage, document, timeReceived);
+    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
     }
   }
-  Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
-                    const TimePoint& timeReceived) {
+  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
+                    const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -373,7 +398,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           } else if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
             std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
@@ -393,7 +418,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
             message.setElementList(elementList);
-            messageList.push_back(std::move(message));
+            messageList.emplace_back(std::move(message));
           }
         }
       }
@@ -403,16 +428,28 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       Element element;
       element.insert(CCAPI_INFO_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     } else if (type == "error") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       message.setType(Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
       element.insert(CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
     } else if (type == "welcome") {
+      this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+          std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
+      this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+          std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
+      if (this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
+          this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
+        this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+            this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
+      }
       ExecutionManagementService::onOpen(hdl);
+    } else if (type == "pong") {
+      auto now = UtilTime::now();
+      this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = now;
     }
     event.setMessageList(messageList);
     return event;

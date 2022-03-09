@@ -9,31 +9,73 @@
 #ifndef PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID
 #define PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID "PRIVATE_TRADE,ORDER_UPDATE"
 #endif
-#if defined(APP_ENABLE_LOG_INFO) || defined(APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_INFO(message)              \
-  if (::ccapi::AppLogger::logger) {           \
-    ::ccapi::AppLogger::logger->log(message); \
+#if defined(CCAPI_APP_ENABLE_LOG_ERROR) || defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#define APP_LOGGER_ERROR(message)                       \
+  if (::ccapi::AppLogger::logger) {                     \
+    ::ccapi::AppLogger::logger->log(message, "ERROR:"); \
+  }
+#define APP_LOGGER_ERROR_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                 \
+    ::ccapi::AppLogger::logger->log(message, "ERROR:" + tag + ":"); \
+  }
+#else
+#define APP_LOGGER_ERROR(message)
+#define APP_LOGGER_ERROR_WITH_TAG(message, tag)
+#endif
+#if defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#define APP_LOGGER_WARN(message)                       \
+  if (::ccapi::AppLogger::logger) {                    \
+    ::ccapi::AppLogger::logger->log(message, "WARN:"); \
+  }
+#define APP_LOGGER_WARN_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                \
+    ::ccapi::AppLogger::logger->log(message, "WARN:" + tag + ":"); \
+  }
+#else
+#define APP_LOGGER_WARN(message)
+#define APP_LOGGER_WARN_WITH_TAG(message, tag)
+#endif
+#if defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#define APP_LOGGER_INFO(message)                       \
+  if (::ccapi::AppLogger::logger) {                    \
+    ::ccapi::AppLogger::logger->log(message, "INFO:"); \
+  }
+#define APP_LOGGER_INFO_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                \
+    ::ccapi::AppLogger::logger->log(message, "INFO:" + tag + ":"); \
   }
 #else
 #define APP_LOGGER_INFO(message)
+#define APP_LOGGER_INFO_WITH_TAG(message, tag)
 #endif
-#if defined(APP_ENABLE_LOG_DEBUG)
-#define APP_LOGGER_DEBUG(message)             \
-  if (::ccapi::AppLogger::logger) {           \
-    ::ccapi::AppLogger::logger->log(message); \
+#if defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#define APP_LOGGER_DEBUG(message)                       \
+  if (::ccapi::AppLogger::logger) {                     \
+    ::ccapi::AppLogger::logger->log(message, "DEBUG:"); \
+  }
+#define APP_LOGGER_DEBUG_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                 \
+    ::ccapi::AppLogger::logger->log(message, "DEBUG:" + tag + ":"); \
   }
 #else
 #define APP_LOGGER_DEBUG(message)
+#define APP_LOGGER_DEBUG_WITH_TAG(message, tag)
 #endif
 #include <cmath>
 #include <fstream>
 #include <mutex>
+#include <random>
 #include <string>
 
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class AppUtil {
  public:
+  static double generateRandomDouble(double lowerBound, double upperBound) {
+    static std::uniform_real_distribution<double> unif(lowerBound, upperBound);
+    static std::default_random_engine re;
+    return unif(re);
+  }
   static std::string generateUuidV4() {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -71,10 +113,10 @@ class AppUtil {
       x += 1;
     }
     std::string output;
-    if (inputIncrement.find('.') != std::string::npos) {
-      const auto& splitted = UtilString::split(inputIncrement, ".");
-      const auto& splitted_0 = splitted.at(0);
-      const auto& splitted_1 = splitted.at(1);
+    auto found = inputIncrement.find('.');
+    if (found != std::string::npos) {
+      const auto& splitted_0 = inputIncrement.substr(0, found);
+      const auto& splitted_1 = inputIncrement.substr(found + 1);
       if (splitted_0 == "0") {
         output = std::to_string(x * std::stoll(splitted_1));
       } else {
@@ -93,17 +135,17 @@ class AppUtil {
 };
 class AppLogger {
  public:
-  void log(const std::string& message) { this->log(std::chrono::system_clock::now(), message); }
-  void log(const std::string& filename, const std::string& lineNumber, const std::string& message) {
-    this->log(std::chrono::system_clock::now(), filename, lineNumber, message);
+  void log(const std::string& message, const std::string& tag = "") { this->log(std::chrono::system_clock::now(), message, tag); }
+  void log(const std::string& filename, const std::string& lineNumber, const std::string& message, const std::string& tag = "") {
+    this->log(std::chrono::system_clock::now(), filename, lineNumber, message, tag);
   }
-  void log(const TimePoint& now, const std::string& message) {
+  void log(const TimePoint& now, const std::string& message, const std::string& tag) {
     std::lock_guard<std::mutex> lock(m);
-    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << message << std::endl;
+    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] " << tag << " " << message << std::endl;
   }
-  void log(const TimePoint& now, const std::string& filename, const std::string& lineNumber, const std::string& message) {
+  void log(const TimePoint& now, const std::string& filename, const std::string& lineNumber, const std::string& message, const std::string& tag) {
     std::lock_guard<std::mutex> lock(m);
-    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << message << std::endl;
+    std::cout << "[" << UtilTime::getISOTimestamp(now) << "] {" << filename << ":" << lineNumber << "} " << tag << " " << message << std::endl;
   }
   static AppLogger* logger;
 
@@ -135,7 +177,7 @@ class CsvWriter {
     size_t numCol = row.size();
     int i = 0;
     for (const auto& column : row) {
-      this->f << column;
+      this->f << column.c_str();
       if (i < numCol - 1) {
         this->f << ",";
       }
@@ -149,7 +191,7 @@ class CsvWriter {
       size_t numCol = row.size();
       int i = 0;
       for (const auto& column : row) {
-        this->f << column;
+        this->f << column.c_str();
         if (i < numCol - 1) {
           this->f << ",";
         }

@@ -145,7 +145,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
           int id = std::stoi(document["id"].GetString());
           if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.find(id) != this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.end()) {
             for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.at(id)) {
-              auto splitted = UtilString::split(exchangeSubscriptionId, "|");
+              auto splitted = UtilString::split(exchangeSubscriptionId, '|');
               std::string channelId = splitted.at(0);
               std::string symbolId = splitted.at(1);
               if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
@@ -167,7 +167,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
       Element element;
       element.insert(!hasError ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
       message.setElementList({element});
-      messageList.push_back(std::move(message));
+      messageList.emplace_back(std::move(message));
       event.setMessageList(messageList);
     } else if (document.HasMember("event")) {
       std::string eventType = document["event"].GetString();
@@ -206,7 +206,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(p)});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(result["B"].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             }
           }
           {
@@ -215,10 +215,10 @@ class MarketDataServiceGateioBase : public MarketDataService {
               MarketDataMessage::TypeForDataPoint dataPoint;
               dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(p)});
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(result["A"].GetString())});
-              marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+              marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
           }
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         } else if (channelId.rfind(this->websocketChannelOrderBook, 0) == 0) {
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
           marketDataMessage.recapType = this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]
@@ -235,7 +235,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString((this->isDerivatives ? x["p"] : x[0]).GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString((this->isDerivatives ? x["s"] : x[1]).GetString())});
-            marketDataMessage.data[MarketDataMessage::DataType::BID].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             ++bidIndex;
           }
           int askIndex = 0;
@@ -246,10 +246,10 @@ class MarketDataServiceGateioBase : public MarketDataService {
             MarketDataMessage::TypeForDataPoint dataPoint;
             dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString((this->isDerivatives ? x["p"] : x[0]).GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString((this->isDerivatives ? x["s"] : x[1]).GetString())});
-            marketDataMessage.data[MarketDataMessage::DataType::ASK].push_back(std::move(dataPoint));
+            marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             ++askIndex;
           }
-          marketDataMessageList.push_back(std::move(marketDataMessage));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
         } else if (channelId == this->websocketChannelTrades) {
           if (this->isDerivatives) {
             for (const auto& x : result.GetArray()) {
@@ -275,8 +275,8 @@ class MarketDataServiceGateioBase : public MarketDataService {
               dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(sizeAbs)});
               dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["id"].GetString())});
               dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, isBuyerMaker ? "1" : "0"});
-              marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-              marketDataMessageList.push_back(std::move(marketDataMessage));
+              marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+              marketDataMessageList.emplace_back(std::move(marketDataMessage));
             }
           } else {
             MarketDataMessage marketDataMessage;
@@ -289,8 +289,8 @@ class MarketDataServiceGateioBase : public MarketDataService {
             dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(result["amount"].GetString()))});
             dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(result["id"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(result["side"].GetString()) == "sell" ? "1" : "0"});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].push_back(std::move(dataPoint));
-            marketDataMessageList.push_back(std::move(marketDataMessage));
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         }
       }
