@@ -1181,6 +1181,10 @@ class EventHandlerBase : public EventHandler {
       request.appendParam({
           {CCAPI_EM_ACCOUNT_ID, this->accountId},
       });
+    } else if (this->exchange == "kucoin") {
+      request.appendParam({
+          {CCAPI_EM_ACCOUNT_TYPE, "trade"},
+      });
     }
     requestList.emplace_back(std::move(request));
     this->getAccountBalancesLastTime = messageTime;

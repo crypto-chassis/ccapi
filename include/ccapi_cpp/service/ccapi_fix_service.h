@@ -495,7 +495,7 @@ class FixService : public Service {
                                       now - that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method))
                                           .count() >= pongTimeoutMilliSeconds) {
                                 auto thisFixConnectionPtr = fixConnectionPtr;
-                                // that->onFail(fixConnectionPtr, "pong timeout");
+                                that->onFail(fixConnectionPtr, "pong timeout");
                               } else {
                                 auto thisFixConnectionPtr = fixConnectionPtr;
                                 that->setPingPongTimer(method, thisFixConnectionPtr, pingMethod);
