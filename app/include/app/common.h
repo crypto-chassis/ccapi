@@ -61,6 +61,19 @@
 #define APP_LOGGER_DEBUG(message)
 #define APP_LOGGER_DEBUG_WITH_TAG(message, tag)
 #endif
+#if defined(CCAPI_APP_ENABLE_LOG_TRACE)
+#define APP_LOGGER_TRACE(message)                       \
+  if (::ccapi::AppLogger::logger) {                     \
+    ::ccapi::AppLogger::logger->log(message, "TRACE:"); \
+  }
+#define APP_LOGGER_TRACE_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                 \
+    ::ccapi::AppLogger::logger->log(message, "TRACE:" + tag + ":"); \
+  }
+#else
+#define APP_LOGGER_TRACE(message)
+#define APP_LOGGER_TRACE_WITH_TAG(message, tag)
+#endif
 #include <cmath>
 #include <fstream>
 #include <mutex>
