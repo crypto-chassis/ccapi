@@ -66,6 +66,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       if (key == "side") {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
+      if (key == "type" && value == "market") {
+        document.AddMember("price", rj::Value(rj::Type::kNullType), allocator);
+      }
       if (value != "null") {
         if (value == "true" || value == "false") {
           document.AddMember(rj::Value(key.c_str(), allocator).Move(), value == "true", allocator);

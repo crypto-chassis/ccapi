@@ -376,6 +376,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
           }
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data[5].GetString());
           element.insert(CCAPI_IS_MAKER, std::string(data[8].GetString()).at(0) != '-' ? "1" : "0");
+          element.insert(CCAPI_EM_ORDER_INSTRUMENT, data[1].GetString());
           element.insert(CCAPI_EM_ORDER_ID, data[3].GetString());
           element.insert(CCAPI_EM_CLIENT_ORDER_ID, data[11].GetString());
           if (type == "tu") {
