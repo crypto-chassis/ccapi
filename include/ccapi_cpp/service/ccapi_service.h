@@ -541,6 +541,7 @@ class Service : public std::enable_shared_from_this<Service> {
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "read", {request.getCorrelationId()}, eventQueuePtr);
+      this->httpConnectionPool.purge();
       auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
