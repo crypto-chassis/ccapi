@@ -228,7 +228,9 @@ class Session {
   }
   virtual ~Session() {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    delete this->eventDispatcher;
+    if (this->useInternalEventDispatcher) {
+      delete this->eventDispatcher;
+    }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void start() {
