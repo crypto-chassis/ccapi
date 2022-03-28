@@ -1,3 +1,4 @@
+import sys
 import time
 import traceback
 from ccapi import EventHandler, SessionOptions, SessionConfigs, Session, Subscription, Event

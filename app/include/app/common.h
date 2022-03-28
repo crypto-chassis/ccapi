@@ -9,7 +9,8 @@
 #ifndef PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID
 #define PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID "PRIVATE_TRADE,ORDER_UPDATE"
 #endif
-#if defined(CCAPI_APP_ENABLE_LOG_ERROR) || defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#if defined(CCAPI_APP_ENABLE_LOG_ERROR) || defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG) || \
+    defined(CCAPI_APP_ENABLE_LOG_TRACE)
 #define APP_LOGGER_ERROR(message)                       \
   if (::ccapi::AppLogger::logger) {                     \
     ::ccapi::AppLogger::logger->log(message, "ERROR:"); \
@@ -22,7 +23,7 @@
 #define APP_LOGGER_ERROR(message)
 #define APP_LOGGER_ERROR_WITH_TAG(message, tag)
 #endif
-#if defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#if defined(CCAPI_APP_ENABLE_LOG_WARN) || defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG) || defined(CCAPI_APP_ENABLE_LOG_TRACE)
 #define APP_LOGGER_WARN(message)                       \
   if (::ccapi::AppLogger::logger) {                    \
     ::ccapi::AppLogger::logger->log(message, "WARN:"); \
@@ -35,7 +36,7 @@
 #define APP_LOGGER_WARN(message)
 #define APP_LOGGER_WARN_WITH_TAG(message, tag)
 #endif
-#if defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#if defined(CCAPI_APP_ENABLE_LOG_INFO) || defined(CCAPI_APP_ENABLE_LOG_DEBUG) || defined(CCAPI_APP_ENABLE_LOG_TRACE)
 #define APP_LOGGER_INFO(message)                       \
   if (::ccapi::AppLogger::logger) {                    \
     ::ccapi::AppLogger::logger->log(message, "INFO:"); \
@@ -48,7 +49,7 @@
 #define APP_LOGGER_INFO(message)
 #define APP_LOGGER_INFO_WITH_TAG(message, tag)
 #endif
-#if defined(CCAPI_APP_ENABLE_LOG_DEBUG)
+#if defined(CCAPI_APP_ENABLE_LOG_DEBUG) || defined(CCAPI_APP_ENABLE_LOG_TRACE)
 #define APP_LOGGER_DEBUG(message)                       \
   if (::ccapi::AppLogger::logger) {                     \
     ::ccapi::AppLogger::logger->log(message, "DEBUG:"); \
@@ -60,6 +61,19 @@
 #else
 #define APP_LOGGER_DEBUG(message)
 #define APP_LOGGER_DEBUG_WITH_TAG(message, tag)
+#endif
+#if defined(CCAPI_APP_ENABLE_LOG_TRACE)
+#define APP_LOGGER_TRACE(message)                       \
+  if (::ccapi::AppLogger::logger) {                     \
+    ::ccapi::AppLogger::logger->log(message, "TRACE:"); \
+  }
+#define APP_LOGGER_TRACE_WITH_TAG(message, tag)                     \
+  if (::ccapi::AppLogger::logger) {                                 \
+    ::ccapi::AppLogger::logger->log(message, "TRACE:" + tag + ":"); \
+  }
+#else
+#define APP_LOGGER_TRACE(message)
+#define APP_LOGGER_TRACE_WITH_TAG(message, tag)
 #endif
 #include <cmath>
 #include <fstream>
@@ -171,6 +185,10 @@ class CsvWriter {
   void close() {
     std::lock_guard<std::mutex> lock(m);
     this->f.close();
+  }
+  void writeString(const std::string& str) {
+    std::lock_guard<std::mutex> lock(m);
+    this->f << str.c_str();
   }
   void writeRow(const std::vector<std::string>& row) {
     std::lock_guard<std::mutex> lock(m);
