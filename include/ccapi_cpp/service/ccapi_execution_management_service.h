@@ -237,7 +237,7 @@ class ExecutionManagementService : public Service {
       rj::Writer<rj::StringBuffer> writer(stringBuffer);
       document.Accept(writer);
       std::string sendString = stringBuffer.GetString();
-      CCAPI_LOGGER_INFO("sendString = " + sendString);
+      CCAPI_LOGGER_TRACE("sendString = " + sendString);
       that->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
       if (ec) {
         that->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
