@@ -328,8 +328,8 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     auto it = document.FindMember("id");
     if (document.FindMember("error") != document.MemberEnd()) {
       const rj::Value& error = document["error"];

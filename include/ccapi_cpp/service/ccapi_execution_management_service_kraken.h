@@ -311,7 +311,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
-    auto fieldSet = subscription.getFieldSet();
+    const auto& fieldSet = subscription.getFieldSet();
     std::vector<std::string> sendStringList;
     for (const auto& field : fieldSet) {
       std::string name;
@@ -350,8 +350,8 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
       std::string channelName = document[1].GetString();
       if (channelName == "ownTrades" || channelName == "openOrders") {
         event.setType(Event::Type::SUBSCRIPTION_DATA);
-        auto fieldSet = subscription.getFieldSet();
-        auto instrumentSet = subscription.getInstrumentSet();
+        const auto& fieldSet = subscription.getFieldSet();
+        const auto& instrumentSet = subscription.getInstrumentSet();
         if (channelName == "ownTrades" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
           for (const auto& x : document[0].GetArray()) {
             for (auto itr = x.MemberBegin(); itr != x.MemberEnd(); ++itr) {

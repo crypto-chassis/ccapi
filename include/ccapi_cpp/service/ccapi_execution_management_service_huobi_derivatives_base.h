@@ -242,8 +242,8 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
     std::string op = document["op"].GetString();
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     if (op == "auth") {
       std::string errCode = document["err-code"].GetString();
       if (errCode == "0") {
@@ -300,8 +300,8 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     if (op == "notify") {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       Message message;

@@ -255,8 +255,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
                      const TimePoint& timeReceived) override {
     std::string actionStr = document["action"].GetString();
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     if (actionStr == "req") {
       std::string chStr = document["ch"].GetString();
       if (chStr == "auth") {
@@ -322,8 +322,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     if (actionStr == "push") {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       Message message;

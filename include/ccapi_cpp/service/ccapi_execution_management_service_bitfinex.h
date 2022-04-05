@@ -321,8 +321,8 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     std::string authSig = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, authPayload, true);
     document.AddMember("authSig", rj::Value(authSig.c_str(), allocator).Move(), allocator);
     rj::Value filter(rj::kArrayType);
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
       if (instrumentSet.empty()) {
         filter.PushBack(rj::Value("trading").Move(), allocator);
@@ -353,8 +353,8 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     if (document.IsArray() && document.Size() >= 3 && std::string(document[0].GetString()) == "0") {
       std::string type = document[1].GetString();
       if ((type == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
