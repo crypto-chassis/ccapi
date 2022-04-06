@@ -66,6 +66,9 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       if (key == "side") {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
+      if (key == "type" && value == "market") {
+        document.AddMember("price", rj::Value(rj::Type::kNullType), allocator);
+      }
       if (value != "null") {
         if (value == "true" || value == "false") {
           document.AddMember(rj::Value(key.c_str(), allocator).Move(), value == "true", allocator);
@@ -288,7 +291,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     document.Accept(writer);
     std::string sendString = stringBuffer.GetString();
     sendStringList.push_back(sendString);
-    auto fieldSet = subscription.getFieldSet();
+    const auto& fieldSet = subscription.getFieldSet();
     for (const auto& field : subscription.getFieldSet()) {
       std::string channelId;
       if (field == CCAPI_EM_ORDER_UPDATE) {
@@ -322,8 +325,8 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     std::string type = document["type"].GetString();
     if (type == "update") {
       std::string channel = std::string(document["channel"].GetString());

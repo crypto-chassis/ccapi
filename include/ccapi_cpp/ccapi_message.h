@@ -200,6 +200,7 @@ class Message CCAPI_FINAL {
   // 'getTime' only works in C++. For other languages, please use 'getTimeISO'.
   TimePoint getTime() const { return time; }
   std::string getTimeISO() const { return UtilTime::getISOTimestamp(time); }
+  std::pair<long long, long long> getTimeUnix() const { return UtilTime::divide(time); }
   std::pair<long long, long long> getTimePair() const { return UtilTime::divide(time); }
   void setTime(TimePoint time) { this->time = time; }
   RecapType getRecapType() const { return recapType; }
@@ -209,6 +210,7 @@ class Message CCAPI_FINAL {
   // 'getTimeReceived' only works in C++. For other languages, please use 'getTimeReceivedISO'.
   TimePoint getTimeReceived() const { return timeReceived; }
   std::string getTimeReceivedISO() const { return UtilTime::getISOTimestamp(timeReceived); }
+  std::pair<long long, long long> getTimeReceivedUnix() const { return UtilTime::divide(timeReceived); }
   std::pair<long long, long long> getTimeReceivedPair() const { return UtilTime::divide(timeReceived); }
   void setTimeReceived(TimePoint timeReceived) { this->timeReceived = timeReceived; }
 #ifndef CCAPI_EXPOSE_INTERNAL

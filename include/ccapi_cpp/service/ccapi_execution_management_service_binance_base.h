@@ -311,8 +311,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     std::string type = document["e"].GetString();
     if (type == (this->isDerivatives ? "ORDER_TRADE_UPDATE" : "executionReport")) {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
@@ -335,6 +335,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["S"].GetString()) == "BUY" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
           element.insert(CCAPI_IS_MAKER, data["m"].GetBool() ? "1" : "0");
           element.insert(CCAPI_EM_ORDER_ID, std::string(data["i"].GetString()));
+          element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(data["c"].GetString()));
           element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
           {
             auto it = data.FindMember("n");

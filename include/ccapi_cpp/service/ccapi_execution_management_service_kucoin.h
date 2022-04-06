@@ -153,6 +153,15 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       }
     }
   }
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
+                   const std::map<std::string, std::string> standardizationMap = {}) {
+    for (const auto& kv : param) {
+      queryString += standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
+      queryString += "=";
+      queryString += Url::urlEncode(kv.second);
+      queryString += "&";
+    }
+  }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
@@ -236,7 +245,18 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       } break;
       case Request::Operation::GET_ACCOUNTS: {
         req.method(http::verb::get);
-        req.target(this->getAccountsTarget);
+        std::string target = this->getAccountsTarget;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        if (!param.empty()) {
+          std::string queryString;
+          this->appendParam(queryString, param,
+                            {
+                                {CCAPI_EM_ASSET, "currency"},
+                                {CCAPI_EM_ACCOUNT_TYPE, "type"},
+                            });
+          target += "?" + queryString;
+        }
+        req.target(target);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
@@ -332,7 +352,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::string topic;
-    auto fieldSet = subscription.getFieldSet();
+    const auto& fieldSet = subscription.getFieldSet();
     if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
       topic = "/spotMarket/tradeOrders";
     }
@@ -375,8 +395,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     std::string type = document["type"].GetString();
     if (type == "message") {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
-      auto fieldSet = subscription.getFieldSet();
-      auto instrumentSet = subscription.getInstrumentSet();
+      const auto& fieldSet = subscription.getFieldSet();
+      const auto& instrumentSet = subscription.getInstrumentSet();
       std::string topic = document["topic"].GetString();
       if (topic == "/spotMarket/tradeOrders") {
         const rj::Value& data = document["data"];

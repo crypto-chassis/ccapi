@@ -424,8 +424,8 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         } else {
           const rj::Value& data = document["data"];
           event.setType(Event::Type::SUBSCRIPTION_DATA);
-          auto fieldSet = subscription.getFieldSet();
-          auto instrumentSet = subscription.getInstrumentSet();
+          const auto& fieldSet = subscription.getFieldSet();
+          const auto& instrumentSet = subscription.getInstrumentSet();
           std::string instrument = data["s"].GetString();
           if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
             message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(data["t"].GetString()))));

@@ -28,6 +28,12 @@ class MarketDataServiceBitstamp : public MarketDataService {
 
  private:
 #endif
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    this->send(hdl, R"({"event": "bts:heartbeat"})", wspp::frame::opcode::text, ec);
+  }
+  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+    return body.find(R"("status": "error")") != std::string::npos || body.find(R"("status":"error")") != std::string::npos;
+  }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -187,6 +193,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
     int baseDecimals = std::stoi(x["base_decimals"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseDecimals - 1, '0') + "1");
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minimum_order"].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {

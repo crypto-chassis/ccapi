@@ -334,8 +334,8 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     std::string type = document["e"].GetString();
     if (type == (this->isDerivatives ? "ORDER_TRADE_UPDATE" : "executionReport")) {
       event.setType(Event::Type::SUBSCRIPTION_DATA);

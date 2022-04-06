@@ -359,8 +359,8 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
       auto& allocator = document.GetAllocator();
       document.AddMember("op", rj::Value("subscribe").Move(), allocator);
       rj::Value args(rj::kArrayType);
-      auto fieldSet = subscription.getFieldSet();
-      auto instrumentSet = subscription.getInstrumentSet();
+      const auto& fieldSet = subscription.getFieldSet();
+      const auto& instrumentSet = subscription.getInstrumentSet();
       for (const auto& field : fieldSet) {
         std::string channel;
         if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
@@ -398,8 +398,8 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     if (eventStr.empty()) {
       auto it = document.FindMember("op");
       std::string op = it != document.MemberEnd() ? it->value.GetString() : "";
