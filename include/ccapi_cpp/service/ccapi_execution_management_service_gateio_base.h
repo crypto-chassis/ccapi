@@ -295,8 +295,8 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     int time = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     for (const auto& field : fieldSet) {
       rj::Document document;
       document.SetObject();
@@ -350,8 +350,8 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     std::string eventType = document["event"].GetString();
     if (eventType == "update") {
       event.setType(Event::Type::SUBSCRIPTION_DATA);
-      auto fieldSet = subscription.getFieldSet();
-      auto instrumentSet = subscription.getInstrumentSet();
+      const auto& fieldSet = subscription.getFieldSet();
+      const auto& instrumentSet = subscription.getInstrumentSet();
       std::string channel = document["channel"].GetString();
       std::string field;
       if (channel == this->websocketChannelUserTrades) {

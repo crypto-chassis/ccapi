@@ -36,6 +36,7 @@
 }
 %template(map_string_string) std::map<std::string, std::string>;
 %template(pair_int_string) std::pair<int, std::string>;
+%template(pair_long_long_long_long) std::pair<long long, long long>;
 %template(vector_pair_int_string) std::vector<std::pair<int, std::string> >;
 %template(ElementList) std::vector<ccapi::Element>;
 %template(vector_string) std::vector<std::string>;

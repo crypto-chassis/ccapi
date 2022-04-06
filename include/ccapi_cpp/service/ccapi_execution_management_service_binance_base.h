@@ -311,8 +311,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     std::string type = document["e"].GetString();
     if (type == (this->isDerivatives ? "ORDER_TRADE_UPDATE" : "executionReport")) {
       event.setType(Event::Type::SUBSCRIPTION_DATA);

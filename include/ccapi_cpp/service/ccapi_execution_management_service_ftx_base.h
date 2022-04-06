@@ -291,7 +291,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     document.Accept(writer);
     std::string sendString = stringBuffer.GetString();
     sendStringList.push_back(sendString);
-    auto fieldSet = subscription.getFieldSet();
+    const auto& fieldSet = subscription.getFieldSet();
     for (const auto& field : subscription.getFieldSet()) {
       std::string channelId;
       if (field == CCAPI_EM_ORDER_UPDATE) {
@@ -325,8 +325,8 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     std::string type = document["type"].GetString();
     if (type == "update") {
       std::string channel = std::string(document["channel"].GetString());

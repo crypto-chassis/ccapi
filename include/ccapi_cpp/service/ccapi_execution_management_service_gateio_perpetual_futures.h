@@ -82,7 +82,7 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
                               [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(), subscription]() mutable {
                                 auto now = UtilTime::now();
                                 subscription.setTimeSent(now);
-                                auto instrumentSet = subscription.getInstrumentSet();
+                                const auto& instrumentSet = subscription.getInstrumentSet();
                                 auto it = instrumentSet.begin();
                                 if (it != instrumentSet.end()) {
                                   std::string settle;

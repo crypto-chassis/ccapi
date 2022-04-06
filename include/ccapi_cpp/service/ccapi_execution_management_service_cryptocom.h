@@ -336,8 +336,8 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
-    auto fieldSet = subscription.getFieldSet();
-    auto instrumentSet = subscription.getInstrumentSet();
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
     std::string method = document["method"].GetString();
     auto itCode = document.FindMember("code");
     auto itResult = document.FindMember("result");
