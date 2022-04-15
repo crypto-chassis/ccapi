@@ -248,7 +248,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         }
         for (const auto& kv1 : balances) {
           Element element;
-          element.insert(CCAPI_EM_ASSET, kv1.first);
+          element.insert(CCAPI_EM_ASSET, UtilString::toUpper(kv1.first));
           for (const auto& kv2 : kv1.second) {
             element.insert(kv2.first, kv2.second);
           }
