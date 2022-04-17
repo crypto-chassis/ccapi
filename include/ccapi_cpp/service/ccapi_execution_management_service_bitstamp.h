@@ -402,7 +402,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         std::string instrument = UtilString::split(channel.substr(std::string("private-my_trades_").length()), '-').at(0);
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             Element info;
             info.insert(CCAPI_TRADE_ID, data["id"].GetString());
             info.insert(CCAPI_EM_ORDER_ID, data["order_id"].GetString());
