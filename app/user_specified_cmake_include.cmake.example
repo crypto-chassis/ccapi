@@ -11,6 +11,8 @@ endif()
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITSTAMP)
+#
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITFINEX)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)

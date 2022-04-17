@@ -248,7 +248,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         }
         for (const auto& kv1 : balances) {
           Element element;
-          element.insert(CCAPI_EM_ASSET, kv1.first);
+          element.insert(CCAPI_EM_ASSET, UtilString::toUpper(kv1.first));
           for (const auto& kv2 : kv1.second) {
             element.insert(kv2.first, kv2.second);
           }
@@ -402,11 +402,16 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         std::string instrument = UtilString::split(channel.substr(std::string("private-my_trades_").length()), '-').at(0);
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             Element info;
             info.insert(CCAPI_TRADE_ID, data["id"].GetString());
             info.insert(CCAPI_EM_ORDER_ID, data["order_id"].GetString());
-            info.insert(CCAPI_EM_CLIENT_ORDER_ID, data["client_order_id"].GetString());
+            {
+              auto it = data.FindMember("client_order_id");
+              if (it != data.MemberEnd()) {
+                info.insert(CCAPI_EM_CLIENT_ORDER_ID, it->value.GetString());
+              }
+            }
             info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["amount"].GetString());
             info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["price"].GetString());
             info.insert(CCAPI_EM_ORDER_FEE_QUANTITY, data["fee"].GetString());

@@ -187,13 +187,22 @@ class MarketDataServiceBitstamp : public MarketDataService {
     element.insert(CCAPI_INSTRUMENT, x["url_symbol"].GetString());
     std::string name = x["name"].GetString();
     auto splitted = UtilString::split(name, "/");
-    element.insert(CCAPI_BASE_ASSET, UtilString::toLower(splitted.at(0)));
-    element.insert(CCAPI_QUOTE_ASSET, UtilString::toLower(splitted.at(1)));
+    auto baseAsset = splitted.at(0);
+    auto quoteAsset = splitted.at(1);
+    element.insert(CCAPI_BASE_ASSET, baseAsset);
+    element.insert(CCAPI_QUOTE_ASSET, quoteAsset);
     int counterDecimals = std::stoi(x["counter_decimals"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
     int baseDecimals = std::stoi(x["base_decimals"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseDecimals - 1, '0') + "1");
-    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minimum_order"].GetString());
+    auto splittedMinimumOrder = UtilString::split(x["minimum_order"].GetString(), ' ');
+    if (splittedMinimumOrder.size() == 2) {
+      if (splittedMinimumOrder.at(1) == quoteAsset) {
+        element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, splittedMinimumOrder.at(0));
+      } else if (splittedMinimumOrder.at(1) == baseAsset) {
+        element.insert(CCAPI_ORDER_QUANTITY_MIN, splittedMinimumOrder.at(0));
+      }
+    }
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {

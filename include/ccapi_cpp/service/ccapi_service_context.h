@@ -52,6 +52,7 @@ class ServiceContext CCAPI_FINAL {
     CCAPI_LOGGER_INFO("just exited client asio io_service run loop");
   }
   void stop() {
+    this->ioContextPtr->stop();
     this->tlsClientPtr->stop();
     this->tlsClientPtr->stop_perpetual();
   }
