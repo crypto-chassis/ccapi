@@ -83,6 +83,7 @@ class EventHandlerBase : public EventHandler {
   };
   virtual ~EventHandlerBase() {}
   virtual void onInit() {}
+  virtual void processEventFurther(const Event& event, Session* session, std::vector<Request>& requestList) {}
   bool processEvent(const Event& event, Session* session) override {
     if (this->skipProcessEvent) {
       return true;
@@ -699,6 +700,7 @@ class EventHandlerBase : public EventHandler {
         }
       }
     }
+    this->processEventFurther(event, session, requestList);
     if (!requestList.empty()) {
       if (this->tradingMode == TradingMode::PAPER || this->tradingMode == TradingMode::BACKTEST) {
         for (const auto& request : requestList) {
