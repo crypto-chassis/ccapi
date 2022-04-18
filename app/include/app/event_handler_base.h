@@ -1015,8 +1015,8 @@ class EventHandlerBase : public EventHandler {
   std::string previousMessageTimeISODate, exchange, instrumentRest, instrumentWebsocket, baseAsset, quoteAsset, accountId, orderPriceIncrement,
       orderQuantityIncrement, privateDataDirectory, privateDataFilePrefix, privateDataFileSuffix, bestBidPrice, bestBidSize, bestAskPrice, bestAskSize,
       cancelOpenOrdersRequestCorrelationId, getAccountBalancesRequestCorrelationId, cancelBuyOrderRequestCorrelationId, cancelSellOrderRequestCorrelationId;
-  double halfSpreadMinimum{}, halfSpreadMaximum{}, inventoryBasePortionTarget{}, baseBalance{}, quoteBalance{}, baseAvailableBalanceProportion{1},
-      quoteAvailableBalanceProportion{1}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},
+  double halfSpreadMinimum{}, halfSpreadMaximum{}, inventoryBasePortionTarget{}, inventoryBaseTarget{}, baseBalance{}, quoteBalance{},
+      baseAvailableBalanceProportion{1}, quoteAvailableBalanceProportion{1}, orderQuantityProportion{}, totalBalancePeak{}, killSwitchMaximumDrawdown{},
       adverseSelectionGuardTriggerInventoryBasePortionMinimum{}, adverseSelectionGuardTriggerInventoryBasePortionMaximum{},
       adverseSelectionGuardActionOrderQuantityProportion{}, adverseSelectionGuardTriggerRollCorrelationCoefficientMaximum{},
       adverseSelectionGuardTriggerRocMinimum{}, adverseSelectionGuardTriggerRocMaximum{}, adverseSelectionGuardTriggerRsiMinimum{},
@@ -1242,7 +1242,7 @@ class EventHandlerBase : public EventHandler {
       this->skipProcessEvent = true;
       return;
     }
-    double r = this->baseBalance * this->midPrice / totalBalance;
+    double r = (this->inventoryBaseTarget > 0 ? this->inventoryBaseTarget : this->baseBalance) * this->midPrice / totalBalance;
     APP_LOGGER_DEBUG("Base balance proportion is " + std::to_string(r) + ".");
     AdverseSelectionGuardInformedTraderSide adverseSelectionGuardInformedTraderSide{AdverseSelectionGuardInformedTraderSide::NONE};
     if (this->enableAdverseSelectionGuard) {

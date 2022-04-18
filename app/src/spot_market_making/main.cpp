@@ -45,8 +45,15 @@ int main(int argc, char** argv) {
   eventHandler.instrumentWebsocket = instrumentWebsocket;
   eventHandler.baseAvailableBalanceProportion = UtilSystem::getEnvAsDouble("BASE_AVAILABLE_BALANCE_PROPORTION");
   eventHandler.quoteAvailableBalanceProportion = UtilSystem::getEnvAsDouble("QUOTE_AVAILABLE_BALANCE_PROPORTION");
-  double a = UtilSystem::getEnvAsDouble("INVENTORY_BASE_QUOTE_RATIO_TARGET");
-  eventHandler.inventoryBasePortionTarget = a / (a + 1);
+  std::string inventoryBaseQuoteRatioTargetStr = UtilSystem::getEnvAsString("INVENTORY_BASE_QUOTE_RATIO_TARGET");
+  if (!inventoryBaseQuoteRatioTargetStr.empty()) {
+    double a = std::stod(inventoryBaseQuoteRatioTargetStr);
+    eventHandler.inventoryBasePortionTarget = a / (a + 1);
+  }
+  std::string inventoryBaseTargetStr = UtilSystem::getEnvAsString("INVENTORY_BASE_TARGET");
+  if (!inventoryBaseTargetStr.empty()) {
+    eventHandler.inventoryBaseTarget = std::stod(inventoryBaseTargetStr);
+  }
   eventHandler.useWeightedMidPrice = UtilString::toLower(UtilSystem::getEnvAsString("USE_WEIGHTED_MID_PRICE")) == "true";
   eventHandler.halfSpreadMinimum = UtilSystem::getEnvAsDouble("SPREAD_PROPORTION_MINIMUM") / 2;
   eventHandler.halfSpreadMaximum = UtilSystem::getEnvAsDouble("SPREAD_PROPORTION_MAXIMUM") / 2;
