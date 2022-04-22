@@ -21,6 +21,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
+    if (queryString.find("timestamp=") == std::string::npos) {
+      if (!queryString.empty()) {
+        queryString += "&";
+      }
+      queryString += "timestamp=";
+      queryString += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+    }
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
     queryString += "&signature=";
