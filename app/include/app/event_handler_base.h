@@ -566,7 +566,8 @@ class EventHandlerBase : public EventHandler {
         }
         const auto& baseBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->baseBalance)).toString();
         const auto& quoteBalanceDecimalNotation = Decimal(UtilString::printDoubleScientific(this->quoteBalance)).toString();
-        if (!this->privateDataOnlySaveFinalSummary && this->accountBalanceCsvWriter) {
+        if (!this->privateDataOnlySaveFinalSummary && this->accountBalanceCsvWriter &&
+            (baseBalanceDecimalNotation != "0" || quoteBalanceDecimalNotation != "0")) {
           this->accountBalanceCsvWriter->writeRow({
               messageTimeReceivedISO,
               baseBalanceDecimalNotation,
