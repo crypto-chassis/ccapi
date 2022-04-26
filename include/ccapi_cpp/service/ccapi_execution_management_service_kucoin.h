@@ -303,19 +303,25 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
       }
     }
   }
+
+# 
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     const auto& data = document["data"];
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
-        for (const auto& x : data.GetArray()) {
-          Element element;
-          element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
-          element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
-          element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["balance"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
-          elementList.emplace_back(std::move(element));
+        for (const auto& x : data.GetArray()) {          
+          std::string acct_type = x["type"].GetString();
+          if (acct_type == "trade") {
+            Element element;
+            element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
+            element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
+            element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x["balance"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
+            elementList.emplace_back(std::move(element));
+          }
         }
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
