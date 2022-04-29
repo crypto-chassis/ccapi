@@ -26,6 +26,17 @@ TEST(UtilAlgorithmTest, base64FromBase64Url) {
   auto result = UtilAlgorithm::base64FromBase64Url(original);
   EXPECT_EQ(result, "TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ=");
 }
+TEST(UtilStringTest, roundInputBySignificantFigure) {
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(12345.01, 5, 1), "12346");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(12345.01, 5, -1), "12345");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(12345.01, 5, 0), "12345");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(2345.99, 5, 1), "2346.0");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(2345.99, 5, -1), "2345.9");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(2345.99, 5, 0), "2346.0");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(0.123456, 5, 1), "0.12346");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(0.123456, 5, -1), "0.12345");
+  EXPECT_EQ(UtilString::roundInputBySignificantFigure(0.123456, 5, 0), "0.12346");
+}
 TEST(UtilStringTest, splitHasDot) {
   std::string original("12.345");
   {

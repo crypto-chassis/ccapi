@@ -28,6 +28,33 @@
 namespace ccapi {
 class UtilString CCAPI_FINAL {
  public:
+  static std::string roundInputBySignificantFigure(double input, int numSignificantFigure, int roundDirection) {
+    const auto& splitted = UtilString::split(UtilString::printDoubleScientific(input), 'e');
+    double a = std::stod(splitted.at(0)) * std::pow(10, numSignificantFigure - 1);
+    double b;
+    if (roundDirection > 0) {
+      b = std::ceil(a);
+    } else if (roundDirection < 0) {
+      b = std::floor(a);
+    } else {
+      b = std::round(a);
+    }
+    std::string c = std::to_string(static_cast<int>(b));
+    int exponent = std::stoi(splitted.at(1)) - (numSignificantFigure - 1);
+    std::string output;
+    if (exponent >= 0) {
+      output = c + std::string(exponent, '0');
+    } else if (-exponent <= c.size() - 1) {
+      output = c.substr(0, c.size() + exponent);
+      output += ".";
+      output += c.substr(c.size() + exponent);
+    } else {
+      output = std::string(-exponent - c.size() + 1, '0');
+      output += ".";
+      output += c;
+    }
+    return output;
+  }
   static std::string replaceFirstOccurrence(std::string& s, const std::string& toReplace, const std::string& replaceWith) {
     std::size_t pos = s.find(toReplace);
     if (pos == std::string::npos) {
