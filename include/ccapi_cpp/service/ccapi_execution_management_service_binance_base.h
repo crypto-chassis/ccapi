@@ -379,10 +379,18 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           };
           Element info;
           this->extractOrderInfo(info, data, extractionFieldNameMap);
-          auto it = data.FindMember("ap");
-          if (it != data.MemberEnd() && !it->value.IsNull()) {
-            info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                        std::to_string(std::stod(it->value.GetString()) * std::stod(data["z"].GetString())));
+          {
+            auto it = data.FindMember("C");
+            if (it != data.MemberEnd() && !it->value.IsNull() && it->value.GetStringLength()) {
+              info.insert(CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, std::string(it->value.GetString()));
+            }
+          }
+          {
+            auto it = data.FindMember("ap");
+            if (it != data.MemberEnd() && !it->value.IsNull()) {
+              info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                          std::to_string(std::stod(it->value.GetString()) * std::stod(data["z"].GetString())));
+            }
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
