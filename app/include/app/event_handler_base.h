@@ -82,7 +82,7 @@ class EventHandlerBase : public EventHandler {
     IS,
   };
   virtual ~EventHandlerBase() {}
-  virtual void onInit() {}
+  virtual void onInit(Session* session) {}
   virtual void processEventFurther(const Event& event, Session* session, std::vector<Request>& requestList) {}
   bool processEvent(const Event& event, Session* session) override {
     if (this->skipProcessEvent) {
