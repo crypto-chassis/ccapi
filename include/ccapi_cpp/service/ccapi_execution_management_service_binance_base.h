@@ -21,6 +21,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
+    if (queryString.find("timestamp=") == std::string::npos) {
+      if (!queryString.empty()) {
+        queryString += "&";
+      }
+      queryString += "timestamp=";
+      queryString += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count());
+    }
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
     queryString += "&signature=";
@@ -372,10 +379,18 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           };
           Element info;
           this->extractOrderInfo(info, data, extractionFieldNameMap);
-          auto it = data.FindMember("ap");
-          if (it != data.MemberEnd() && !it->value.IsNull()) {
-            info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                        std::to_string(std::stod(it->value.GetString()) * std::stod(data["z"].GetString())));
+          {
+            auto it = data.FindMember("C");
+            if (it != data.MemberEnd() && !it->value.IsNull() && it->value.GetStringLength()) {
+              info.insert(CCAPI_EM_ORIGINAL_CLIENT_ORDER_ID, std::string(it->value.GetString()));
+            }
+          }
+          {
+            auto it = data.FindMember("ap");
+            if (it != data.MemberEnd() && !it->value.IsNull()) {
+              info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                          std::to_string(std::stod(it->value.GetString()) * std::stod(data["z"].GetString())));
+            }
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));

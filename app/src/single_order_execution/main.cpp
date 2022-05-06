@@ -136,8 +136,8 @@ int main(int argc, char** argv) {
   sessionOptions.httpMaxNumRetry = 0;
   sessionOptions.httpMaxNumRedirect = 0;
   SessionConfigs sessionConfigs;
-  eventHandler.onInit();
   Session session(sessionOptions, sessionConfigs, &eventHandler);
+  eventHandler.onInit(&session);
 #else
   Session session;
 #endif

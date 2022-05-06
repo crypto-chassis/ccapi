@@ -347,6 +347,12 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
           element.insert(CCAPI_EM_ORDER_ID, std::string(data["orderId"].GetString()));
           element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
           element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(data["fee"].GetString()));
+          {
+            auto it = data.FindMember("clientOrderId");
+            if (it != data.MemberEnd() && !it->value.IsNull()) {
+              element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(it->value.GetString()));
+            }
+          }
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
           messageList.emplace_back(std::move(message));
