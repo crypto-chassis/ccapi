@@ -192,9 +192,17 @@ class MarketDataServiceBitstamp : public MarketDataService {
     element.insert(CCAPI_BASE_ASSET, baseAsset);
     element.insert(CCAPI_QUOTE_ASSET, quoteAsset);
     int counterDecimals = std::stoi(x["counter_decimals"].GetString());
-    element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
+    if (counterDecimals > 0) {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
+    } else {
+      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "1");
+    }
     int baseDecimals = std::stoi(x["base_decimals"].GetString());
-    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseDecimals - 1, '0') + "1");
+    if (baseDecimals > 0) {
+      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(baseDecimals - 1, '0') + "1");
+    } else {
+      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
+    }
     auto splittedMinimumOrder = UtilString::split(x["minimum_order"].GetString(), ' ');
     if (splittedMinimumOrder.size() == 2) {
       if (splittedMinimumOrder.at(1) == quoteAsset) {
