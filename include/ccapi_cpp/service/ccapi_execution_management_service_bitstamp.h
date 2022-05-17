@@ -57,7 +57,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     preSignedText += req.base().at(http::field::host).to_string();
     preSignedText += req.target().to_string();
     if (!body.empty()) {
-      preSignedText += req.base().at(beast::http::field::content_type).to_string();
+      preSignedText += "application/x-www-form-urlencoded";
     }
     preSignedText += req.base().at("X-Auth-Nonce").to_string();
     preSignedText += req.base().at("X-Auth-Timestamp").to_string();
