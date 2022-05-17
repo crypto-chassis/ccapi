@@ -260,8 +260,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     message.setType(Message::Type::SUBSCRIPTION_STARTED);
     event.setMessageList({message});
     this->eventHandler(event, nullptr);
+    setPingListenKeyTimer(wsConnection);
+  }
+  void setPingListenKeyTimer(const WsConnection& wsConnection) {
     this->pingListenKeyTimerMapByConnectionIdMap[wsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         this->pingListenKeyIntervalSeconds * 1000, [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](ErrorCode const& ec) {
+          if (ec) return;
+          that->setPingListenKeyTimer(wsConnection);
           http::request<http::string_body> req;
           req.set(http::field::host, that->hostRest);
           req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
