@@ -171,6 +171,10 @@ int main(int argc, char** argv) {
   sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1 + eventHandler.accountBalanceRefreshWaitSeconds;
   sessionOptions.httpMaxNumRetry = 0;
   sessionOptions.httpMaxNumRedirect = 0;
+  if (eventHandler.exchange.rfind("ftx", 0) == 0) {
+    sessionOptions.pingWebsocketApplicationLevelIntervalMilliSeconds = 15;
+    sessionOptions.pongWebsocketApplicationLevelTimeoutMilliSeconds = 10;
+  }
   SessionConfigs sessionConfigs;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
   eventHandler.onInit(&session);
