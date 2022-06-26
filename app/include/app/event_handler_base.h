@@ -702,6 +702,18 @@ class EventHandlerBase : public EventHandler {
           }
         }
       }
+    } else if (eventType == Event::Type::SUBSCRIPTION_STATUS) {
+      for (const auto& message : event.getMessageList()) {
+        if (message.getType() == Message::Type::SUBSCRIPTION_STARTED) {
+          for (const auto& element : message.getElementList()) {
+            APP_LOGGER_INFO(element.getValue(CCAPI_INFO_MESSAGE));
+          }
+        } else if (message.getType() == Message::Type::SUBSCRIPTION_FAILURE) {
+          for (const auto& element : message.getElementList()) {
+            APP_LOGGER_ERROR(element.getValue(CCAPI_ERROR_MESSAGE));
+          }
+        }
+      }
     }
     this->processEventFurther(event, session, requestList);
     if (!requestList.empty()) {
