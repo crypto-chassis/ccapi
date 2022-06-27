@@ -26,6 +26,9 @@
 #include "ccapi_cpp/ccapi_util.h"
 #include "openssl/evp.h"
 namespace ccapi {
+/**
+ * Utilities.
+ */
 class UtilString CCAPI_FINAL {
  public:
   static std::string roundInputBySignificantFigure(double input, int numSignificantFigure, int roundDirection) {

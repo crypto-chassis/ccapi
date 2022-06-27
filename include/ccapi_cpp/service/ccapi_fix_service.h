@@ -6,6 +6,10 @@
 namespace hff = hffix;
 namespace ccapi {
 template <class T>
+/**
+ * Defines a service which provides access to exchange API and normalizes them. This is a base class that implements generic functionalities for dealing with
+ * exchange FIX APIs. The Session object is responsible for routing requests and subscriptions to the desired concrete service.
+ */
 class FixService : public Service {
  public:
   FixService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,

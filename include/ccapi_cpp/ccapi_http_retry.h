@@ -2,6 +2,9 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_HTTP_RETRY_H_
 #include <string>
 namespace ccapi {
+/**
+ * This class is used for retrying http requests for the REST API.
+ */
 class HttpRetry CCAPI_FINAL {
  public:
   explicit HttpRetry(int numRetry = 0, int numRedirect = 0, std::string redirectUrlStr = "",

@@ -5,6 +5,10 @@
 
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
+/**
+ * Element represents an item in a message. The value(s) in an Element can be queried in a number of ways. Use the getValue() functions to retrieve a single
+ * value. Use the getNameValueMap() function (or getTagValueMap() function for FIX API) to retrieve all the values.
+ */
 class Element CCAPI_FINAL {
  public:
   explicit Element(bool isFix = false) : isFix(isFix) {}

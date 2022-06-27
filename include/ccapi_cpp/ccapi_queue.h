@@ -7,6 +7,9 @@
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
 template <class T>
+/**
+ * This class represents a generic FIFO queue.
+ */
 class Queue {
  public:
   std::string EXCEPTION_QUEUE_FULL = "queue is full";

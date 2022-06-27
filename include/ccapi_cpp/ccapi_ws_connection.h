@@ -6,6 +6,9 @@
 #include "ccapi_cpp/ccapi_subscription.h"
 namespace wspp = websocketpp;
 namespace ccapi {
+/**
+ * This class represents a TCP socket connection for the websocket API.
+ */
 class WsConnection CCAPI_FINAL {
  public:
   WsConnection(std::string url, std::string group, std::vector<Subscription> subscriptionList) : url(url), group(group), subscriptionList(subscriptionList) {

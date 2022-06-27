@@ -8,6 +8,12 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
+/**
+ * A single request. Request objects are created using Request constructors. They are used with Session::sendRequest() or Session::sendRequestByWebsocket() or
+ * Session::sendRequestByFix(). The Request object contains the parameters for a single request. Once a Request has been created its fields can be further
+ * modified using the convenience functions appendParam() or appendParamFix() or setParamList() or setParamListFix(). A correlation id can be used as the unique
+ * identifier to tag all data associated with this request.
+ */
 class Request CCAPI_FINAL {
  public:
   static constexpr int operationTypeCustom = 0x100;

@@ -203,6 +203,12 @@
 #include "ccapi_cpp/service/ccapi_service_context.h"
 using steady_timer = boost::asio::steady_timer;
 namespace ccapi {
+/**
+ * This class provides a consumer session for making requests and subscriptions for services. Sessions manage access to services either by requests and
+ * responses or subscriptions. A Session can dispatch events and replies in either an immediate or batching mode. The mode of a Session is determined when it is
+ * constructed and cannot be changed subsequently. A Session is immediate if an EventHandler object is supplied when it is constructed. All incoming events are
+ * delivered to the EventHandler supplied on construction. A Session is batching if an EventHandler object is not supplied when it is constructed.
+ */
 class Session {
  public:
   Session(const Session&) = delete;

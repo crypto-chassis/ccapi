@@ -7,7 +7,9 @@
 #include "websocketpp/config/boost_config.hpp"
 namespace wspp = websocketpp;
 namespace ccapi {
-
+/**
+ * Defines the service that the service depends on.
+ */
 class ServiceContext CCAPI_FINAL {
  public:
   typedef wspp::lib::asio::io_service IoContext;

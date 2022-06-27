@@ -6,6 +6,9 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
+/**
+ * This class represents a url.
+ */
 class Url CCAPI_FINAL {
  public:
   explicit Url(std::string urlStr) {
