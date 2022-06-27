@@ -4,6 +4,9 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
+/**
+ * This class is used for handling jwt tokens.
+ */
 class Jwt CCAPI_FINAL {
  public:
   static std::string generate(const Hmac::ShaVersion shaVersion, const std::string& secret, const std::string& payload) {

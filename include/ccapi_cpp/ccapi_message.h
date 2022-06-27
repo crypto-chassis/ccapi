@@ -6,6 +6,12 @@
 #include "ccapi_cpp/ccapi_element.h"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
+/**
+ * A handle to a single message. Message objects are obtained from the getMessageList() function of the Event object. Each Message is associated with one or
+ * more correlation id values. The Message contents are represented as Elements and can be accessed via the getElementList() function. Each Message object
+ * consists of an Type attribute and a RecapType attribute. The exchange timestamp (if any) associated with the Messsage object can be retrieved via the
+ * getTime() function. The library timestamp can be retrieved via the getTimeReceived() function.
+ */
 class Message CCAPI_FINAL {
  public:
   enum class RecapType {

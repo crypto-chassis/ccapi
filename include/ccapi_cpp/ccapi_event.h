@@ -5,6 +5,12 @@
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_message.h"
 namespace ccapi {
+/**
+** A single event resulting from a subscription or a request. Event objects are created by the API and passed to the application either through a registered
+*EventHandler or EventQueue. Event objects contain Message objects which can be accessed using the getMessageList() function. The Event object is a handle to an
+*event. The event is the basic unit of work provided to applications. Each Event object consists of an Type attribute and zero or more Message objects.
+*/
+
 class Event CCAPI_FINAL {
  public:
   enum class Type {

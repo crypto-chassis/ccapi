@@ -15,6 +15,10 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 namespace ccapi {
+/**
+ * The ExecutionManagementService class inherits from the Service class and provides implemenations more specific to execution management such as order
+ * submission, order cancellation, etc..
+ */
 class ExecutionManagementService : public Service {
  public:
   enum class JsonDataType {

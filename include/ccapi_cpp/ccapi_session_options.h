@@ -5,6 +5,10 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
+/**
+ * This class contains the options which the user can specify when creating a session. To use non-default options on a Session, create a SessionOptions instance
+ * and set the required options and then supply it when creating a Session.
+ */
 class SessionOptions CCAPI_FINAL {
  public:
   std::string toString() const {

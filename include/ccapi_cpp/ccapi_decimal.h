@@ -4,7 +4,10 @@
 
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
-// minimalistic just for the purpose of being used as the key of a map
+/**
+ * This class provides a numeric type for representing an arbitrary precision decimal number. It is minimalistic for the purpose of high performance.
+ * Furthermore, unlike double, it is suitable for being used as the key of a map.
+ */
 class Decimal CCAPI_FINAL {
  public:
   Decimal() {}

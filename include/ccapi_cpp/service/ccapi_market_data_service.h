@@ -10,6 +10,9 @@
 #include "ccapi_cpp/ccapi_util_private.h"
 #include "ccapi_cpp/service/ccapi_service.h"
 namespace ccapi {
+/**
+ * The MarketDataService class inherits from the Service class and provides implemenations more specific to market data such as order book, trades, etc..
+ */
 class MarketDataService : public Service {
  public:
   MarketDataService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,

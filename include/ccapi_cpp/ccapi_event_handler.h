@@ -3,6 +3,10 @@
 #include "ccapi_cpp/ccapi_event.h"
 namespace ccapi {
 class Session;
+/**
+ * Defines the callback supplied by the application to process Events. Applications which use event driven programming supply instances of their own subclass of
+ * this class to the Session to receive callbacks when an Event is available.
+ */
 class EventHandler {
  public:
   virtual ~EventHandler() {}
