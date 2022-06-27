@@ -39,11 +39,11 @@ jobs:
         #     os: macos-latest,
         #     cc: "clang", cxx: "clang++"
         #   }
-        - {
-            name: "Windows Latest MinGW",
-            os: windows-latest,
-            cc: "gcc", cxx: "g++"
-          }
+        # - {
+        #     name: "Windows Latest MinGW",
+        #     os: windows-latest,
+        #     cc: "gcc", cxx: "g++"
+        #   }
       # TODO: "Windows Latest MSVC" is not working yet
       # - {
       #     name: "Windows Latest MSVC", artifact: "Windows-MSVC.tar.xz",
