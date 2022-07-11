@@ -83,9 +83,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                               {CCAPI_EM_ORDER_QUANTITY, "quantity"},
                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
                               {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"},
+                              {CCAPI_EM_ORDER_TYPE, "type"},
                           });
         this->appendSymbolId(queryString, symbolId);
-        if (param.find("type") == param.end()) {
+        if (param.find("TYPE") == param.end()) {
           queryString += "type=LIMIT&";
           if (param.find("timeInForce") == param.end()) {
             queryString += "timeInForce=GTC&";
