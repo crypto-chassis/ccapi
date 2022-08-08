@@ -45,7 +45,7 @@ namespace ccapi {
 class Session {
  public:
   virtual void subscribe(std::vector<Subscription>& subscriptionList) {}
-  virtual void sendRequest(std::vector<Request>& requestList) {}
+  virtual void sendRequest(const Event& event, Session* session, std::vector<Request>& requestList) {}
   virtual void sendRequest(Request& request) {}
   virtual void sendRequestByWebsocket(Request& request) {}
   virtual void stop() {}
@@ -83,7 +83,6 @@ class EventHandlerBase : public EventHandler {
   };
   virtual ~EventHandlerBase() {}
   virtual void onInit(Session* session) {}
-  virtual void processEventFurther(const Event& event, Session* session, std::vector<Request>& requestList) {}
   bool processEvent(const Event& event, Session* session) override {
     if (this->skipProcessEvent) {
       return true;
@@ -503,12 +502,12 @@ class EventHandlerBase : public EventHandler {
             (this->orderRefreshIntervalOffsetSeconds >= 0 &&
              std::chrono::duration_cast<std::chrono::seconds>(messageTime.time_since_epoch()).count() % this->orderRefreshIntervalSeconds ==
                  this->orderRefreshIntervalOffsetSeconds)) {
-          this->cancelOpenOrders(requestList, messageTime, messageTimeISO, false);
+          this->cancelOpenOrders(event, session, requestList, messageTime, messageTimeISO, false);
         } else if (std::chrono::duration_cast<std::chrono::seconds>(messageTime - this->cancelOpenOrdersLastTime).count() >=
                        this->accountBalanceRefreshWaitSeconds &&
                    this->getAccountBalancesLastTime < this->cancelOpenOrdersLastTime &&
                    this->cancelOpenOrdersLastTime + std::chrono::seconds(this->accountBalanceRefreshWaitSeconds) >= this->orderRefreshLastTime) {
-          this->getAccountBalances(requestList, messageTime, messageTimeISO);
+          this->getAccountBalances(event, session, requestList, messageTime, messageTimeISO);
         }
         this->postProcessMessageMarketDataEventMarketDepth(message, messageTime);
       }
@@ -553,12 +552,12 @@ class EventHandlerBase : public EventHandler {
         }
         if (!this->openBuyOrder && !this->openSellOrder) {
           if (this->accountBalanceRefreshWaitSeconds == 0) {
-            this->getAccountBalances(requestList, messageTimeReceived, messageTimeReceivedISO);
+            this->getAccountBalances(event, session, requestList, messageTimeReceived, messageTimeReceivedISO);
           }
         }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), this->cancelOpenOrdersRequestCorrelationId) != correlationIdList.end()) {
         if (this->accountBalanceRefreshWaitSeconds == 0) {
-          this->getAccountBalances(requestList, messageTimeReceived, messageTimeReceivedISO);
+          this->getAccountBalances(event, session, requestList, messageTimeReceived, messageTimeReceivedISO);
         }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), this->getAccountBalancesRequestCorrelationId) != correlationIdList.end()) {
         if (this->tradingMode == TradingMode::LIVE) {
@@ -581,7 +580,7 @@ class EventHandlerBase : public EventHandler {
         }
         if (this->numOpenOrders == 0) {
           size_t oldRequestListSize = requestList.size();
-          this->placeOrders(requestList, messageTimeReceived);
+          this->placeOrders(event, session, requestList, messageTimeReceived);
           this->numOpenOrders = requestList.size() - oldRequestListSize;
         }
       } else if (std::find(correlationIdList.begin(), correlationIdList.end(), "GET_INSTRUMENT") != correlationIdList.end()) {
@@ -656,37 +655,7 @@ class EventHandlerBase : public EventHandler {
           }
         } else {
           std::vector<Subscription> subscriptionList;
-          {
-            std::string options;
-            if (this->tradingMode == TradingMode::LIVE) {
-              options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1";
-            } else if (this->tradingMode == TradingMode::PAPER) {
-              if (this->appMode == AppMode::MARKET_MAKING) {
-                options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1";
-              } else if (this->appMode == AppMode::SINGLE_ORDER_EXECUTION) {
-                options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1000";
-              }
-            }
-            if (!this->enableUpdateOrderBookTickByTick) {
-              options += "&" + std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepMilliseconds) + "&" +
-                         CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0";
-            }
-            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, CCAPI_MARKET_DEPTH, options,
-                                          PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID);
-          }
-          {
-            std::string field = CCAPI_TRADE;
-            if (this->exchange.rfind("binance", 0) == 0) {
-              field = CCAPI_AGG_TRADE;
-            }
-            subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID);
-          }
-          {
-            if (this->tradingMode == TradingMode::LIVE) {
-              subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, std::string(CCAPI_EM_PRIVATE_TRADE) + "," + CCAPI_EM_ORDER_UPDATE, "",
-                                            PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID);
-            }
-          }
+          this->createSubscriptionList(subscriptionList);
           session->subscribe(subscriptionList);
         }
       }
@@ -697,7 +666,7 @@ class EventHandlerBase : public EventHandler {
             if (correlationId == PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID) {
               const auto& messageTimeReceived = message.getTimeReceived();
               const auto& messageTimeReceivedISO = UtilTime::getISOTimestamp(messageTimeReceived);
-              this->cancelOpenOrders(requestList, messageTimeReceived, messageTimeReceivedISO, true);
+              this->cancelOpenOrders(event, session, requestList, messageTimeReceived, messageTimeReceivedISO, true);
             }
           }
         }
@@ -1080,6 +1049,40 @@ class EventHandlerBase : public EventHandler {
   // end: only applicable to backtest
 
  protected:
+  virtual void processEventFurther(const Event& event, Session* session, std::vector<Request>& requestList) {}
+  virtual void createSubscriptionList(std::vector<Subscription>& subscriptionList) {
+    {
+      std::string options;
+      if (this->tradingMode == TradingMode::LIVE) {
+        options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1";
+      } else if (this->tradingMode == TradingMode::PAPER) {
+        if (this->appMode == AppMode::MARKET_MAKING) {
+          options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1";
+        } else if (this->appMode == AppMode::SINGLE_ORDER_EXECUTION) {
+          options += std::string(CCAPI_MARKET_DEPTH_MAX) + "=1000";
+        }
+      }
+      if (!this->enableUpdateOrderBookTickByTick) {
+        options += "&" + std::string(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) + "=" + std::to_string(this->clockStepMilliseconds) + "&" +
+                   CCAPI_CONFLATE_GRACE_PERIOD_MILLISECONDS + "=0";
+      }
+      subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, CCAPI_MARKET_DEPTH, options,
+                                    PUBLIC_SUBSCRIPTION_DATA_MARKET_DEPTH_CORRELATION_ID);
+    }
+    {
+      std::string field = CCAPI_TRADE;
+      if (this->exchange.rfind("binance", 0) == 0) {
+        field = CCAPI_AGG_TRADE;
+      }
+      subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, field, "", PUBLIC_SUBSCRIPTION_DATA_TRADE_CORRELATION_ID);
+    }
+    {
+      if (this->tradingMode == TradingMode::LIVE) {
+        subscriptionList.emplace_back(this->exchange, this->instrumentWebsocket, std::string(CCAPI_EM_PRIVATE_TRADE) + "," + CCAPI_EM_ORDER_UPDATE, "",
+                                      PRIVATE_SUBSCRIPTION_DATA_CORRELATION_ID);
+      }
+    }
+  }
   virtual void postProcessMessageMarketDataEventMarketDepth(const Message& message, const TimePoint& messageTime) {}
   virtual void postProcessMessageMarketDataEventTrade(const Message& message, const TimePoint& messageTime) {
     if (this->enableAdverseSelectionGuard) {
@@ -1130,7 +1133,8 @@ class EventHandlerBase : public EventHandler {
       this->quoteBalance -= feeQuantity;
     }
   }
-  virtual void cancelOpenOrders(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO, bool alwaysCancel) {
+  virtual void cancelOpenOrders(const Event& event, Session* session, std::vector<Request>& requestList, const TimePoint& messageTime,
+                                const std::string& messageTimeISO, bool alwaysCancel) {
     if (alwaysCancel || this->numOpenOrders != 0) {
       if (this->useCancelOrderToCancelOpenOrders) {
         if (this->openBuyOrder && !this->openBuyOrder.get().orderId.empty()) {
@@ -1180,12 +1184,13 @@ class EventHandlerBase : public EventHandler {
       this->numOpenOrders = 0;
       APP_LOGGER_INFO("Cancel open orders.");
     } else {
-      this->getAccountBalances(requestList, messageTime, messageTimeISO);
+      this->getAccountBalances(event, session, requestList, messageTime, messageTimeISO);
     }
     this->orderRefreshLastTime = messageTime;
     this->cancelOpenOrdersLastTime = messageTime;
   }
-  virtual void getAccountBalances(std::vector<Request>& requestList, const TimePoint& messageTime, const std::string& messageTimeISO) {
+  virtual void getAccountBalances(const Event& event, Session* session, std::vector<Request>& requestList, const TimePoint& messageTime,
+                                  const std::string& messageTimeISO) {
 #ifdef GET_ACCOUNT_BALANCES_REQUEST_CORRELATION_ID
     this->getAccountBalancesRequestCorrelationId = GET_ACCOUNT_BALANCES_REQUEST_CORRELATION_ID;
 #else
@@ -1229,7 +1234,7 @@ class EventHandlerBase : public EventHandler {
       this->skipProcessEvent = true;
     }
   }
-  virtual void placeOrders(std::vector<Request>& requestList, const TimePoint& now) {
+  virtual void placeOrders(const Event& event, Session* session, std::vector<Request>& requestList, const TimePoint& now) {
     if (this->midPrice == 0) {
       APP_LOGGER_INFO("At least one side of the order book is empty. Skip.");
       return;
@@ -1240,15 +1245,15 @@ class EventHandlerBase : public EventHandler {
       APP_LOGGER_INFO("Best bid price is " + this->bestBidPrice + ", best bid size is " + this->bestBidSize + ", best ask price is " + this->bestAskPrice +
                       ", best ask size is " + this->bestAskSize + ".");
       if (this->appMode == AppMode::MARKET_MAKING) {
-        this->placeOrdersMarketMaking(requestList, now);
+        this->placeOrdersMarketMaking(event, session, requestList, now);
       } else if (this->appMode == AppMode::SINGLE_ORDER_EXECUTION) {
-        this->placeOrdersSingleOrderExecution(requestList, now);
+        this->placeOrdersSingleOrderExecution(event, session, requestList, now);
       }
     } else {
       APP_LOGGER_INFO("Account has no assets. Skip.");
     }
   }
-  virtual void placeOrdersMarketMaking(std::vector<Request>& requestList, const TimePoint& now) {
+  virtual void placeOrdersMarketMaking(const Event& event, Session* session, std::vector<Request>& requestList, const TimePoint& now) {
     double totalBalance = this->baseBalance * this->midPrice + this->quoteBalance;
     if (totalBalance > this->totalBalancePeak) {
       this->totalBalancePeak = totalBalance;
@@ -1408,7 +1413,7 @@ class EventHandlerBase : public EventHandler {
       this->orderRefreshIntervalSeconds = this->originalOrderRefreshIntervalSeconds;
     }
   }
-  virtual void placeOrdersSingleOrderExecution(std::vector<Request>& requestList, const TimePoint& now) {
+  virtual void placeOrdersSingleOrderExecution(const Event& event, Session* session, std::vector<Request>& requestList, const TimePoint& now) {
     double price = 0;
     if (this->orderSide == CCAPI_EM_ORDER_SIDE_BUY) {
       price = std::min(midPrice * (1 + this->orderPriceLimitRelativeToMidPrice), this->orderPriceLimit == 0 ? INT_MAX : this->orderPriceLimit);

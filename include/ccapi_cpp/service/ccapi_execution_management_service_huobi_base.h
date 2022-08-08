@@ -79,7 +79,10 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
         }
       } else {
         if (key == "type") {
-          value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy-limit") ? "buy-limit" : "sell-limit";
+          if (value == CCAPI_EM_ORDER_SIDE_BUY)
+            value = "buy-limit";
+          else if (value == CCAPI_EM_ORDER_SIDE_SELL)
+            value = "sell-limit";
         }
       }
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
