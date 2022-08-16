@@ -261,6 +261,7 @@
 #define CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_LEVEL2DEPTH50 "/contractMarket/level2Depth50"
 #define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TRADES "trades"
 #define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS "orderbook"
+#define CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TICKER "ticker"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_TRADES "trades.{instrument_name}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK "book.{instrument_name}.{group}.{depth}.{interval}"
 #define CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK_TBT "book.{instrument_name}.{interval}"
