@@ -24,7 +24,12 @@ class MarketDataServiceFtxBase : public MarketDataService {
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     if (field == CCAPI_MARKET_DEPTH) {
-      this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = 100;
+      if (marketDepthRequested == 1) {
+        channelId = CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TICKER;
+        this->shouldAlignSnapshot = false;
+      } else {
+        this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = 100;
+      }
     }
   }
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
@@ -33,14 +38,15 @@ class MarketDataServiceFtxBase : public MarketDataService {
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       rj::Value channel(rj::kObjectType);
-      rj::Value symbolIds(rj::kArrayType);
       for (const auto& subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         document.AddMember("op", rj::Value("subscribe").Move(), allocator);
         std::string symbolId = subscriptionListBySymbolId.first;
-        symbolIds.PushBack(rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+        if (channelId == CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TICKER) {
+          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
+        }
         std::string exchangeSubscriptionId = channelId + "|" + symbolId;
         std::string market = symbolId;
         std::string channelIdString = channelId;
@@ -89,7 +95,33 @@ class MarketDataServiceFtxBase : public MarketDataService {
       auto symbolId = std::string(document["market"].GetString());
       auto channel = std::string(document["channel"].GetString());
       auto exchangeSubscriptionId = channel + "|" + symbolId;
-      if (channel == CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS) {
+      if (channel == CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_TICKER) {
+        MarketDataMessage marketDataMessage;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
+        marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+        auto timePair = UtilTime::divide(data["time"].GetString());
+        auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
+        tp += std::chrono::nanoseconds(timePair.second);
+        marketDataMessage.tp = tp;
+        if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channel][symbolId]) {
+          marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+        } else {
+          marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
+        }
+        {
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["bid"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["bidSize"].GetString())});
+          marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
+        }
+        {
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(data["ask"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(data["askSize"].GetString())});
+          marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
+        }
+        marketDataMessageList.emplace_back(std::move(marketDataMessage));
+      } else if (channel == CCAPI_WEBSOCKET_FTX_BASE_CHANNEL_ORDERBOOKS) {
         MarketDataMessage marketDataMessage;
         marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
