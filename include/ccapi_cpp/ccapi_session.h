@@ -620,6 +620,18 @@ class Session {
     } else {
       if (this->eventHandler) {
         CCAPI_LOGGER_TRACE("handle event in immediate mode");
+#ifdef CCAPI_USE_SINGLE_THREAD
+        bool shouldContinue = true;
+        try {
+          shouldContinue = this->eventHandler->processEvent(event, this);
+        } catch (const std::runtime_error& e) {
+          CCAPI_LOGGER_ERROR(e.what());
+        }
+        if (!shouldContinue) {
+          CCAPI_LOGGER_DEBUG("about to pause the event dispatcher");
+          this->eventDispatcher->pause();
+        }
+#else
         this->eventDispatcher->dispatch([that = this, event = std::move(event)] {
           bool shouldContinue = true;
           try {
@@ -632,6 +644,7 @@ class Session {
             that->eventDispatcher->pause();
           }
         });
+#endif
       } else {
         CCAPI_LOGGER_TRACE("handle event in batching mode");
         this->eventQueue.pushBack(std::move(event));

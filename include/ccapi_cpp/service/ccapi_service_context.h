@@ -15,7 +15,7 @@ class ServiceContext CCAPI_FINAL {
   typedef wspp::lib::asio::io_service IoContext;
   typedef wspp::lib::shared_ptr<wspp::lib::asio::io_service> IoContextPtr;
   struct CustomClientConfig : public wspp::config::asio_tls_client {
-#ifdef WEBSOCKETPP_ENABLE_SINGLE_THREADING
+#ifdef CCAPI_USE_SINGLE_THREAD
     typedef wspp::config::asio_tls_client base;
     static bool const enable_multithreading = false;
     struct transport_config : public base::transport_config {
