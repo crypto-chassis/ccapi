@@ -914,6 +914,7 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 * Only enable the services and exchanges that you need.
 * Use FIX API instead of REST API.
 * Handle events in ["batching" mode](#handle-events-in-immediate-vs-batching-mode) if your application (e.g. market data archiver) isn't latency sensitive.
+* Define macro `CCAPI_USE_SINGLE_THREAD`. It reduces locking overhead for single threaded applications.
 
 ## Applications
 
