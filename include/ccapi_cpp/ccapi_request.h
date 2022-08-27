@@ -136,6 +136,9 @@ class Request CCAPI_FINAL {
   const std::string& getServiceName() const { return serviceName; }
   void appendParam(const std::map<std::string, std::string>& param) { this->paramList.push_back(param); }
   void appendParamFix(const std::vector<std::pair<int, std::string> >& param) { this->paramListFix.push_back(param); }
+  void appendParamListFix(const std::vector<std::vector<std::pair<int, std::string> > >& paramList) {
+    this->paramListFix.insert(std::end(this->paramListFix), std::begin(paramList), std::end(paramList));
+  }
   void setParamListFix(const std::vector<std::vector<std::pair<int, std::string> > >& paramListFix) { this->paramListFix = paramListFix; }
   Operation getOperation() const { return operation; }
   const std::vector<std::map<std::string, std::string> >& getParamList() const { return paramList; }
