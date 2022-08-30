@@ -378,7 +378,7 @@ class FixService : public Service {
     auto& connectionId = fixConnectionPtr->id;
     auto& writeMessageBuffer = this->writeMessageBufferByConnectionIdMap[connectionId];
     auto& writeMessageBufferWrittenLength = this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
-    size_t n = 0;
+    size_t n = writeMessageBufferWrittenLength;
     for (const auto& param : paramList) {
       auto commonParam = this->createCommonParam(connectionId, nowFixTimeStr);
       hff::message_writer messageWriter(writeMessageBuffer.data() + n, writeMessageBuffer.data() + writeMessageBuffer.size());
@@ -399,11 +399,13 @@ class FixService : public Service {
       n += messageWriter.message_end() - messageWriter.message_begin();
     }
     CCAPI_LOGGER_DEBUG("about to send " + printableString(writeMessageBuffer.data(), n));
+    CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
     if (writeMessageBufferWrittenLength == 0) {
       CCAPI_LOGGER_TRACE("about to start write");
       this->startWrite_3(fixConnectionPtr, writeMessageBuffer.data(), n);
     }
-    writeMessageBufferWrittenLength += n;
+    writeMessageBufferWrittenLength = n;
+    CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
   }
   void onPongByMethod(PingPongMethod method, std::shared_ptr<FixConnection<T>> fixConnectionPtr, const TimePoint& timeReceived) {
     CCAPI_LOGGER_FUNCTION_ENTER;
