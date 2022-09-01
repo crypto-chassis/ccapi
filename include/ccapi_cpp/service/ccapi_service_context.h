@@ -22,6 +22,9 @@ class ServiceContext CCAPI_FINAL {
       static bool const enable_multithreading = false;
     };
 #endif
+#ifdef CCAPI_WEBSOCKET_READ_BUFFER_SIZE
+static const size_t connection_read_buffer_size = CCAPI_WEBSOCKET_READ_BUFFER_SIZE;
+#endif
     static const wspp::log::level alog_level = wspp::log::alevel::none;
     static const wspp::log::level elog_level = wspp::log::elevel::none;
   };
