@@ -1,6 +1,12 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_
 #ifdef CCAPI_ENABLE_SERVICE_FIX
+#ifndef CCAPI_FIX_READ_BUFFER_SIZE
+#define CCAPI_FIX_READ_BUFFER_SIZE 1 << 20
+#endif
+#ifndef CCAPI_FIX_WRITE_BUFFER_SIZE
+#define CCAPI_FIX_WRITE_BUFFER_SIZE 1 << 20
+#endif
 #include "ccapi_cpp/service/ccapi_service.h"
 #include "hffix.hpp"
 namespace hff = hffix;
@@ -523,9 +529,9 @@ class FixService : public Service {
     return {};
   }
   const size_t readMessageChunkSize = CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE;
-  std::map<std::string, std::array<char, 1 << 20>> readMessageBufferByConnectionIdMap;
+  std::map<std::string, std::array<char, CCAPI_FIX_READ_BUFFER_SIZE>> readMessageBufferByConnectionIdMap;
   std::map<std::string, size_t> readMessageBufferReadLengthByConnectionIdMap;
-  std::map<std::string, std::array<char, 1 << 20>> writeMessageBufferByConnectionIdMap;
+  std::map<std::string, std::array<char, CCAPI_FIX_WRITE_BUFFER_SIZE>> writeMessageBufferByConnectionIdMap;
   std::map<std::string, size_t> writeMessageBufferWrittenLengthByConnectionIdMap;
   std::map<std::string, std::shared_ptr<FixConnection<T>>> fixConnectionPtrByIdMap;
   std::map<std::string, int> sequenceSentByConnectionIdMap;
