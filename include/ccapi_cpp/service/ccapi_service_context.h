@@ -63,7 +63,7 @@ static const size_t connection_read_buffer_size = CCAPI_WEBSOCKET_READ_BUFFER_SI
   }
   IoContextPtr ioContextPtr{new IoContext()};
   TlsClientPtr tlsClientPtr{new TlsClient()};
-  SslContextPtr sslContextPtr{new SslContext(SslContext::sslv23)};
+  SslContextPtr sslContextPtr{new SslContext(SslContext::tls_client)};
 };
 
 } /* namespace ccapi */
