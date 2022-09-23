@@ -238,11 +238,18 @@ class MarketDataServiceGemini : public MarketDataService {
       } break;
       case Request::Operation::GET_INSTRUMENTS: {
         req.method(http::verb::get);
-        req.target(this->getInstrumentTarget);
+        req.target(this->getInstrumentsTarget);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
+  }
+  void extractInstrumentInfo(Element& element, const rj::Value& x) {
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["base_currency"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quote_currency"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, Decimal(x["quote_increment"].GetString()).toString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, Decimal(x["tick_size"].GetString()).toString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -268,11 +275,7 @@ class MarketDataServiceGemini : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         Element element;
-        element.insert(CCAPI_INSTRUMENT, document["symbol"].GetString());
-        element.insert(CCAPI_BASE_ASSET, document["base_currency"].GetString());
-        element.insert(CCAPI_QUOTE_ASSET, document["quote_currency"].GetString());
-        element.insert(CCAPI_ORDER_PRICE_INCREMENT, Decimal(document["quote_increment"].GetString()).toString());
-        element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, Decimal(document["tick_size"].GetString()).toString());
+        this->extractInstrumentInfo(element, document);
         message.setElementList({element});
         message.setCorrelationIdList({request.getCorrelationId()});
         event.addMessages({message});
