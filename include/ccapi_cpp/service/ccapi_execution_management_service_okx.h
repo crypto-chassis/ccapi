@@ -1,16 +1,16 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKX_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKX_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
+#ifdef CCAPI_ENABLE_EXCHANGE_OKX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
-class ExecutionManagementServiceOkex : public ExecutionManagementService {
+class ExecutionManagementServiceOkx : public ExecutionManagementService {
  public:
-  ExecutionManagementServiceOkex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  ExecutionManagementServiceOkx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                  ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKEX_PRIVATE_WS_PATH;
+    this->exchangeName = CCAPI_EXCHANGE_NAME_OKX;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_PRIVATE_WS_PATH;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -18,10 +18,10 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    this->apiKeyName = CCAPI_OKEX_API_KEY;
-    this->apiSecretName = CCAPI_OKEX_API_SECRET;
-    this->apiPassphraseName = CCAPI_OKEX_API_PASSPHRASE;
-    this->apiXSimulatedTradingName = CCAPI_OKEX_API_X_SIMULATED_TRADING;
+    this->apiKeyName = CCAPI_OKX_API_KEY;
+    this->apiSecretName = CCAPI_OKX_API_SECRET;
+    this->apiPassphraseName = CCAPI_OKX_API_PASSPHRASE;
+    this->apiXSimulatedTradingName = CCAPI_OKX_API_X_SIMULATED_TRADING;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName, this->apiXSimulatedTradingName});
     this->createOrderTarget = "/api/v5/trade/order";
     this->cancelOrderTarget = "/api/v5/trade/cancel-order";
@@ -30,7 +30,7 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
     this->getAccountBalancesTarget = "/api/v5/account/balance";
     this->getAccountPositionsTarget = "/api/v5/account/positions";
   }
-  virtual ~ExecutionManagementServiceOkex() {}
+  virtual ~ExecutionManagementServiceOkx() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -508,4 +508,4 @@ class ExecutionManagementServiceOkex : public ExecutionManagementService {
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKEX_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_OKX_H_

@@ -29,7 +29,7 @@ include_guard(DIRECTORY)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #
-# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKX)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ERISX)
 #

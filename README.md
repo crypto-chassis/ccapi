@@ -55,8 +55,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, kucoin-futures, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, ascendex.
-  * Execution Management: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okex, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, ascendex.
+  * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, kucoin-futures, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, ascendex.
+  * Execution Management: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, ascendex.
   * FIX: coinbase, gemini, ftx, ftx-us.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
 * A single order execution application is provided as an end-to-end solution for executing large orders.
@@ -86,7 +86,7 @@
 * Link libraries:
   * OpenSSL: libssl.
   * OpenSSL: libcrypto.
-  * If you need market data for huobi/huobi-usdt-swap/huobi-coin-swap/okex or execution management for huobi-usdt-swap/huobi-coin-swap, also link ZLIB.
+  * If you need market data for huobi/huobi-usdt-swap/huobi-coin-swap/okx or execution management for huobi-usdt-swap/huobi-coin-swap, also link ZLIB.
   * On Windows, also link ws2_32.
 * Compiler flags:
   * `-pthread` for GCC and MinGW.
@@ -105,7 +105,7 @@
 * Require Python 3, SWIG, and CMake.
   * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
   * CMake: https://cmake.org/download/.
-* Copy file [`binding/user_specified_cmake_include.cmake.example`](binding/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need market data for huobi/huobi-usdt-swap/huobi-coin-swap/okex or execution management for huobi-usdt-swap/huobi-coin-swap, also uncomment the lines corresponding to finding and linking ZLIB.
+* Copy file [`binding/user_specified_cmake_include.cmake.example`](binding/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired service enablement compile definitions such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need market data for huobi/huobi-usdt-swap/huobi-coin-swap/okx or execution management for huobi-usdt-swap/huobi-coin-swap, also uncomment the lines corresponding to finding and linking ZLIB.
 * Run the following commands.
 ```
 mkdir binding/build
@@ -701,10 +701,10 @@ request.appendParam({
 
 #### Send request by Websocket API
 ```
-Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
+Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
 session.subscribe(subscription);
 ...
-Request request(Request::Operation::CREATE_ORDER, "okex", "BTC-USDT", "same correlation id for subscription and request");
+Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT", "same correlation id for subscription and request");
 request.appendParam({
     {"SIDE", "BUY"},
     {"LIMIT_PRICE", "20000"},
@@ -923,7 +923,7 @@ session.serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHAN
 * The code uses a simplified version of Avellaneda & Stoikov’s inventory strategy: https://www.math.nyu.edu/~avellane/HighFrequencyTrading.pdf. See the [parameter configuration file `app/src/spot_market_making/config.env.example`](app/src/spot_market_making/config.env.example) for more details. And read more at https://medium.com/open-crypto-market-data-initiative/simplified-avellaneda-stoikov-market-making-608b9d437403.
 * Require CMake.
   * CMake: https://cmake.org/download/.
-* Copy file [`app/user_specified_cmake_include.cmake.example`](app/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
+* Copy file [`app/user_specified_cmake_include.cmake.example`](app/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okx, also uncomment the lines corresponding to finding and linking ZLIB.
 * Run the following commands.
 ```
 mkdir app/build
@@ -941,7 +941,7 @@ cmake --build . --target spot_market_making
 * The supported strategies are listed in [`app/src/single_order_execution/config.env.example`](app/src/single_order_execution/config.env.example).
 * Require CMake.
   * CMake: https://cmake.org/download/.
-* Copy file [`app/user_specified_cmake_include.cmake.example`](app/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okex, also uncomment the lines corresponding to finding and linking ZLIB.
+* Copy file [`app/user_specified_cmake_include.cmake.example`](app/user_specified_cmake_include.cmake.example) to any location and rename to `user_specified_cmake_include.cmake`. Take note of its full path `<path-to-user_specified_cmake_include>`. Uncomment the lines corresponding to the desired exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. If you need okx, also uncomment the lines corresponding to finding and linking ZLIB.
 * Run the following commands.
 ```
 mkdir app/build

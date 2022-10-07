@@ -1,16 +1,16 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_OKEX_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_OKEX_H_
+#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_OKX_H_
+#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_OKX_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
+#ifdef CCAPI_ENABLE_EXCHANGE_OKX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 namespace ccapi {
-class MarketDataServiceOkex : public MarketDataService {
+class MarketDataServiceOkx : public MarketDataService {
  public:
-  MarketDataServiceOkex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
+  MarketDataServiceOkx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                         std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
-    this->exchangeName = CCAPI_EXCHANGE_NAME_OKEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKEX_PUBLIC_WS_PATH;
+    this->exchangeName = CCAPI_EXCHANGE_NAME_OKX;
+    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_PUBLIC_WS_PATH;
     this->needDecompressWebsocketMessage = true;
     ErrorCode ec = this->inflater.init(false);
     if (ec) {
@@ -27,7 +27,7 @@ class MarketDataServiceOkex : public MarketDataService {
     this->getInstrumentTarget = "/api/v5/public/instruments";
     this->getInstrumentsTarget = "/api/v5/public/instruments";
   }
-  virtual ~MarketDataServiceOkex() {}
+  virtual ~MarketDataServiceOkx() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -40,15 +40,15 @@ class MarketDataServiceOkex : public MarketDataService {
     if (field == CCAPI_MARKET_DEPTH) {
       if (conflateIntervalMilliSeconds < 100) {
         if (marketDepthRequested <= 50) {
-          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT;
+          channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH50_L2_TBT;
         } else {
-          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT;
+          channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400_L2_TBT;
         }
       } else {
         if (marketDepthRequested <= 5) {
-          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5;
+          channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5;
         } else {
-          channelId = CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400;
+          channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400;
         }
       }
     }
@@ -65,7 +65,7 @@ class MarketDataServiceOkex : public MarketDataService {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
         std::string symbolId = subscriptionListBySymbolId.first;
-        if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5) {
+        if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
         std::string exchangeSubscriptionId = UtilString::split(channelId, "?").at(0) + ":" + symbolId;
@@ -160,9 +160,9 @@ class MarketDataServiceOkex : public MarketDataService {
             event.setMessageList(messageList);
           }
         } else {
-          if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400 ||
-              channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH50_L2_TBT || channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
-            std::string action = channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5 ? "" : document["action"].GetString();
+          if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5 || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400 ||
+              channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH50_L2_TBT || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
+            std::string action = channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5 ? "" : document["action"].GetString();
             for (const auto& datum : document["data"].GetArray()) {
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
                 auto it = datum.FindMember("checksum");
@@ -175,7 +175,7 @@ class MarketDataServiceOkex : public MarketDataService {
               marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
               marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
               marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
-              if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH5) {
+              if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5) {
                 if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
                   marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
                 } else {
@@ -198,7 +198,7 @@ class MarketDataServiceOkex : public MarketDataService {
               }
               marketDataMessageList.emplace_back(std::move(marketDataMessage));
             }
-          } else if (channelId == CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE) {
+          } else if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_TRADE) {
             for (const auto& datum : document["data"].GetArray()) {
               MarketDataMessage marketDataMessage;
               marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
@@ -330,4 +330,4 @@ class MarketDataServiceOkex : public MarketDataService {
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_OKEX_H_
+#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_OKX_H_
