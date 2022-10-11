@@ -1,5 +1,5 @@
 set(NAME execution_management_advanced_subscription)
 project(${NAME})
 add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKX)
 add_executable(${NAME} main.cpp)

@@ -14,6 +14,12 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
 
  protected:
 #endif
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    auto now = UtilTime::now();
+    this->send(hdl,
+               "{\"time\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"channel\":\"" + (this->isDerivatives ? "futures" : "spot") + ".ping\"}",
+               wspp::frame::opcode::text, ec);
+  }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -257,6 +263,8 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
+          float total = std::stof(x["locked"].GetString()) + std::stof(x["available"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, std::to_string(total));
           elementList.emplace_back(std::move(element));
         }
       } break;

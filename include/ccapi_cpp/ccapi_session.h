@@ -46,8 +46,8 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi_coin_swap.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
-#include "ccapi_cpp/service/ccapi_market_data_service_okex.h"
+#ifdef CCAPI_ENABLE_EXCHANGE_OKX
+#include "ccapi_cpp/service/ccapi_market_data_service_okx.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
 #include "ccapi_cpp/service/ccapi_market_data_service_erisx.h"
@@ -129,8 +129,8 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_coin_swap.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
-#include "ccapi_cpp/service/ccapi_execution_management_service_okex.h"
+#ifdef CCAPI_ENABLE_EXCHANGE_OKX
+#include "ccapi_cpp/service/ccapi_execution_management_service_okx.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
 #include "ccapi_cpp/service/ccapi_execution_management_service_erisx.h"
@@ -310,9 +310,9 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP] =
         std::make_shared<MarketDataServiceHuobiCoinSwap>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKEX] =
-        std::make_shared<MarketDataServiceOkex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#ifdef CCAPI_ENABLE_EXCHANGE_OKX
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_OKX] =
+        std::make_shared<MarketDataServiceOkx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ERISX] =
@@ -417,9 +417,9 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP] =
         std::make_shared<ExecutionManagementServiceHuobiCoinSwap>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_OKEX] =
-        std::make_shared<ExecutionManagementServiceOkex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#ifdef CCAPI_ENABLE_EXCHANGE_OKX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_OKX] =
+        std::make_shared<ExecutionManagementServiceOkx>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ERISX] =

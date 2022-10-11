@@ -18,7 +18,7 @@ endif()
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
 #
-# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKEX)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKX)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN)
 #
