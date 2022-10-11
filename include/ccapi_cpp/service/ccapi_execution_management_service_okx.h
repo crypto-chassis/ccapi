@@ -7,7 +7,7 @@ namespace ccapi {
 class ExecutionManagementServiceOkx : public ExecutionManagementService {
  public:
   ExecutionManagementServiceOkx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                 ServiceContextPtr serviceContextPtr)
+                                ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_PRIVATE_WS_PATH;
@@ -82,6 +82,9 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+    }
+    if (param.find("tag") == param.end()) {
+      rjValue.AddMember("tag", CCAPI_OKX_API_BROKER_CODE, allocator);
     }
   }
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,

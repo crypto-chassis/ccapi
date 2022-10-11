@@ -7,15 +7,15 @@ namespace ccapi {
 class MarketDataServiceOkx : public MarketDataService {
  public:
   MarketDataServiceOkx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                        std::shared_ptr<ServiceContext> serviceContextPtr)
+                       std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKX;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_PUBLIC_WS_PATH;
-    this->needDecompressWebsocketMessage = true;
-    ErrorCode ec = this->inflater.init(false);
-    if (ec) {
-      CCAPI_LOGGER_FATAL(ec.message());
-    }
+    // this->needDecompressWebsocketMessage = true;
+    // ErrorCode ec = this->inflater.init(false);
+    // if (ec) {
+    //   CCAPI_LOGGER_FATAL(ec.message());
+    // }
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -39,7 +39,9 @@ class MarketDataServiceOkx : public MarketDataService {
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
       if (conflateIntervalMilliSeconds < 100) {
-        if (marketDepthRequested <= 50) {
+        if (marketDepthRequested == 1) {
+          channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH1_L2_TBT;
+        } else if (marketDepthRequested <= 50) {
           channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH50_L2_TBT;
         } else {
           channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400_L2_TBT;
@@ -65,7 +67,7 @@ class MarketDataServiceOkx : public MarketDataService {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
         std::string symbolId = subscriptionListBySymbolId.first;
-        if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5) {
+        if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH1_L2_TBT || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
         std::string exchangeSubscriptionId = UtilString::split(channelId, "?").at(0) + ":" + symbolId;
@@ -160,9 +162,12 @@ class MarketDataServiceOkx : public MarketDataService {
             event.setMessageList(messageList);
           }
         } else {
-          if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5 || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400 ||
-              channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH50_L2_TBT || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
-            std::string action = channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5 ? "" : document["action"].GetString();
+          if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH1_L2_TBT || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5 ||
+              channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400 || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH50_L2_TBT ||
+              channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400_L2_TBT) {
+            std::string action = channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH1_L2_TBT || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5
+                                     ? ""
+                                     : document["action"].GetString();
             for (const auto& datum : document["data"].GetArray()) {
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
                 auto it = datum.FindMember("checksum");
@@ -175,7 +180,7 @@ class MarketDataServiceOkx : public MarketDataService {
               marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
               marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
               marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
-              if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5) {
+              if (channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH1_L2_TBT || channelId == CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH5) {
                 if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
                   marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
                 } else {
