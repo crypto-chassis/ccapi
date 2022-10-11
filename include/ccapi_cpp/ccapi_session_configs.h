@@ -91,9 +91,9 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_HUOBI_CHANNEL_TRADE_DETAIL},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_DEPTH},
     };
-    std::map<std::string, std::string> fieldWebsocketChannelMapOkex = {
-        {CCAPI_TRADE, CCAPI_WEBSOCKET_OKEX_CHANNEL_TRADE},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_OKEX_CHANNEL_PUBLIC_DEPTH400},
+    std::map<std::string, std::string> fieldWebsocketChannelMapOkx = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_OKX_CHANNEL_TRADE},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapErisx = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE},
@@ -181,8 +181,8 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHuobiCoinSwap) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP].push_back(fieldWebsocketChannel.first);
     }
-    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapOkex) {
-      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_OKEX].push_back(fieldWebsocketChannel.first);
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapOkx) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_OKX].push_back(fieldWebsocketChannel.first);
     }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapErisx) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_ERISX].push_back(fieldWebsocketChannel.first);
@@ -236,7 +236,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_HUOBI, fieldWebsocketChannelMapHuobi},
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, fieldWebsocketChannelMapHuobiUsdtSwap},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, fieldWebsocketChannelMapHuobiCoinSwap},
-        {CCAPI_EXCHANGE_NAME_OKEX, fieldWebsocketChannelMapOkex},
+        {CCAPI_EXCHANGE_NAME_OKX, fieldWebsocketChannelMapOkx},
         {CCAPI_EXCHANGE_NAME_ERISX, fieldWebsocketChannelMapErisx},
         {CCAPI_EXCHANGE_NAME_KUCOIN, fieldWebsocketChannelMapKucoin},
         {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, fieldWebsocketChannelMapKucoinFutures},
@@ -265,7 +265,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, CCAPI_HUOBI_COIN_SWAP_URL_WS_BASE},
-        {CCAPI_EXCHANGE_NAME_OKEX, CCAPI_OKEX_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_OKX, CCAPI_OKX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_WS_BASE},
         //  Kucoin has dynamic websocket url. Here it is only a placeholder for subscription grouping purposes.
         {CCAPI_EXCHANGE_NAME_KUCOIN, "CCAPI_EXCHANGE_NAME_KUCOIN_URL_WEBSOCKET_BASE"},
@@ -299,7 +299,7 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_HUOBI, CCAPI_HUOBI_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP, CCAPI_HUOBI_USDT_SWAP_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP, CCAPI_HUOBI_COIN_SWAP_URL_REST_BASE},
-        {CCAPI_EXCHANGE_NAME_OKEX, CCAPI_OKEX_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_OKX, CCAPI_OKX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_ERISX, CCAPI_ERISX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_KUCOIN, CCAPI_KUCOIN_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES, CCAPI_KUCOIN_FUTURES_URL_REST_BASE},

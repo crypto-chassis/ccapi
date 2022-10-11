@@ -1,27 +1,27 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#ifdef CCAPI_ENABLE_EXCHANGE_OKEX
+#ifdef CCAPI_ENABLE_EXCHANGE_OKX
 // clang-format off
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
-#include "ccapi_cpp/service/ccapi_execution_management_service_okex.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_okx.h"
 // clang-format on
 namespace ccapi {
-class ExecutionManagementServiceOkexTest : public ::testing::Test {
+class ExecutionManagementServiceOkxTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceOkex>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                     wspp::lib::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceOkx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
+                                                                    wspp::lib::make_shared<ServiceContext>());
     this->credential = {
-        {CCAPI_OKEX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
-        {CCAPI_OKEX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
-        {CCAPI_OKEX_API_PASSPHRASE, "0x1a5y8koaa9"},
+        {CCAPI_OKX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
+        {CCAPI_OKX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
+        {CCAPI_OKX_API_PASSPHRASE, "0x1a5y8koaa9"},
     };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
     this->timestampStr = "2017-07-12T02:41:59.000Z";
   }
-  std::shared_ptr<ExecutionManagementServiceOkex> service{nullptr};
+  std::shared_ptr<ExecutionManagementServiceOkx> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};
   TimePoint now{};
@@ -44,7 +44,7 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   EXPECT_EQ(UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText)), signature);
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, signRequest) {
+TEST_F(ExecutionManagementServiceOkxTest, signRequest) {
   http::request<http::string_body> req;
   req.set("OK-ACCESS-TIMESTAMP", "2021-04-01T18:23:16.027Z");
   req.method(http::verb::post);
@@ -54,8 +54,8 @@ TEST_F(ExecutionManagementServiceOkexTest, signRequest) {
   EXPECT_EQ(req.base().at("OK-ACCESS-SIGN").to_string(), "vnOpLd3yPc2Ojwm8w0TafZqnujwm3qfjyIpNrmhUrsk=");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestCreateOrder) {
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
       {CCAPI_EM_ORDER_QUANTITY, "2"},
@@ -65,7 +65,7 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/order");
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
@@ -75,11 +75,11 @@ TEST_F(ExecutionManagementServiceOkexTest, convertRequestCreateOrder) {
   EXPECT_EQ(std::string(document["px"].GetString()), "2.15");
   EXPECT_EQ(std::string(document["ordType"].GetString()), "limit");
   EXPECT_EQ(std::string(document["tdMode"].GetString()), "cash");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCreateOrder) {
-  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestCreateOrder) {
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
       R"(
     {
@@ -107,42 +107,42 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCreate
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "12345689");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestCancelOrderByOrderId) {
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_ORDER_ID, "2510789768709120"},
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
   EXPECT_EQ(std::string(document["ordId"].GetString()), "2510789768709120");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestCancelOrderByClientOrderId) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestCancelOrderByClientOrderId) {
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_CLIENT_ORDER_ID, "oktswap6"},
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target(), "/api/v5/trade/cancel-order");
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
   EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
   EXPECT_EQ(std::string(document["clOrdId"].GetString()), "oktswap6");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCancelOrder) {
-  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestCancelOrder) {
+  Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
       R"(
     {
@@ -165,42 +165,42 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestCancel
   EXPECT_EQ(message.getType(), Message::Type::CANCEL_ORDER);
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByOrderId) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestGetOrderByOrderId) {
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_ORDER_ID, "2510789768709120"},
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("ordId"), "2510789768709120");
   EXPECT_EQ(paramMap.at("instId"), "BTC-USDT");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOrderByClientOrderId) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestGetOrderByClientOrderId) {
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
       {CCAPI_EM_CLIENT_ORDER_ID, "b1"},
   };
   request.appendParam(param);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("clOrdId"), "b1");
   EXPECT_EQ(paramMap.at("instId"), "BTC-USDT");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOrder) {
-  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestGetOrder) {
+  Request request(Request::Operation::GET_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =
       R"(
     {
@@ -260,31 +260,31 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOrd
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "live");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersOneInstrument) {
-  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestGetOpenOrdersOneInstrument) {
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/orders-pending");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("instId"), "BTC-USDT");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetOpenOrdersAllInstruments) {
-  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestGetOpenOrdersAllInstruments) {
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKX, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   auto splitted = UtilString::split(req.target().to_string(), "?");
   EXPECT_EQ(splitted.at(0), "/api/v5/trade/orders-pending");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagementServiceOkexTest* fixture, bool isOneInstrument) {
+void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagementServiceOkxTest* fixture, bool isOneInstrument) {
   std::string symbol = isOneInstrument ? "BTC-USDT" : "";
-  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKEX, symbol, "", fixture->credential);
+  Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_OKX, symbol, "", fixture->credential);
   std::string textMessage =
       R"(
     {
@@ -347,25 +347,25 @@ void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagemen
   }
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOpenOrdersOneInstrument) {
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestGetOpenOrdersOneInstrument) {
   verifyconvertTextMessageToMessageRestGetOpenOrders(this, true);
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetOpenOrdersAllInstruments) {
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestGetOpenOrdersAllInstruments) {
   verifyconvertTextMessageToMessageRestGetOpenOrders(this, false);
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetAccountBalances) {
-  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKX, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target().to_string(), "/api/v5/account/balance");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAccountBalances) {
-  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestGetAccountBalances) {
+  Request request(Request::Operation::GET_ACCOUNT_BALANCES, CCAPI_EXCHANGE_NAME_OKX, "", "foo", this->credential);
   std::string textMessage =
       R"(
         {
@@ -446,17 +446,17 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAcc
   EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "9930359.9998");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertRequestGetAccountPositions) {
-  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKX, "", "foo", this->credential);
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
-  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKEX_API_KEY), this->credential.at(CCAPI_OKEX_API_PASSPHRASE), this->timestampStr);
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
   EXPECT_EQ(req.target().to_string(), "/api/v5/account/positions");
-  verifySignature(req, this->credential.at(CCAPI_OKEX_API_SECRET));
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAccountPositions) {
-  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKEX, "", "foo", this->credential);
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestGetAccountPositions) {
+  Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_OKX, "", "foo", this->credential);
   std::string textMessage =
       R"(
         {
@@ -520,8 +520,8 @@ TEST_F(ExecutionManagementServiceOkexTest, convertTextMessageToMessageRestGetAcc
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "10");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, createEventFilled) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", CCAPI_EM_PRIVATE_TRADE);
+TEST_F(ExecutionManagementServiceOkxTest, createEventFilled) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", CCAPI_EM_PRIVATE_TRADE);
   std::string textMessage = R"(
     {
       "arg": {
@@ -597,8 +597,8 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventFilled) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_FEE_ASSET), "USDT");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, createEventLive) {
-  Subscription subscription(CCAPI_EXCHANGE_NAME_OKEX, "BTC-USDT", CCAPI_EM_ORDER_UPDATE);
+TEST_F(ExecutionManagementServiceOkxTest, createEventLive) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", CCAPI_EM_ORDER_UPDATE);
   std::string textMessage = R"(
     {
       "arg": {
@@ -672,8 +672,8 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventLive) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradePlaceOrder) {
-  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
+TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradePlaceOrder) {
+  Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
   std::string textMessage = R"(
     {
       "id": "1512",
@@ -704,8 +704,8 @@ TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradePlaceOrder) 
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "12345689");
 }
 
-TEST_F(ExecutionManagementServiceOkexTest, createEventWebsocketTradeCancelOrder) {
-  Subscription subscription("okex", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
+TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradeCancelOrder) {
+  Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
   std::string textMessage = R"(
     {
       "code": "0",
