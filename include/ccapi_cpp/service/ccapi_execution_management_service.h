@@ -52,7 +52,11 @@ class ExecutionManagementService : public Service {
                               [that = shared_from_base<ExecutionManagementService>(), subscription]() mutable {
                                 auto now = UtilTime::now();
                                 subscription.setTimeSent(now);
-                                WsConnection wsConnection(that->baseUrl, "", {subscription});
+                                auto credential = subscription.getCredential();
+                                if (credential.empty()) {
+                                  credential = that->credentialDefault;
+                                }
+                                WsConnection wsConnection(that->baseUrl, "", {subscription}, credential);
                                 that->prepareConnect(wsConnection);
                               });
       }
@@ -192,10 +196,7 @@ class ExecutionManagementService : public Service {
     auto correlationId = wsConnection.subscriptionList.at(0).getCorrelationId();
     this->wsConnectionByCorrelationIdMap.insert({correlationId, wsConnection});
     this->correlationIdByConnectionIdMap.insert({wsConnection.id, correlationId});
-    auto credential = wsConnection.subscriptionList.at(0).getCredential();
-    if (credential.empty()) {
-      credential = this->credentialDefault;
-    }
+    auto credential = wsConnection.credential;
     this->logonToExchange(wsConnection, now, credential);
   }
   void onClose(wspp::connection_hdl hdl) override {
