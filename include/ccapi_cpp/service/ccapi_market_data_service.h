@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 #include "ccapi_cpp/service/ccapi_service.h"
@@ -70,7 +71,11 @@ class MarketDataService : public Service {
             that->subscribeToExchange(wsConnection);
           } else {
             auto url = UtilString::split(instrumentGroup, "|").at(0);
-            WsConnection wsConnection(url, instrumentGroup, subscriptionListGivenInstrumentGroup);
+            auto credential = subscriptionListGivenInstrumentGroup.at(0).getCredential();
+            if (credential.empty()) {
+              credential = that->credentialDefault;
+            }
+            WsConnection wsConnection(url, instrumentGroup, subscriptionListGivenInstrumentGroup, credential);
             that->prepareConnect(wsConnection);
           }
         });
@@ -93,7 +98,7 @@ class MarketDataService : public Service {
     return groups;
   }
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
-    return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
+    return this->baseUrl + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getSerializedCredential();
   }
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
@@ -1061,8 +1066,17 @@ class MarketDataService : public Service {
   }
   void onOpen(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    auto now = UtilTime::now();
     Service::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    auto credential = wsConnection.credential;
+    if (!credential.empty()) {
+      this->logonToExchange(wsConnection, now, credential);
+    } else {
+      this->startSubscribe(wsConnection);
+    }
+  }
+  void startSubscribe(WsConnection& wsConnection) {
     auto instrumentGroup = wsConnection.group;
     for (const auto& subscription : wsConnection.subscriptionList) {
       auto instrument = subscription.getInstrument();
@@ -1075,6 +1089,20 @@ class MarketDataService : public Service {
     }
     CCAPI_LOGGER_INFO("about to subscribe to exchange");
     this->subscribeToExchange(wsConnection);
+  }
+  virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    CCAPI_LOGGER_INFO("about to logon to exchange");
+    CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
+    auto subscriptionList = wsConnection.subscriptionList;
+    std::vector<std::string> sendStringList = this->createSendStringListFromSubscriptionList(wsConnection, subscriptionList, now, credential);
+    for (const auto& sendString : sendStringList) {
+      CCAPI_LOGGER_INFO("sendString = " + sendString);
+      ErrorCode ec;
+      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+      if (ec) {
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+      }
+    }
   }
   void onFail_(WsConnection& wsConnection) override {
     WsConnection thisWsConnection = wsConnection;
@@ -1141,6 +1169,10 @@ class MarketDataService : public Service {
       req.body() = body;
       req.prepare_payload();
     }
+  }
+  virtual std::vector<std::string> createSendStringListFromSubscriptionList(const WsConnection& wsConnection, const std::vector<Subscription>& subscriptionList,
+                                                                            const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    return {};
   }
   virtual void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                                      std::vector<MarketDataMessage>& marketDataMessageList) {}
