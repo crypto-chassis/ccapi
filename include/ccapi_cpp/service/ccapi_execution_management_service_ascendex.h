@@ -350,7 +350,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
                                   credential = that->credentialDefault;
                                 }
                                 const auto& accountGroup = mapGetWithDefault(credential, that->apiAccountGroupName);
-                                WsConnection wsConnection(that->baseUrl + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription});
+                                WsConnection wsConnection(that->baseUrl + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
                                 that->prepareConnect(wsConnection);
                               });
       }
