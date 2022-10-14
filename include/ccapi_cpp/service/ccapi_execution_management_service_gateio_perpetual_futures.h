@@ -92,7 +92,11 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
                                   } else if (UtilString::endsWith(symbolId, "_USDT")) {
                                     settle = "usdt";
                                   }
-                                  WsConnection wsConnection(that->baseUrl + settle, "", {subscription});
+                                  auto credential = subscription.getCredential();
+                                  if (credential.empty()) {
+                                    credential = that->credentialDefault;
+                                  }
+                                  WsConnection wsConnection(that->baseUrl + settle, "", {subscription}, credential);
                                   that->prepareConnect(wsConnection);
                                 }
                               });

@@ -66,7 +66,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
-  void appendParam(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
+  void appendParam(Request::Operation operation, rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_SIDE, "side"},
                        {CCAPI_EM_ORDER_QUANTITY, "sz"},
@@ -83,7 +83,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
       }
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
-    if (param.find("tag") == param.end()) {
+    if (operation == Request::Operation::CREATE_ORDER && param.find("tag") == param.end()) {
       rjValue.AddMember("tag", CCAPI_OKX_API_BROKER_CODE, allocator);
     }
   }
@@ -117,7 +117,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     if (apiXSimulatedTrading == "1") {
       req.set("x-simulated-trading", "1");
     }
-    switch (request.getOperation()) {
+    Request::Operation operation = request.getOperation();
+    switch (operation) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
       } break;
@@ -128,7 +129,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param);
+        this->appendParam(operation, document, allocator, param);
         if (param.find("tdMode") == param.end()) {
           document.AddMember("tdMode", rj::Value("cash").Move(), allocator);
         }
@@ -151,7 +152,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(document, allocator, param);
+        this->appendParam(operation, document, allocator, param);
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
         }
@@ -216,14 +217,17 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
                                   int wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
     document.SetObject();
-    document.AddMember("id", rj::Value(std::to_string(wsRequestId).c_str(), allocator).Move(), allocator);
-    switch (request.getOperation()) {
+    const auto& secondaryCorrelationId = request.getSecondaryCorrelationId();
+    document.AddMember("id", rj::Value((secondaryCorrelationId.empty() ? std::to_string(wsRequestId) : secondaryCorrelationId).c_str(), allocator).Move(),
+                       allocator);
+    Request::Operation operation = request.getOperation();
+    switch (operation) {
       case Request::Operation::CREATE_ORDER: {
         document.AddMember("op", rj::Value("order").Move(), allocator);
         rj::Value args(rj::kArrayType);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Value arg(rj::kObjectType);
-        this->appendParam(arg, allocator, param);
+        this->appendParam(operation, arg, allocator, param);
         if (param.find("tdMode") == param.end()) {
           arg.AddMember("tdMode", rj::Value("cash").Move(), allocator);
         }
@@ -241,7 +245,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Value args(rj::kArrayType);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Value arg(rj::kObjectType);
-        this->appendParam(arg, allocator, param);
+        this->appendParam(operation, arg, allocator, param);
         if (!symbolId.empty()) {
           this->appendSymbolId(arg, allocator, symbolId);
         }
@@ -400,7 +404,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     std::vector<Message> messageList;
     Message message;
     message.setTimeReceived(timeReceived);
-    message.setCorrelationIdList({subscription.getCorrelationId()});
+    const auto& correlationId = subscription.getCorrelationId();
+    message.setCorrelationIdList({correlationId});
     const auto& fieldSet = subscription.getFieldSet();
     const auto& instrumentSet = subscription.getInstrumentSet();
     if (eventStr.empty()) {
@@ -424,6 +429,9 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
           }
           this->extractOrderInfoFromRequest(elementList, document);
           message.setElementList(elementList);
+          message.setSecondaryCorrelationIdMap({
+              {correlationId, document["id"].GetString()},
+          });
           messageList.emplace_back(std::move(message));
         }
       } else {
