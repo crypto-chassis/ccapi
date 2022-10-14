@@ -124,12 +124,14 @@ class Request CCAPI_FINAL {
     }
     std::string output =
         "Request [exchange = " + exchange + ", instrument = " + instrument + ", serviceName = " + serviceName + ", correlationId = " + correlationId +
+        ", secondaryCorrelationId = " + secondaryCorrelationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
         ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
+  const std::string& getSecondaryCorrelationId() const { return secondaryCorrelationId; }
   const std::string& getExchange() const { return exchange; }
   const std::string& getInstrument() const { return instrument; }
   const std::map<std::string, std::string>& getCredential() const { return credential; }
@@ -160,6 +162,7 @@ class Request CCAPI_FINAL {
   void setIndex(int index) { this->index = index; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
   void setCorrelationId(const std::string& correlationId) { this->correlationId = correlationId; }
+  void setSecondaryCorrelationId(const std::string& secondaryCorrelationId) { this->secondaryCorrelationId = secondaryCorrelationId; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -168,6 +171,7 @@ class Request CCAPI_FINAL {
   std::string instrument;
   std::string serviceName;
   std::string correlationId;
+  std::string secondaryCorrelationId;
   std::vector<std::map<std::string, std::string> > paramList;
   std::map<std::string, std::string> credential;
   Operation operation;
