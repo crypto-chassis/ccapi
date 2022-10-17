@@ -356,45 +356,49 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
+  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
                      const TimePoint& timeReceived) override {
-    auto it = document.FindMember("event");
-    std::string eventStr = it != document.MemberEnd() ? it->value.GetString() : "";
-    if (eventStr == "login") {
+    if (textMessage != "pong") {
       rj::Document document;
-      document.SetObject();
-      auto& allocator = document.GetAllocator();
-      document.AddMember("op", rj::Value("subscribe").Move(), allocator);
-      rj::Value args(rj::kArrayType);
-      const auto& fieldSet = subscription.getFieldSet();
-      const auto& instrumentSet = subscription.getInstrumentSet();
-      for (const auto& field : fieldSet) {
-        std::string channel;
-        if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-          channel = "orders";
+      document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+      auto it = document.FindMember("event");
+      std::string eventStr = it != document.MemberEnd() ? it->value.GetString() : "";
+      if (eventStr == "login") {
+        rj::Document document;
+        document.SetObject();
+        auto& allocator = document.GetAllocator();
+        document.AddMember("op", rj::Value("subscribe").Move(), allocator);
+        rj::Value args(rj::kArrayType);
+        const auto& fieldSet = subscription.getFieldSet();
+        const auto& instrumentSet = subscription.getInstrumentSet();
+        for (const auto& field : fieldSet) {
+          std::string channel;
+          if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+            channel = "orders";
+          }
+          for (const auto& instrument : instrumentSet) {
+            rj::Value arg(rj::kObjectType);
+            arg.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
+            arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
+            arg.AddMember("instType", rj::Value("ANY").Move(), allocator);
+            args.PushBack(arg, allocator);
+          }
         }
-        for (const auto& instrument : instrumentSet) {
-          rj::Value arg(rj::kObjectType);
-          arg.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
-          arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
-          arg.AddMember("instType", rj::Value("ANY").Move(), allocator);
-          args.PushBack(arg, allocator);
+        document.AddMember("args", args, allocator);
+        rj::StringBuffer stringBufferSubscribe;
+        rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
+        document.Accept(writerSubscribe);
+        std::string sendString = stringBufferSubscribe.GetString();
+        ErrorCode ec;
+        this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+        if (ec) {
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }
-      }
-      document.AddMember("args", args, allocator);
-      rj::StringBuffer stringBufferSubscribe;
-      rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
-      document.Accept(writerSubscribe);
-      std::string sendString = stringBufferSubscribe.GetString();
-      ErrorCode ec;
-      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-      if (ec) {
-        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
-      }
-    } else {
-      Event event = this->createEvent(subscription, textMessage, document, eventStr, timeReceived);
-      if (!event.getMessageList().empty()) {
-        this->eventHandler(event, nullptr);
+      } else {
+        Event event = this->createEvent(subscription, textMessage, document, eventStr, timeReceived);
+        if (!event.getMessageList().empty()) {
+          this->eventHandler(event, nullptr);
+        }
       }
     }
   }
