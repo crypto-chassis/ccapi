@@ -445,56 +445,59 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         event.setType(Event::Type::SUBSCRIPTION_DATA);
         std::string instrument = arg["instId"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-          if (channel == "orders" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-            for (const auto& x : data.GetArray()) {
-              std::string tradeId = x["tradeId"].GetString();
-              if (!tradeId.empty()) {
+          if (channel == "orders") {
+            if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+              for (const auto& x : data.GetArray()) {
+                std::string tradeId = x["tradeId"].GetString();
+                if (!tradeId.empty()) {
+                  Message message;
+                  message.setTimeReceived(timeReceived);
+                  message.setCorrelationIdList({subscription.getCorrelationId()});
+                  message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["fillTime"].GetString()))));
+                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                  std::vector<Element> elementList;
+                  Element element;
+                  element.insert(CCAPI_TRADE_ID, tradeId);
+                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["fillPx"].GetString()));
+                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["fillSz"].GetString()));
+                  element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                  element.insert(CCAPI_EM_POSITION_SIDE, std::string(x["posSide"].GetString()));
+                  element.insert(CCAPI_IS_MAKER, std::string(x["execType"].GetString()) == "M" ? "1" : "0");
+                  element.insert(CCAPI_EM_ORDER_ID, std::string(x["ordId"].GetString()));
+                  element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["clOrdId"].GetString()));
+                  element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
+                  element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fillFee"].GetString()));
+                  element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fillFeeCcy"].GetString()));
+                  elementList.emplace_back(std::move(element));
+                  message.setElementList(elementList);
+                  messageList.emplace_back(std::move(message));
+                }
+              }
+            }
+            if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+              for (const auto& x : data.GetArray()) {
                 Message message;
                 message.setTimeReceived(timeReceived);
                 message.setCorrelationIdList({subscription.getCorrelationId()});
-                message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["fillTime"].GetString()))));
-                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["uTime"].GetString()))));
+                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+                const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+                    {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
+                    {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("px", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_QUANTITY, std::make_pair("sz", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
+                };
+                Element info;
+                this->extractOrderInfo(info, x, extractionFieldNameMap);
+                info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
                 std::vector<Element> elementList;
-                Element element;
-                element.insert(CCAPI_TRADE_ID, tradeId);
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["fillPx"].GetString()));
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["fillSz"].GetString()));
-                element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                element.insert(CCAPI_EM_POSITION_SIDE, std::string(x["posSide"].GetString()));
-                element.insert(CCAPI_IS_MAKER, std::string(x["execType"].GetString()) == "M" ? "1" : "0");
-                element.insert(CCAPI_EM_ORDER_ID, std::string(x["ordId"].GetString()));
-                element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["clOrdId"].GetString()));
-                element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fillFee"].GetString()));
-                element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fillFeeCcy"].GetString()));
-                elementList.emplace_back(std::move(element));
+                elementList.emplace_back(std::move(info));
                 message.setElementList(elementList);
                 messageList.emplace_back(std::move(message));
               }
-            }
-          } else if (channel == "orders" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
-            for (const auto& x : data.GetArray()) {
-              Message message;
-              message.setTimeReceived(timeReceived);
-              message.setCorrelationIdList({subscription.getCorrelationId()});
-              message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["uTime"].GetString()))));
-              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-                  {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
-                  {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("px", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_QUANTITY, std::make_pair("sz", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
-              };
-              Element info;
-              this->extractOrderInfo(info, x, extractionFieldNameMap);
-              info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-              std::vector<Element> elementList;
-              elementList.emplace_back(std::move(info));
-              message.setElementList(elementList);
-              messageList.emplace_back(std::move(message));
             }
           }
         }
