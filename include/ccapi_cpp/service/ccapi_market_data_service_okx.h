@@ -287,6 +287,7 @@ class MarketDataServiceOkx : public MarketDataService {
     element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minSz"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["settleCcy"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["uly"].GetString());
+    element.insert(CCAPI_CONTRACT_SIZE, x["ctVal"].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
