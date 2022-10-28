@@ -133,12 +133,18 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        auto shouldUseOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
+        bool shouldUseOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
         std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
                          : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID)
                                                                                : "";
         req.target(shouldUseOrderId ? this->cancelOrderTarget + "/" + id : this->cancelOrderTarget + "/by_client_id/" + id);
-        this->signRequest(req, "", credential);
+        std::string body;
+        if (!shouldUseOrderId && !symbolId.empty()) {
+          body = R"({"market":")";
+          body += symbolId;
+          body += R"("})";
+        }
+        this->signRequest(req, body, credential);
       } break;
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::get);
