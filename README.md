@@ -131,8 +131,20 @@ cmake --install .
 
 ## Examples
 [C++](example) / [Python](binding/python/example)
+how to run c++ examle
+mkdir example/build
+cd example/build
+rm -rf * (if rebuild from scratch)
+cmake ..
+cmake --build . --target <the example name>
+src/<the example name>/<the example name>
 
 Python API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
+how to run python example
+build and install python binding as shown above
+python3 main.py
+
+
 
 ## Documentations
 
