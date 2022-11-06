@@ -130,9 +130,23 @@ cmake --install .
 [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h)
 
 ## Examples
-[C++](example) / [Python](binding/python/example)
+[C++](example)
+* Require CMake.
+  * CMake: https://cmake.org/download/.
+* Run the following commands.
+```
+mkdir example/build
+cd example/build
+rm -rf * (if rebuild from scratch)
+cmake ..
+cmake --build . --target <example-name>
+```
+* The executable is `example/build/src/<example-name>/<example-name>`. Run it.
 
-Python API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
+[Python](binding/python/example)
+* Python API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
+* Build and install the Python binding as shown [above](#python).
+* Run python3 main.py.
 
 ## Documentations
 
