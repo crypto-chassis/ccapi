@@ -148,9 +148,6 @@ cmake --build . --target <example-name>
 * Build and install the Python binding as shown [above](#python).
 * Run python3 main.py.
 
-
-
-
 ## Documentations
 
 ### Simple Market Data
