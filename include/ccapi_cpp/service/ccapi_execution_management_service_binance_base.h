@@ -258,6 +258,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     Message message;
     message.setTimeReceived(now);
     message.setType(Message::Type::SUBSCRIPTION_STARTED);
+    message.setCorrelationIdList({wsConnection.subscriptionList.at(0).getCorrelationId()});
     event.setMessageList({message});
     this->eventHandler(event, nullptr);
     setPingListenKeyTimer(wsConnection);

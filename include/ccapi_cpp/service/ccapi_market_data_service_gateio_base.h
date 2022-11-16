@@ -76,7 +76,8 @@ class MarketDataServiceGateioBase : public MarketDataService {
         document.AddMember("payload", payload, allocator);
         if (!this->isDerivatives) {
           document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
-          this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap[this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+          this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]
+                                                                                  [this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
               exchangeSubscriptionIdList;
           this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
         }
@@ -115,7 +116,8 @@ class MarketDataServiceGateioBase : public MarketDataService {
             std::vector<std::string> exchangeSubscriptionIdList;
             exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
             document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
-            this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap[this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+            this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]
+                                                                                    [this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
                 exchangeSubscriptionIdList;
             this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
           }
@@ -143,8 +145,11 @@ class MarketDataServiceGateioBase : public MarketDataService {
         if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
             this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
           int id = std::stoi(document["id"].GetString());
-          if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.find(id) != this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.end()) {
-            for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.at(id)) {
+          if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.find(wsConnection.id) !=
+                  this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.end() &&
+              this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).find(id) !=
+                  this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).end()) {
+            for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).at(id)) {
               auto splitted = UtilString::split(exchangeSubscriptionId, '|');
               std::string channelId = splitted.at(0);
               std::string symbolId = splitted.at(1);
