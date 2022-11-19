@@ -17,6 +17,13 @@ class MarketDataServiceBinanceBase : public MarketDataService {
 
  protected:
 #endif
+  void onOpen(wspp::connection_hdl hdl) override {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    auto now = UtilTime::now();
+    Service::onOpen(hdl);
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->startSubscribe(wsConnection);
+  }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -78,7 +85,8 @@ class MarketDataServiceBinanceBase : public MarketDataService {
     }
     document.AddMember("params", params, allocator);
     document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
-    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap[this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] = exchangeSubscriptionIdList;
+    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap[wsConnection.id][this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+        exchangeSubscriptionIdList;
     this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -99,8 +107,11 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       std::vector<std::string> correlationIdList;
       if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
         int id = std::stoi(document["id"].GetString());
-        if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.find(id) != this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.end()) {
-          for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdMap.at(id)) {
+        if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.find(wsConnection.id) !=
+                this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.end() &&
+            this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).find(id) !=
+                this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).end()) {
+          for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).at(id)) {
             std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
             std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
             if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
