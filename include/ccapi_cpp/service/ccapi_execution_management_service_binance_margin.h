@@ -18,8 +18,8 @@ class ExecutionManagementServiceBinanceMargin : public ExecutionManagementServic
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-    this->apiKeyName = CCAPI_BINANCE_API_KEY;
-    this->apiSecretName = CCAPI_BINANCE_API_SECRET;
+    this->apiKeyName = CCAPI_BINANCE_MARGIN_API_KEY;
+    this->apiSecretName = CCAPI_BINANCE_MARGIN_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
     this->createOrderTarget = "/sapi/v1/margin/order";
     this->cancelOrderTarget = "/sapi/v1/margin/order";
