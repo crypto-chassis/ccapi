@@ -1,6 +1,3 @@
-# Small Breaking Changes Introduced In v5.32.x For OKEX/OKX Users
-* We've renamed OKEX to OKX everywhere in our code. When specifying the exchange, please use "okx" instead of the old "okex". When providing credentials via environment variables, please use OKX_API_KEY, OKX_API_SECRET, and OKX_API_PASSPHRASE, instead of the old OKEX_API_KEY, OKEX_API_SECRET, and OKEX_API_PASSPHRASE. When defining macros, please use CCAPI_ENABLE_EXCHANGE_OKX instead of the old CCAPI_ENABLE_EXCHANGE_OKEX. Thank you.
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -59,7 +56,7 @@
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
   * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, kucoin-futures, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, ascendex.
-  * Execution Management: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, ascendex.
+  * Execution Management: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-margin, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, ftx, ftx-us, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, ascendex.
   * FIX: coinbase, gemini, ftx, ftx-us.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
 * A single order execution application is provided as an end-to-end solution for executing large orders.
