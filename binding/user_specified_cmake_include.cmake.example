@@ -22,6 +22,7 @@ include_guard(DIRECTORY)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_MARGIN)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES)
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
 #
@@ -45,9 +46,9 @@ include_guard(DIRECTORY)
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_CRYPTOCOM)
 #
-# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ASCENDEX)
-#
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BYBIT)
+#
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ASCENDEX)
 #
 # add_compile_definitions(CCAPI_ENABLE_LOG_TRACE)
 #
