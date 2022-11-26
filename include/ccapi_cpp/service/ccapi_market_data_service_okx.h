@@ -271,7 +271,6 @@ class MarketDataServiceOkx : public MarketDataService {
                           {
                               {CCAPI_INSTRUMENT_TYPE, "instType"},
                           });
-        this->appendSymbolId(queryString, symbolId, "instId");
         req.target(target + "?" + queryString);
       } break;
       default:

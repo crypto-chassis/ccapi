@@ -132,6 +132,12 @@
 #ifndef CCAPI_EXCHANGE_NAME_ASCENDEX
 #define CCAPI_EXCHANGE_NAME_ASCENDEX "ascendex"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_BITGET
+#define CCAPI_EXCHANGE_NAME_BITGET "bitget"
+#endif
+#ifndef CCAPI_EXCHANGE_NAME_BITGET_FUTURES
+#define CCAPI_EXCHANGE_NAME_BITGET_FUTURES "bitget-futures"
+#endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -293,6 +299,12 @@
 #define CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_TRADES "trades"
 #define CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_BBO "bbo"
 #define CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_DEPTH "depth"
+#define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_TRADES "trade"
+#define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS "books"
+#define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS1 "books1"
+#define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS5 "books5"
+#define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS15 "books15"
+#define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_TRADES "trade"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif
@@ -643,6 +655,12 @@
 #ifndef CCAPI_ASCENDEX_URL_REST_BASE
 #define CCAPI_ASCENDEX_URL_REST_BASE "https://ascendex.com"
 #endif
+#ifndef CCAPI_BITGET_URL_REST_BASE
+#define CCAPI_BITGET_URL_REST_BASE "https://api.bitget.com"
+#endif
+#ifndef CCAPI_BITGET_FUTURES_URL_REST_BASE
+#define CCAPI_BITGET_FUTURES_URL_REST_BASE "https://api.bitget.com"
+#endif
 // end: exchange REST urls
 
 // start: exchange WS urls
@@ -747,6 +765,12 @@
 // #endif
 #ifndef CCAPI_ASCENDEX_URL_WS_BASE
 #define CCAPI_ASCENDEX_URL_WS_BASE "wss://ascendex.com"
+#endif
+#ifndef CCAPI_BITGET_URL_WS_BASE
+#define CCAPI_BITGET_URL_WS_BASE "wss://ws.bitget.com"
+#endif
+#ifndef CCAPI_BITGET_FUTURES_URL_WS_BASE
+#define CCAPI_BITGET_FUTURES_URL_WS_BASE "wss://ws.bitget.com"
 #endif
 // end: exchange WS urls
 
