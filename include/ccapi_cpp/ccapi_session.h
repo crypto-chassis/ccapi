@@ -82,6 +82,12 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
 #include "ccapi_cpp/service/ccapi_market_data_service_ascendex.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+#include "ccapi_cpp/service/ccapi_market_data_service_bitget.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+#include "ccapi_cpp/service/ccapi_market_data_service_bitget_futures.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -360,6 +366,14 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ASCENDEX] =
         std::make_shared<MarketDataServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITGET] =
+        std::make_shared<MarketDataServiceBitget>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
+        std::make_shared<MarketDataServiceBitgetFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
