@@ -2,13 +2,13 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BYBIT_DERIVATIVES_H_
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
-#include "ccapi_cpp/service/ccapi_market_data_service.h"
+#include "ccapi_cpp/service/ccapi_market_data_service_bybit_base.h"
 namespace ccapi {
-class MarketDataServiceBybitDerivatives : public MarketDataService {
+class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
  public:
   MarketDataServiceBybitDerivatives(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                     std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : MarketDataServiceBybitBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/{instrumentTypeSubstitute}/public/v3";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -27,8 +27,6 @@ class MarketDataServiceBybitDerivatives : public MarketDataService {
 
  protected:
 #endif
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("retCode":0)") == std::string::npos; }
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   std::string getInstrumentGroup(const Subscription& subscription) override {
     const auto& instrumentType = subscription.getInstrumentType();
     std::string instrumentTypeSubstitute;
@@ -50,7 +48,6 @@ class MarketDataServiceBybitDerivatives : public MarketDataService {
     const auto& instrumentType = subscription.getInstrumentType();
     if (field == CCAPI_MARKET_DEPTH) {
       std::vector<int> depths;
-
       if (instrumentType == "usdc-options") {
         depths = {25, 100};
       } else {
