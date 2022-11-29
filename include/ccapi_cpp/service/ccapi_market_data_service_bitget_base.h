@@ -18,7 +18,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     return !std::regex_search(body, std::regex("\"code\":\\s*\"00000\""));
   }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
-                                 const std::map<std::string, std::string> optionMap) override {
+                                 const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
