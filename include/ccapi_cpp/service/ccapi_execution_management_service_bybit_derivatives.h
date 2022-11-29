@@ -276,7 +276,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
           const rj::Value& data = document["data"]["result"];
           for (const auto& x : data.GetArray()) {
             std::string execType = x["execType"].GetString();
-            if (execType == "Trade") {
+            if (execType == "TRADE") {
               std::string instrument = x["symbol"].GetString();
               if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
                 Message message;
@@ -308,9 +308,9 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
           }
         }
       }
-    } else if (document.HasMember("op")) {
-      std::string op = document["op"].GetString();
-      if (op == "auth") {
+    } else if (document.HasMember("type")) {
+      std::string type = document["type"].GetString();
+      if (type == "AUTH_RESP") {
         bool success = document["success"].GetBool();
         if (success) {
           rj::Document document;
@@ -338,7 +338,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
             this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
           }
         }
-      } else if (op == "subscribe") {
+      } else if (type == "COMMAND_RESP") {
         bool success = document["success"].GetBool();
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         message.setType(success ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
