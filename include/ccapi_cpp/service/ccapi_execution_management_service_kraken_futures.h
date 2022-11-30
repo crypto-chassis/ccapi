@@ -240,8 +240,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
           element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["side"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
-          element.insert(CCAPI_EM_POSITION_COST,
-                         Decimal(UtilString::printDoubleScientific(std::stod(x["price"].GetString()) * std::stod(x["size"].GetString()))).toString());
+          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["price"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
