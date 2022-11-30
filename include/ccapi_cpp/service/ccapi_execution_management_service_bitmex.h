@@ -254,6 +254,7 @@ class ExecutionManagementServiceBitmex : public ExecutionManagementService {
           element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["currentQty"].GetString());
           element.insert(CCAPI_EM_POSITION_COST, x["openingCost"].GetString());
+          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["avgEntryPrice"].GetString());
           element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
           elementList.emplace_back(std::move(element));
         }
