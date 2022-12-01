@@ -180,6 +180,12 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
 #include "ccapi_cpp/service/ccapi_execution_management_service_ascendex.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitget.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitget_futures.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -499,6 +505,14 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ASCENDEX] =
         std::make_shared<ExecutionManagementServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITGET] =
+        std::make_shared<ExecutionManagementServiceBitget>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
+        std::make_shared<ExecutionManagementServiceBitgetFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX

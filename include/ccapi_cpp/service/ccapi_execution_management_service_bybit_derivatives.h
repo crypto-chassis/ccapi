@@ -78,7 +78,9 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
         if (param.find("orderType") == param.end()) {
           document.AddMember("orderType", rj::Value("Limit").Move(), allocator);
         }
-        this->appendSymbolId(document, allocator, symbolId);
+        if (!symbolId.empty()) {
+          this->appendSymbolId(document, allocator, symbolId);
+        }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
