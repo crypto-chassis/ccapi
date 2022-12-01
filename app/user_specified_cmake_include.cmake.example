@@ -33,6 +33,8 @@ endif()
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ASCENDEX)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITGET)
+#
 # find_package(ZLIB REQUIRED)
 # link_libraries(ZLIB::ZLIB)
 
