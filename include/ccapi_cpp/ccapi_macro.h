@@ -135,6 +135,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_BITGET_FUTURES
 #define CCAPI_EXCHANGE_NAME_BITGET_FUTURES "bitget-futures"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_BITMART
+#define CCAPI_EXCHANGE_NAME_BITMART "bitmart"
+#endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -298,6 +301,10 @@
 #define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS5 "books5"
 #define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS15 "books15"
 #define CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_TRADES "trade"
+#define CCAPI_WEBSOCKET_BITMART_CHANNEL_TRADE "spot/trade"
+#define CCAPI_WEBSOCKET_BITMART_CHANNEL_PUBLIC_DEPTH5 "spot/depth5"
+#define CCAPI_WEBSOCKET_BITMART_CHANNEL_PUBLIC_DEPTH20 "spot/depth20"
+#define CCAPI_WEBSOCKET_BITMART_CHANNEL_PUBLIC_DEPTH50 "spot/depth50"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif
@@ -654,6 +661,9 @@
 #ifndef CCAPI_BITGET_FUTURES_URL_REST_BASE
 #define CCAPI_BITGET_FUTURES_URL_REST_BASE "https://api.bitget.com"
 #endif
+#ifndef CCAPI_BITMART_URL_REST_BASE
+#define CCAPI_BITMART_URL_REST_BASE "https://api-cloud.bitmart.com"
+#endif
 // end: exchange REST urls
 
 // start: exchange WS urls
@@ -761,6 +771,9 @@
 #endif
 #ifndef CCAPI_BITGET_FUTURES_URL_WS_BASE
 #define CCAPI_BITGET_FUTURES_URL_WS_BASE "wss://ws.bitget.com"
+#endif
+#ifndef CCAPI_BITMART_URL_WS_BASE
+#define CCAPI_BITMART_URL_WS_BASE "wss://ws-manager-compress.bitmart.com"
 #endif
 // end: exchange WS urls
 
@@ -1007,6 +1020,15 @@
 #endif
 #ifndef CCAPI_BITGET_FUTURES_API_PASSPHRASE
 #define CCAPI_BITGET_FUTURES_API_PASSPHRASE "BITGET_FUTURES_API_PASSPHRASE"
+#endif
+#ifndef CCAPI_BITMART_API_KEY
+#define CCAPI_BITMART_API_KEY "BITMART_API_KEY"
+#endif
+#ifndef CCAPI_BITMART_API_SECRET
+#define CCAPI_BITMART_API_SECRET "BITMART_API_SECRET"
+#endif
+#ifndef CCAPI_BITMART_API_MEMO
+#define CCAPI_BITMART_API_MEMO "BITMART_API_MEMO"
 #endif
 // end: exchange API credentials
 

@@ -91,6 +91,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_bitget_futures.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+#include "ccapi_cpp/service/ccapi_market_data_service_bitmart.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -185,6 +188,9 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitget_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitmart.h"
 #endif
 #endif
 // end: enable exchanges for execution management
@@ -391,6 +397,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
         std::make_shared<MarketDataServiceBitgetFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMART] =
+        std::make_shared<MarketDataServiceBitmart>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -513,6 +523,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
         std::make_shared<ExecutionManagementServiceBitgetFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMART] =
+        std::make_shared<MarketDataServiceBitmart>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX
