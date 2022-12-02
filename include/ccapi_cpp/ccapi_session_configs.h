@@ -135,9 +135,25 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BYBIT_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBybitDerivatives = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_BYBIT_DERIVATIVES_CHANNEL_TRADE},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BYBIT_DERIVATIVES_CHANNEL_ORDERBOOK},
+    };
     std::map<std::string, std::string> fieldWebsocketChannelMapAscendex = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_DEPTH},
+    };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBitget = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_TRADES},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS},
+    };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBitgetFutures = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_TRADES},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS},
+    };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBitmart = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_BITMART_CHANNEL_TRADE},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITMART_CHANNEL_PUBLIC_DEPTH5},
     };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
@@ -214,8 +230,20 @@ class SessionConfigs CCAPI_FINAL {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBybit) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BYBIT].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBybitDerivatives) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES].push_back(fieldWebsocketChannel.first);
+    }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapAscendex) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_ASCENDEX].push_back(fieldWebsocketChannel.first);
+    }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitget) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITGET].push_back(fieldWebsocketChannel.first);
+    }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitgetFutures) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITGET_FUTURES].push_back(fieldWebsocketChannel.first);
+    }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitmart) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITMART].push_back(fieldWebsocketChannel.first);
     }
     for (auto& x : this->exchangeFieldMap) {
       x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
@@ -247,7 +275,11 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, fieldWebsocketChannelMapGateioPerpetualFutures},
         {CCAPI_EXCHANGE_NAME_CRYPTOCOM, fieldWebsocketChannelMapCryptocom},
         {CCAPI_EXCHANGE_NAME_BYBIT, fieldWebsocketChannelMapBybit},
+        {CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES, fieldWebsocketChannelMapBybitDerivatives},
         {CCAPI_EXCHANGE_NAME_ASCENDEX, fieldWebsocketChannelMapAscendex},
+        {CCAPI_EXCHANGE_NAME_BITGET, fieldWebsocketChannelMapBitget},
+        {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, fieldWebsocketChannelMapBitgetFutures},
+        {CCAPI_EXCHANGE_NAME_BITMART, fieldWebsocketChannelMapBitmart},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -279,7 +311,11 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, CCAPI_GATEIO_PERPETUAL_FUTURES_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_CRYPTOCOM, CCAPI_CRYPTOCOM_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BYBIT, CCAPI_BYBIT_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES, CCAPI_BYBIT_DERIVATIVES_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_ASCENDEX, CCAPI_ASCENDEX_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET, CCAPI_BITGET_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, CCAPI_BITGET_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_WS_BASE},
     };
     this->initialSequenceByExchangeMap = {{CCAPI_EXCHANGE_NAME_GEMINI, 0}, {CCAPI_EXCHANGE_NAME_BITFINEX, 1}};
   }
@@ -312,7 +348,11 @@ class SessionConfigs CCAPI_FINAL {
         {CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES, CCAPI_GATEIO_PERPETUAL_FUTURES_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_CRYPTOCOM, CCAPI_CRYPTOCOM_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BYBIT, CCAPI_BYBIT_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES, CCAPI_BYBIT_DERIVATIVES_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_ASCENDEX, CCAPI_ASCENDEX_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET, CCAPI_BITGET_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, CCAPI_BITGET_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_REST_BASE},
     };
   }
   void initializUrlFixBase() {

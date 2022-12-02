@@ -304,7 +304,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
           std::string availPos = x["availPos"].GetString();
           std::string positionQuantity = availPos.empty() ? x["pos"].GetString() : availPos;
           element.insert(CCAPI_EM_POSITION_QUANTITY, positionQuantity);
-          element.insert(CCAPI_EM_POSITION_COST, std::to_string(std::stod(x["avgPx"].GetString()) * std::stod(positionQuantity)));
+          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["avgPx"].GetString());
           element.insert(CCAPI_EM_POSITION_LEVERAGE, x["lever"].GetString());
           elementList.emplace_back(std::move(element));
         }
@@ -323,7 +323,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         auto it1Str = std::string(it1->value.GetString());
         auto it2Str = std::string(it2->value.GetString());
         if (!it1Str.empty() && !it2Str.empty()) {
-          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::to_string(std::stod(it1Str) * std::stod(it2Str)));
+          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, UtilString::printDoubleScientific(std::stod(it1Str) * std::stod(it2Str)));
         }
       }
     }

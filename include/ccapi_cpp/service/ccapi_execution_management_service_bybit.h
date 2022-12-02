@@ -2,13 +2,13 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BYBIT_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
-#include "ccapi_cpp/service/ccapi_execution_management_service.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service_bybit_base.h"
 namespace ccapi {
-class ExecutionManagementServiceBybit : public ExecutionManagementService {
+class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBase {
  public:
   ExecutionManagementServiceBybit(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                   ServiceContextPtr serviceContextPtr)
-      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : ExecutionManagementServiceBybitBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/private/v3";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
@@ -32,46 +32,6 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
 
  protected:
 #endif
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("retCode":0)") == std::string::npos; }
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
-  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
-                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
-                                               const std::map<std::string, std::string>& credential) override {
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at("X-BAPI-TIMESTAMP").to_string();
-    preSignedText += apiKey;
-    preSignedText += req.base().at("X-BAPI-RECV-WINDOW").to_string();
-    std::string aString;
-    if (methodString == "GET") {
-      aString = queryString;
-    } else if (methodString == "POST") {
-      aString = body;
-    }
-    preSignedText += aString;
-    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
-    req.set("X-BAPI-SIGN", signature);
-  }
-  void signRequest(http::request<http::string_body>& req, const std::string aString, const TimePoint& now,
-                   const std::map<std::string, std::string>& credential) {
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at("X-BAPI-TIMESTAMP").to_string();
-    preSignedText += apiKey;
-    preSignedText += req.base().at("X-BAPI-RECV-WINDOW").to_string();
-    preSignedText += aString;
-    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
-    req.set("X-BAPI-SIGN", signature);
-  }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> standardizationMap = {}) {
-    for (const auto& kv : param) {
-      queryString += standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
-      queryString += "=";
-      queryString += Url::urlEncode(kv.second);
-      queryString += "&";
-    }
-  }
   void appendParam(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_SIDE, "side"},
@@ -95,21 +55,6 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         }
       }
     }
-  }
-  void appendSymbolId(std::string& queryString, const std::string& symbolId) {
-    queryString += "symbol=";
-    queryString += Url::urlEncode(symbolId);
-    queryString += "&";
-  }
-  void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
-    rjValue.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
-  }
-  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set("X-BAPI-SIGN-TYPE", "2");
-    req.set("X-BAPI-API-KEY", apiKey);
-    req.set("X-BAPI-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
-    req.set("X-BAPI-RECV-WINDOW", std::to_string(CCAPI_BYBIT_API_RECEIVE_WINDOW_MILLISECONDS));
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -162,7 +107,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param);
+        this->appendParamToQueryString(queryString, param);
         req.target(this->getOrderTarget + "?" + queryString);
         this->signRequest(req, queryString, now, credential);
       } break;
@@ -170,7 +115,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         req.method(http::verb::get);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param);
+        this->appendParamToQueryString(queryString, param);
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
@@ -180,7 +125,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::get);
         std::string queryString;
-        this->appendParam(queryString, {});
+        this->appendParamToQueryString(queryString, {});
         req.target(this->getAccountBalancesTarget);
         this->signRequest(req, queryString, now, credential);
       } break;
@@ -228,45 +173,8 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
-    std::vector<std::string> sendStringList;
-    rj::Document document;
-    document.SetObject();
-    auto& allocator = document.GetAllocator();
-    document.AddMember("op", rj::Value("auth").Move(), allocator);
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    auto expires =
-        std::chrono::duration_cast<std::chrono::milliseconds>((now + std::chrono::milliseconds(CCAPI_BYBIT_API_RECEIVE_WINDOW_MILLISECONDS)).time_since_epoch())
-            .count();
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    std::string preSignedText = "GET";
-    preSignedText += "/realtime";
-    preSignedText += std::to_string(expires);
-    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
-    rj::Value args(rj::kArrayType);
-    args.PushBack(rj::Value(apiKey.c_str(), allocator).Move(), allocator);
-    args.PushBack(rj::Value(expires).Move(), allocator);
-    args.PushBack(rj::Value(signature.c_str(), allocator).Move(), allocator);
-    document.AddMember("args", args, allocator);
-    rj::StringBuffer stringBuffer;
-    rj::Writer<rj::StringBuffer> writer(stringBuffer);
-    document.Accept(writer);
-    std::string sendString = stringBuffer.GetString();
-    sendStringList.push_back(sendString);
-    return sendStringList;
-  }
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
-                     const TimePoint& timeReceived) override {
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection.hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
   Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
-                    const TimePoint& timeReceived) {
+                    const TimePoint& timeReceived) override {
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -284,7 +192,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
           message.setTimeReceived(timeReceived);
           message.setCorrelationIdList({subscription.getCorrelationId()});
           std::string instrument = x["s"].GetString();
-          if (instrumentSet.empty() || instrumentSet.find(UtilString::toUpper(instrument)) != instrumentSet.end()) {
+          if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
             message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(x["E"].GetString()))));
             auto itTradeId = x.FindMember("t");
             if (itTradeId != x.MemberEnd() && !itTradeId->value.IsNull() && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {

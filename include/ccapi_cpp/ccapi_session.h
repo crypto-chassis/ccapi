@@ -79,8 +79,20 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
 #include "ccapi_cpp/service/ccapi_market_data_service_bybit.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
+#include "ccapi_cpp/service/ccapi_market_data_service_bybit_derivatives.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
 #include "ccapi_cpp/service/ccapi_market_data_service_ascendex.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+#include "ccapi_cpp/service/ccapi_market_data_service_bitget.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+#include "ccapi_cpp/service/ccapi_market_data_service_bitget_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+#include "ccapi_cpp/service/ccapi_market_data_service_bitmart.h"
 #endif
 #endif
 // end: enable exchanges for market data
@@ -165,8 +177,20 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service_bybit.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
+#include "ccapi_cpp/service/ccapi_execution_management_service_bybit_derivatives.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
 #include "ccapi_cpp/service/ccapi_execution_management_service_ascendex.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitget.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitget_futures.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+#include "ccapi_cpp/service/ccapi_execution_management_service_bitmart.h"
 #endif
 #endif
 // end: enable exchanges for execution management
@@ -357,9 +381,25 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BYBIT] =
         std::make_shared<MarketDataServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES] =
+        std::make_shared<MarketDataServiceBybitDerivatives>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ASCENDEX] =
         std::make_shared<MarketDataServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITGET] =
+        std::make_shared<MarketDataServiceBitget>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
+        std::make_shared<MarketDataServiceBitgetFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMART] =
+        std::make_shared<MarketDataServiceBitmart>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
@@ -468,9 +508,25 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BYBIT] =
         std::make_shared<ExecutionManagementServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES] =
+        std::make_shared<ExecutionManagementServiceBybitDerivatives>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ASCENDEX] =
         std::make_shared<ExecutionManagementServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITGET] =
+        std::make_shared<ExecutionManagementServiceBitget>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITGET_FUTURES] =
+        std::make_shared<ExecutionManagementServiceBitgetFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BITMART
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMART] =
+        std::make_shared<MarketDataServiceBitmart>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX
@@ -574,6 +630,18 @@ class Session {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
                         "unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
           return;
+        }
+        for (const auto& subscription : subscriptionList) {
+          auto exchange = subscription.getExchange();
+          if (exchange == CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES) {
+            const auto& instrumentType = subscription.getInstrumentType();
+            std::vector<std::string> instrumentTypeList = {"usdt-contract", "usdc-contract", "usdc-options"};
+            if (std::find(instrumentTypeList.begin(), instrumentTypeList.end(), instrumentType) == instrumentTypeList.end()) {
+              this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
+                            "unsupported exchange instrument types: " + toString(instrumentType) + ". Allowed values: " + toString(instrumentTypeList) + ".");
+              return;
+            }
+          }
         }
         CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = " + toString(subscriptionListByExchangeMap));
         for (auto& subscriptionListByExchange : subscriptionListByExchangeMap) {

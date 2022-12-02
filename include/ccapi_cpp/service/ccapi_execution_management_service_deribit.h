@@ -263,8 +263,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_INSTRUMENT, x["instrument_name"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
-          element.insert(CCAPI_EM_POSITION_COST,
-                         std::to_string(std::stod(x["average_price"].GetString()) * std::stod(x["size"].GetString()) / std::stod(x["leverage"].GetString())));
+          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["average_price"].GetString());
           element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
           elementList.emplace_back(std::move(element));
         }

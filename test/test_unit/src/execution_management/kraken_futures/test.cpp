@@ -408,7 +408,6 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "pi_xbtusd");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "short");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "10000");
-  EXPECT_NEAR(std::stod(element.getValue(CCAPI_EM_POSITION_COST)), 9392.749993345933 * 10000, 9392.749993345933 * 10000 * CCAPI_DOUBLE_ERROR_DEFAULT);
 }
 
 TEST_F(ExecutionManagementServiceKrakenFuturesTest, createEventFills) {

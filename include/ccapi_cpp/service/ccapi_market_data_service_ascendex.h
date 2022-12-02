@@ -29,7 +29,7 @@ class MarketDataServiceAscendex : public MarketDataService {
 #endif
   bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("code":0)") == std::string::npos; }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
-                                 const std::map<std::string, std::string> optionMap) override {
+                                 const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {

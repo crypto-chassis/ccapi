@@ -59,8 +59,8 @@ class Subscription CCAPI_FINAL {
     for (const auto& x : credential) {
       shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
-    std::string output = "Subscription [exchange = " + exchange + ", instrument = " + instrument + ", field = " + field +
-                         ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = " + correlationId +
+    std::string output = "Subscription [exchange = " + exchange + ", instrumentType = " + instrumentType + ", instrument = " + instrument +
+                         ", field = " + field + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = " + correlationId +
                          ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName +
                          ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
@@ -68,6 +68,7 @@ class Subscription CCAPI_FINAL {
   const std::string& getCorrelationId() const { return correlationId; }
   const std::string& getExchange() const { return exchange; }
   const std::string& getInstrument() const { return instrument; }
+  const std::string& getInstrumentType() const { return instrumentType; }
   const std::string& getField() const { return field; }
   const std::string& getRawOptions() const { return rawOptions; }
   const std::map<std::string, std::string>& getOptionMap() const { return optionMap; }
@@ -99,6 +100,7 @@ class Subscription CCAPI_FINAL {
   std::string getTimeSentISO() const { return UtilTime::getISOTimestamp(timeSent); }
   std::pair<long long, long long> getTimeSentPair() const { return UtilTime::divide(timeSent); }
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
+  void setInstrumentType(const std::string& instrumentType) { this->instrumentType = instrumentType; }
   enum class Status {
     UNKNOWN,
     SUBSCRIBING,
@@ -134,6 +136,7 @@ class Subscription CCAPI_FINAL {
  private:
 #endif
   std::string exchange;
+  std::string instrumentType;
   std::string instrument;
   std::string field;
   std::string rawOptions;

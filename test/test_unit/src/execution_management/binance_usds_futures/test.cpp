@@ -391,7 +391,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "BTCUSDT");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "BOTH");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_COST)), 0);
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE)), 0);
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "100");
 }
 } /* namespace ccapi */

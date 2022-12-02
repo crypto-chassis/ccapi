@@ -516,7 +516,7 @@ TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestGetAcco
   EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "ETH-USD-210430");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "long");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "1");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_COST)), 2566.31);
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE)), 2566.31);
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "10");
 }
 
