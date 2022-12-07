@@ -14,9 +14,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
 
  protected:
 #endif
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-    return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
-  }
+  bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\"")); }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));

@@ -44,9 +44,7 @@ class ExecutionManagementServiceKucoinFutures : public ExecutionManagementServic
     wsConnection.status = WsConnection::Status::OPEN;
   }
 
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-    return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
-  }
+  bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\"")); }
 
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();

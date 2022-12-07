@@ -38,7 +38,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     this->send(hdl, R"({"event": "bts:heartbeat"})", wspp::frame::opcode::text, ec);
   }
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+  bool doesHttpBodyContainError(const std::string& body) override {
     return body.find(R"("status": "error")") != std::string::npos || body.find(R"("status":"error")") != std::string::npos ||
            body.find(R"("error":)") != std::string::npos;
   }
