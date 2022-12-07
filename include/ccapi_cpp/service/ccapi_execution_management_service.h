@@ -116,7 +116,7 @@ class ExecutionManagementService : public Service {
   void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived,
                                         Queue<Event>* eventQueuePtr) override {
     Event event;
-    if (this->doesHttpBodyContainError(request, textMessage)) {
+    if (this->doesHttpBodyContainError(textMessage)) {
       event.setType(Event::Type::RESPONSE);
       Message message;
       message.setType(Message::Type::RESPONSE_ERROR);

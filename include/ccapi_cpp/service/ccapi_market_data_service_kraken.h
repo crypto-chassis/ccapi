@@ -32,7 +32,7 @@ class MarketDataServiceKraken : public MarketDataService {
     auto now = UtilTime::now();
     this->send(hdl, "{\"reqid\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"event\":\"ping\"}", wspp::frame::opcode::text, ec);
   }
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("error":[])") == std::string::npos; }
+  bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("error":[])") == std::string::npos; }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));

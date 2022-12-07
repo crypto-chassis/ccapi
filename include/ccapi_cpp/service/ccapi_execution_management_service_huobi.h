@@ -36,7 +36,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
 
  private:
 #endif
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find("err-code") != std::string::npos; }
+  bool doesHttpBodyContainError(const std::string& body) override { return body.find("err-code") != std::string::npos; }
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "symbol");
   }

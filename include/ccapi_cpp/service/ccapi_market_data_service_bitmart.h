@@ -35,6 +35,11 @@ class MarketDataServiceBitmart : public MarketDataService {
 
  private:
 #endif
+  void onClose(wspp::connection_hdl hdl) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->subscriptionStartedByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    MarketDataService::onClose(hdl);
+  }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
