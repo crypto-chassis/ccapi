@@ -52,9 +52,6 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
-      if (key == "side") {
-        value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy_single") ? "buy_single" : "sell_single";
-      }
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
@@ -233,7 +230,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       this->extractOrderInfo(element, data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
-      for (const auto& x : data["orderList"].GetArray()) {
+      for (const auto& x : data.GetArray()) {
         Element element;
         this->extractOrderInfo(element, x, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
@@ -246,21 +243,21 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : document["data"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_ASSET, x["coinName"].GetString());
-          std::string available = x["available"].GetString();
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
-          std::string frozen = x["frozen"].GetString();
-          std::string lock = x["lock"].GetString();
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, (Decimal(available).add(Decimal(frozen)).add(Decimal(lock))).toString());
+          element.insert(CCAPI_EM_ASSET, x["marginCoin"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["equity"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         for (const auto& x : document["data"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_ASSET, x["marginCoin"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["equity"].GetString());
+          element.insert(CCAPI_EM_ASSET, x["coinName"].GetString());
+          std::string available = x["available"].GetString();
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
+          std::string frozen = x["frozen"].GetString();
+          std::string lock = x["lock"].GetString();
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, (Decimal(available).add(Decimal(frozen)).add(Decimal(lock))).toString());
           elementList.emplace_back(std::move(element));
         }
       } break;
