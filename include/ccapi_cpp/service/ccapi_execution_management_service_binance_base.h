@@ -1,8 +1,8 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
-#if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_MARGIN) || \
-    defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
+#if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || \
+    defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 namespace ccapi {
 class ExecutionManagementServiceBinanceBase : public ExecutionManagementService {
@@ -92,7 +92,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           }
         }
         this->signRequest(queryString, param, now, credential);
-        req.target(std::string(this->createOrderTarget) + "?" + queryString);
+        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->createOrderMarginTarget : this->createOrderTarget) + "?" + queryString);
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
@@ -105,7 +105,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                           });
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
-        req.target(this->cancelOrderTarget + "?" + queryString);
+        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->cancelOrderMarginTarget : this->cancelOrderTarget) + "?" + queryString);
       } break;
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::get);
@@ -118,7 +118,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                           });
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
-        req.target(this->getOrderTarget + "?" + queryString);
+        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->getOrderMarginTarget : this->getOrderTarget) + "?" + queryString);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::get);
@@ -128,7 +128,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           this->appendSymbolId(queryString, symbolId);
         }
         this->signRequest(queryString, {}, now, credential);
-        req.target(this->getOpenOrdersTarget + "?" + queryString);
+        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->getOpenOrdersMarginTarget : this->getOpenOrdersTarget) + "?" +
+                   queryString);
       } break;
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
@@ -136,14 +137,16 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->appendParam(queryString, {});
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, {}, now, credential);
-        req.target(this->cancelOpenOrdersTarget + "?" + queryString);
+        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->cancelOpenOrdersMarginTarget : this->cancelOpenOrdersTarget) + "?" +
+                   queryString);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::get);
         std::string queryString;
         this->appendParam(queryString, {});
         this->signRequest(queryString, {}, now, credential);
-        req.target(this->getAccountBalancesTarget + "?" + queryString);
+        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->getAccountBalancesMarginTarget : this->getAccountBalancesTarget) + "?" +
+                   queryString);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
@@ -182,7 +185,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        for (const auto& x : document[this->isDerivatives ? "assets" : "balances"].GetArray()) {
+        bool isMargin = request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN;
+        for (const auto& x : document[this->isDerivatives ? "assets" : (isMargin ? "userAssets" : "balances")].GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
           if (this->isDerivatives) {
@@ -191,6 +195,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
             element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(x["free"].GetString()).add(Decimal(x["locked"].GetString())).toString());
           }
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x[this->isDerivatives ? "availableBalance" : "free"].GetString());
+          if (isMargin) {
+            element.insert(CCAPI_EM_QUANTITY_LIABILITY, Decimal(x["borrowed"].GetString()).add(Decimal(x["interest"].GetString())).toString());
+          }
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -206,8 +213,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     req.set(http::field::host, host);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     req.method(http::verb::post);
-    std::string target = this->listenKeyTarget;
-    if (this->listenKeyTarget == "/sapi/v1/userDataStream/isolated") {
+    bool isMargin = wsConnection.subscriptionList.at(0).getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN;
+    std::string target = isMargin ? this->listenKeyMarginTarget : this->listenKeyTarget;
+    if (target == "/sapi/v1/userDataStream/isolated") {
       auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
       target += "?" + symbol;
     }
@@ -272,12 +280,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           req.set(http::field::host, that->hostRest);
           req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
           req.method(http::verb::put);
-          std::string target = that->listenKeyTarget;
+          bool isMargin = wsConnection.subscriptionList.at(0).getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN;
+          std::string target = isMargin ? that->listenKeyMarginTarget : that->listenKeyTarget;
           if (!that->isDerivatives) {
             std::map<std::string, std::string> params;
             auto listenKey = that->extraPropertyByConnectionIdMap.at(wsConnection.id).at("listenKey");
             params.insert({"listenKey", listenKey});
-            if (that->listenKeyTarget == "/sapi/v1/userDataStream/isolated") {
+            if (target == "/sapi/v1/userDataStream/isolated") {
               auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
               params.insert({"symbol", symbol});
             }
@@ -414,6 +423,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   std::string listenKeyTarget;
   int pingListenKeyIntervalSeconds;
   std::map<std::string, TimerPtr> pingListenKeyTimerMapByConnectionIdMap;
+  std::string createOrderMarginTarget;
+  std::string cancelOrderMarginTarget;
+  std::string getOrderMarginTarget;
+  std::string getOpenOrdersMarginTarget;
+  std::string cancelOpenOrdersMarginTarget;
+  std::string getAccountBalancesMarginTarget;
+  std::string listenKeyMarginTarget;
 };
 } /* namespace ccapi */
 #endif
