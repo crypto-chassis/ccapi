@@ -60,9 +60,9 @@ class Subscription CCAPI_FINAL {
     for (const auto& x : credential) {
       shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
-    std::string output = "Subscription [exchange = " + exchange + ", instrumentType = " + instrumentType + ", instrument = " + instrument +
-                         ", field = " + field + ", optionMap = " + ccapi::toString(optionMap) + ", correlationId = " + correlationId +
-                         ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName +
+    std::string output = "Subscription [exchange = " + exchange + ", accountType = " + accountType + ", instrumentType = " + instrumentType +
+                         ", instrument = " + instrument + ", field = " + field + ", optionMap = " + ccapi::toString(optionMap) +
+                         ", correlationId = " + correlationId + ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName +
                          ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
@@ -100,8 +100,10 @@ class Subscription CCAPI_FINAL {
   TimePoint getTimeSent() const { return timeSent; }
   std::string getTimeSentISO() const { return UtilTime::getISOTimestamp(timeSent); }
   std::pair<long long, long long> getTimeSentPair() const { return UtilTime::divide(timeSent); }
+  const std::string& getAccountType() const { return accountType; }
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
   void setInstrumentType(const std::string& instrumentType) { this->instrumentType = instrumentType; }
+  void setAccountType(const std::string& accountType) { this->accountType = accountType; }
   enum class Status {
     UNKNOWN,
     SUBSCRIBING,
@@ -137,6 +139,7 @@ class Subscription CCAPI_FINAL {
  private:
 #endif
   std::string exchange;
+  std::string accountType;
   std::string instrumentType;
   std::string instrument;
   std::string field;
