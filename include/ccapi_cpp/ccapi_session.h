@@ -538,8 +538,8 @@ class Session {
         std::make_shared<ExecutionManagementServiceBitgetFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMART
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BITMART] =
-        std::make_shared<MarketDataServiceBitmart>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BITMART] =
+        std::make_shared<ExecutionManagementServiceBitmart>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX

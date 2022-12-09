@@ -28,8 +28,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     this->getOpenOrdersTarget = "/api/mix/v1/order/current";
     this->getAllOpenOrdersTarget = "/api/mix/v1/order/marginCoinCurrent";
     this->cancelOpenOrdersTarget = "/api/mix/v1/order/cancel-all-orders";
-    this->getAccountsTarget = "/api/mix/v1/account/accounts";
-    this->getAccountBalancesTarget = "/api/mix/v1/account/account";
+    this->getAccountBalancesTarget = "/api/mix/v1/account/accounts";
     this->getAccountPositionsTarget = "/api/mix/v1/position/singlePosition";
     this->getAccountAllPositionsTarget = "/api/mix/v1/position/allPosition";
   }
@@ -166,17 +165,6 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         auto body = stringBuffer.GetString();
         this->signRequest(req, body, credential);
       } break;
-      case Request::Operation::GET_ACCOUNTS: {
-        req.method(http::verb::get);
-        std::string queryString;
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param);
-        if (queryString.back() == '&') {
-          queryString.pop_back();
-        }
-        req.target(this->getAccountsTarget + "?" + queryString);
-        this->signRequest(req, "", credential);
-      } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::get);
         std::string queryString;
@@ -188,7 +176,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         if (queryString.back() == '&') {
           queryString.pop_back();
         }
-        req.target(this->getAccountsTarget + "?" + queryString);
+        req.target(this->getAccountBalancesTarget + "?" + queryString);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
@@ -240,15 +228,6 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
-      case Request::Operation::GET_ACCOUNTS: {
-        for (const auto& x : document["data"].GetArray()) {
-          Element element;
-          element.insert(CCAPI_EM_ASSET, x["marginCoin"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["equity"].GetString());
-          elementList.emplace_back(std::move(element));
-        }
-      } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         for (const auto& x : document["data"].GetArray()) {
           Element element;
