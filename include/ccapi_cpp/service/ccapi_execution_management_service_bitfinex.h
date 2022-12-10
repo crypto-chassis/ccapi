@@ -227,9 +227,13 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
   }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER) {
+    if (operation == Request::Operation::CREATE_ORDER) {
       Element element;
       this->extractOrderInfo(element, document[4][0]);
+      elementList.emplace_back(std::move(element));
+    } else if (operation == Request::Operation::CANCEL_ORDER) {
+      Element element;
+      this->extractOrderInfo(element, document[4]);
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_ORDER) {
       Element element;
