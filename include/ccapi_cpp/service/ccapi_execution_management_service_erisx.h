@@ -33,7 +33,7 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
 
  private:
 #endif
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
+  bool doesHttpBodyContainError(const std::string& body) override {
     return body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos ||
            body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos;
   }

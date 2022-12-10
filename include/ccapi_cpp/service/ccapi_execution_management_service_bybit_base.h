@@ -14,7 +14,7 @@ class ExecutionManagementServiceBybitBase : public ExecutionManagementService {
 
  protected:
 #endif
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("retCode":0)") == std::string::npos; }
+  bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("retCode":0)") == std::string::npos; }
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,

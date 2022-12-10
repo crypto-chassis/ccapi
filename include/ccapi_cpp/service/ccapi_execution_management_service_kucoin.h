@@ -40,9 +40,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     wsConnection.status = WsConnection::Status::OPEN;
   }
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override {
-    return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\""));
-  }
+  bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\"")); }
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     http::request<http::string_body> req;

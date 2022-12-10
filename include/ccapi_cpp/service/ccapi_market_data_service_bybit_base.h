@@ -14,7 +14,7 @@ class MarketDataServiceBybitBase : public MarketDataService {
 
  protected:
 #endif
-  bool doesHttpBodyContainError(const Request& request, const std::string& body) override { return body.find(R"("retCode":0)") == std::string::npos; }
+  bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("retCode":0)") == std::string::npos; }
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
 };
 } /* namespace ccapi */

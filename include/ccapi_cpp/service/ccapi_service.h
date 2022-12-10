@@ -35,7 +35,8 @@
 // clang-format on
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
-    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) && (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))
+    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
+        (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
 #include <iomanip>
 #include <sstream>
 
@@ -637,7 +638,7 @@ class Service : public std::enable_shared_from_this<Service> {
       retry.promisePtr->set_value();
     }
   }
-  virtual bool doesHttpBodyContainError(const Request& request, const std::string& body) { return false; }
+  virtual bool doesHttpBodyContainError(const std::string& body) { return false; }
   void tryRequest(const Request& request, http::request<http::string_body>& req, const HttpRetry& retry, Queue<Event>* eventQueuePtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
@@ -966,7 +967,8 @@ class Service : public std::enable_shared_from_this<Service> {
     } else if (opcode == websocketpp::frame::opcode::binary) {
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
-    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) && (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))
+    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
+        (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
       if (this->needDecompressWebsocketMessage) {
         std::string decompressed;
         const std::string& payload = msg->get_payload();
@@ -1134,7 +1136,8 @@ class Service : public std::enable_shared_from_this<Service> {
   bool needDecompressWebsocketMessage{};
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
-    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) && (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))
+    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
+        (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled<monostate> inflater;
 #endif
