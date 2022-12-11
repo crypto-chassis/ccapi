@@ -37,6 +37,8 @@ endif()
 #
 # add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITMART)
 #
+# add_compile_definitions(CCAPI_ENABLE_EXCHANGE_MEXC)
+#
 # find_package(ZLIB REQUIRED)
 # link_libraries(ZLIB::ZLIB)
 

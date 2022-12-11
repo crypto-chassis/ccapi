@@ -690,6 +690,12 @@
 #ifndef CCAPI_MEXC_URL_REST_BASE
 #define CCAPI_MEXC_URL_REST_BASE "https://api.mexc.com"
 #endif
+#ifndef CCAPI_MEXC_CREATE_ORDER_PATH
+#define CCAPI_MEXC_CREATE_ORDER_PATH "/api/v3/order"
+#endif
+#ifndef CCAPI_MEXC_LISTEN_KEY_PATH
+#define CCAPI_MEXC_LISTEN_KEY_PATH "/api/v3/userDataStream"
+#endif
 #ifndef CCAPI_MEXC_FUTURES_URL_REST_BASE
 #define CCAPI_MEXC_FUTURES_URL_REST_BASE "https://contract.mexc.com"
 #endif
