@@ -10,7 +10,7 @@ class MarketDataServiceMexc : public MarketDataService {
                         std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_MEXC;
-    this->baseUrl = std::string(CCAPI_MEXC_PUBLIC_URL_WS_BASE) + "/ws";
+    this->baseUrl = std::string(CCAPI_MEXC_URL_WS_BASE) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
