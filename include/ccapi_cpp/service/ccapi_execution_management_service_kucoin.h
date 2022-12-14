@@ -21,8 +21,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     this->apiKeyName = CCAPI_KUCOIN_API_KEY;
     this->apiSecretName = CCAPI_KUCOIN_API_SECRET;
     this->apiPassphraseName = CCAPI_KUCOIN_API_PASSPHRASE;
-    this->apiKeyVersionName = CCAPI_KUCOIN_API_KEY_VERSION;
-    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName, this->apiKeyVersionName});
+    // this->apiKeyVersionName = CCAPI_KUCOIN_API_KEY_VERSION;
+    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
     this->createOrderTarget = "/api/v1/orders";
     this->cancelOrderTarget = "/api/v1/orders/<id>";
     this->getOrderTarget = "/api/v1/orders/<id>";
@@ -168,8 +168,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("KC-API-KEY", apiKey);
     req.set("KC-API-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
-    auto apiKeyVersion = mapGetWithDefault(credential, this->apiKeyVersionName);
-    req.set("KC-API-KEY-VERSION", apiKeyVersion);
+    // auto apiKeyVersion = mapGetWithDefault(credential, this->apiKeyVersionName);
+    req.set("KC-API-KEY-VERSION", "2");
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     this->signApiPassphrase(req, apiKeyVersion, apiPassphrase, apiSecret);
@@ -473,7 +473,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     return event;
   }
   std::string apiPassphraseName;
-  std::string apiKeyVersionName;
+  // std::string apiKeyVersionName;
 };
 } /* namespace ccapi */
 #endif
