@@ -201,9 +201,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC
 #include "ccapi_cpp/service/ccapi_execution_management_service_mexc.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
-#include "ccapi_cpp/service/ccapi_execution_management_service_mexc_futures.h"
-#endif
+// #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
+// #include "ccapi_cpp/service/ccapi_execution_management_service_mexc_futures.h"
+// #endif
 #endif
 // end: enable exchanges for execution management
 
@@ -551,10 +551,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_MEXC] =
         std::make_shared<ExecutionManagementServiceMexc>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_MEXC_FUTURES] =
-        std::make_shared<ExecutionManagementServiceMexcFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
+// #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
+//     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_MEXC_FUTURES] =
+//         std::make_shared<ExecutionManagementServiceMexcFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+// #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
