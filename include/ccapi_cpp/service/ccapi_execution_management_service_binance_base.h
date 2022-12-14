@@ -92,7 +92,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           }
         }
         this->signRequest(queryString, param, now, credential);
-        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->createOrderMarginTarget : this->createOrderTarget) + "?" + queryString);
+        req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                        ? this->createOrderMarginTarget
+                        : this->createOrderTarget) +
+                   "?" + queryString);
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
@@ -105,7 +108,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                           });
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
-        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->cancelOrderMarginTarget : this->cancelOrderTarget) + "?" + queryString);
+        req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                        ? this->cancelOrderMarginTarget
+                        : this->cancelOrderTarget) +
+                   "?" + queryString);
       } break;
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::get);
@@ -118,7 +124,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                           });
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, param, now, credential);
-        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->getOrderMarginTarget : this->getOrderTarget) + "?" + queryString);
+        req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                        ? this->getOrderMarginTarget
+                        : this->getOrderTarget) +
+                   "?" + queryString);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
         req.method(http::verb::get);
@@ -128,8 +137,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           this->appendSymbolId(queryString, symbolId);
         }
         this->signRequest(queryString, {}, now, credential);
-        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->getOpenOrdersMarginTarget : this->getOpenOrdersTarget) + "?" +
-                   queryString);
+        req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                        ? this->getOpenOrdersMarginTarget
+                        : this->getOpenOrdersTarget) +
+                   "?" + queryString);
       } break;
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
@@ -137,16 +148,29 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->appendParam(queryString, {});
         this->appendSymbolId(queryString, symbolId);
         this->signRequest(queryString, {}, now, credential);
-        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->cancelOpenOrdersMarginTarget : this->cancelOpenOrdersTarget) + "?" +
-                   queryString);
+        req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                        ? this->cancelOpenOrdersMarginTarget
+                        : this->cancelOpenOrdersTarget) +
+                   "?" + queryString);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::get);
         std::string queryString;
         this->appendParam(queryString, {});
+        if (!symbolId.empty()) {
+          queryString += "symbols=";
+          queryString += Url::urlEncode(symbolId);
+          queryString += "&";
+        }
         this->signRequest(queryString, {}, now, credential);
-        req.target((request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN ? this->getAccountBalancesMarginTarget : this->getAccountBalancesTarget) + "?" +
-                   queryString);
+        const auto& marginType = request.getMarginType();
+        std::string target = this->getAccountBalancesTarget;
+        if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
+          target = this->getAccountBalancesCrossMarginTarget;
+        } else if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+          target = this->getAccountBalancesIsolatedMarginTarget;
+        }
+        req.target(target + "?" + queryString);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
@@ -185,20 +209,58 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        bool isMargin = request.getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN;
-        for (const auto& x : document[this->isDerivatives ? "assets" : (isMargin ? "userAssets" : "balances")].GetArray()) {
-          Element element;
-          element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
-          if (this->isDerivatives) {
+        const auto& marginType = request.getMarginType();
+        if (this->isDerivatives) {
+          for (const auto& x : document["assets"].GetArray()) {
+            Element element;
+            element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
             element.insert(CCAPI_EM_QUANTITY_TOTAL, x["walletBalance"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["availableBalance"].GetString());
+            elementList.emplace_back(std::move(element));
+          }
+        } else {
+          if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
+            for (const auto& x : document["userAssets"].GetArray()) {
+              Element element;
+              element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
+              element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(x["free"].GetString()).add(Decimal(x["locked"].GetString())).toString());
+              element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["free"].GetString());
+              element.insert(CCAPI_EM_QUANTITY_LIABILITY, Decimal(x["borrowed"].GetString()).add(Decimal(x["interest"].GetString())).toString());
+              elementList.emplace_back(std::move(element));
+            }
+          } else if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+            for (const auto& x : document["assets"].GetArray()) {
+              std::string symbol = x["symbol"].GetString();
+              {
+                const auto& y = x["baseAsset"];
+                Element element;
+                element.insert(CCAPI_EM_INSTRUMENT, symbol);
+                element.insert(CCAPI_EM_ASSET, y["asset"].GetString());
+                element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(y["free"].GetString()).add(Decimal(y["locked"].GetString())).toString());
+                element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, y["free"].GetString());
+                element.insert(CCAPI_EM_QUANTITY_LIABILITY, Decimal(y["borrowed"].GetString()).add(Decimal(y["interest"].GetString())).toString());
+                elementList.emplace_back(std::move(element));
+              }
+              {
+                const auto& y = x["quoteAsset"];
+                Element element;
+                element.insert(CCAPI_EM_INSTRUMENT, symbol);
+                element.insert(CCAPI_EM_ASSET, y["asset"].GetString());
+                element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(y["free"].GetString()).add(Decimal(y["locked"].GetString())).toString());
+                element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, y["free"].GetString());
+                element.insert(CCAPI_EM_QUANTITY_LIABILITY, Decimal(y["borrowed"].GetString()).add(Decimal(y["interest"].GetString())).toString());
+                elementList.emplace_back(std::move(element));
+              }
+            }
           } else {
-            element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(x["free"].GetString()).add(Decimal(x["locked"].GetString())).toString());
+            for (const auto& x : document["balances"].GetArray()) {
+              Element element;
+              element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
+              element.insert(CCAPI_EM_QUANTITY_TOTAL, Decimal(x["free"].GetString()).add(Decimal(x["locked"].GetString())).toString());
+              element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["free"].GetString());
+              elementList.emplace_back(std::move(element));
+            }
           }
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x[this->isDerivatives ? "availableBalance" : "free"].GetString());
-          if (isMargin) {
-            element.insert(CCAPI_EM_QUANTITY_LIABILITY, Decimal(x["borrowed"].GetString()).add(Decimal(x["interest"].GetString())).toString());
-          }
-          elementList.emplace_back(std::move(element));
         }
       } break;
       default:
@@ -213,9 +275,14 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     req.set(http::field::host, host);
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     req.method(http::verb::post);
-    bool isMargin = wsConnection.subscriptionList.at(0).getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN;
-    std::string target = isMargin ? this->listenKeyMarginTarget : this->listenKeyTarget;
-    if (target == "/sapi/v1/userDataStream/isolated") {
+    std::string target = this->listenKeyTarget;
+    const auto& marginType = wsConnection.subscriptionList.at(0).getMarginType();
+    if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
+      target = this->listenKeyCrossMarginTarget;
+    } else if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+      target = this->listenKeyIsolatedMarginTarget;
+    }
+    if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
       auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
       target += "?" + symbol;
     }
@@ -282,13 +349,18 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           req.set(http::field::host, that->hostRest);
           req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
           req.method(http::verb::put);
-          bool isMargin = wsConnection.subscriptionList.at(0).getAccountType() == CCAPI_EM_ACCOUNT_TYPE_MARGIN;
-          std::string target = isMargin ? that->listenKeyMarginTarget : that->listenKeyTarget;
+          std::string target = that->listenKeyTarget;
+          const auto& marginType = wsConnection.subscriptionList.at(0).getMarginType();
+          if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
+            target = that->listenKeyCrossMarginTarget;
+          } else if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+            target = that->listenKeyIsolatedMarginTarget;
+          }
           if (!that->isDerivatives) {
             std::map<std::string, std::string> params;
             auto listenKey = that->extraPropertyByConnectionIdMap.at(wsConnection.id).at("listenKey");
             params.insert({"listenKey", listenKey});
-            if (target == "/sapi/v1/userDataStream/isolated") {
+            if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
               auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
               params.insert({"symbol", symbol});
             }
@@ -430,8 +502,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   std::string getOrderMarginTarget;
   std::string getOpenOrdersMarginTarget;
   std::string cancelOpenOrdersMarginTarget;
-  std::string getAccountBalancesMarginTarget;
-  std::string listenKeyMarginTarget;
+  std::string getAccountBalancesCrossMarginTarget;
+  std::string getAccountBalancesIsolatedMarginTarget;
+  std::string listenKeyCrossMarginTarget;
+  std::string listenKeyIsolatedMarginTarget;
 };
 } /* namespace ccapi */
 #endif
