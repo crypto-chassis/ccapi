@@ -365,37 +365,25 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
     } else {
       const auto& fieldSet = subscription.getFieldSet();
       const auto& instrumentSet = subscription.getInstrumentSet();
-      CCAPI_LOGGER_TRACE("");
       std::string c = std::string(document["c"].GetString());
-      CCAPI_LOGGER_TRACE("");
       event.setType(Event::Type::SUBSCRIPTION_DATA);
       const rj::Value& d = document["d"];
-      CCAPI_LOGGER_TRACE("");
       std::string instrument = document["s"].GetString();
-      CCAPI_LOGGER_TRACE("");
       Message message;
       message.setTimeReceived(timeReceived);
       message.setCorrelationIdList({subscription.getCorrelationId()});
       if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
         if (c == "spot@private.deals.v3.api" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-          CCAPI_LOGGER_TRACE("");
           message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(d["T"].GetString()))));
-          CCAPI_LOGGER_TRACE("");
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
           std::vector<Element> elementList;
           Element element;
           element.insert(CCAPI_TRADE_ID, std::string(d["t"].GetString()));
-          CCAPI_LOGGER_TRACE("");
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(d["p"].GetString()));
-          CCAPI_LOGGER_TRACE("");
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(d["v"].GetString()));
-          CCAPI_LOGGER_TRACE("");
           element.insert(CCAPI_EM_ORDER_SIDE, std::string(d["S"].GetString()) == "1" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-          CCAPI_LOGGER_TRACE("");
           element.insert(CCAPI_IS_MAKER, std::string(d["m"].GetString()));
-          CCAPI_LOGGER_TRACE("");
           element.insert(CCAPI_EM_ORDER_ID, std::string(d["i"].GetString()));
-          CCAPI_LOGGER_TRACE("");
           element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
           {
             auto it = d.FindMember("c");
@@ -407,9 +395,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
           message.setElementList(elementList);
           messageList.emplace_back(std::move(message));
         } else if (c == "spot@private.orders.v3.api" && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
-          CCAPI_LOGGER_TRACE("");
           message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(document["t"].GetString()))));
-          CCAPI_LOGGER_TRACE("");
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::STRING)},
@@ -420,7 +406,6 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
               {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("V", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_STATUS, std::make_pair("s", JsonDataType::STRING)},
           };
-          CCAPI_LOGGER_TRACE("");
           Element info;
           info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
           this->extractOrderInfo(info, d, extractionFieldNameMap);

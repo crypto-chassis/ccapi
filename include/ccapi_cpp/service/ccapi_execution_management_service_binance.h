@@ -36,8 +36,10 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
     this->getOrderMarginTarget = "/sapi/v1/margin/order";
     this->getOpenOrdersMarginTarget = "/sapi/v1/margin/openOrders";
     this->cancelOpenOrdersMarginTarget = "/sapi/v1/margin/openOrders";
-    this->getAccountBalancesMarginTarget = "/sapi/v1/margin/account";
-    this->listenKeyMarginTarget = CCAPI_BINANCE_LISTEN_KEY_MARGIN_PATH;
+    this->getAccountBalancesCrossMarginTarget = "/sapi/v1/margin/account";
+    this->getAccountBalancesIsolatedMarginTarget = "/sapi/v1/margin/isolated/account";
+    this->listenKeyCrossMarginTarget = CCAPI_BINANCE_LISTEN_KEY_CROSS_MARGIN_PATH;
+    this->listenKeyIsolatedMarginTarget = CCAPI_BINANCE_LISTEN_KEY_ISOLATED_MARGIN_PATH;
   }
   virtual ~ExecutionManagementServiceBinance() {}
 };

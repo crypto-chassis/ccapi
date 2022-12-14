@@ -123,7 +123,7 @@ class Request CCAPI_FINAL {
       shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
     std::string output =
-        "Request [exchange = " + exchange + ", accountType = " + accountType + ", instrument = " + instrument + ", serviceName = " + serviceName +
+        "Request [exchange = " + exchange + ", marginType = " + marginType + ", instrument = " + instrument + ", serviceName = " + serviceName +
         ", correlationId = " + correlationId + ", secondaryCorrelationId = " + secondaryCorrelationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
@@ -133,7 +133,7 @@ class Request CCAPI_FINAL {
   const std::string& getCorrelationId() const { return correlationId; }
   const std::string& getSecondaryCorrelationId() const { return secondaryCorrelationId; }
   const std::string& getExchange() const { return exchange; }
-  const std::string& getAccountType() const { return accountType; }
+  const std::string& getMarginType() const { return marginType; }
   const std::string& getInstrument() const { return instrument; }
   const std::map<std::string, std::string>& getCredential() const { return credential; }
   const std::string& getServiceName() const { return serviceName; }
@@ -164,13 +164,13 @@ class Request CCAPI_FINAL {
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
   void setCorrelationId(const std::string& correlationId) { this->correlationId = correlationId; }
   void setSecondaryCorrelationId(const std::string& secondaryCorrelationId) { this->secondaryCorrelationId = secondaryCorrelationId; }
-  void setAccountType(const std::string& accountType) { this->accountType = accountType; }
+  void setMarginType(const std::string& marginType) { this->marginType = marginType; }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
   std::string exchange;
-  std::string accountType;
+  std::string marginType;
   std::string instrument;
   std::string serviceName;
   std::string correlationId;
