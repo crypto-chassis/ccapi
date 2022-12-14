@@ -110,6 +110,14 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     }
     headerString += "KC-API-SIGN:" + signature;
   }
+  void signRequestPartner(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
+    req.set("KC-API-PARTNER", CCAPI_KUCOIN_API_PARTNER_PLATFORM_ID);
+    auto preSignedText = req.base().at("KC-API-TIMESTAMP").to_string();
+    preSignedText += CCAPI_KUCOIN_API_PARTNER_PLATFORM_ID;
+    preSignedText += req.base().at("KC-API-KEY").to_string();
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, CCAPI_KUCOIN_API_PARTNER_PRIVATE_KEY, preSignedText));
+    req.set("KC-API-PARTNER-SIGN", signature);
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("KC-API-TIMESTAMP").to_string();
@@ -121,13 +129,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
-  void signApiPassphrase(http::request<http::string_body>& req, const std::string& apiKeyVersion, const std::string& apiPassphrase,
-                         const std::string& apiSecret) {
-    if (apiKeyVersion == "2") {
-      req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
-    } else {
-      req.set("KC-API-PASSPHRASE", apiPassphrase);
-    }
+  void signApiPassphrase(http::request<http::string_body>& req, const std::string& apiPassphrase, const std::string& apiSecret) {
+    req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
@@ -172,7 +175,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     req.set("KC-API-KEY-VERSION", "2");
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    this->signApiPassphrase(req, apiKeyVersion, apiPassphrase, apiSecret);
+    this->signApiPassphrase(req, apiPassphrase, apiSecret);
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -194,6 +197,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
         auto body = stringBuffer.GetString();
+        this->signRequestPartner(req, body, credential);
         this->signRequest(req, body, credential);
       } break;
       case Request::Operation::CANCEL_ORDER: {
