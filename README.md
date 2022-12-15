@@ -674,7 +674,7 @@ std::vector<Event> eventList = eventQueue.purge();
 
 #### Provide API credentials for an exchange
 There are 3 ways to provide API credentials (listed with increasing priority).
-* Set the relevent environment variables. Some exchanges might need additional credentials other than API keys and secrets: e.g. `COINBASE_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`, `KUCOIN_API_KEY_VERSION`, `FTX_API_SUBACCOUNT`. See section "exchange API credentials" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h).
+* Set the relevent environment variables. Some exchanges might need additional credentials other than API keys and secrets: e.g. `COINBASE_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`. See section "exchange API credentials" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h).
 * Provide credentials to `SessionConfigs`.
 ```
 sessionConfigs.setCredential({
