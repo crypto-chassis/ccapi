@@ -60,8 +60,7 @@ TEST_F(ExecutionManagementServiceKucoinTest, signRequest) {
 
 TEST_F(ExecutionManagementServiceKucoinTest, signApiPassphrase) {
   http::request<http::string_body> req;
-  this->service->signApiPassphrase(req, this->credential.at(CCAPI_KUCOIN_API_KEY_VERSION), this->credential.at(CCAPI_KUCOIN_API_PASSPHRASE),
-                                   this->credential.at(CCAPI_KUCOIN_API_SECRET));
+  this->service->signApiPassphrase(req, this->credential.at(CCAPI_KUCOIN_API_PASSPHRASE), this->credential.at(CCAPI_KUCOIN_API_SECRET));
   EXPECT_EQ(req.base().at("KC-API-PASSPHRASE").to_string(), "CYLB31MY6PQb8CqECms7sJpNjKEUv+p8DnKPm13kAKo=");
 }
 

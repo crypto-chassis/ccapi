@@ -21,8 +21,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     this->apiKeyName = CCAPI_KUCOIN_API_KEY;
     this->apiSecretName = CCAPI_KUCOIN_API_SECRET;
     this->apiPassphraseName = CCAPI_KUCOIN_API_PASSPHRASE;
-    this->apiKeyVersionName = CCAPI_KUCOIN_API_KEY_VERSION;
-    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName, this->apiKeyVersionName});
+    // this->apiKeyVersionName = CCAPI_KUCOIN_API_KEY_VERSION;
+    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
     this->createOrderTarget = "/api/v1/orders";
     this->cancelOrderTarget = "/api/v1/orders/<id>";
     this->getOrderTarget = "/api/v1/orders/<id>";
@@ -110,6 +110,14 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     }
     headerString += "KC-API-SIGN:" + signature;
   }
+  void signRequestPartner(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
+    req.set("KC-API-PARTNER", CCAPI_KUCOIN_API_PARTNER_PLATFORM_ID);
+    auto preSignedText = req.base().at("KC-API-TIMESTAMP").to_string();
+    preSignedText += CCAPI_KUCOIN_API_PARTNER_PLATFORM_ID;
+    preSignedText += req.base().at("KC-API-KEY").to_string();
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, CCAPI_KUCOIN_API_PARTNER_PRIVATE_KEY, preSignedText));
+    req.set("KC-API-PARTNER-SIGN", signature);
+  }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     auto preSignedText = req.base().at("KC-API-TIMESTAMP").to_string();
@@ -121,13 +129,8 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
-  void signApiPassphrase(http::request<http::string_body>& req, const std::string& apiKeyVersion, const std::string& apiPassphrase,
-                         const std::string& apiSecret) {
-    if (apiKeyVersion == "2") {
-      req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
-    } else {
-      req.set("KC-API-PASSPHRASE", apiPassphrase);
-    }
+  void signApiPassphrase(http::request<http::string_body>& req, const std::string& apiPassphrase, const std::string& apiSecret) {
+    req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
   }
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
@@ -168,11 +171,11 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("KC-API-KEY", apiKey);
     req.set("KC-API-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
-    auto apiKeyVersion = mapGetWithDefault(credential, this->apiKeyVersionName);
-    req.set("KC-API-KEY-VERSION", apiKeyVersion);
+    // auto apiKeyVersion = mapGetWithDefault(credential, this->apiKeyVersionName);
+    req.set("KC-API-KEY-VERSION", "2");
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    this->signApiPassphrase(req, apiKeyVersion, apiPassphrase, apiSecret);
+    this->signApiPassphrase(req, apiPassphrase, apiSecret);
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
@@ -194,6 +197,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
         auto body = stringBuffer.GetString();
+        this->signRequestPartner(req, body, credential);
         this->signRequest(req, body, credential);
       } break;
       case Request::Operation::CANCEL_ORDER: {
@@ -473,7 +477,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementService {
     return event;
   }
   std::string apiPassphraseName;
-  std::string apiKeyVersionName;
+  // std::string apiKeyVersionName;
 };
 } /* namespace ccapi */
 #endif
