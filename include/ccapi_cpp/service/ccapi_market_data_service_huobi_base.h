@@ -90,7 +90,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     auto url = this->baseUrl;
     auto field = subscription.getField();
     if (!this->isDerivatives) {
-      if (field == CCAPI_TRADE || field == CCAPI_MARKET_DEPTH) {
+      if (field == CCAPI_TRADE || field == CCAPI_MARKET_DEPTH || field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
         url += "/ws";
       }
     }
