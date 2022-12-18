@@ -31,7 +31,7 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
-        for (const auto& x : document["positions"].GetArray()) {
+        for (const auto& x : document.GetArray()) {
           Element element;
           element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["positionSide"].GetString());
