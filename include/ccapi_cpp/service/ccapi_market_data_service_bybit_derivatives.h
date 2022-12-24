@@ -37,7 +37,7 @@ class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
     } else if (instrumentType == "usdc-options") {
       instrumentTypeSubstitute = "option/usdc";
     }
-    std::string url = this->baseUrl;
+    std::string url = MarketDataService::getInstrumentGroup(subscription);
     std::string toReplace("{instrumentTypeSubstitute}");
     url.replace(url.find(toReplace), toReplace.length(), instrumentTypeSubstitute);
     return url;
@@ -66,6 +66,7 @@ class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("op", rj::Value("subscribe").Move(), allocator);
+    rj::Value args(rj::kArrayType);
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
@@ -84,12 +85,11 @@ class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
         exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), symbolId);
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
-        rj::Value args(rj::kArrayType);
         args.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
-        document.AddMember("args", args, allocator);
         exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
       }
     }
+    document.AddMember("args", args, allocator);
     document.AddMember("req_id", rj::Value(std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).c_str(), allocator).Move(), allocator);
     this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap[wsConnection.id][this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
         exchangeSubscriptionIdList;
