@@ -157,30 +157,17 @@ class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
         marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         std::string type = document["type"].GetString();
         marketDataMessage.recapType = type == "snapshot" ? MarketDataMessage::RecapType::SOLICITED : MarketDataMessage::RecapType::NONE;
-        const char* bidsName = "b";
-        int bidIndex = 0;
-        int maxMarketDepth = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-        for (const auto& x : data[bidsName].GetArray()) {
-          if (bidIndex >= maxMarketDepth) {
-            break;
-          }
+        for (const auto& x : data["b"].GetArray()) {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
           marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
-          ++bidIndex;
         }
-        const char* asksName = "a";
-        int askIndex = 0;
-        for (const auto& x : data[asksName].GetArray()) {
-          if (askIndex >= maxMarketDepth) {
-            break;
-          }
+        for (const auto& x : data["a"].GetArray()) {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
           marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
-          ++askIndex;
         }
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
       } else if (channelId == CCAPI_WEBSOCKET_BYBIT_DERIVATIVES_CHANNEL_TRADE) {
