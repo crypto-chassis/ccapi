@@ -208,7 +208,8 @@ class MarketDataService : public Service {
                              correlationIdList, isSolicited);
         }
       } else {
-        CCAPI_LOGGER_WARN("websocket event type is unknown!");
+        CCAPI_LOGGER_WARN("websocket event type is unknown for " + toString(marketDataMessage));
+        CCAPI_LOGGER_WARN("textMessage is " + textMessage);
       }
     }
   }
