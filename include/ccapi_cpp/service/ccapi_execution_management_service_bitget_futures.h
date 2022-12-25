@@ -77,6 +77,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
       } break;
       case Request::Operation::CREATE_ORDER: {
+        req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();

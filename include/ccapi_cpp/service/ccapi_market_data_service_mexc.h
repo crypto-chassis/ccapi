@@ -150,7 +150,7 @@ class MarketDataServiceMexc : public MarketDataService {
         MarketDataMessage marketDataMessage;
         marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
-        marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(data["E"].GetString()));
+        marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(document["t"].GetString()));
         marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
         const auto& itAsks = data.FindMember("asks");
         if (itAsks != data.MemberEnd()) {
@@ -172,7 +172,7 @@ class MarketDataServiceMexc : public MarketDataService {
             marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
           }
         }
-        int64_t versionId = std::stoll(data["version"].GetString());
+        int64_t versionId = std::stoll(document["d"]["r"].GetString());
         this->processOrderBookWithVersionId(versionId, wsConnection, channelId, symbolId, exchangeSubscriptionId, optionMap, marketDataMessageList,
                                             marketDataMessage);
       } else if (channelId == CCAPI_WEBSOCKET_MEXC_CHANNEL_TRADE) {

@@ -300,7 +300,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
   auto splitted = UtilString::split(req.target().to_string(), "?");
-  EXPECT_EQ(splitted.at(0), "/fapi/v2/account");
+  EXPECT_EQ(splitted.at(0), "/fapi/v2/positionRisk");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
@@ -310,75 +310,23 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   Request request(Request::Operation::GET_ACCOUNT_POSITIONS, CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES, "", "foo", this->credential);
   std::string textMessage =
       R"(
-        {
-            "feeTier": 0,
-            "canTrade": true,
-            "canDeposit": true,
-            "canWithdraw": true,
-            "updateTime": 0,
-            "totalInitialMargin": "0.00000000",
-            "totalMaintMargin": "0.00000000",
-            "totalWalletBalance": "23.72469206",
-            "totalUnrealizedProfit": "0.00000000",
-            "totalMarginBalance": "23.72469206",
-            "totalPositionInitialMargin": "0.00000000",
-            "totalOpenOrderInitialMargin": "0.00000000",
-            "totalCrossWalletBalance": "23.72469206",
-            "totalCrossUnPnl": "0.00000000",
-            "availableBalance": "23.72469206",
-            "maxWithdrawAmount": "23.72469206",
-            "assets": [
-                {
-                    "asset": "USDT",
-                    "walletBalance": "23.72469206",
-                    "unrealizedProfit": "0.00000000",
-                    "marginBalance": "23.72469206",
-                    "maintMargin": "0.00000000",
-                    "initialMargin": "0.00000000",
-                    "positionInitialMargin": "0.00000000",
-                    "openOrderInitialMargin": "0.00000000",
-                    "crossWalletBalance": "23.72469206",
-                    "crossUnPnl": "0.00000000",
-                    "availableBalance": "23.72469206",
-                    "maxWithdrawAmount": "23.72469206",
-                    "marginAvailable": true,
-                    "updateTime": 1625474304765
-                },
-                {
-                    "asset": "BUSD",
-                    "walletBalance": "103.12345678",
-                    "unrealizedProfit": "0.00000000",
-                    "marginBalance": "103.12345678",
-                    "maintMargin": "0.00000000",
-                    "initialMargin": "0.00000000",
-                    "positionInitialMargin": "0.00000000",
-                    "openOrderInitialMargin": "0.00000000",
-                    "crossWalletBalance": "103.12345678",
-                    "crossUnPnl": "0.00000000",
-                    "availableBalance": "103.12345678",
-                    "maxWithdrawAmount": "103.12345678",
-                    "marginAvailable": true,
-                    "updateTime": 1625474304765
-                }
-            ],
-            "positions": [
-                {
-                    "symbol": "BTCUSDT",
-                    "initialMargin": "0",
-                    "maintMargin": "0",
-                    "unrealizedProfit": "0.00000000",
-                    "positionInitialMargin": "0",
-                    "openOrderInitialMargin": "0",
-                    "leverage": "100",
-                    "isolated": true,
-                    "entryPrice": "0.00000",
-                    "maxNotional": "250000",
-                    "positionSide": "BOTH",
-                    "positionAmt": "0",
-                    "updateTime": 0
-                }
-            ]
-        }
+        [
+            {
+                "symbol": "BTCUSDT",
+                "initialMargin": "0",
+                "maintMargin": "0",
+                "unrealizedProfit": "0.00000000",
+                "positionInitialMargin": "0",
+                "openOrderInitialMargin": "0",
+                "leverage": "100",
+                "isolated": true,
+                "entryPrice": "0.00000",
+                "maxNotional": "250000",
+                "positionSide": "BOTH",
+                "positionAmt": "0",
+                "updateTime": 0
+            }
+        ]
   )";
   auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
   EXPECT_EQ(messageList.size(), 1);
