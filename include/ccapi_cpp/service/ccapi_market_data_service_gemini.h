@@ -88,7 +88,7 @@ class MarketDataServiceGemini : public MarketDataService {
         return;
       }
     }
-    if (type == "update") {
+    if (type == "update" && !document["events"].GetArray().Empty()) {
       MarketDataMessage marketDataMessage;
       marketDataMessage.exchangeSubscriptionId = wsConnection.url;
       TimePoint time = timeReceived;

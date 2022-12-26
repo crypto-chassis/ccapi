@@ -29,7 +29,7 @@ class ExecutionManagementServiceBinanceUsdsFutures : public ExecutionManagementS
     this->isDerivatives = true;
     this->listenKeyTarget = CCAPI_BINANCE_USDS_FUTURES_LISTEN_KEY_PATH;
     this->getAccountBalancesTarget = "/fapi/v2/account";
-    this->getAccountPositionsTarget = "/fapi/v2/account";
+    this->getAccountPositionsTarget = "/fapi/v2/positionRisk";
   }
   virtual ~ExecutionManagementServiceBinanceUsdsFutures() {}
 };

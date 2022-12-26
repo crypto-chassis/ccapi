@@ -29,7 +29,7 @@ class ExecutionManagementServiceBinanceCoinFutures : public ExecutionManagementS
     this->isDerivatives = true;
     this->listenKeyTarget = CCAPI_BINANCE_COIN_FUTURES_LISTEN_KEY_PATH;
     this->getAccountBalancesTarget = "/dapi/v1/account";
-    this->getAccountPositionsTarget = "/dapi/v1/account";
+    this->getAccountPositionsTarget = "/dapi/v1/positionRisk";
   }
   virtual ~ExecutionManagementServiceBinanceCoinFutures() {}
 };
