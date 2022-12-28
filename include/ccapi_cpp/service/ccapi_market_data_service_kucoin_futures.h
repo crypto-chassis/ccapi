@@ -29,6 +29,7 @@ class MarketDataServiceKucoinFutures : public MarketDataServiceKucoinBase {
     this->tickerBestBidPriceKey = "bestBidPrice";
     this->tickerBestAskPriceKey = "bestAskPrice";
     this->matchSubject = "match";
+    this->level2Subject = "level2";
     this->recentTradesTimeKey = "ts";
   }
   virtual ~MarketDataServiceKucoinFutures() {}

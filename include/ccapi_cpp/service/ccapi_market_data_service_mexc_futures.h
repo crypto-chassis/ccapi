@@ -53,7 +53,8 @@ class MarketDataServiceMexcFutures : public MarketDataService {
     }
     return sendStringList;
   }
-  void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId) override {
+  void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId, const TimePoint& now,
+                                      const std::map<std::string, std::string>& credential) override {
     req.set(http::field::host, this->hostRest);
     req.method(http::verb::get);
     req.target("/api/v1/contract/depth/" + Url::urlEncode(symbolId));

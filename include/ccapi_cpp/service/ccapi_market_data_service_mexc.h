@@ -60,7 +60,8 @@ class MarketDataServiceMexc : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId) override {
+  void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId, const TimePoint& now,
+                                      const std::map<std::string, std::string>& credential) override {
     req.set(http::field::host, this->hostRest);
     req.method(http::verb::get);
     req.target("/api/v3/depth?symbol=" + Url::urlEncode(symbolId) + "&limit=5000");

@@ -18,16 +18,22 @@ class MarketDataServiceKucoin : public MarketDataServiceKucoinBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+    this->apiKeyName = CCAPI_KUCOIN_API_KEY;
+    this->apiSecretName = CCAPI_KUCOIN_API_SECRET;
+    this->apiPassphraseName = CCAPI_KUCOIN_API_PASSPHRASE;
+    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
     this->getRecentTradesTarget = "/api/v1/market/histories";
     this->getInstrumentTarget = "/api/v1/symbols";
     this->getInstrumentsTarget = "/api/v1/symbols";
     this->channelMarketTicker = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_TICKER;
     this->channelMarketLevel2Depth5 = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH5;
     this->channelMarketLevel2Depth50 = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH50;
+    this->channelMarketLevel2 = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2;
     this->tickerSubject = "trade.ticker";
     this->tickerBestBidPriceKey = "bestBid";
     this->tickerBestAskPriceKey = "bestAsk";
     this->matchSubject = "trade.l3match";
+    this->level2Subject = "level2";
     this->recentTradesTimeKey = "time";
   }
   virtual ~MarketDataServiceKucoin() {}
