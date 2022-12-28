@@ -32,12 +32,16 @@ class MarketDataServiceBitmex : public MarketDataService {
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     if (field == CCAPI_MARKET_DEPTH) {
-      if (marketDepthRequested == 1) {
-        channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
-      } else if (marketDepthRequested <= 10) {
-        channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10;
-      } else if (marketDepthRequested <= 25) {
-        channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
+      if (optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) == CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT) {
+        channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2;
+      } else {
+        if (marketDepthRequested == 1) {
+          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_QUOTE;
+        } else if (marketDepthRequested <= 10) {
+          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_10;
+        } else if (marketDepthRequested <= 25) {
+          channelId = CCAPI_WEBSOCKET_BITMEX_CHANNEL_ORDER_BOOK_L2_25;
+        }
       }
     }
   }

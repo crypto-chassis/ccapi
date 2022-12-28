@@ -134,6 +134,7 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
       } break;
       case Request::Operation::CREATE_ORDER: {
+        req.set("X-Gate-Channel-Id", CCAPI_GATEIO_API_CHANNEL_ID);
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
