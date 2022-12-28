@@ -1226,9 +1226,21 @@ class MarketDataService : public Service {
     this->createFetchOrderBookInitialReq(req, symbolId, now, credential);
     this->sendRequest(
         req,
-        [wsConnection, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
-          WsConnection thisWsConnection = wsConnection;
-          that->onFail_(thisWsConnection);
+        [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
+          auto thisDelayMilliSeconds = delayMilliSeconds * 2;
+          if (thisDelayMilliSeconds > 0) {
+            that->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
+                that->serviceContextPtr->tlsClientPtr->set_timer(thisDelayMilliSeconds,
+                                                                 [wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds, that](ErrorCode const& ec) {
+                                                                   if (ec) {
+                                                                     that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+                                                                   } else {
+                                                                     that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+                                                                   }
+                                                                 });
+          } else {
+            that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+          }
         },
         [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
           auto timeReceived = UtilTime::now();
