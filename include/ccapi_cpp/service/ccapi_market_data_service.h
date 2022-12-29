@@ -1152,6 +1152,7 @@ class MarketDataService : public Service {
       }
       this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
     }
+    this->orderbookVersionIdByConnectionIdExchangeSubscriptionIdMap.erase(wsConnection.id);
   }
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -1190,6 +1191,7 @@ class MarketDataService : public Service {
     if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
       if (versionId > this->orderbookVersionIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId)) {
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
+        this->orderbookVersionIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] = versionId;
       }
     } else {
       if (this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap[wsConnection.id][exchangeSubscriptionId].empty()) {
@@ -1214,14 +1216,31 @@ class MarketDataService : public Service {
     }
   }
   void buildOrderBookInitial(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliSeconds) {
+    auto now = UtilTime::now();
     http::request<http::string_body> req;
     std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
-    this->createFetchOrderBookInitialReq(req, symbolId);
+    auto credential = wsConnection.credential;
+    if (credential.empty()) {
+      credential = this->credentialDefault;
+    }
+    this->createFetchOrderBookInitialReq(req, symbolId, now, credential);
     this->sendRequest(
         req,
-        [wsConnection, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
-          WsConnection thisWsConnection = wsConnection;
-          that->onFail_(thisWsConnection);
+        [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
+          auto thisDelayMilliSeconds = delayMilliSeconds * 2;
+          if (thisDelayMilliSeconds > 0) {
+            that->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
+                that->serviceContextPtr->tlsClientPtr->set_timer(thisDelayMilliSeconds,
+                                                                 [wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds, that](ErrorCode const& ec) {
+                                                                   if (ec) {
+                                                                     that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+                                                                   } else {
+                                                                     that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+                                                                   }
+                                                                 });
+          } else {
+            that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+          }
         },
         [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
           auto timeReceived = UtilTime::now();
@@ -1384,7 +1403,8 @@ class MarketDataService : public Service {
   virtual std::vector<std::string> createSendStringList(const WsConnection& wsConnection) { return {}; }
   virtual void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                          const Subscription& subscription, const std::map<std::string, std::string> optionMap) {}
-  virtual void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId) {}
+  virtual void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId, const TimePoint& now,
+                                              const std::map<std::string, std::string>& credential) {}
   virtual void extractOrderBookInitialVersionId(int64_t& versionId, const rj::Document& document) {}
   virtual void extractOrderBookInitialData(MarketDataMessage::TypeForData& input, const rj::Document& document) {}
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> fieldByConnectionIdChannelIdSymbolIdMap;

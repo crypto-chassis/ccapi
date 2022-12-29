@@ -18,13 +18,28 @@ class MarketDataServiceKucoinBase : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
-      if (marketDepthRequested == 1) {
-        channelId = this->channelMarketTicker;
-      } else if (marketDepthRequested <= 5) {
-        channelId = this->channelMarketLevel2Depth5;
+      if (this->isDerivatives) {
+        if (marketDepthRequested == 1) {
+          channelId = this->channelMarketTicker;
+        } else if (marketDepthRequested <= 5) {
+          channelId = this->channelMarketLevel2Depth5;
+        } else {
+          channelId = this->channelMarketLevel2Depth50;
+        }
       } else {
-        channelId = this->channelMarketLevel2Depth50;
+        // if (conflateIntervalMilliSeconds < 100) {
+        //     channelId = this->channelMarketLevel2;
+        // }else{
+        if (marketDepthRequested == 1) {
+          channelId = this->channelMarketTicker;
+        } else if (marketDepthRequested <= 5) {
+          channelId = this->channelMarketLevel2Depth5;
+        } else {
+          channelId = this->channelMarketLevel2Depth50;
+        }
+        // }
       }
     }
   }
@@ -125,6 +140,55 @@ class MarketDataServiceKucoinBase : public MarketDataService {
     }
     return sendStringList;
   }
+  void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId, const TimePoint& now,
+                                      const std::map<std::string, std::string>& credential) override {
+    req.set(http::field::host, this->hostRest);
+    req.method(http::verb::get);
+    req.target("/api/v3/market/orderbook/level2?symbol=" + Url::urlEncode(symbolId));
+    this->prepareReq(req, now, credential);
+    this->signRequest(req, "", credential);
+  }
+  void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    req.set(beast::http::field::content_type, "application/json");
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set("KC-API-KEY", apiKey);
+    req.set("KC-API-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
+    req.set("KC-API-KEY-VERSION", "2");
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    this->signApiPassphrase(req, apiPassphrase, apiSecret);
+  }
+  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = req.base().at("KC-API-TIMESTAMP").to_string();
+    preSignedText += std::string(req.method_string());
+    preSignedText += req.target().to_string();
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
+    req.set("KC-API-SIGN", signature);
+    req.body() = body;
+    req.prepare_payload();
+  }
+  void signApiPassphrase(http::request<http::string_body>& req, const std::string& apiPassphrase, const std::string& apiSecret) {
+    req.set("KC-API-PASSPHRASE", UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
+  }
+  void extractOrderBookInitialVersionId(int64_t& versionId, const rj::Document& document) override {
+    versionId = std::stoll(document["data"]["sequence"].GetString());
+  }
+  void extractOrderBookInitialData(MarketDataMessage::TypeForData& input, const rj::Document& document) override {
+    for (const auto& x : document["data"]["bids"].GetArray()) {
+      MarketDataMessage::TypeForDataPoint dataPoint;
+      dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+      input[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
+    }
+    for (const auto& x : document["data"]["asks"].GetArray()) {
+      MarketDataMessage::TypeForDataPoint dataPoint;
+      dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+      dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+      input[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
+    }
+  }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -134,7 +198,42 @@ class MarketDataServiceKucoinBase : public MarketDataService {
       if (it != document.MemberEnd()) {
         std::string type = it->value.GetString();
         if (type == "message") {
-          if (std::string(document["subject"].GetString()) == this->tickerSubject) {
+          if (std::string(document["subject"].GetString()) == "trade.l2update") {
+            MarketDataMessage marketDataMessage;
+            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
+            std::string exchangeSubscriptionId = document["topic"].GetString();
+            std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
+            std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
+            const auto& optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
+            marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+            const auto& data = document["data"];
+            marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(data["time"].GetString()));
+            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+            const auto& changes = data["changes"];
+            const auto& itAsks = changes.FindMember("asks");
+            if (itAsks != changes.MemberEnd()) {
+              const rj::Value& asks = itAsks->value;
+              for (auto& x : asks.GetArray()) {
+                MarketDataMessage::TypeForDataPoint dataPoint;
+                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+                marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
+              }
+            }
+            const auto& itBids = data.FindMember("changes");
+            if (itBids != changes.MemberEnd()) {
+              const rj::Value& bids = itBids->value;
+              for (auto& x : bids.GetArray()) {
+                MarketDataMessage::TypeForDataPoint dataPoint;
+                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
+                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+                marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
+              }
+            }
+            int64_t versionId = std::stoll(data["sequenceEnd"].GetString());
+            this->processOrderBookWithVersionId(versionId, wsConnection, channelId, symbolId, exchangeSubscriptionId, optionMap, marketDataMessageList,
+                                                marketDataMessage);
+          } else if (std::string(document["subject"].GetString()) == this->tickerSubject) {
             MarketDataMessage marketDataMessage;
             std::string exchangeSubscriptionId = document["topic"].GetString();
             std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
@@ -162,7 +261,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
               marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
-          } else if (std::string(document["subject"].GetString()) == "level2") {
+          } else if (std::string(document["subject"].GetString()) == this->level2Subject) {
             MarketDataMessage marketDataMessage;
             std::string exchangeSubscriptionId = document["topic"].GetString();
             std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
@@ -222,7 +321,9 @@ class MarketDataServiceKucoinBase : public MarketDataService {
             this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
                 this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
           }
-          MarketDataService::onOpen(hdl);
+          Service::onOpen(hdl);
+          WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+          this->startSubscribe(wsConnection);
         } else if (type == "pong") {
           auto now = UtilTime::now();
           this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = now;
@@ -363,11 +464,14 @@ class MarketDataServiceKucoinBase : public MarketDataService {
   std::string channelMarketTicker;
   std::string channelMarketLevel2Depth5;
   std::string channelMarketLevel2Depth50;
+  std::string channelMarketLevel2;
   std::string tickerSubject;
   std::string tickerBestBidPriceKey;
   std::string tickerBestAskPriceKey;
   std::string matchSubject;
   std::string recentTradesTimeKey;
+  std::string level2Subject;
+  std::string apiPassphraseName;
 };
 } /* namespace ccapi */
 #endif
