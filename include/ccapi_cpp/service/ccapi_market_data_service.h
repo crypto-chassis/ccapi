@@ -1215,6 +1215,22 @@ class MarketDataService : public Service {
           marketDataMessage.data;
     }
   }
+  void buildOrderBookInitialOnFail(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliSeconds) {
+    auto thisDelayMilliSeconds = delayMilliSeconds * 2;
+    if (thisDelayMilliSeconds > 0) {
+      this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
+          this->serviceContextPtr->tlsClientPtr->set_timer(thisDelayMilliSeconds,
+                                                           [wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds, that = this](ErrorCode const& ec) {
+                                                             if (ec) {
+                                                               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+                                                             } else {
+                                                               that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+                                                             }
+                                                           });
+    } else {
+      this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+    }
+  }
   void buildOrderBookInitial(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliSeconds) {
     auto now = UtilTime::now();
     http::request<http::string_body> req;
@@ -1227,20 +1243,7 @@ class MarketDataService : public Service {
     this->sendRequest(
         req,
         [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
-          auto thisDelayMilliSeconds = delayMilliSeconds * 2;
-          if (thisDelayMilliSeconds > 0) {
-            that->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
-                that->serviceContextPtr->tlsClientPtr->set_timer(thisDelayMilliSeconds,
-                                                                 [wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds, that](ErrorCode const& ec) {
-                                                                   if (ec) {
-                                                                     that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
-                                                                   } else {
-                                                                     that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
-                                                                   }
-                                                                 });
-          } else {
-            that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
-          }
+          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
         },
         [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
           auto timeReceived = UtilTime::now();
@@ -1365,27 +1368,29 @@ class MarketDataService : public Service {
                 that->eventHandler(event, nullptr);
                 that->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
               } else {
-                if (delayMilliSeconds > 0) {
-                  that->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
-                      that->serviceContextPtr->tlsClientPtr->set_timer(
-                          delayMilliSeconds, [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that](ErrorCode const& ec) {
-                            if (ec) {
-                              that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
-                            } else {
-                              that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
-                            }
-                          });
-                } else {
-                  that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
-                }
+                that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+                // if (delayMilliSeconds > 0) {
+                //   that->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
+                //       that->serviceContextPtr->tlsClientPtr->set_timer(
+                //           delayMilliSeconds, [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that](ErrorCode const& ec) {
+                //             if (ec) {
+                //               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+                //             } else {
+                //               that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+                //             }
+                //           });
+                // } else {
+                //   that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+                // }
               }
               return;
             } catch (const std::runtime_error& e) {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
             }
           }
-          WsConnection thisWsConnection = wsConnection;
-          that->onFail_(thisWsConnection);
+          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+          // WsConnection thisWsConnection = wsConnection;
+          // that->onFail_(thisWsConnection);
         },
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }

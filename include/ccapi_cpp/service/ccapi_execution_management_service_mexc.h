@@ -93,6 +93,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
       } break;
       case Request::Operation::CREATE_ORDER: {
+        req.set("source", CCAPI_MEXC_API_SOURCE);
         req.method(http::verb::post);
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
