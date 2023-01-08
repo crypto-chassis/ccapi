@@ -55,7 +55,7 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc, mexc-futures.
+  * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc, mexc-futures, whitebit.
   * Execution Management: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx, kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc.
   * FIX: coinbase, gemini.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
