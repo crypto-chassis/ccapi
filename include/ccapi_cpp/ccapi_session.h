@@ -100,6 +100,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_mexc_futures.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
+#include "ccapi_cpp/service/ccapi_market_data_service_whitebit.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -204,6 +207,9 @@
 // #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
 // #include "ccapi_cpp/service/ccapi_execution_management_service_mexc_futures.h"
 // #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
+#include "ccapi_cpp/service/ccapi_execution_management_service_whitebit.h"
+#endif
 #endif
 // end: enable exchanges for execution management
 
@@ -421,6 +427,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_MEXC_FUTURES] =
         std::make_shared<MarketDataServiceMexcFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_WHITEBIT] =
+        std::make_shared<MarketDataServiceWhitebit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -555,7 +565,12 @@ class Session {
 //     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_MEXC_FUTURES] =
 //         std::make_shared<ExecutionManagementServiceMexcFutures>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 // #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_WHITEBIT] =
+        std::make_shared<ExecutionManagementServiceWhitebit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#endif
+
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
     this->serviceByServiceNameExchangeMap[CCAPI_FIX][CCAPI_EXCHANGE_NAME_COINBASE] =

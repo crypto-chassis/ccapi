@@ -11,7 +11,6 @@ class MarketDataServiceKraken : public MarketDataService {
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
     this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
-    this->shouldAlignSnapshot = true;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -22,6 +21,7 @@ class MarketDataServiceKraken : public MarketDataService {
     this->getRecentTradesTarget = "/0/public/Trades";
     this->getInstrumentTarget = "/0/public/AssetPairs";
     this->getInstrumentsTarget = "/0/public/AssetPairs";
+    this->shouldAlignSnapshot = true;
   }
   virtual ~MarketDataServiceKraken() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

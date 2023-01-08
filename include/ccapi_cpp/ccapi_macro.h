@@ -148,6 +148,9 @@
 #ifndef CCAPI_EXCHANGE_NAME_MEXC_FUTURES
 #define CCAPI_EXCHANGE_NAME_MEXC_FUTURES "mexc-futures"
 #endif
+#ifndef CCAPI_EXCHANGE_NAME_WHITEBIT
+#define CCAPI_EXCHANGE_NAME_WHITEBIT "whitebit"
+#endif
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -325,6 +328,8 @@
 #define CCAPI_WEBSOCKET_MEXC_CHANNEL_DIFF_DEPTH "spot@public.increase.depth.v3.api"
 #define CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_TRANSACTION "deal"
 #define CCAPI_WEBSOCKET_MEXC_FUTURES_CHANNEL_DEPTH "depth"
+#define CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_TRADES "trades"
+#define CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_DEPTH "depth"
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
 #endif
@@ -714,6 +719,9 @@
 #ifndef CCAPI_MEXC_FUTURES_URL_REST_BASE
 #define CCAPI_MEXC_FUTURES_URL_REST_BASE "https://contract.mexc.com"
 #endif
+#ifndef CCAPI_WHITEBIT_URL_REST_BASE
+#define CCAPI_WHITEBIT_URL_REST_BASE "https://whitebit.com"
+#endif
 // end: exchange REST urls
 
 // start: exchange WS urls
@@ -830,6 +838,9 @@
 #endif
 #ifndef CCAPI_MEXC_FUTURES_URL_WS_BASE
 #define CCAPI_MEXC_FUTURES_URL_WS_BASE "wss://contract.mexc.com"
+#endif
+#ifndef CCAPI_WHITEBIT_URL_WS_BASE
+#define CCAPI_WHITEBIT_URL_WS_BASE "wss://api.whitebit.com"
 #endif
 // end: exchange WS urls
 
