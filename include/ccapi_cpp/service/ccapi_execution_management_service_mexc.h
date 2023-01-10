@@ -354,15 +354,17 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
     if (document.IsObject() && document.HasMember("code") && std::string(document["code"].GetString()) == "0") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       std::string msg = document["msg"].GetString();
-      bool success = msg != "no subscription success";
-      Message message;
-      message.setTimeReceived(timeReceived);
-      message.setCorrelationIdList({subscription.getCorrelationId()});
-      message.setType(success ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
-      Element element;
-      element.insert(success ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
-      message.setElementList({element});
-      messageList.emplace_back(std::move(message));
+      if (msg != "PONG") {
+        bool success = msg != "no subscription success";
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setCorrelationIdList({subscription.getCorrelationId()});
+        message.setType(success ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
+        Element element;
+        element.insert(success ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+        message.setElementList({element});
+        messageList.emplace_back(std::move(message));
+      }
     } else {
       const auto& fieldSet = subscription.getFieldSet();
       const auto& instrumentSet = subscription.getInstrumentSet();
@@ -401,14 +403,17 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
           const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::STRING)},
               {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("c", JsonDataType::STRING)},
-              {CCAPI_EM_ORDER_SIDE, std::make_pair("v", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("p", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cv", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("ca", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("ap", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("V", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_STATUS, std::make_pair("s", JsonDataType::STRING)},
           };
           Element info;
           info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
+          info.insert(CCAPI_EM_ORDER_SIDE, std::string(d["S"].GetString()) == "1" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
           this->extractOrderInfo(info, d, extractionFieldNameMap);
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));

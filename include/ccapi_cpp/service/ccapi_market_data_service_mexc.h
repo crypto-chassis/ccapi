@@ -28,7 +28,12 @@ class MarketDataServiceMexc : public MarketDataService {
  protected:
 #endif
   // bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("code":0)") == std::string::npos; }
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"method":"PING"})", wspp::frame::opcode::text, ec); }
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->send(hdl, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]) + R"(,"method":"PING"})",
+               wspp::frame::opcode::text, ec);
+    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
+  }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
@@ -250,6 +255,8 @@ class MarketDataServiceMexc : public MarketDataService {
       element.insert(CCAPI_ORDER_PRICE_INCREMENT, "1" + std::string(-quotePrecision, '0'));
     }
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["baseSizePrecision"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["baseSizePrecision"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["quoteAmountPrecision"].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
