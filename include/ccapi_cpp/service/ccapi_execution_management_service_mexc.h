@@ -404,7 +404,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
               {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::STRING)},
               {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("c", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("p", JsonDataType::STRING)},
-              {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
+              {CCAPI_EM_ORDER_QUANTITY, std::make_pair("v", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cv", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("ca", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("ap", JsonDataType::STRING)},
