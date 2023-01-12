@@ -1265,6 +1265,8 @@ class MarketDataService : public Service {
                 const auto& correlationIdList = that->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
                 std::map<Decimal, std::string>& snapshotBid = that->snapshotBidByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
                 std::map<Decimal, std::string>& snapshotAsk = that->snapshotAskByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId];
+                snapshotBid.clear();
+                snapshotAsk.clear();
                 MarketDataMessage::TypeForData input;
                 that->extractOrderBookInitialData(input, document);
                 for (const auto& x : input) {
