@@ -162,6 +162,7 @@ class MarketDataServiceCryptocom : public MarketDataService {
         }
       }
     } else {
+      int64_t id = std::stoll(it->value.GetString());
       std::string method = document["method"].GetString();
       if (method == "subscribe") {
         if (std::string(document["code"].GetString()) != "0") {
@@ -200,8 +201,7 @@ class MarketDataServiceCryptocom : public MarketDataService {
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         auto now = UtilTime::now();
-        this->appendParam(document, allocator, std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count(), "public/respond-heartbeat",
-                          {});
+        this->appendParam(document, allocator, id, "public/respond-heartbeat", {});
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);

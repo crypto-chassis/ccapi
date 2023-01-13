@@ -56,6 +56,18 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
       std::string sendString = stringBuffer.GetString();
       sendStringList.push_back(sendString);
     }
+    {
+      rj::Document document;
+      document.SetObject();
+      auto& allocator = document.GetAllocator();
+      document.AddMember("event", rj::Value("subscribe").Move(), allocator);
+      document.AddMember("feed", rj::Value("heartbeat").Move(), allocator);
+      rj::StringBuffer stringBuffer;
+      rj::Writer<rj::StringBuffer> writer(stringBuffer);
+      document.Accept(writer);
+      std::string sendString = stringBuffer.GetString();
+      sendStringList.push_back(sendString);
+    }
     return sendStringList;
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
@@ -104,8 +116,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
       }
     } else {
       std::string feed = document["feed"].GetString();
-      std::string productId = document["product_id"].GetString();
       if (feed == "book" || feed == "book_snapshot") {
+        std::string productId = document["product_id"].GetString();
         if (feed == "book") {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
@@ -139,6 +151,7 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } else if (feed == "trade" || feed == "trade_snapshot") {
+        std::string productId = document["product_id"].GetString();
         if (feed == "trade") {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;

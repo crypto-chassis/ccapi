@@ -280,61 +280,63 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
     if (document.FindMember("event") == document.MemberEnd()) {
       if (document.FindMember("feed") != document.MemberEnd()) {
         std::string feed = document["feed"].GetString();
-        std::string field;
-        if (feed == "fills") {
-          field = CCAPI_EM_PRIVATE_TRADE;
-        } else if (feed == "open_orders") {
-          field = CCAPI_EM_ORDER_UPDATE;
-        }
-        const auto& fieldSet = subscription.getFieldSet();
-        if (fieldSet.find(field) != fieldSet.end()) {
-          const auto& instrumentSet = subscription.getInstrumentSet();
-          if (field == CCAPI_EM_PRIVATE_TRADE) {
-            for (const auto& x : document["fills"].GetArray()) {
+        if (feed == "fills" || feed == "open_orders") {
+          std::string field;
+          if (feed == "fills") {
+            field = CCAPI_EM_PRIVATE_TRADE;
+          } else if (feed == "open_orders") {
+            field = CCAPI_EM_ORDER_UPDATE;
+          }
+          const auto& fieldSet = subscription.getFieldSet();
+          if (fieldSet.find(field) != fieldSet.end()) {
+            const auto& instrumentSet = subscription.getInstrumentSet();
+            if (field == CCAPI_EM_PRIVATE_TRADE) {
+              for (const auto& x : document["fills"].GetArray()) {
+                std::string instrument = x["instrument"].GetString();
+                if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+                  Message message;
+                  message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+                  message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(x["time"].GetString())));
+                  message.setTimeReceived(timeReceived);
+                  message.setCorrelationIdList({subscription.getCorrelationId()});
+                  std::vector<Element> elementList;
+                  Element element;
+                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["price"].GetString());
+                  element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["qty"].GetString());
+                  element.insert(CCAPI_EM_ORDER_SIDE, x["buy"].GetBool() ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                  element.insert(CCAPI_EM_ORDER_ID, std::string(x["order_id"].GetString()));
+                  element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["cli_ord_id"].GetString()));
+                  element.insert(CCAPI_IS_MAKER, std::string(x["fill_type"].GetString()) == "maker" ? "1" : "0");
+                  element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
+                  element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fee_paid"].GetString()));
+                  element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fee_currency"].GetString()));
+                  elementList.emplace_back(std::move(element));
+                  message.setElementList(elementList);
+                  messageList.emplace_back(std::move(message));
+                }
+              }
+            } else if (field == CCAPI_EM_ORDER_UPDATE) {
+              const rj::Value& x = document["order"];
               std::string instrument = x["instrument"].GetString();
               if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
                 Message message;
-                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-                message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(x["time"].GetString())));
+                message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+                message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(x["last_update_time"].GetString())));
                 message.setTimeReceived(timeReceived);
                 message.setCorrelationIdList({subscription.getCorrelationId()});
                 std::vector<Element> elementList;
                 Element element;
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["price"].GetString());
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["qty"].GetString());
-                element.insert(CCAPI_EM_ORDER_SIDE, x["buy"].GetBool() ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                element.insert(CCAPI_EM_ORDER_ID, std::string(x["order_id"].GetString()));
-                element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["cli_ord_id"].GetString()));
-                element.insert(CCAPI_IS_MAKER, std::string(x["fill_type"].GetString()) == "maker" ? "1" : "0");
                 element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fee_paid"].GetString()));
-                element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fee_currency"].GetString()));
+                element.insert(CCAPI_EM_ORDER_QUANTITY, x["qty"].GetString());
+                element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, x["filled"].GetString());
+                element.insert(CCAPI_EM_ORDER_LIMIT_PRICE, x["limit_price"].GetString());
+                element.insert(CCAPI_EM_ORDER_ID, x["order_id"].GetString());
+                element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["direction"].GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                element.insert("is_cancel", document["is_cancel"].GetBool() ? "1" : "0");
                 elementList.emplace_back(std::move(element));
                 message.setElementList(elementList);
                 messageList.emplace_back(std::move(message));
               }
-            }
-          } else if (field == CCAPI_EM_ORDER_UPDATE) {
-            const rj::Value& x = document["order"];
-            std::string instrument = x["instrument"].GetString();
-            if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-              Message message;
-              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(x["last_update_time"].GetString())));
-              message.setTimeReceived(timeReceived);
-              message.setCorrelationIdList({subscription.getCorrelationId()});
-              std::vector<Element> elementList;
-              Element element;
-              element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-              element.insert(CCAPI_EM_ORDER_QUANTITY, x["qty"].GetString());
-              element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, x["filled"].GetString());
-              element.insert(CCAPI_EM_ORDER_LIMIT_PRICE, x["limit_price"].GetString());
-              element.insert(CCAPI_EM_ORDER_ID, x["order_id"].GetString());
-              element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["direction"].GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-              element.insert("is_cancel", document["is_cancel"].GetBool() ? "1" : "0");
-              elementList.emplace_back(std::move(element));
-              message.setElementList(elementList);
-              messageList.emplace_back(std::move(message));
             }
           }
         }
@@ -353,25 +355,39 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), challengeToSignSha256));
         std::vector<std::string> sendStringList;
         for (const auto& field : subscription.getFieldSet()) {
-          std::string feed;
-          if (field == CCAPI_EM_PRIVATE_TRADE) {
-            feed = "fills";
-          } else if (field == CCAPI_EM_ORDER_UPDATE) {
-            feed = "open_orders";
+          {
+            std::string feed;
+            if (field == CCAPI_EM_PRIVATE_TRADE) {
+              feed = "fills";
+            } else if (field == CCAPI_EM_ORDER_UPDATE) {
+              feed = "open_orders";
+            }
+            rj::Document document;
+            document.SetObject();
+            auto& allocator = document.GetAllocator();
+            document.AddMember("event", rj::Value("subscribe").Move(), allocator);
+            document.AddMember("feed", rj::Value(feed.c_str(), allocator).Move(), allocator);
+            document.AddMember("api_key", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+            document.AddMember("original_challenge", rj::Value(challengeToSign.c_str(), allocator).Move(), allocator);
+            document.AddMember("signed_challenge", rj::Value(signature.c_str(), allocator).Move(), allocator);
+            rj::StringBuffer stringBuffer;
+            rj::Writer<rj::StringBuffer> writer(stringBuffer);
+            document.Accept(writer);
+            std::string sendString = stringBuffer.GetString();
+            sendStringList.push_back(sendString);
           }
-          rj::Document document;
-          document.SetObject();
-          auto& allocator = document.GetAllocator();
-          document.AddMember("event", rj::Value("subscribe").Move(), allocator);
-          document.AddMember("feed", rj::Value(feed.c_str(), allocator).Move(), allocator);
-          document.AddMember("api_key", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
-          document.AddMember("original_challenge", rj::Value(challengeToSign.c_str(), allocator).Move(), allocator);
-          document.AddMember("signed_challenge", rj::Value(signature.c_str(), allocator).Move(), allocator);
-          rj::StringBuffer stringBuffer;
-          rj::Writer<rj::StringBuffer> writer(stringBuffer);
-          document.Accept(writer);
-          std::string sendString = stringBuffer.GetString();
-          sendStringList.push_back(sendString);
+          {
+            rj::Document document;
+            document.SetObject();
+            auto& allocator = document.GetAllocator();
+            document.AddMember("event", rj::Value("subscribe").Move(), allocator);
+            document.AddMember("feed", rj::Value("heartbeat").Move(), allocator);
+            rj::StringBuffer stringBuffer;
+            rj::Writer<rj::StringBuffer> writer(stringBuffer);
+            document.Accept(writer);
+            std::string sendString = stringBuffer.GetString();
+            sendStringList.push_back(sendString);
+          }
         }
         for (const auto& sendString : sendStringList) {
           ErrorCode ec;
