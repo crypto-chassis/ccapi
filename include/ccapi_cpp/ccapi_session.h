@@ -921,6 +921,13 @@ class Session {
       }
     });
   }
+  void purgeHttpConnectionPool() {
+    for (const auto& x : this->serviceByServiceNameExchangeMap) {
+      for (const auto& y : x.second) {
+        y.second->purgeHttpConnectionPool();
+      }
+    }
+  }
 #endif
 #ifndef CCAPI_EXPOSE_INTERNAL
 
