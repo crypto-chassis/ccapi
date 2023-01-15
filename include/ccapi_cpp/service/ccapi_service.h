@@ -126,7 +126,7 @@ class Service : public std::enable_shared_from_this<Service> {
       this->httpConnectionPoolPurgeTimer->cancel();
     }
   }
-  // void setEventHandler(const std::function<void(Event& event)>& eventHandler) { this->eventHandler = eventHandler; }
+  void purgeHttpConnectionPool() { this->httpConnectionPool.purge(); }
   void stop() {
     for (const auto& x : this->sendRequestDelayTimerByCorrelationIdMap) {
       x.second->cancel();
@@ -529,7 +529,6 @@ class Service : public std::enable_shared_from_this<Service> {
         beast::bind_front_handler(&Service::onRead_2, shared_from_this(), httpConnectionPtr, request, reqPtr, retry, bufferPtr, resPtr, eventQueuePtr));
     CCAPI_LOGGER_TRACE("after async_read");
   }
-  void purgeHttpConnectionPool() { this->httpConnectionPool.purge(); }
   void setHttpConnectionPoolPurgeTimer() {
     this->httpConnectionPoolPurgeTimer = this->serviceContextPtr->tlsClientPtr->set_timer(5000, [that = shared_from_this()](ErrorCode const& ec) {
       auto now = UtilTime::now();
