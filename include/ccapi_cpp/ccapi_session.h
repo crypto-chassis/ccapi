@@ -921,10 +921,14 @@ class Session {
       }
     });
   }
-  void purgeHttpConnectionPool() {
+  void purgeHttpConnectionPool(const std::string& serviceName = "", const std::string& exchangeName = "") {
     for (const auto& x : this->serviceByServiceNameExchangeMap) {
-      for (const auto& y : x.second) {
-        y.second->purgeHttpConnectionPool();
+      if (serviceName.empty() || serviceName == x.first) {
+        for (const auto& y : x.second) {
+          if (exchangeName.empty() || exchangeName == y.first) {
+            y.second->purgeHttpConnectionPool();
+          }
+        }
       }
     }
   }
