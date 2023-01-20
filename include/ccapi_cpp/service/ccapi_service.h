@@ -126,7 +126,7 @@ class Service : public std::enable_shared_from_this<Service> {
       this->httpConnectionPoolPurgeTimer->cancel();
     }
   }
-  // void setEventHandler(const std::function<void(Event& event)>& eventHandler) { this->eventHandler = eventHandler; }
+  void purgeHttpConnectionPool() { this->httpConnectionPool.purge(); }
   void stop() {
     for (const auto& x : this->sendRequestDelayTimerByCorrelationIdMap) {
       x.second->cancel();

@@ -371,18 +371,16 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Value args(rj::kArrayType);
         const auto& fieldSet = subscription.getFieldSet();
         const auto& instrumentSet = subscription.getInstrumentSet();
-        for (const auto& field : fieldSet) {
-          std::string channel;
-          if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-            channel = "orders";
-          }
-          for (const auto& instrument : instrumentSet) {
-            rj::Value arg(rj::kObjectType);
-            arg.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
-            arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
-            arg.AddMember("instType", rj::Value("ANY").Move(), allocator);
-            args.PushBack(arg, allocator);
-          }
+        std::string channel;
+        if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+          channel = "orders";
+        }
+        for (const auto& instrument : instrumentSet) {
+          rj::Value arg(rj::kObjectType);
+          arg.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
+          arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
+          arg.AddMember("instType", rj::Value("ANY").Move(), allocator);
+          args.PushBack(arg, allocator);
         }
         document.AddMember("args", args, allocator);
         rj::StringBuffer stringBufferSubscribe;
@@ -491,6 +489,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
                     {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("px", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_QUANTITY, std::make_pair("sz", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("avgPx", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
                 };
                 Element info;
