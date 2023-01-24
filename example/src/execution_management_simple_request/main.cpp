@@ -1,6 +1,18 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-Logger* Logger::logger = nullptr;  // This line is needed.
+  class MyLogger final : public Logger {
+   public:
+    void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
+                    const std::string& lineNumber, const std::string& message) override {
+      std::lock_guard<std::mutex> lock(m);
+      std::cout << threadId << ": [" << timeISO << "] {" << fileName << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message << std::endl;
+    }
+
+   private:
+    std::mutex m;
+  };
+  MyLogger myLogger;
+  Logger* Logger::logger = &myLogger;
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session* session) override {
@@ -17,21 +29,21 @@ using ::ccapi::SessionOptions;
 using ::ccapi::toString;
 using ::ccapi::UtilSystem;
 int main(int argc, char** argv) {
-  if (UtilSystem::getEnvAsString("BINANCE_API_KEY").empty()) {
-    std::cerr << "Please set environment variable BINANCE_API_KEY" << std::endl;
-    return EXIT_FAILURE;
-  }
-  if (UtilSystem::getEnvAsString("BINANCE_API_SECRET").empty()) {
-    std::cerr << "Please set environment variable BINANCE_API_SECRET" << std::endl;
-    return EXIT_FAILURE;
-  }
-  std::vector<std::string> modeList = {
-      "create_order", "cancel_order", "get_order", "get_open_orders", "cancel_open_orders", "get_account_balances",
-  };
-  if (argc < 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
-    std::cerr << "Please provide the first command line argument from this list: " + toString(modeList) << std::endl;
-    return EXIT_FAILURE;
-  }
+  // if (UtilSystem::getEnvAsString("BINANCE_API_KEY").empty()) {
+  //   std::cerr << "Please set environment variable BINANCE_API_KEY" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
+  // if (UtilSystem::getEnvAsString("BINANCE_API_SECRET").empty()) {
+  //   std::cerr << "Please set environment variable BINANCE_API_SECRET" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
+  // std::vector<std::string> modeList = {
+  //     "create_order", "cancel_order", "get_order", "get_open_orders", "cancel_open_orders", "get_account_balances",
+  // };
+  // if (argc < 2 || std::find(modeList.begin(), modeList.end(), argv[1]) == modeList.end()) {
+  //   std::cerr << "Please provide the first command line argument from this list: " + toString(modeList) << std::endl;
+  //   return EXIT_FAILURE;
+  // }
   std::string mode(argv[1]);
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
@@ -45,11 +57,12 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CREATE_ORDER, "binance", argv[2]);
+    Request request(Request::Operation::CREATE_ORDER, "binance-usds-futures", argv[2]);
     request.appendParam({
         {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
         {"QUANTITY", argv[4]},
         {"LIMIT_PRICE", argv[5]},
+        {"timeInForce", "GTX"},
     });
     session.sendRequest(request);
   } else if (mode == "cancel_order") {
@@ -60,7 +73,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CANCEL_ORDER, "binance", argv[2]);
+    Request request(Request::Operation::CANCEL_ORDER, "binance-usds-futures", argv[2]);
     request.appendParam({
         {"ORDER_ID", argv[3]},
     });
@@ -73,7 +86,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::GET_ORDER, "binance", argv[2]);
+    Request request(Request::Operation::GET_ORDER, "binance-usds-futures", argv[2]);
     request.appendParam({
         {"ORDER_ID", argv[3]},
     });
@@ -86,7 +99,7 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::GET_OPEN_ORDERS, "binance", argv[2]);
+    Request request(Request::Operation::GET_OPEN_ORDERS, "binance-usds-futures", argv[2]);
     session.sendRequest(request);
   } else if (mode == "cancel_open_orders") {
     if (argc != 3) {
@@ -96,10 +109,10 @@ int main(int argc, char** argv) {
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CANCEL_OPEN_ORDERS, "binance", argv[2]);
+    Request request(Request::Operation::CANCEL_OPEN_ORDERS, "binance-usds-futures", argv[2]);
     session.sendRequest(request);
   } else if (mode == "get_account_balances") {
-    Request request(Request::Operation::GET_ACCOUNT_BALANCES, "binance");
+    Request request(Request::Operation::GET_ACCOUNT_BALANCES, "binance-usds-futures");
     session.sendRequest(request);
   }
   std::this_thread::sleep_for(std::chrono::seconds(10));
