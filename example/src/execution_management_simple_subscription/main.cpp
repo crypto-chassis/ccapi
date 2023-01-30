@@ -1,18 +1,19 @@
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
-  class MyLogger final : public Logger {
-   public:
-    void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
-                    const std::string& lineNumber, const std::string& message) override {
-      std::lock_guard<std::mutex> lock(m);
-      std::cout << threadId << ": [" << timeISO << "] {" << fileName << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message << std::endl;
-    }
+class MyLogger final : public Logger {
+ public:
+  void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
+                  const std::string& lineNumber, const std::string& message) override {
+    std::lock_guard<std::mutex> lock(m);
+    std::cout << threadId << ": [" << timeISO << "] {" << fileName << ":" << lineNumber << "} " << severity << std::string(8, ' ') << message << std::endl;
+  }
 
-   private:
-    std::mutex m;
-  };
-  MyLogger myLogger;
-  Logger* Logger::logger = &myLogger;class MyEventHandler : public EventHandler {
+ private:
+  std::mutex m;
+};
+MyLogger myLogger;
+Logger* Logger::logger = &myLogger;
+class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session* session) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_STATUS) {
@@ -21,10 +22,7 @@ namespace ccapi {
       if (message.getType() == Message::Type::SUBSCRIPTION_STARTED) {
         Request request(Request::Operation::CREATE_ORDER, "binance-usds-futures", "BTCUSDT");
         request.appendParam({
-            {"SIDE", "BUY"},
-            {"LIMIT_PRICE", "23000"},
-            {"QUANTITY", "0.001"},
-            {"timeInForce", "GTX"},
+            {"SIDE", "BUY"}, {"LIMIT_PRICE", "23000"}, {"QUANTITY", "0.001"}, {"timeInForce", "GTX"},
             // {"CLIENT_ORDER_ID", "6d4eb0fb-2229-469f-873e-557dd78ac11e"},
         });
         session->sendRequest(request);

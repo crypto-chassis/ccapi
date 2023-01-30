@@ -836,6 +836,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setCorrelationIdList(correlationIdList);
     Element element;
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
+    element.insert(CCAPI_CONNECTION_URL, wsConnection.url);
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event, nullptr);
@@ -925,6 +926,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
+    element.insert(CCAPI_CONNECTION_URL, wsConnection.url);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
     std::vector<std::string> correlationIdList;
