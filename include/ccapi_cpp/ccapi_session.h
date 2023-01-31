@@ -921,6 +921,17 @@ class Session {
       }
     });
   }
+  void purgeHttpConnectionPool(const std::string& serviceName = "", const std::string& exchangeName = "") {
+    for (const auto& x : this->serviceByServiceNameExchangeMap) {
+      if (serviceName.empty() || serviceName == x.first) {
+        for (const auto& y : x.second) {
+          if (exchangeName.empty() || exchangeName == y.first) {
+            y.second->purgeHttpConnectionPool();
+          }
+        }
+      }
+    }
+  }
 #endif
 #ifndef CCAPI_EXPOSE_INTERNAL
 
