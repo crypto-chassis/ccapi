@@ -1,0 +1,5 @@
+set(NAME override_exchange_url_at_runtime)
+project(${NAME})
+add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKX)
+add_executable(${NAME} main.cpp)
