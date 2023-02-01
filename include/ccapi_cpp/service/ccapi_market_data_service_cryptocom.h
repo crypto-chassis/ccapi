@@ -94,7 +94,6 @@ class MarketDataServiceCryptocom : public MarketDataService {
   }
   void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    CCAPI_LOGGER_INFO("textMessage = " + textMessage);
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto it = document.FindMember("id");
@@ -200,7 +199,6 @@ class MarketDataServiceCryptocom : public MarketDataService {
         }
       } else if (method == "public/heartbeat") {
         std::string msg = R"({"id":)" + id + R"(,"method":"public/respond-heartbeat"})";
-        CCAPI_LOGGER_INFO("msg = " + msg);
         ErrorCode ec;
         this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
         if (ec) {
