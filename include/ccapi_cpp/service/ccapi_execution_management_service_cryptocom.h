@@ -28,6 +28,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     this->getOpenOrdersMethod = "private/get-open-orders";
     this->cancelOpenOrdersMethod = "private/cancel-all-orders";
     this->getAccountBalancesMethod = "private/get-account-summary";
+    this->enableCheckPingPongWebsocketApplicationLevel = false;
   }
   virtual ~ExecutionManagementServiceCryptocom() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
