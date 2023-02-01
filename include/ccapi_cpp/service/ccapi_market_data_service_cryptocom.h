@@ -21,7 +21,6 @@ class MarketDataServiceCryptocom : public MarketDataService {
     this->getRecentTradesTarget = "/v2/public/get-trades";
     this->getInstrumentTarget = "/v2/public/get-instruments";
     this->getInstrumentsTarget = "/v2/public/get-instruments";
-    this->enableCheckPingPongWebsocketApplicationLevel = false;
   }
   virtual ~MarketDataServiceCryptocom() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
