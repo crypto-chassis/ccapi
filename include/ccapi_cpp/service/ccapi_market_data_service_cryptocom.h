@@ -162,7 +162,7 @@ class MarketDataServiceCryptocom : public MarketDataService {
         }
       }
     } else {
-      int64_t id = std::stoll(it->value.GetString());
+      std::string id = it->value.GetString();
       std::string method = document["method"].GetString();
       if (method == "subscribe") {
         if (std::string(document["code"].GetString()) != "0") {
@@ -197,17 +197,9 @@ class MarketDataServiceCryptocom : public MarketDataService {
           event.setMessageList(messageList);
         }
       } else if (method == "public/heartbeat") {
-        rj::Document document;
-        document.SetObject();
-        rj::Document::AllocatorType& allocator = document.GetAllocator();
-        auto now = UtilTime::now();
-        this->appendParam(document, allocator, id, "public/respond-heartbeat", {});
-        rj::StringBuffer stringBuffer;
-        rj::Writer<rj::StringBuffer> writer(stringBuffer);
-        document.Accept(writer);
-        std::string msg = stringBuffer.GetString();
+        std::string msg = R"({"id":)" + id + R"(,"method":"public/respond-heartbeat"})";
         ErrorCode ec;
-        this->send(hdl, msg, wspp::frame::opcode::text, ec);
+        this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
         if (ec) {
           this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
         }
