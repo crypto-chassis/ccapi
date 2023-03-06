@@ -10,7 +10,7 @@ class MarketDataServiceAscendex : public MarketDataService {
                             std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_ASCENDEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/api/pro/v1/stream";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/api/pro/v1/stream";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

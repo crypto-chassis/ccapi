@@ -10,7 +10,7 @@ class MarketDataServiceBinanceUsdsFutures : public MarketDataServiceBinanceDeriv
                                       std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceBinanceDerivativesBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/stream";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/stream";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

@@ -10,7 +10,7 @@ class MarketDataServiceHuobiCoinSwap : public MarketDataServiceHuobiDerivativesB
                                  std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceHuobiDerivativesBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/swap-ws";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/swap-ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

@@ -10,7 +10,7 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
                          std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceBybitBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/public/v3";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/public/v3";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

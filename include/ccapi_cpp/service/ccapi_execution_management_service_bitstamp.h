@@ -10,7 +10,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITSTAMP;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -299,7 +299,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
               if (document.HasMember("token") && document.HasMember("user_id")) {
                 std::string token = document["token"].GetString();
                 std::string userId = document["user_id"].GetString();
-                thisWsConnection.url = that->baseUrl;
+                thisWsConnection.url = that->baseUrlWs;
                 that->connect(thisWsConnection);
                 that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
                     {"token", token},

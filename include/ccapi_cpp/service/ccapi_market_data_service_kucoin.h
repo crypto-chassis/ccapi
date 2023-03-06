@@ -10,7 +10,7 @@ class MarketDataServiceKucoin : public MarketDataServiceKucoinBase {
                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceKucoinBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

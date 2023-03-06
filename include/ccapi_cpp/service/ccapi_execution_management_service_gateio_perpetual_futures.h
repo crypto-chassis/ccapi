@@ -10,7 +10,7 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
                                                    SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceGateioBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v4/ws/";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v4/ws/";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -75,7 +75,7 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
   }
   void subscribe(std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_DEBUG("this->baseUrl = " + this->baseUrl);
+    CCAPI_LOGGER_DEBUG("this->baseUrlWs = " + this->baseUrlWs);
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
         wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(),
@@ -96,7 +96,7 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
                                   if (credential.empty()) {
                                     credential = that->credentialDefault;
                                   }
-                                  WsConnection wsConnection(that->baseUrl + settle, "", {subscription}, credential);
+                                  WsConnection wsConnection(that->baseUrlWs + settle, "", {subscription}, credential);
                                   that->prepareConnect(wsConnection);
                                 }
                               });

@@ -86,7 +86,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     return sendStringList;
   }
   std::string getInstrumentGroup(const Subscription& subscription) override {
-    auto url = this->baseUrl;
+    auto url = this->baseUrlWs;
     auto field = subscription.getField();
     if (!this->isDerivatives) {
       if (field == CCAPI_TRADE || field == CCAPI_MARKET_DEPTH || field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {

@@ -10,7 +10,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

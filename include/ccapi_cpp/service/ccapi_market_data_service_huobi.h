@@ -10,7 +10,7 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
                          std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

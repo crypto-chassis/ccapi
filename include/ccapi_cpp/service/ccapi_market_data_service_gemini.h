@@ -10,7 +10,7 @@ class MarketDataServiceGemini : public MarketDataService {
                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_GEMINI;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v1/marketdata";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v1/marketdata";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -154,7 +154,7 @@ class MarketDataServiceGemini : public MarketDataService {
     auto field = subscription.getField();
     auto parameterList = UtilString::split(this->sessionConfigs.getExchangeFieldWebsocketChannelMap().at(this->exchangeName).at(field), ",");
     std::set<std::string> parameterSet(parameterList.begin(), parameterList.end());
-    std::string url = this->baseUrl + "/" + symbolId;
+    std::string url = this->baseUrlWs + "/" + symbolId;
     url += "?";
     if ((parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_BIDS) != parameterSet.end() ||
          parameterSet.find(CCAPI_WEBSOCKET_GEMINI_PARAMETER_OFFERS) != parameterSet.end())) {

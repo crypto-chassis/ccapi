@@ -11,7 +11,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->pingListenKeyIntervalSeconds = 600;
     this->exchangeName = CCAPI_EXCHANGE_NAME_MEXC;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -245,7 +245,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
               rj::Document document;
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               std::string listenKey = document["listenKey"].GetString();
-              std::string url = that->baseUrl + "?listenKey=" + listenKey;
+              std::string url = that->baseUrlWs + "?listenKey=" + listenKey;
               thisWsConnection.url = url;
               that->connect(thisWsConnection);
               that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({

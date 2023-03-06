@@ -10,7 +10,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_ASCENDEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -350,7 +350,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
                                   credential = that->credentialDefault;
                                 }
                                 const auto& accountGroup = mapGetWithDefault(credential, that->apiAccountGroupName);
-                                WsConnection wsConnection(that->baseUrl + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
+                                WsConnection wsConnection(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
                                 that->prepareConnect(wsConnection);
                               });
       }

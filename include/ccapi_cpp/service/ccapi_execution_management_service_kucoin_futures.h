@@ -10,7 +10,7 @@ class ExecutionManagementServiceKucoinFutures : public ExecutionManagementServic
                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceKucoinBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

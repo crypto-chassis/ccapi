@@ -11,7 +11,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
-    this->baseUrl = CCAPI_KRAKEN_URL_WS_BASE_PRIVATE;
+    this->baseUrlWs = CCAPI_KRAKEN_URL_WS_BASE_PRIVATE;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {
@@ -294,7 +294,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               if (document.HasMember("result") && document["result"].HasMember("token")) {
                 std::string token = document["result"]["token"].GetString();
-                thisWsConnection.url = that->baseUrl;
+                thisWsConnection.url = that->baseUrlWs;
                 that->connect(thisWsConnection);
                 that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
                     {"token", token},

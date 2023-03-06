@@ -26,16 +26,6 @@ class FixService : public Service {
 
  protected:
 #endif
-  static std::string printableString(const char* s, size_t n) {
-    std::string output(s, n);
-    std::replace(output.begin(), output.end(), '\x01', '^');
-    return output;
-  }
-  static std::string printableString(const std::string& s) {
-    std::string output(s);
-    std::replace(output.begin(), output.end(), '\x01', '^');
-    return output;
-  }
   void setHostFixFromUrlFix(std::string& aHostFix, std::string& aPortFix, const std::string& baseUrlFix) {
     auto hostPort = this->extractHostFromUrl(baseUrlFix);
     aHostFix = hostPort.first;

@@ -309,7 +309,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
               rj::Document document;
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               std::string listenKey = document["listenKey"].GetString();
-              std::string url = that->baseUrl + "/" + listenKey;
+              std::string url = that->baseUrlWs + "/" + listenKey;
               thisWsConnection.url = url;
               that->connect(thisWsConnection);
               that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({

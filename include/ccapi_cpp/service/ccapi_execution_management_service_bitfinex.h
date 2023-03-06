@@ -10,7 +10,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITFINEX;
-    this->baseUrl = std::string(CCAPI_BITFINEX_PRIVATE_URL_WS_BASE) + "/ws/2";
+    this->baseUrlWs = std::string(CCAPI_BITFINEX_PRIVATE_URL_WS_BASE) + "/ws/2";
     this->baseUrlRest = CCAPI_BITFINEX_PRIVATE_URL_REST_BASE;
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

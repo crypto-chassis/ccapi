@@ -10,7 +10,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
                                   ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBybitBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/private/v3";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/private/v3";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

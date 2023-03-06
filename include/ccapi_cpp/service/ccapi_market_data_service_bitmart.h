@@ -10,7 +10,7 @@ class MarketDataServiceBitmart : public MarketDataService {
                            std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMART;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/api?protocol=1.1";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/api?protocol=1.1";
     // this->needDecompressWebsocketMessage = true;
     // ErrorCode ec = this->inflater.init(false);
     // if (ec) {

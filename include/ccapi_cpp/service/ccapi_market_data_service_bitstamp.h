@@ -10,7 +10,7 @@ class MarketDataServiceBitstamp : public MarketDataService {
                             std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITSTAMP;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->enableCheckPingPongWebsocketApplicationLevel = false;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);

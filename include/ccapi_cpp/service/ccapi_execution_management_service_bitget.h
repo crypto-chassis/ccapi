@@ -10,7 +10,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
                                    ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBitgetBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITGET;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/v1/stream";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/v1/stream";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

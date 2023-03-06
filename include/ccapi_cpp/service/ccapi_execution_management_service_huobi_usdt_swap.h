@@ -10,7 +10,7 @@ class ExecutionManagementServiceHuobiUsdtSwap : public ExecutionManagementServic
                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceHuobiDerivativesBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/linear-swap-notification";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/linear-swap-notification";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

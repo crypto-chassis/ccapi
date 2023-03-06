@@ -10,7 +10,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
                                              SessionConfigs sessionConfigs, ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBybitBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/unified/private/v3";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/unified/private/v3";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     try {

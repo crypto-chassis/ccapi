@@ -45,20 +45,34 @@ class ExecutionManagementService : public Service {
   // each subscription creates a unique websocket connection
   void subscribe(std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_DEBUG("this->baseUrl = " + this->baseUrl);
+    CCAPI_LOGGER_DEBUG("this->baseUrlWs = " + this->baseUrlWs);
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
-        wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(),
-                              [that = shared_from_base<ExecutionManagementService>(), subscription]() mutable {
-                                auto now = UtilTime::now();
-                                subscription.setTimeSent(now);
-                                auto credential = subscription.getCredential();
-                                if (credential.empty()) {
-                                  credential = that->credentialDefault;
+        boost::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(),
+                          [that = shared_from_base<ExecutionManagementService>(), subscription]() mutable {
+                            auto now = UtilTime::now();
+                            subscription.setTimeSent(now);
+                            auto credential = subscription.getCredential();
+                            if (credential.empty()) {
+                              credential = that->credentialDefault;
+                            }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+                            WsConnection wsConnection(that->baseUrlWs, "", {subscription}, credential);
+                            that->prepareConnect(wsConnection);
+#else
+                                std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(nullptr);
+                                try {
+                                  streamPtr = this->createStream<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, this->hostWs);
+                                } catch (const beast::error_code& ec) {
+                                  CCAPI_LOGGER_TRACE("fail");
+                                  this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()}, eventQueuePtr);
+                                  return;
                                 }
-                                WsConnection wsConnection(that->baseUrl, "", {subscription}, credential);
-                                that->prepareConnect(wsConnection);
-                              });
+                                std::shared_ptr<WsConnection> wsConnectionPtr(new WsConnection(this->hostWs, this->portWs, streamPtr));
+                                CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
+                                that->prepareConnect(wsConnectionPtr);
+#endif
+                          });
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -210,7 +224,7 @@ class ExecutionManagementService : public Service {
   void sendRequestByWebsocket(Request& request, const TimePoint& now) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("now = " + toString(now));
-    wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<ExecutionManagementService>(), request]() mutable {
+    boost::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(), [that = shared_from_base<ExecutionManagementService>(), request]() mutable {
       auto now = UtilTime::now();
       CCAPI_LOGGER_DEBUG("request = " + toString(request));
       CCAPI_LOGGER_TRACE("now = " + toString(now));
