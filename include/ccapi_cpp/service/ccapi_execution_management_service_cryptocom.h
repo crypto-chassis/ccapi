@@ -454,14 +454,12 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
         }
       }
     } else if (method == "public/heartbeat") {
-      if (itCode == document.MemberEnd()) {
-        std::string id = document["id"].GetString();
-        std::string msg = R"({"id":)" + id + R"(,"method":"public/respond-heartbeat"})";
-        ErrorCode ec;
-        this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
-        if (ec) {
-          this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
-        }
+      std::string id = document["id"].GetString();
+      std::string msg = R"({"id":)" + id + R"(,"method":"public/respond-heartbeat"})";
+      ErrorCode ec;
+      this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
+      if (ec) {
+        this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
       }
     } else if (method == "public/auth") {
       if (itCode != document.MemberEnd()) {

@@ -137,6 +137,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
                                    const rj::Document& document) override {
     std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("orderLinkId", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("orderQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("orderPrice", JsonDataType::STRING)},
