@@ -593,7 +593,7 @@ class Service : public std::enable_shared_from_this<Service> {
         this->processSuccessfulTextMessageRest(statusCode, request, body, now, eventQueuePtr);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
-          Url url(resPtr->base().at("Location").to_string());
+          Url url(resPtr->base().at("Location"));
           std::string host(url.host);
           if (!url.port.empty()) {
             host += ":";
