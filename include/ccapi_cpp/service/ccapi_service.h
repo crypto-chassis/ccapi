@@ -666,7 +666,12 @@ class Service : public std::enable_shared_from_this<Service> {
         this->processSuccessfulTextMessageRest(statusCode, request, body, now, eventQueuePtr);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
-          Url url(resPtr->base().at("Location").to_string());
+          Url url(resPtr->base().at("Location")
+#if BOOST_VERSION < 108100
+              // Boost Beast 1.81 uses boost::core::string_view which doesn't contain to_string() method
+              .to_string()
+#endif
+          );
           std::string host(url.host);
           if (!url.port.empty()) {
             host += ":";
