@@ -83,7 +83,7 @@ class ServiceContext CCAPI_FINAL {
   typedef boost::asio::ssl::context SslContext;
   typedef std::shared_ptr<SslContext> SslContextPtr;
   ServiceContext() {
-    this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 | SslContext::single_dh_use);
+    // this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 | SslContext::single_dh_use);
     this->sslContextPtr->set_verify_mode(boost::asio::ssl::verify_none);
     // TODO(cryptochassis): verify ssl certificate to strengthen security
     // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp

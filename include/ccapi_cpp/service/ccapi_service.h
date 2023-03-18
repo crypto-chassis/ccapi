@@ -321,7 +321,7 @@ class Service : public std::enable_shared_from_this<Service> {
     if (splitted2.size() == 2) {
       port = splitted2[1];
     } else {
-      if (splitted1[0] == "https") {
+      if (splitted1[0] == "https" || splitted1[0] == "wss") {
         port = CCAPI_HTTPS_PORT_DEFAULT;
       } else {
         port = CCAPI_HTTP_PORT_DEFAULT;
@@ -497,6 +497,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> createStream(std::shared_ptr<net::io_context> iocPtr,
                                                                                                std::shared_ptr<net::ssl::context> ctxPtr,
                                                                                                const std::string& host) {
+    CCAPI_LOGGER_TRACE("host = " + host)
     std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(
         new beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>(*iocPtr, *ctxPtr));
     // Set SNI Hostname (many hosts need this to handshake successfully)
@@ -666,10 +667,11 @@ class Service : public std::enable_shared_from_this<Service> {
         this->processSuccessfulTextMessageRest(statusCode, request, body, now, eventQueuePtr);
       } else if (statusCode / 100 == 3) {
         if (resPtr->base().find("Location") != resPtr->base().end()) {
-          Url url(resPtr->base().at("Location")
+          Url url(resPtr->base()
+                      .at("Location")
 #if BOOST_VERSION < 108100
-              // Boost Beast 1.81 uses boost::core::string_view which doesn't contain to_string() method
-              .to_string()
+                      // Boost Beast 1.81 uses boost::core::string_view which doesn't contain to_string() method
+                      .to_string()
 #endif
           );
           std::string host(url.host);
@@ -1222,6 +1224,7 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
     CCAPI_LOGGER_TRACE("connected");
+    CCAPI_LOGGER_TRACE("ep.port() = " + std::to_string(ep.port()));
     wsConnectionPtr->hostHttpHeaderValue = this->hostWs + ':' + std::to_string(ep.port());
     beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>& stream = *wsConnectionPtr->streamPtr;
     beast::get_lowest_layer(stream).socket().set_option(tcp::no_delay(true));
@@ -1516,8 +1519,8 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     auto& stream = *wsConnectionPtr->streamPtr;
     if (stream.got_text()) {
-      CCAPI_LOGGER_DEBUG(std::string("received a text message: ") + data);
       boost::beast::string_view textMessage(data, dataSize);
+      CCAPI_LOGGER_DEBUG(std::string("received a text message: ") + std::string(textMessage));
       try {
         this->onTextMessage(wsConnectionPtr, textMessage, now);
       } catch (const std::exception& e) {
