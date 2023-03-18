@@ -491,6 +491,8 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return streamPtr;
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
   template <>
   std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> createStream(std::shared_ptr<net::io_context> iocPtr,
                                                                                                std::shared_ptr<net::ssl::context> ctxPtr,
@@ -505,6 +507,7 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return streamPtr;
   }
+#endif
   // std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
   //                                                                    const std::string& host) {
   //   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
@@ -1195,25 +1198,6 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string url = wsConnection.url;
     CCAPI_LOGGER_DEBUG("url = " + url);
     this->startConnectWs(wsConnectionPtr, this->sessionOptions.websocketConnectTimeoutMilliSeconds, this->tcpResolverResultsWs);
-    // for (const auto& kv : wsConnection.headers) {
-    //   con->append_header(kv.first, kv.second);
-    // }
-    // wsConnection.id = this->connectionAddressToString(con);
-    // CCAPI_LOGGER_DEBUG("connection initialization on actual id " + wsConnection.id);
-    // if (ec) {
-    //   CCAPI_LOGGER_FATAL("connection initialization error: " + ec.message());
-    // }
-    // this->wsConnectionByIdMap.insert(std::pair<std::string, WsConnection>(wsConnection.id, wsConnection));
-    // CCAPI_LOGGER_DEBUG("this->wsConnectionByIdMap = " + toString(this->wsConnectionByIdMap));
-    // con->set_open_handler(std::bind(&Service::onOpen, shared_from_this(), std::placeholders::_1));
-    // con->set_fail_handler(std::bind(&Service::onFail, shared_from_this(), std::placeholders::_1));
-    // con->set_close_handler(std::bind(&Service::onClose, shared_from_this(), std::placeholders::_1));
-    // con->set_message_handler(std::bind(&Service::onMessage, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
-    // if (this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel) {
-    //   con->set_pong_handler(std::bind(&Service::onPong, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
-    // }
-    // con->set_ping_handler(std::bind(&Service::onPing, shared_from_this(), std::placeholders::_1, std::placeholders::_2));
-    // this->serviceContextPtr->tlsClientPtr->connect(con);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void startConnectWs(std::shared_ptr<WsConnection> wsConnectionPtr, long timeoutMilliSeconds, tcp::resolver::results_type tcpResolverResults) {

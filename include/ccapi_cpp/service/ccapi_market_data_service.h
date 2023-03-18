@@ -1365,7 +1365,13 @@ class MarketDataService : public Service {
                   CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", conflate timer error: " + ec.message());
                   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                 } else {
-                  if (this->wsConnectionByIdMap.at(wsConnection.id)->status == WsConnection::Status::OPEN) {
+                  if (
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+                      this->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN
+#else
+                      this->wsConnectionByIdMap.at(wsConnection.id)->status == WsConnection::Status::OPEN
+#endif
+                  ) {
                     auto conflateTp = previousConflateTp + interval;
                     if (conflateTp > this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)) {
                       Event event;

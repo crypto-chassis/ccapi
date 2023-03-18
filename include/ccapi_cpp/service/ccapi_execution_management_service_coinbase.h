@@ -284,8 +284,18 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
-                     const TimePoint& timeReceived) override {
+  void onTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    std::string textMessage(textMessageView);
+#endif
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);

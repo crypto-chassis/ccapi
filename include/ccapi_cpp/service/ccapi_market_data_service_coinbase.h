@@ -73,7 +73,6 @@ class MarketDataServiceCoinbase : public MarketDataService {
 #endif
       ,
       const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
