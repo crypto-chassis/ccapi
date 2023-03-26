@@ -179,6 +179,12 @@ class ExecutionManagementService : public Service {
       }
     }
   }
+  virtual void convertRequestForWebsocketCustom(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection,
+                                                const Request& request, int wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                                const std::map<std::string, std::string>& credential) {
+    auto errorMessage = "Websocket unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
+    throw std::runtime_error(errorMessage);
+  }
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     CCAPI_LOGGER_INFO("about to logon to exchange");
@@ -220,12 +226,6 @@ class ExecutionManagementService : public Service {
     }
     this->wsRequestIdByConnectionIdMap.erase(wsConnection.id);
     Service::onClose(hdl);
-  }
-  virtual void convertRequestForWebsocketCustom(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection,
-                                                const Request& request, int wsRequestId, const TimePoint& now, const std::string& symbolId,
-                                                const std::map<std::string, std::string>& credential) {
-    auto errorMessage = "Websocket unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
-    throw std::runtime_error(errorMessage);
   }
   virtual void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
                              const TimePoint& timeReceived) {}
@@ -270,12 +270,6 @@ class ExecutionManagementService : public Service {
     }
     this->wsRequestIdByConnectionIdMap.erase(wsConnection.id);
     Service::onClose(wsConnectionPtr, ec);
-  }
-  virtual void convertRequestForWebsocketCustom(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
-                                                const Request& request, int wsRequestId, const TimePoint& now, const std::string& symbolId,
-                                                const std::map<std::string, std::string>& credential) {
-    auto errorMessage = "Websocket unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
-    throw std::runtime_error(errorMessage);
   }
   virtual void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessage,
                              const TimePoint& timeReceived) {}

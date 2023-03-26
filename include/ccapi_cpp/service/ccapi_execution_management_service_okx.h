@@ -41,7 +41,11 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
 
  private:
 #endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
+#endif
   bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
@@ -362,8 +366,18 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
-                     const TimePoint& timeReceived) override {
+  void onTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    std::string textMessage(textMessageView);
+#endif
     if (textMessage != "pong") {
       rj::Document document;
       document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
@@ -394,7 +408,11 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         document.Accept(writerSubscribe);
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
         this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+        this->send(wsConnectionPtr, sendString, ec);
+#endif
         if (ec) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }

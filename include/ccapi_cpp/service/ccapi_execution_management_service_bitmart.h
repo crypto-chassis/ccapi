@@ -35,7 +35,11 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/spot/v1/cancel_orders";
     this->getAccountBalancesTarget = "/spot/v1/wallet";
     this->needDecompressWebsocketMessage = true;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
     ErrorCode ec = this->inflater.init(false);
+#else
+    ErrorCode ec = this->inflater.init();
+#endif
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }

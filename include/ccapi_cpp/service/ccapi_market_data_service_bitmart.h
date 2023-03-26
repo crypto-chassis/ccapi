@@ -11,11 +11,6 @@ class MarketDataServiceBitmart : public MarketDataService {
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMART;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/api?protocol=1.1";
-    // this->needDecompressWebsocketMessage = true;
-    // ErrorCode ec = this->inflater.init(false);
-    // if (ec) {
-    //   CCAPI_LOGGER_FATAL(ec.message());
-    // }
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);

@@ -41,6 +41,7 @@
 #endif
 // clang-format on
 
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
     defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
@@ -50,6 +51,10 @@
 
 #include "ccapi_cpp/websocketpp_decompress_workaround.h"
 #endif
+#else
+#include "ccapi_cpp/ccapi_inflate_stream.h"
+#endif
+
 #include "ccapi_cpp/ccapi_fix_connection.h"
 #include "ccapi_cpp/ccapi_http_connection.h"
 #include "ccapi_cpp/ccapi_http_retry.h"
@@ -287,16 +292,16 @@ class Service : public std::enable_shared_from_this<Service> {
 
  protected:
 #endif
-  static std::string printableString(const char* s, size_t n) {
-    std::string output(s, n);
-    std::replace(output.begin(), output.end(), '\x01', '^');
-    return output;
-  }
-  static std::string printableString(const std::string& s) {
-    std::string output(s);
-    std::replace(output.begin(), output.end(), '\x01', '^');
-    return output;
-  }
+  // static std::string printableString(const char* s, size_t n) {
+  //   std::string output(s, n);
+  //   std::replace(output.begin(), output.end(), '\x01', '^');
+  //   return output;
+  // }
+  // static std::string printableString(const std::string& s) {
+  //   std::string output(s);
+  //   std::replace(output.begin(), output.end(), '\x01', '^');
+  //   return output;
+  // }
   typedef ServiceContext::SslContextPtr SslContextPtr;
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   typedef ServiceContext::TlsClient TlsClient;
@@ -1242,11 +1247,9 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("ssl handshaked");
     beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>& stream = *wsConnectionPtr->streamPtr;
     beast::get_lowest_layer(stream).expires_never();
-
     beast::websocket::stream_base::timeout opt{std::chrono::milliseconds(this->sessionOptions.websocketConnectTimeoutMilliSeconds),
                                                std::chrono::milliseconds(this->sessionOptions.pongWebsocketProtocolLevelTimeoutMilliSeconds), true};
 
-    // Set the timeout options on the stream.
     stream.set_option(opt);
     stream.set_option(beast::websocket::stream_base::decorator([wsConnectionPtr](beast::websocket::request_type& req) {
       req.set(http::field::user_agent, std::string(BOOST_BEAST_VERSION_STRING));
@@ -1350,7 +1353,7 @@ class Service : public std::enable_shared_from_this<Service> {
                              [wsConnectionPtr, that = shared_from_this()](ErrorCode& ec) { that->pingOnApplicationLevel(wsConnectionPtr, ec); });
     }
   }
-  void writeMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const char* data, size_t dataSize, bool binary) {
+  void writeMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const char* data, size_t dataSize) {
     if (wsConnectionPtr->status != WsConnection::Status::OPEN) {
       CCAPI_LOGGER_WARN("should write no more messages");
       return;
@@ -1358,35 +1361,43 @@ class Service : public std::enable_shared_from_this<Service> {
     auto& connectionId = wsConnectionPtr->id;
     auto& writeMessageBuffer = this->writeMessageBufferByConnectionIdMap[connectionId];
     auto& writeMessageBufferWrittenLength = this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
-    size_t n = writeMessageBufferWrittenLength + dataSize;
-    CCAPI_LOGGER_DEBUG("about to send " + printableString(data, dataSize));
+    auto& writeMessageBufferBoundary = this->writeMessageBufferBoundaryByConnectionIdMap[connectionId];
+    size_t n = writeMessageBufferWrittenLength;
+    memcpy(writeMessageBuffer.data() + n, data, dataSize);
+    writeMessageBufferBoundary.push_back(dataSize);
+    n += dataSize;
+    CCAPI_LOGGER_DEBUG("about to send " + std::string(data, dataSize));
     CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
     if (writeMessageBufferWrittenLength == 0) {
       CCAPI_LOGGER_TRACE("about to start write");
-      this->startWriteWs(wsConnectionPtr, data, dataSize, binary);
+      this->startWriteWs(wsConnectionPtr, writeMessageBuffer.data(), writeMessageBufferBoundary.front());
     }
     writeMessageBufferWrittenLength = n;
     CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
+    CCAPI_LOGGER_TRACE("writeMessageBufferBoundary = " + toString(writeMessageBufferBoundary));
   }
-  void startWriteWs(std::shared_ptr<WsConnection> wsConnectionPtr, const char* data, size_t numBytesToWrite, bool binary) {
+  void startWriteWs(std::shared_ptr<WsConnection> wsConnectionPtr, const char* data, size_t numBytesToWrite) {
     auto& stream = *wsConnectionPtr->streamPtr;
     CCAPI_LOGGER_TRACE("before async_write");
     CCAPI_LOGGER_TRACE("numBytesToWrite = " + toString(numBytesToWrite));
-    stream.binary(binary);
-    stream.async_write(boost::asio::buffer(data, numBytesToWrite), beast::bind_front_handler(&Service::onWriteWs, shared_from_this(), wsConnectionPtr, binary));
+    stream.binary(false);
+    stream.async_write(boost::asio::buffer(data, numBytesToWrite), beast::bind_front_handler(&Service::onWriteWs, shared_from_this(), wsConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_write");
   }
-  void onWriteWs(std::shared_ptr<WsConnection> wsConnectionPtr, bool binary, const boost::system::error_code& ec, std::size_t n) {
+  void onWriteWs(std::shared_ptr<WsConnection> wsConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto& connectionId = wsConnectionPtr->id;
     auto& writeMessageBuffer = this->writeMessageBufferByConnectionIdMap[connectionId];
     auto& writeMessageBufferWrittenLength = this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
-    writeMessageBufferWrittenLength -= n;
+    auto& writeMessageBufferBoundary = this->writeMessageBufferBoundaryByConnectionIdMap[connectionId];
+    writeMessageBufferWrittenLength -= writeMessageBufferBoundary.front();
+    writeMessageBufferBoundary.erase(writeMessageBufferBoundary.begin());
     CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
+    CCAPI_LOGGER_TRACE("writeMessageBufferBoundary = " + toString(writeMessageBufferBoundary));
     if (writeMessageBufferWrittenLength > 0) {
       std::memmove(writeMessageBuffer.data(), writeMessageBuffer.data() + n, writeMessageBufferWrittenLength);
       CCAPI_LOGGER_TRACE("about to start write");
-      this->startWriteWs(wsConnectionPtr, writeMessageBuffer.data(), writeMessageBufferWrittenLength, binary);
+      this->startWriteWs(wsConnectionPtr, writeMessageBuffer.data(), writeMessageBufferBoundary.front());
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -1528,20 +1539,21 @@ class Service : public std::enable_shared_from_this<Service> {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, e);
       }
     } else if (stream.got_binary()) {
+      CCAPI_LOGGER_DEBUG(std::string("received a binary message: ") + UtilAlgorithm::stringToHex(std::string(data, dataSize)));
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
     defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
       if (this->needDecompressWebsocketMessage) {
         std::string decompressed;
-        const std::string& payload = msg->get_payload();
+        boost::beast::string_view payload(data, dataSize);
         try {
           ErrorCode ec = this->inflater.decompress(reinterpret_cast<const uint8_t*>(&payload[0]), payload.size(), decompressed);
           if (ec) {
             CCAPI_LOGGER_FATAL(ec.message());
           }
           CCAPI_LOGGER_DEBUG("decompressed = " + decompressed);
-          this->onTextMessage(hdl, decompressed, now);
+          this->onTextMessage(wsConnectionPtr, decompressed, now);
         } catch (const std::exception& e) {
           std::stringstream ss;
           ss << std::hex << std::setfill('0');
@@ -1584,7 +1596,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void send(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view payload, ErrorCode& ec) {
-    this->writeMessage(wsConnectionPtr, payload.data(), payload.length(), false);
+    this->writeMessage(wsConnectionPtr, payload.data(), payload.length());
   }
   void ping(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view payload, ErrorCode& ec) {
     if (!this->wsConnectionPendingPingingByIdMap[wsConnectionPtr->id]) {
@@ -1702,6 +1714,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::map<std::string, beast::flat_buffer> readMessageBufferByConnectionIdMap;
   std::map<std::string, std::array<char, CCAPI_WEBSOCKET_WRITE_BUFFER_SIZE>> writeMessageBufferByConnectionIdMap;
   std::map<std::string, size_t> writeMessageBufferWrittenLengthByConnectionIdMap;
+  std::map<std::string, std::vector<size_t>> writeMessageBufferBoundaryByConnectionIdMap;
 #endif
   std::map<std::string, bool> wsConnectionPendingPingingByIdMap;
   std::map<std::string, bool> shouldProcessRemainingMessageOnClosingByConnectionIdMap;
@@ -1724,8 +1737,12 @@ class Service : public std::enable_shared_from_this<Service> {
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
     defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled<monostate> inflater;
+#else
+  InflateStream inflater;
+#endif
 #endif
 };
 } /* namespace ccapi */

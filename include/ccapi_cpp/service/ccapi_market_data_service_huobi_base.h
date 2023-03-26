@@ -10,7 +10,12 @@ class MarketDataServiceHuobiBase : public MarketDataService {
                              std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->needDecompressWebsocketMessage = true;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
     ErrorCode ec = this->inflater.init(false, 31);
+#else
+    this->inflater.setWindowBitsOverride(31);
+    ErrorCode ec = this->inflater.init();
+#endif
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
@@ -21,10 +26,17 @@ class MarketDataServiceHuobiBase : public MarketDataService {
 
  protected:
 #endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
   }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
+    auto now = UtilTime::now();
+    this->send(wsConnectionPtr, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", ec);
+  }
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -57,12 +69,12 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         }
         if (channelId.rfind(CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BY_PRICE_REFRESH_UPDATE, 0) == 0) {
           std::string toReplace("$levels");
-          CCAPI_LOGGER_TRACE("");
+
           CCAPI_LOGGER_TRACE("marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap=" +
                              toString(marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap));
           std::string replacement(
               std::to_string(this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId)));
-          CCAPI_LOGGER_TRACE("");
+
           exchangeSubscriptionId.replace(exchangeSubscriptionId.find(toReplace), toReplace.length(), replacement);
         }
         document.AddMember("sub", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
@@ -95,8 +107,19 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
     return url + "|" + field + "|" + subscription.getSerializedOptions();
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
-                          std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
@@ -243,7 +266,11 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       payload += document["ping"].GetString();
       payload += "}";
       ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       this->send(hdl, payload, wspp::frame::opcode::text, ec);
+#else
+      this->send(wsConnectionPtr, payload, ec);
+#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }

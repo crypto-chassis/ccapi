@@ -11,11 +11,6 @@ class MarketDataServiceOkx : public MarketDataService {
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKX;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_PUBLIC_WS_PATH;
-    // this->needDecompressWebsocketMessage = true;
-    // ErrorCode ec = this->inflater.init(false);
-    // if (ec) {
-    //   CCAPI_LOGGER_FATAL(ec.message());
-    // }
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
