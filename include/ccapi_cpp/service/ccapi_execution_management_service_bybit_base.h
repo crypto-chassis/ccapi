@@ -68,6 +68,7 @@ class ExecutionManagementServiceBybitBase : public ExecutionManagementService {
     req.set("X-BAPI-API-KEY", apiKey);
     req.set("X-BAPI-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
     req.set("X-BAPI-RECV-WINDOW", std::to_string(CCAPI_BYBIT_BASE_API_RECEIVE_WINDOW_MILLISECONDS));
+    req.set("Referer", CCAPI_BYBIT_API_BROKER_ID);
   }
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
