@@ -10,14 +10,23 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
                                     ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMART;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/user?protocol=1.1";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/user?protocol=1.1";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    try {
+      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+#endif
     this->apiKeyName = CCAPI_BITMART_API_KEY;
     this->apiSecretName = CCAPI_BITMART_API_SECRET;
     this->apiMemoName = CCAPI_BITMART_API_MEMO;
@@ -29,7 +38,11 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/spot/v1/cancel_orders";
     this->getAccountBalancesTarget = "/spot/v1/wallet";
     this->needDecompressWebsocketMessage = true;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
     ErrorCode ec = this->inflater.init(false);
+#else
+    ErrorCode ec = this->inflater.init();
+#endif
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
