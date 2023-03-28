@@ -19,11 +19,14 @@ class MarketDataServiceDeribit : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->restTarget = "/api/v2";
     this->getRecentTradesTarget = "/public/get_last_trades_by_instrument";
     this->getInstrumentTarget = "/public/get_instrument";

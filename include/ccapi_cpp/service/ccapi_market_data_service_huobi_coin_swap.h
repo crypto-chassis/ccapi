@@ -19,11 +19,14 @@ class MarketDataServiceHuobiCoinSwap : public MarketDataServiceHuobiDerivativesB
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->getRecentTradesTarget = CCAPI_HUOBI_COIN_SWAP_GET_RECENT_TRADES_PATH;
     this->getInstrumentTarget = "/swap-api/v1/swap_contract_info";
     this->getInstrumentsTarget = "/swap-api/v1/swap_contract_info";

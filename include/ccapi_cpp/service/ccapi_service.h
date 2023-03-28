@@ -320,16 +320,18 @@ class Service : public std::enable_shared_from_this<Service> {
   std::pair<std::string, std::string> extractHostFromUrl(std::string baseUrl) {
     std::string host;
     std::string port;
-    auto splitted1 = UtilString::split(baseUrl, "://");
-    auto splitted2 = UtilString::split(UtilString::split(splitted1[1], "/")[0], ":");
-    host = splitted2[0];
-    if (splitted2.size() == 2) {
-      port = splitted2[1];
-    } else {
-      if (splitted1[0] == "https" || splitted1[0] == "wss") {
-        port = CCAPI_HTTPS_PORT_DEFAULT;
+    if (!baseUrl.empty()) {
+      auto splitted1 = UtilString::split(baseUrl, "://");
+      auto splitted2 = UtilString::split(UtilString::split(splitted1.at(1), "/").at(0), ":");
+      host = splitted2.at(0);
+      if (splitted2.size() == 2) {
+        port = splitted2.at(1);
       } else {
-        port = CCAPI_HTTP_PORT_DEFAULT;
+        if (splitted1.at(0) == "https" || splitted1.at(0) == "wss") {
+          port = CCAPI_HTTPS_PORT_DEFAULT;
+        } else {
+          port = CCAPI_HTTP_PORT_DEFAULT;
+        }
       }
     }
     return std::make_pair(host, port);

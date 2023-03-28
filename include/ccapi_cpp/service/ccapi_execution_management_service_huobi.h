@@ -19,11 +19,14 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->apiKeyName = CCAPI_HUOBI_API_KEY;
     this->apiSecretName = CCAPI_HUOBI_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});

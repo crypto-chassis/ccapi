@@ -19,11 +19,14 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->apiKeyName = CCAPI_GATEIO_PERPETUAL_FUTURES_API_KEY;
     this->setupCredential({this->apiKeyName});
     std::string prefix = "/api/v4";

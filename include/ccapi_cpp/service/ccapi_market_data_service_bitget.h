@@ -19,11 +19,14 @@ class MarketDataServiceBitget : public MarketDataServiceBitgetBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->getRecentTradesTarget = "/api/spot/v1/market/fills";
     this->getInstrumentTarget = "/api/spot/v1/public/product";
     this->getInstrumentsTarget = "/api/spot/v1/public/products";

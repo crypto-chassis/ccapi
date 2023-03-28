@@ -19,11 +19,14 @@ class MarketDataServiceBitfinex : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
     this->getInstrumentsTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
     this->getInstrumentTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;

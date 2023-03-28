@@ -19,11 +19,14 @@ class MarketDataServiceWhitebit : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->getRecentTradesTarget = "/api/v4/public/trades/{market}";
     this->getInstrumentsTarget = "/api/v4/public/markets";
     this->methodDepthSubscribe = std::string(CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_DEPTH) + "_subscribe";

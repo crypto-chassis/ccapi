@@ -19,11 +19,14 @@ class MarketDataServiceMexcFutures : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->getRecentTradesTarget = "/api/v1/contract/deals/{symbol}";
     this->getInstrumentsTarget = "/api/v1/contract/detail";
   }

@@ -19,11 +19,14 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
     this->apiSecretName = CCAPI_COINBASE_API_SECRET;
     this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;

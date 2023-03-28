@@ -19,11 +19,14 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     std::string prefix("/derivatives/api/v3");
     this->getRecentTradesTarget = prefix + "/history";
     this->getInstrumentTarget = prefix + "/instruments";

@@ -19,11 +19,14 @@ class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#endif
     this->getRecentTradesTarget = "/derivatives/v3/public/recent-trade";
     this->getInstrumentTarget = "/derivatives/v3/public/instruments-info";
     this->getInstrumentsTarget = "/derivatives/v3/public/instruments-info";
