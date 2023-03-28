@@ -10,14 +10,23 @@ class MarketDataServiceCoinbase : public MarketDataService {
                             std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_COINBASE;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    try {
+      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+#endif
     this->getRecentTradesTarget = "/products/<product-id>/trades";
     this->getInstrumentTarget = "/products/<product-id>";
     this->getInstrumentsTarget = "/products";
@@ -65,8 +74,19 @@ class MarketDataServiceCoinbase : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
-                          std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto type = std::string(document["type"].GetString());

@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
 #include "ccapi_cpp/ccapi_logger.h"
 #include "websocketpp/client.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
@@ -67,5 +68,48 @@ class ServiceContext CCAPI_FINAL {
 };
 
 } /* namespace ccapi */
+#else
+#include "ccapi_cpp/ccapi_logger.h"
+namespace ccapi {
+/**
+ * Defines the service that the service depends on.
+ */
+class ServiceContext CCAPI_FINAL {
+ public:
+  typedef boost::asio::io_context IoContext;
+  typedef std::shared_ptr<boost::asio::io_context> IoContextPtr;
+  typedef boost::asio::executor_work_guard<boost::asio::io_context::executor_type> ExecutorWorkGuard;
+  typedef std::shared_ptr<ExecutorWorkGuard> ExecutorWorkGuardPtr;
+  typedef boost::asio::ssl::context SslContext;
+  typedef std::shared_ptr<SslContext> SslContextPtr;
+  ServiceContext() {
+    // this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 | SslContext::single_dh_use);
+    this->sslContextPtr->set_verify_mode(boost::asio::ssl::verify_none);
+    // TODO(cryptochassis): verify ssl certificate to strengthen security
+    // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp
+  }
+  ServiceContext(const ServiceContext&) = delete;
+  ServiceContext& operator=(const ServiceContext&) = delete;
+  virtual ~ServiceContext() {
+    //  delete this->ExecutorWorkGuardPtr;
+    //  delete this->ioContextPtr;
+    //  delete this->sslContextPtr;
+  }
+  void start() {
+    CCAPI_LOGGER_INFO("about to start client asio io_context run loop");
+    this->ioContextPtr->run();
+    CCAPI_LOGGER_INFO("just exited client asio io_context run loop");
+  }
+  void stop() {
+    this->executorWorkGuardPtr->reset();
+    this->ioContextPtr->stop();
+  }
+  IoContextPtr ioContextPtr{new IoContext()};
+  ExecutorWorkGuardPtr executorWorkGuardPtr{new ExecutorWorkGuard(ioContextPtr->get_executor())};
+  SslContextPtr sslContextPtr{new SslContext(SslContext::tls_client)};
+};
 
+} /* namespace ccapi */
+
+#endif
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_

@@ -10,14 +10,23 @@ class MarketDataServiceKucoinFutures : public MarketDataServiceKucoinBase {
                                  std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceKucoinBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    try {
+      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+#endif
     this->getRecentTradesTarget = "/api/v1/trade/history";
     this->getInstrumentTarget = "/api/v1/contracts/active";
     this->getInstrumentsTarget = "/api/v1/contracts/active";
