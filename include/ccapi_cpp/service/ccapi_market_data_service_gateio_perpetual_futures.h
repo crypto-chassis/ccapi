@@ -10,14 +10,23 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
                                           std::shared_ptr<ServiceContext> serviceContextPtr)
       : MarketDataServiceGateioBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_GATEIO_PERPETUAL_FUTURES;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v4/ws/";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v4/ws/";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    try {
+      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+#endif
     this->apiKeyName = CCAPI_GATEIO_PERPETUAL_FUTURES_API_KEY;
     this->setupCredential({this->apiKeyName});
     std::string prefix = "/api/v4";
@@ -33,7 +42,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
   virtual ~MarketDataServiceGateioPerpetualFutures() {}
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto instrument = subscription.getInstrument();
-    std::string url(this->baseUrl);
+    std::string url(this->baseUrlWs);
     if (UtilString::endsWith(instrument, "_USD")) {
       url += "btc";
     } else if (UtilString::endsWith(instrument, "_USDT")) {

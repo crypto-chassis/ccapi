@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_HTTP_RETRY_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_HTTP_RETRY_H_
+#include <future>
 #include <string>
 namespace ccapi {
 /**

@@ -10,14 +10,23 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
                                 ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_OKX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_PRIVATE_WS_PATH;
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_PRIVATE_WS_PATH;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    try {
+      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+#endif
     this->apiKeyName = CCAPI_OKX_API_KEY;
     this->apiSecretName = CCAPI_OKX_API_SECRET;
     this->apiPassphraseName = CCAPI_OKX_API_PASSPHRASE;
@@ -35,7 +44,11 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
 
  private:
 #endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
+#endif
   bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
@@ -356,8 +369,18 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
-                     const TimePoint& timeReceived) override {
+  void onTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    std::string textMessage(textMessageView);
+#endif
     if (textMessage != "pong") {
       rj::Document document;
       document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
@@ -388,7 +411,11 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         document.Accept(writerSubscribe);
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
         this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+        this->send(wsConnectionPtr, sendString, ec);
+#endif
         if (ec) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }

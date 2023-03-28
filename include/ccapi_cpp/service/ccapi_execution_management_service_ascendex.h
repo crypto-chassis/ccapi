@@ -10,14 +10,23 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
                                      ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_ASCENDEX;
-    this->baseUrl = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
+    this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    try {
+      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    } catch (const std::exception& e) {
+      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    }
+#endif
     this->apiKeyName = CCAPI_ASCENDEX_API_KEY;
     this->apiSecretName = CCAPI_ASCENDEX_API_SECRET;
     this->apiAccountGroupName = CCAPI_ASCENDEX_API_ACCOUNT_GROUP;
@@ -350,7 +359,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
                                   credential = that->credentialDefault;
                                 }
                                 const auto& accountGroup = mapGetWithDefault(credential, that->apiAccountGroupName);
-                                WsConnection wsConnection(that->baseUrl + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
+                                WsConnection wsConnection(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
                                 that->prepareConnect(wsConnection);
                               });
       }

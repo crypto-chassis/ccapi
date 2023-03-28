@@ -1,3 +1,5 @@
+Notification to Maintainers and Developers: we are aiming at an effort to transition our websocket related code from using websocketpp to boost beast websocket. In release v5.43.x, everything remains fully backward compatible. The codebase introduced a macro `CCAPI_USE_BOOST_BEAST_WEBSOCKET` to faciliate the future transition. If you have any questions, feel free to contact us at any time. Thank you.
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
