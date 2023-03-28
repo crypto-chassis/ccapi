@@ -13,7 +13,7 @@ class MarketDataServiceKucoin : public MarketDataServiceKucoinBase {
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
