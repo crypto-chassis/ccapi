@@ -256,9 +256,9 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
             auto& allocator = document.GetAllocator();
             document.AddMember("op", rj::Value("sub").Move(), allocator);
             std::string topic;
-            if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+            if (field == CCAPI_EM_ORDER_UPDATE) {
               topic = this->orderDataTopic + "." + instrument;
-            } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+            } else if (field == CCAPI_EM_PRIVATE_TRADE) {
               topic = this->matchOrderDataTopic + "." + instrument;
             }
             document.AddMember("topic", rj::Value(topic.c_str(), allocator).Move(), allocator);

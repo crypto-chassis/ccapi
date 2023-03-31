@@ -290,9 +290,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
               auto& allocator = document.GetAllocator();
               document.AddMember("action", rj::Value("sub").Move(), allocator);
               std::string ch;
-              if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+              if (field == CCAPI_EM_ORDER_UPDATE) {
                 ch = "orders#" + symbol;
-              } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+              } else if (field == CCAPI_EM_PRIVATE_TRADE) {
                 ch = "trade.clearing#" + symbol;
               }
               document.AddMember("ch", rj::Value(ch.c_str(), allocator).Move(), allocator);
