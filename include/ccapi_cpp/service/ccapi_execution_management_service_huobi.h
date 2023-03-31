@@ -192,6 +192,10 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     } else if (data.IsObject()) {
       Element element;
       this->extractOrderInfo(element, data, extractionFieldNameMap);
+      if (operation == Request::Operation::GET_ORDER) {
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::string(data["field-amount"].GetString()));
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::string(data["field-cash-amount"].GetString()));
+      }
       elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : data.GetArray()) {
