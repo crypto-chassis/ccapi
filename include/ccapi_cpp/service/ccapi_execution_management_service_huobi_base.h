@@ -51,6 +51,12 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
         queryParamMap.insert(std::make_pair(y.at(0), y.at(1)));
       }
     }
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    queryParamMap.insert(std::make_pair("AccessKeyId", apiKey));
+    queryParamMap.insert(std::make_pair("SignatureMethod", "HmacSHA256"));
+    queryParamMap.insert(std::make_pair("SignatureVersion", "2"));
+    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
+    queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
     std::string signature;
     this->createSignature(signature, queryString, methodString, this->hostRest, path, queryParamMap, credential);
     if (!queryString.empty()) {
