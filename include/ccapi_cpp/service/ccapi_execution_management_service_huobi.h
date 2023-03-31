@@ -374,6 +374,11 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           std::string dataEventType = data["eventType"].GetString();
           if (dataEventType == "trigger" || dataEventType == "deletion") {
             info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+          } else if (dataEventType == "trade") {
+            info.insert(CCAPI_TRADE_ID, std::string(data["tradeId"].GetString()));
+            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["tradePrice"].GetString());
+            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["tradeVolume"].GetString());
+            info.insert(CCAPI_IS_MAKER, data["aggressor"].GetBool() ? "0" : "1");
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
