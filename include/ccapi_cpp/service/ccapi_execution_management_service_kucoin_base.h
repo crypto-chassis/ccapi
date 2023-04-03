@@ -166,7 +166,9 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        req.target(this->createOrderTarget);
+        req.target(request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                       ? this->createOrderMarginTarget
+                       : this->createOrderTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -207,6 +209,10 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         req.method(http::verb::get);
         auto target = this->getOpenOrdersTarget;
         target += "?status=active";
+        target += std::string("&tradeType=") +
+            (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+             : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                               : "TRADE");
         if (!symbolId.empty()) {
           target += "&symbol=";
           target += symbolId;
@@ -217,8 +223,12 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
         auto target = this->cancelOpenOrdersTarget;
+        target += std::string("?tradeType=") +
+            (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+             : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                               : "TRADE");
         if (!symbolId.empty()) {
-          target += "?symbol=";
+          target += "&symbol=";
           target += symbolId;
         }
         req.target(target);
@@ -450,6 +460,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
   std::string apiPassphraseName;
   bool isDerivatives{};
   std::string topicTradeOrders;
+  std::string createOrderMarginTarget;
 };
 } /* namespace ccapi */
 #endif

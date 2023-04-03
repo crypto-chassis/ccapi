@@ -37,6 +37,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementServiceKucoin
     this->getAccountsTarget = "/api/v1/accounts";
     this->getAccountBalancesTarget = "/api/v1/accounts/<accountId>";
     this->topicTradeOrders = "/spotMarket/tradeOrders";
+    this->createOrderMarginTarget = "/api/v1/margin/order";
   }
   virtual ~ExecutionManagementServiceKucoin() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
