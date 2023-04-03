@@ -32,6 +32,7 @@ class ExecutionManagementServiceKucoinFutures : public ExecutionManagementServic
     this->createOrderTarget = "/api/v1/orders";
     this->cancelOrderTarget = "/api/v1/orders/<id>";
     this->getOrderTarget = "/api/v1/orders/<id>";
+    this->getOrderByClientOrderIdTarget = "/api/v1/orders/byClientOid?clientOid=<id>";
     this->getOpenOrdersTarget = "/api/v1/orders";
     this->cancelOpenOrdersTarget = "/api/v1/orders";
     this->getAccountBalancesTarget = "/api/v1/account-overview";

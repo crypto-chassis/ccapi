@@ -198,10 +198,10 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         bool useOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
         std::string id = useOrderId                                            ? param.at(CCAPI_EM_ORDER_ID)
-                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID)
                                                                                : "";
         auto target =
-            useOrderId ? std::regex_replace(this->getOrderTarget, std::regex("<id>"), id) : std::regex_replace("/api/v1/order/<id>", std::regex("<id>"), id);
+            std::regex_replace(useOrderId ? this->getOrderTarget : this->getOrderByClientOrderIdTarget, std::regex("<id>"), Url::urlEncode(id));
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
@@ -463,6 +463,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
   bool isDerivatives{};
   std::string topicTradeOrders;
   std::string createOrderMarginTarget;
+  std::string getOrderByClientOrderIdTarget;
 };
 } /* namespace ccapi */
 #endif
