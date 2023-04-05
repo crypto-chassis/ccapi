@@ -166,7 +166,9 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        req.target(this->createOrderTarget);
+        req.target(request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                       ? this->createOrderMarginTarget
+                       : this->createOrderTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -196,10 +198,10 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         bool useOrderId = param.find(CCAPI_EM_ORDER_ID) != param.end();
         std::string id = useOrderId                                            ? param.at(CCAPI_EM_ORDER_ID)
-                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? "client-order/" + param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID)
                                                                                : "";
         auto target =
-            useOrderId ? std::regex_replace(this->getOrderTarget, std::regex("<id>"), id) : std::regex_replace("/api/v1/order/<id>", std::regex("<id>"), id);
+            std::regex_replace(useOrderId ? this->getOrderTarget : this->getOrderByClientOrderIdTarget, std::regex("<id>"), Url::urlEncode(id));
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
@@ -207,6 +209,10 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         req.method(http::verb::get);
         auto target = this->getOpenOrdersTarget;
         target += "?status=active";
+        target += std::string("&tradeType=") +
+            (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+             : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                               : "TRADE");
         if (!symbolId.empty()) {
           target += "&symbol=";
           target += symbolId;
@@ -217,8 +223,12 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
         auto target = this->cancelOpenOrdersTarget;
+        target += std::string("?tradeType=") +
+            (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+             : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                               : "TRADE");
         if (!symbolId.empty()) {
-          target += "?symbol=";
+          target += "&symbol=";
           target += symbolId;
         }
         req.target(target);
@@ -280,6 +290,8 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("dealSize", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("dealFunds", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
@@ -450,6 +462,8 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
   std::string apiPassphraseName;
   bool isDerivatives{};
   std::string topicTradeOrders;
+  std::string createOrderMarginTarget;
+  std::string getOrderByClientOrderIdTarget;
 };
 } /* namespace ccapi */
 #endif

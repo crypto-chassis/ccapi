@@ -81,23 +81,6 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
         MarketDataServiceHuobiBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
-  void extractInstrumentInfo(Element& element, const rj::Value& x) {
-    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
-    element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
-    element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
-    int pricePrecision = std::stoi(x["price-precision"].GetString());
-    if (pricePrecision > 0) {
-      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePrecision - 1, '0') + "1");
-    } else {
-      element.insert(CCAPI_ORDER_PRICE_INCREMENT, "1");
-    }
-    int amountPrecision = std::stoi(x["amount-precision"].GetString());
-    if (amountPrecision > 0) {
-      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(amountPrecision - 1, '0') + "1");
-    } else {
-      element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
-    }
-  }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     switch (request.getOperation()) {

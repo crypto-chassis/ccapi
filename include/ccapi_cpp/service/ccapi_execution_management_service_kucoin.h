@@ -32,11 +32,13 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementServiceKucoin
     this->createOrderTarget = "/api/v1/orders";
     this->cancelOrderTarget = "/api/v1/orders/<id>";
     this->getOrderTarget = "/api/v1/orders/<id>";
+    this->getOrderByClientOrderIdTarget = "/api/v1/order/client-order/<id>";
     this->getOpenOrdersTarget = "/api/v1/orders";
     this->cancelOpenOrdersTarget = "/api/v1/orders";
     this->getAccountsTarget = "/api/v1/accounts";
     this->getAccountBalancesTarget = "/api/v1/accounts/<accountId>";
     this->topicTradeOrders = "/spotMarket/tradeOrders";
+    this->createOrderMarginTarget = "/api/v1/margin/order";
   }
   virtual ~ExecutionManagementServiceKucoin() {}
 #ifndef CCAPI_EXPOSE_INTERNAL

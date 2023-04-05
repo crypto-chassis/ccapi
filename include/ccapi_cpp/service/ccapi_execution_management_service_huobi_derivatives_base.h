@@ -256,9 +256,9 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
             auto& allocator = document.GetAllocator();
             document.AddMember("op", rj::Value("sub").Move(), allocator);
             std::string topic;
-            if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+            if (field == CCAPI_EM_ORDER_UPDATE) {
               topic = this->orderDataTopic + "." + instrument;
-            } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+            } else if (field == CCAPI_EM_PRIVATE_TRADE) {
               topic = this->matchOrderDataTopic + "." + instrument;
             }
             document.AddMember("topic", rj::Value(topic.c_str(), allocator).Move(), allocator);
@@ -334,6 +334,12 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
               info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
                           std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
             }
+          }
+          for (const auto& x : document["trade"].GetArray()) {
+            info.insert(CCAPI_TRADE_ID, std::string(x["trade_id"].GetString()));
+            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["trade_price"].GetString());
+            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["trade_volume"].GetString());
+            info.insert(CCAPI_IS_MAKER, std::string(x["role"].GetString()) == "maker" ? "1" : "0");
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
