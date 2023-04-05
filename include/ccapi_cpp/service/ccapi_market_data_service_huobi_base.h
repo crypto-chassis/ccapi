@@ -327,6 +327,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quote-currency"].GetString());
     int pricePrecision = std::stoi(x["price-precision"].GetString());

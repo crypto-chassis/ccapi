@@ -14,10 +14,6 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
 
  protected:
 #endif
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
-    auto now = UtilTime::now();
-    this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
-  }
   void createSignature(std::string& signature, std::string& queryString, const std::string& reqMethod, const std::string& host, const std::string& path,
                        const std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& credential) {
     std::string preSignedText;
@@ -51,6 +47,12 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
         queryParamMap.insert(std::make_pair(y.at(0), y.at(1)));
       }
     }
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    queryParamMap.insert(std::make_pair("AccessKeyId", apiKey));
+    queryParamMap.insert(std::make_pair("SignatureMethod", "HmacSHA256"));
+    queryParamMap.insert(std::make_pair("SignatureVersion", "2"));
+    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
+    queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
     std::string signature;
     this->createSignature(signature, queryString, methodString, this->hostRest, path, queryParamMap, credential);
     if (!queryString.empty()) {
