@@ -192,6 +192,10 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     } else if (data.IsObject()) {
       Element element;
       this->extractOrderInfo(element, data, extractionFieldNameMap);
+      if (operation == Request::Operation::GET_ORDER) {
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::string(data["field-amount"].GetString()));
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::string(data["field-cash-amount"].GetString()));
+      }
       elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : data.GetArray()) {
@@ -286,9 +290,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
               auto& allocator = document.GetAllocator();
               document.AddMember("action", rj::Value("sub").Move(), allocator);
               std::string ch;
-              if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+              if (field == CCAPI_EM_ORDER_UPDATE) {
                 ch = "orders#" + symbol;
-              } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+              } else if (field == CCAPI_EM_PRIVATE_TRADE) {
                 ch = "trade.clearing#" + symbol;
               }
               document.AddMember("ch", rj::Value(ch.c_str(), allocator).Move(), allocator);
@@ -370,6 +374,11 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           std::string dataEventType = data["eventType"].GetString();
           if (dataEventType == "trigger" || dataEventType == "deletion") {
             info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+          } else if (dataEventType == "trade") {
+            info.insert(CCAPI_TRADE_ID, std::string(data["tradeId"].GetString()));
+            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["tradePrice"].GetString());
+            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["tradeVolume"].GetString());
+            info.insert(CCAPI_IS_MAKER, data["aggressor"].GetBool() ? "0" : "1");
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
