@@ -198,14 +198,15 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
         event.setType(Event::Type::SUBSCRIPTION_DATA);
         const rj::Value& data = document["data"];
         for (const auto& x : data.GetArray()) {
-          Message message;
-          message.setTimeReceived(timeReceived);
-          message.setCorrelationIdList({subscription.getCorrelationId()});
           std::string instrument = x["s"].GetString();
           if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-            message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(x["E"].GetString()))));
+            auto time = TimePoint(std::chrono::milliseconds(std::stoll(x["E"].GetString())));
             auto itTradeId = x.FindMember("t");
             if (itTradeId != x.MemberEnd() && !itTradeId->value.IsNull() && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+              Message message;
+              message.setTimeReceived(timeReceived);
+              message.setCorrelationIdList({subscription.getCorrelationId()});
+              message.setTime(time);
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
               std::vector<Element> elementList;
               Element element;
@@ -233,6 +234,10 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
               messageList.emplace_back(std::move(message));
             }
             if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+              Message message;
+              message.setTimeReceived(timeReceived);
+              message.setCorrelationIdList({subscription.getCorrelationId()});
+              message.setTime(time);
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
               const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
                   {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::INTEGER)},
