@@ -592,6 +592,7 @@ class Service : public std::enable_shared_from_this<Service> {
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "write", {request.getCorrelationId()}, eventQueuePtr);
+      this->httpConnectionPool.purge();
       auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
@@ -831,6 +832,9 @@ class Service : public std::enable_shared_from_this<Service> {
       queryString += "&";
       ++i;
     }
+  }
+  void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId, const std::string symbolIdCalled) {
+    rjValue.AddMember(rj::Value(symbolIdCalled.c_str(), allocator).Move(), rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
   void appendSymbolId(std::string& queryString, const std::string& symbolId, const std::string symbolIdCalled) {
     if (!symbolId.empty()) {

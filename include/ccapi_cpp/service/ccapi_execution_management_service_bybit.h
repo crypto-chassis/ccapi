@@ -34,6 +34,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
     this->cancelOrderTarget = "/spot/v3/private/cancel-order";
     this->getOrderTarget = "/spot/v3/private/order";
     this->getOpenOrdersTarget = "/spot/v3/private/open-orders";
+    this->cancelOpenOrdersTarget = "/spot/v3/private/cancel-orders";
     this->getAccountBalancesTarget = "/spot/v3/private/account";
   }
   virtual ~ExecutionManagementServiceBybit() {}
@@ -85,7 +86,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
           document.AddMember("orderType", rj::Value("LIMIT").Move(), allocator);
         }
         if (!symbolId.empty()) {
-          this->appendSymbolId(document, allocator, symbolId);
+          this->appendSymbolId(document, allocator, symbolId, "symbol");
         }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -126,10 +127,30 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParamToQueryString(queryString, param);
         if (!symbolId.empty()) {
-          this->appendSymbolId(queryString, symbolId);
+          this->appendSymbolId(queryString, symbolId, "symbol");
         }
         req.target(this->getOpenOrdersTarget + "?" + queryString);
         this->signRequest(req, queryString, now, credential);
+      } break;
+      case Request::Operation::CANCEL_OPEN_ORDERS: {
+        req.method(http::verb::post);
+        req.set(beast::http::field::content_type, "application/json");
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        req.target(this->cancelOpenOrdersTarget);
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        this->appendParam(document, allocator, param);
+        if (!symbolId.empty()) {
+          this->appendSymbolId(document, allocator, symbolId, "symbol");
+        }
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        auto body = stringBuffer.GetString();
+        req.body() = body;
+        req.prepare_payload();
+        this->signRequest(req, body, now, credential);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::get);
@@ -161,7 +182,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
         this->extractOrderInfo(element, x, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       }
-    } else {
+    } else if (operation != Request::Operation::CANCEL_OPEN_ORDERS) {
       Element element;
       this->extractOrderInfo(element, document["result"], extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
@@ -198,14 +219,15 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
         event.setType(Event::Type::SUBSCRIPTION_DATA);
         const rj::Value& data = document["data"];
         for (const auto& x : data.GetArray()) {
-          Message message;
-          message.setTimeReceived(timeReceived);
-          message.setCorrelationIdList({subscription.getCorrelationId()});
           std::string instrument = x["s"].GetString();
           if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-            message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(x["E"].GetString()))));
+            auto time = TimePoint(std::chrono::milliseconds(std::stoll(x["E"].GetString())));
             auto itTradeId = x.FindMember("t");
             if (itTradeId != x.MemberEnd() && !itTradeId->value.IsNull() && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+              Message message;
+              message.setTimeReceived(timeReceived);
+              message.setCorrelationIdList({subscription.getCorrelationId()});
+              message.setTime(time);
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
               std::vector<Element> elementList;
               Element element;
@@ -233,6 +255,10 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
               messageList.emplace_back(std::move(message));
             }
             if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+              Message message;
+              message.setTimeReceived(timeReceived);
+              message.setCorrelationIdList({subscription.getCorrelationId()});
+              message.setTime(time);
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
               const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
                   {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::INTEGER)},
