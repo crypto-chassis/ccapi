@@ -200,8 +200,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         std::string id = useOrderId                                            ? param.at(CCAPI_EM_ORDER_ID)
                          : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID)
                                                                                : "";
-        auto target =
-            std::regex_replace(useOrderId ? this->getOrderTarget : this->getOrderByClientOrderIdTarget, std::regex("<id>"), Url::urlEncode(id));
+        auto target = std::regex_replace(useOrderId ? this->getOrderTarget : this->getOrderByClientOrderIdTarget, std::regex("<id>"), Url::urlEncode(id));
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
@@ -209,10 +208,9 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         req.method(http::verb::get);
         auto target = this->getOpenOrdersTarget;
         target += "?status=active";
-        target += std::string("&tradeType=") +
-            (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
-             : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
-                                                                               : "TRADE");
+        target += std::string("&tradeType=") + (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+                                                : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                                                                  : "TRADE");
         if (!symbolId.empty()) {
           target += "&symbol=";
           target += symbolId;
@@ -223,10 +221,9 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
         auto target = this->cancelOpenOrdersTarget;
-        target += std::string("?tradeType=") +
-            (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
-             : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
-                                                                               : "TRADE");
+        target += std::string("?tradeType=") + (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+                                                : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                                                                  : "TRADE");
         if (!symbolId.empty()) {
           target += "&symbol=";
           target += symbolId;
@@ -387,9 +384,13 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         std::string instrument = data["symbol"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           std::string ts = std::string(data["ts"].GetString());
-          message.setTime(UtilTime::makeTimePoint({std::stoll(ts.substr(0, ts.length() - 9)), std::stoll(ts.substr(ts.length() - 9))}));
+          auto time = UtilTime::makeTimePoint({std::stoll(ts.substr(0, ts.length() - 9)), std::stoll(ts.substr(ts.length() - 9))});
           std::string dataType = data["type"].GetString();
-          if (dataType == "match" && (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end() || fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end())) {
+          if (dataType == "match" && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+            Message message;
+            message.setTimeReceived(timeReceived);
+            message.setCorrelationIdList({subscription.getCorrelationId()});
+            message.setTime(time);
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             std::vector<Element> elementList;
             Element element;
@@ -405,6 +406,10 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
             messageList.emplace_back(std::move(message));
           }
           if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+            Message message;
+            message.setTimeReceived(timeReceived);
+            message.setCorrelationIdList({subscription.getCorrelationId()});
+            message.setTime(time);
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
             std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
