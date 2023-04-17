@@ -88,7 +88,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
           document.AddMember("orderType", rj::Value("Limit").Move(), allocator);
         }
         if (!symbolId.empty()) {
-          this->appendSymbolId(document, allocator, symbolId);
+          this->appendSymbolId(document, allocator, symbolId, "symbol");
         }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -107,7 +107,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param);
-        this->appendSymbolId(document, allocator, symbolId);
+        this->appendSymbolId(document, allocator, symbolId, "symbol");
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
@@ -142,7 +142,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
                                            {CCAPI_INSTRUMENT_TYPE, "category"},
                                        });
         if (!symbolId.empty()) {
-          this->appendSymbolId(queryString, symbolId);
+          this->appendSymbolId(queryString, symbolId, "symbol");
         }
         req.target(this->getOpenOrdersTarget + "?" + queryString);
         this->signRequest(req, queryString, now, credential);
@@ -157,7 +157,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param);
         if (!symbolId.empty()) {
-          this->appendSymbolId(document, allocator, symbolId);
+          this->appendSymbolId(document, allocator, symbolId, "symbol");
         }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);

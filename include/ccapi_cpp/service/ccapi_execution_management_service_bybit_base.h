@@ -54,14 +54,14 @@ class ExecutionManagementServiceBybitBase : public ExecutionManagementService {
       queryString += "&";
     }
   }
-  void appendSymbolId(std::string& queryString, const std::string& symbolId) {
-    queryString += "symbol=";
-    queryString += Url::urlEncode(symbolId);
-    queryString += "&";
-  }
-  void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
-    rjValue.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
-  }
+  // void appendSymbolId(std::string& queryString, const std::string& symbolId) {
+  //   queryString += "symbol=";
+  //   queryString += Url::urlEncode(symbolId);
+  //   queryString += "&";
+  // }
+  // void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
+  //   rjValue.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+  // }
   void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("X-BAPI-SIGN-TYPE", "2");
