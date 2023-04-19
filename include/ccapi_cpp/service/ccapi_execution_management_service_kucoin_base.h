@@ -368,6 +368,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
   }
   Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
                     const rj::Document& document, const TimePoint& timeReceived) {
+    std::cout << textMessage << std::endl;
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -400,6 +401,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
             element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
             element.insert(CCAPI_IS_MAKER, std::string(data["liquidity"].GetString()) == "taker" ? "0" : "1");
             element.insert(CCAPI_EM_ORDER_ID, data["orderId"].GetString());
+            element.insert(CCAPI_EM_CLIENT_ORDER_ID, data["clientOid"].GetString());
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));
             message.setElementList(elementList);
