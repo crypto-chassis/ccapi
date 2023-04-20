@@ -368,7 +368,6 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
   }
   Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
                     const rj::Document& document, const TimePoint& timeReceived) {
-    std::cout << textMessage << std::endl;
     Event event;
     std::vector<Message> messageList;
     Message message;
