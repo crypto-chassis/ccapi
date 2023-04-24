@@ -350,18 +350,17 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
   void subscribe(std::vector<Subscription>& subscriptionList) override {
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
-        wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(),
-                              [that = shared_from_base<ExecutionManagementServiceAscendex>(), subscription]() mutable {
-                                auto now = UtilTime::now();
-                                subscription.setTimeSent(now);
-                                auto credential = subscription.getCredential();
-                                if (credential.empty()) {
-                                  credential = that->credentialDefault;
-                                }
-                                const auto& accountGroup = mapGetWithDefault(credential, that->apiAccountGroupName);
-                                WsConnection wsConnection(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
-                                that->prepareConnect(wsConnection);
-                              });
+        boost::asio::post(*this->serviceContextPtr->ioContextPtr, [that = shared_from_base<ExecutionManagementServiceAscendex>(), subscription]() mutable {
+          auto now = UtilTime::now();
+          subscription.setTimeSent(now);
+          auto credential = subscription.getCredential();
+          if (credential.empty()) {
+            credential = that->credentialDefault;
+          }
+          const auto& accountGroup = mapGetWithDefault(credential, that->apiAccountGroupName);
+          WsConnection wsConnection(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
+          that->prepareConnect(wsConnection);
+        });
       }
     }
   }
