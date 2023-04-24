@@ -87,28 +87,28 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
     CCAPI_LOGGER_DEBUG("this->baseUrlWs = " + this->baseUrlWs);
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
-        wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(),
-                              [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(), subscription]() mutable {
-                                auto now = UtilTime::now();
-                                subscription.setTimeSent(now);
-                                const auto& instrumentSet = subscription.getInstrumentSet();
-                                auto it = instrumentSet.begin();
-                                if (it != instrumentSet.end()) {
-                                  std::string settle;
-                                  std::string symbolId = *it;
-                                  if (UtilString::endsWith(symbolId, "_USD")) {
-                                    settle = "btc";
-                                  } else if (UtilString::endsWith(symbolId, "_USDT")) {
-                                    settle = "usdt";
-                                  }
-                                  auto credential = subscription.getCredential();
-                                  if (credential.empty()) {
-                                    credential = that->credentialDefault;
-                                  }
-                                  WsConnection wsConnection(that->baseUrlWs + settle, "", {subscription}, credential);
-                                  that->prepareConnect(wsConnection);
-                                }
-                              });
+        boost::asio::post(*this->serviceContextPtr->ioContextPtr,
+                          [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(), subscription]() mutable {
+                            auto now = UtilTime::now();
+                            subscription.setTimeSent(now);
+                            const auto& instrumentSet = subscription.getInstrumentSet();
+                            auto it = instrumentSet.begin();
+                            if (it != instrumentSet.end()) {
+                              std::string settle;
+                              std::string symbolId = *it;
+                              if (UtilString::endsWith(symbolId, "_USD")) {
+                                settle = "btc";
+                              } else if (UtilString::endsWith(symbolId, "_USDT")) {
+                                settle = "usdt";
+                              }
+                              auto credential = subscription.getCredential();
+                              if (credential.empty()) {
+                                credential = that->credentialDefault;
+                              }
+                              WsConnection wsConnection(that->baseUrlWs + settle, "", {subscription}, credential);
+                              that->prepareConnect(wsConnection);
+                            }
+                          });
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
