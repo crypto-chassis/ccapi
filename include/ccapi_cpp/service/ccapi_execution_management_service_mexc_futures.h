@@ -45,7 +45,13 @@ class ExecutionManagementServiceMexcFutures : public ExecutionManagementService 
 
  private:
 #endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"method":"ping"})", wspp::frame::opcode::text, ec); }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
+    this->send(wsConnectionPtr, R"({"method":"ping"})", ec);
+  }
+#endif
   bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
   void createSignature(std::string& signature, std::string& queryString, const std::string& reqMethod, const std::string& host, const std::string& path,
                        const std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& credential) {
@@ -356,8 +362,13 @@ class ExecutionManagementServiceMexcFutures : public ExecutionManagementService 
     // sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
+  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     // if (textMessage != "pong") {
     //   rj::Document document;
     //   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());

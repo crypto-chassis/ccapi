@@ -271,7 +271,7 @@ class ExecutionManagementService : public Service {
     this->wsRequestIdByConnectionIdMap.erase(wsConnection.id);
     Service::onClose(wsConnectionPtr, ec);
   }
-  virtual void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessage,
+  virtual void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                              const TimePoint& timeReceived) {}
 #endif
   void convertRequestForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, const TimePoint& now,

@@ -37,9 +37,15 @@ class MarketDataServiceBitstamp : public MarketDataService {
 
  private:
 #endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     this->send(hdl, R"({"event": "bts:heartbeat"})", wspp::frame::opcode::text, ec);
   }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
+    this->send(wsConnectionPtr, R"({"event": "bts:heartbeat"})", ec);
+  }
+#endif
   bool doesHttpBodyContainError(const std::string& body) override {
     return body.find(R"("status": "error")") != std::string::npos || body.find(R"("status":"error")") != std::string::npos;
   }

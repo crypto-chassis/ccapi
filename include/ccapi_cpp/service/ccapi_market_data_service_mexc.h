@@ -37,12 +37,19 @@ class MarketDataServiceMexc : public MarketDataService {
  protected:
 #endif
   // bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("code":0)") == std::string::npos; }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->send(hdl, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]) + R"(,"method":"PING"})",
                wspp::frame::opcode::text, ec);
     this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
   }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
+    this->send(wsConnectionPtr, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection->id]) + R"(,"method":"PING"})", ec);
+    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection->id] += 1;
+  }
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
