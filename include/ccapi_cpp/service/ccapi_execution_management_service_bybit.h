@@ -237,6 +237,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
               element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["S"].GetString()) == "BUY" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
               element.insert(CCAPI_IS_MAKER, x["m"].GetBool() ? "1" : "0");
               element.insert(CCAPI_EM_ORDER_ID, std::string(x["i"].GetString()));
+              element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["c"].GetString()));
               element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
               {
                 auto it = x.FindMember("n");
@@ -261,7 +262,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementServiceBybitBa
               message.setTime(time);
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
               const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
-                  {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::INTEGER)},
+                  {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::STRING)},
                   {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("c", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("S", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("p", JsonDataType::STRING)},
