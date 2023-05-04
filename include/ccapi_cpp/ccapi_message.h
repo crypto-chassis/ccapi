@@ -16,8 +16,8 @@ class Message CCAPI_FINAL {
  public:
   enum class RecapType {
     UNKNOWN,
-    NONE,       // Normal data tick, not a recap. For market depth, it represents the new snapshot. For public trade, it represents the new trades.
-    SOLICITED,  // A recap. For market depth, it represents the initial snapshot. For public trade, it represents the recent trades.
+    SOLICITED,  // A recap. For market depth, it represents the initial order book snapshot. For public trade, it represents the most recent historical trades. This is the first batch of data points.
+    NONE,       // Normal data tick, not a recap. For market depth, it represents the updated order book state. For public trade, it represents the new trades. These are the batches of data points after the first batch.
   };
   static std::string recapTypeToString(RecapType recapType) {
     std::string output;
