@@ -13,7 +13,12 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     this->isDerivatives = true;
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
     this->needDecompressWebsocketMessage = true;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
     ErrorCode ec = this->inflater.init(false, 31);
+#else
+    this->inflater.setWindowBitsOverride(31);
+    ErrorCode ec = this->inflater.init();
+#endif
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
@@ -272,7 +277,11 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
             document.Accept(writerSubscribe);
             std::string sendString = stringBufferSubscribe.GetString();
             ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
             this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+            this->send(wsConnectionPtr, sendString, ec);
+#endif
             if (ec) {
               this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
             }
@@ -289,7 +298,11 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       std::string toReplace("ping");
       sendString.replace(sendString.find(toReplace), toReplace.length(), "pong");
       ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+      this->send(wsConnectionPtr, sendString, ec);
+#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }

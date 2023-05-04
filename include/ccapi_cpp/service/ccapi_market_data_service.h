@@ -409,7 +409,11 @@ class MarketDataService : public Service {
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+      this->send(wsConnectionPtr, sendString, ec);
+#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
       }
@@ -437,7 +441,11 @@ class MarketDataService : public Service {
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+      this->send(wsConnectionPtr, sendString, ec);
+#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
       }

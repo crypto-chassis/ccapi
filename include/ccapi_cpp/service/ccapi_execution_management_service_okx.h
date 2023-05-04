@@ -412,7 +412,11 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
         this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+        this->send(wsConnectionPtr, sendString, ec);
+#endif
 #else
         this->send(wsConnectionPtr, sendString, ec);
 #endif

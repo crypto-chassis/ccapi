@@ -102,24 +102,37 @@ class ExecutionManagementServiceBybitBase : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  virtual Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
-                            const TimePoint& timeReceived) {
-    return {};
-  }
-  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
-                     const TimePoint& timeReceived) override {
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-#else
-    WsConnection& wsConnection = *wsConnectionPtr;
-    std::string textMessage(textMessageView);
-#endif
+  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection.hdl, subscription, textMessage, document, timeReceived);
+    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
     }
   }
+  virtual Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
+                            const TimePoint& timeReceived) {
+    return {};
+  }
+#else
+  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                     const TimePoint& timeReceived) override {
+    std::string textMessage(textMessageView);
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event, nullptr);
+    }
+  }
+  virtual Event createEvent(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                            const rj::Document& document, const TimePoint& timeReceived) {
+    return {};
+  }
+#endif
 };
 } /* namespace ccapi */
 #endif

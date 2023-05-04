@@ -309,11 +309,12 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     sendStringList.push_back(sendString);
     return sendStringList;
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+#else
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-#else
-    WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
 #endif
     if (textMessage != "pong") {
@@ -348,20 +349,34 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         document.Accept(writerSubscribe);
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
-        this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+        this->send(hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+        this->send(wsConnectionPtr, sendString, ec);
+#endif
         if (ec) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }
       } else {
-        Event event = this->createEvent(subscription, textMessage, document, eventStr, timeReceived);
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+        Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, eventStr, timeReceived);
+#else
+        Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, eventStr, timeReceived);
+#endif
         if (!event.getMessageList().empty()) {
           this->eventHandler(event, nullptr);
         }
       }
     }
   }
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const std::string& eventStr,
-                    const TimePoint& timeReceived) {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
+                    const rj::Document& document, const std::string& eventStr, const TimePoint& timeReceived) {
+#else
+  Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                    const rj::Document& document, const std::string& eventStr, const TimePoint& timeReceived) {
+    std::string textMessage(textMessageView);
+#endif
     Event event;
     std::vector<Message> messageList;
     Message message;

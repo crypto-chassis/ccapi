@@ -360,126 +360,142 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
-                     const TimePoint& timeReceived) override {
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-#else
-    WsConnection& wsConnection = *wsConnectionPtr;
-    std::string textMessage(textMessageView);
-#endif
+  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(subscription, textMessage, document, timeReceived);
+    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
     }
   }
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
-    Event event;
-    std::vector<Message> messageList;
-    Message message;
-    message.setTimeReceived(timeReceived);
-    message.setCorrelationIdList({subscription.getCorrelationId()});
-    const auto& fieldSet = subscription.getFieldSet();
-    const auto& instrumentSet = subscription.getInstrumentSet();
-    if (document.IsArray() && document.Size() >= 3 && std::string(document[0].GetString()) == "0") {
-      std::string type = document[1].GetString();
-      if ((type == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-        event.setType(Event::Type::SUBSCRIPTION_DATA);
-        const rj::Value& data = document[2];
-        std::string instrument = data[1].GetString();
-        if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-          message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[2].GetString())));
-          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-          std::vector<Element> elementList;
-          Element element;
-          if (type == "tu") {
-            element.insert(CCAPI_TRADE_ID, data[2].GetString());
-          }
-          std::string amount = data[4].GetString();
-          if (amount.at(0) == '-') {
-            amount.erase(0, 1);
-            element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_SELL);
-            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
-          } else {
-            element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY);
-            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
-          }
-          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data[5].GetString());
-          element.insert(CCAPI_IS_MAKER, std::string(data[8].GetString()).at(0) != '-' ? "1" : "0");
-          element.insert(CCAPI_EM_ORDER_INSTRUMENT, data[1].GetString());
-          element.insert(CCAPI_EM_ORDER_ID, data[3].GetString());
-          element.insert(CCAPI_EM_CLIENT_ORDER_ID, data[11].GetString());
-          if (type == "tu") {
-            std::string fee = data[9].GetString();
-            if (fee.at(0) == '-') {
-              fee.erase(0, 1);
-            } else {
-              fee.insert(0, 1, '-');
-            }
-            element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, fee);
-            element.insert(CCAPI_EM_ORDER_FEE_ASSET, data[10].GetString());
-          }
-          elementList.emplace_back(std::move(element));
-          message.setElementList(elementList);
-          messageList.emplace_back(std::move(message));
+#else
+  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                     const TimePoint& timeReceived) override {
+    std::string textMessage(textMessageView);
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event, nullptr);
+    }
+  }
+#endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
+                    const rj::Document& document, const TimePoint& timeReceived){
+#else
+  Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                    const rj::Document& document, const TimePoint& timeReceived) {
+    std::string textMessage(textMessageView);
+#endif
+      Event event;
+  std::vector<Message> messageList;
+  Message message;
+  message.setTimeReceived(timeReceived);
+  message.setCorrelationIdList({subscription.getCorrelationId()});
+  const auto& fieldSet = subscription.getFieldSet();
+  const auto& instrumentSet = subscription.getInstrumentSet();
+  if (document.IsArray() && document.Size() >= 3 && std::string(document[0].GetString()) == "0") {
+    std::string type = document[1].GetString();
+    if ((type == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+      event.setType(Event::Type::SUBSCRIPTION_DATA);
+      const rj::Value& data = document[2];
+      std::string instrument = data[1].GetString();
+      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+        message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[2].GetString())));
+        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+        std::vector<Element> elementList;
+        Element element;
+        if (type == "tu") {
+          element.insert(CCAPI_TRADE_ID, data[2].GetString());
         }
-      } else if ((type == "on" || type == "ou" || type == "oc") && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
-        event.setType(Event::Type::SUBSCRIPTION_DATA);
-        const rj::Value& data = document[2];
-        std::string instrument = data[3].GetString();
-        if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-          message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[5].GetString())));
-          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-          Element info;
-          this->extractOrderInfo(info, data);
-          std::vector<Element> elementList;
-          elementList.emplace_back(std::move(info));
-          message.setElementList(elementList);
-          messageList.emplace_back(std::move(message));
-        }
-      } else if (type == "n") {
-        event.setType(Event::Type::RESPONSE);
-        const rj::Value& data = document[2];
-        std::string status = data[6].GetString();
-        if (status != "SUCCESS") {
-          message.setType(Message::Type::RESPONSE_ERROR);
-          Element element;
-          element.insert(CCAPI_ERROR_MESSAGE, textMessage);
-          message.setElementList({element});
-          messageList.emplace_back(std::move(message));
+        std::string amount = data[4].GetString();
+        if (amount.at(0) == '-') {
+          amount.erase(0, 1);
+          element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_SELL);
+          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
         } else {
-          std::vector<Element> elementList;
-          std::string notificationType = data[1].GetString();
-          if (notificationType == "on-req") {
-            message.setType(Message::Type::CREATE_ORDER);
-          } else if (notificationType == "oc-req") {
-            message.setType(Message::Type::CANCEL_ORDER);
+          element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY);
+          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
+        }
+        element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data[5].GetString());
+        element.insert(CCAPI_IS_MAKER, std::string(data[8].GetString()).at(0) != '-' ? "1" : "0");
+        element.insert(CCAPI_EM_ORDER_INSTRUMENT, data[1].GetString());
+        element.insert(CCAPI_EM_ORDER_ID, data[3].GetString());
+        element.insert(CCAPI_EM_CLIENT_ORDER_ID, data[11].GetString());
+        if (type == "tu") {
+          std::string fee = data[9].GetString();
+          if (fee.at(0) == '-') {
+            fee.erase(0, 1);
+          } else {
+            fee.insert(0, 1, '-');
           }
-          this->extractOrderInfoFromRequestForWebsocket(elementList, data[4]);
-          message.setElementList(elementList);
-          messageList.emplace_back(std::move(message));
+          element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, fee);
+          element.insert(CCAPI_EM_ORDER_FEE_ASSET, data[10].GetString());
         }
+        elementList.emplace_back(std::move(element));
+        message.setElementList(elementList);
+        messageList.emplace_back(std::move(message));
       }
-    } else if (document.IsObject()) {
-      auto it = document.FindMember("event");
-      if (it != document.MemberEnd()) {
-        std::string eventStr = it->value.GetString();
-        if (eventStr == "auth") {
-          std::string status = document["status"].GetString();
-          event.setType(Event::Type::SUBSCRIPTION_STATUS);
-          message.setType(status == "OK" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
-          Element element;
-          element.insert(status == "OK" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
-          message.setElementList({element});
-          messageList.emplace_back(std::move(message));
+    } else if ((type == "on" || type == "ou" || type == "oc") && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+      event.setType(Event::Type::SUBSCRIPTION_DATA);
+      const rj::Value& data = document[2];
+      std::string instrument = data[3].GetString();
+      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+        message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[5].GetString())));
+        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+        Element info;
+        this->extractOrderInfo(info, data);
+        std::vector<Element> elementList;
+        elementList.emplace_back(std::move(info));
+        message.setElementList(elementList);
+        messageList.emplace_back(std::move(message));
+      }
+    } else if (type == "n") {
+      event.setType(Event::Type::RESPONSE);
+      const rj::Value& data = document[2];
+      std::string status = data[6].GetString();
+      if (status != "SUCCESS") {
+        message.setType(Message::Type::RESPONSE_ERROR);
+        Element element;
+        element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+        message.setElementList({element});
+        messageList.emplace_back(std::move(message));
+      } else {
+        std::vector<Element> elementList;
+        std::string notificationType = data[1].GetString();
+        if (notificationType == "on-req") {
+          message.setType(Message::Type::CREATE_ORDER);
+        } else if (notificationType == "oc-req") {
+          message.setType(Message::Type::CANCEL_ORDER);
         }
+        this->extractOrderInfoFromRequestForWebsocket(elementList, data[4]);
+        message.setElementList(elementList);
+        messageList.emplace_back(std::move(message));
       }
     }
-    event.setMessageList(messageList);
-    return event;
+  } else if (document.IsObject()) {
+    auto it = document.FindMember("event");
+    if (it != document.MemberEnd()) {
+      std::string eventStr = it->value.GetString();
+      if (eventStr == "auth") {
+        std::string status = document["status"].GetString();
+        event.setType(Event::Type::SUBSCRIPTION_STATUS);
+        message.setType(status == "OK" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
+        Element element;
+        element.insert(status == "OK" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+        message.setElementList({element});
+        messageList.emplace_back(std::move(message));
+      }
+    }
   }
-};
+  event.setMessageList(messageList);
+  return event;
+}
+};  // namespace ccapi
 } /* namespace ccapi */
 #endif
 #endif
