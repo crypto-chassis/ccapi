@@ -56,8 +56,17 @@ class MarketDataServiceBitmex : public MarketDataService {
   }
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
+  void onClose(wspp::connection_hdl hdl) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnection.id);
+    MarketDataService::onClose(hdl);
+  }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
+  void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
+    this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnectionPtr->id);
+    MarketDataService::onClose(wsConnectionPtr, ec);
+  }
 #endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
@@ -86,11 +95,6 @@ class MarketDataServiceBitmex : public MarketDataService {
     std::string sendString = stringBuffer.GetString();
     sendStringList.push_back(sendString);
     return sendStringList;
-  }
-  void onClose(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
   }
   void processTextMessage(
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
@@ -183,10 +187,17 @@ class MarketDataServiceBitmex : public MarketDataService {
             } else {
               price = this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId][priceId];
               if (price.empty()) {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
                 this->onIncorrectStatesFound(wsConnection, hdl, textMessage, timeReceived, exchangeSubscriptionId,
                                              "bitmex update for missing item came through on wsConnection = " + toString(wsConnection) +
                                                  ", channelId = " + channelId + ", symbolId = " + symbolId + ", priceId = " + priceId + ". Data: " +
                                                  toString(this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId]));
+#else
+                this->onIncorrectStatesFound(wsConnectionPtr, textMessageView, timeReceived, exchangeSubscriptionId,
+                                             "bitmex update for missing item came through on wsConnection = " + toString(wsConnection) +
+                                                 ", channelId = " + channelId + ", symbolId = " + symbolId + ", priceId = " + priceId + ". Data: " +
+                                                 toString(this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId]));
+#endif
               }
               if (action == "update") {
                 size = UtilString::normalizeDecimalString(x["size"].GetString());

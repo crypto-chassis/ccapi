@@ -140,7 +140,11 @@ class MarketDataServiceOkx : public MarketDataService {
       auto it = document.FindMember("event");
       std::string eventStr = it != document.MemberEnd() ? it->value.GetString() : "";
       if (eventStr == "login") {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
         this->startSubscribe(wsConnection);
+#else
+        this->startSubscribe(wsConnectionPtr);
+#endif
       } else {
         if (document.IsObject() && document.HasMember("arg")) {
           const rj::Value& arg = document["arg"];

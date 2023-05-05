@@ -46,8 +46,8 @@ class MarketDataServiceMexc : public MarketDataService {
   }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
-    this->send(wsConnectionPtr, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection->id]) + R"(,"method":"PING"})", ec);
-    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection->id] += 1;
+    this->send(wsConnectionPtr, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id]) + R"(,"method":"PING"})", ec);
+    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id] += 1;
   }
 #endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {

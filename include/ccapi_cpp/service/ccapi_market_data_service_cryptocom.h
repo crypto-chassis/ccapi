@@ -219,7 +219,11 @@ class MarketDataServiceCryptocom : public MarketDataService {
       } else if (method == "public/heartbeat") {
         std::string msg = R"({"id":)" + id + R"(,"method":"public/respond-heartbeat"})";
         ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
         this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
+#else
+        this->send(wsConnectionPtr, msg, ec);
+#endif
         if (ec) {
           this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
         }

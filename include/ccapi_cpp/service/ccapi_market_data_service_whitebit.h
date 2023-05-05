@@ -50,9 +50,8 @@ class MarketDataServiceWhitebit : public MarketDataService {
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     this->send(wsConnectionPtr,
-               R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection->id]) + R"(,"method":"ping","params":[]})",
-               wspp::frame::opcode::text, ec);
-    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection->id] += 1;
+               R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id]) + R"(,"method":"ping","params":[]})", ec);
+    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id] += 1;
   }
 #endif
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,

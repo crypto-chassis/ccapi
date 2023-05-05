@@ -226,6 +226,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     auto hostPort = this->extractHostFromUrl(this->baseUrlRest);
@@ -280,32 +281,6 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     this->setPingListenKeyTimer(wsConnection);
   }
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
-    std::vector<std::string> sendStringList;
-    rj::Document document;
-    document.SetObject();
-    auto& allocator = document.GetAllocator();
-    document.AddMember("method", rj::Value("SUBSCRIPTION").Move(), allocator);
-    rj::Value params(rj::kArrayType);
-    const auto& fieldSet = subscription.getFieldSet();
-    for (const auto& field : subscription.getFieldSet()) {
-      std::string channelId;
-      if (field == CCAPI_EM_ORDER_UPDATE) {
-        channelId = "spot@private.orders.v3.api";
-      } else if (field == CCAPI_EM_PRIVATE_TRADE) {
-        channelId = "spot@private.deals.v3.api";
-      }
-      params.PushBack(rj::Value(channelId.c_str(), allocator).Move(), allocator);
-    }
-    document.AddMember("params", params, allocator);
-    rj::StringBuffer stringBuffer;
-    rj::Writer<rj::StringBuffer> writer(stringBuffer);
-    document.Accept(writer);
-    std::string sendString = stringBuffer.GetString();
-    sendStringList.push_back(sendString);
-    return sendStringList;
-  }
   void setPingListenKeyTimer(const WsConnection& wsConnection) {
     this->pingListenKeyTimerMapByConnectionIdMap[wsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
         this->pingListenKeyIntervalSeconds * 1000, [wsConnection, that = shared_from_base<ExecutionManagementServiceMexc>()](ErrorCode const& ec) {
@@ -354,21 +329,162 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
     }
     ExecutionManagementService::onClose(hdl);
   }
-  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
-                     const TimePoint& timeReceived) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
 #else
-    WsConnection& wsConnection = *wsConnectionPtr;
-    std::string textMessage(textMessageView);
+  void prepareConnect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
+    auto now = UtilTime::now();
+    auto hostPort = this->extractHostFromUrl(this->baseUrlRest);
+    std::string host = hostPort.first;
+    std::string port = hostPort.second;
+    http::request<http::string_body> req;
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.method(http::verb::post);
+    auto credential = wsConnectionPtr->subscriptionList.at(0).getCredential();
+    if (credential.empty()) {
+      credential = this->credentialDefault;
+    }
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set("X-MEXC-APIKEY", apiKey);
+    std::string queryString;
+    this->signRequest(queryString, {}, now, credential);
+    req.target(this->listenKeyTarget + "?" + queryString);
+    this->sendRequest(
+        req, [wsConnectionPtr, that = shared_from_base<ExecutionManagementServiceMexc>()](const beast::error_code& ec) { that->onFail_(wsConnectionPtr); },
+        [wsConnectionPtr, that = shared_from_base<ExecutionManagementServiceMexc>()](const http::response<http::string_body>& res) {
+          int statusCode = res.result_int();
+          std::string body = res.body();
+          if (statusCode / 100 == 2) {
+            std::string urlWebsocketBase;
+            try {
+              rj::Document document;
+              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
+              std::string listenKey = document["listenKey"].GetString();
+              std::string url = that->baseUrlWs + "?listenKey=" + listenKey;
+              wsConnectionPtr->url = url;
+              that->connect(wsConnectionPtr);
+              that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
+                  {"listenKey", listenKey},
+              });
+              return;
+            } catch (const std::runtime_error& e) {
+              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+            }
+          }
+          that->onFail_(wsConnectionPtr);
+        },
+        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+  }
+  void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
+    ExecutionManagementService::onOpen(wsConnectionPtr);
+    this->setPingListenKeyTimer(wsConnectionPtr);
+  }
+  void setPingListenKeyTimer(std::shared_ptr<WsConnection> wsConnectionPtr) {
+    TimerPtr timerPtr(
+        new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(this->pingListenKeyIntervalSeconds * 1000)));
+    timerPtr->async_wait([wsConnectionPtr, that = shared_from_base<ExecutionManagementServiceMexc>()](ErrorCode const& ec) {
+      if (ec) {
+        return;
+      }
+      auto now = UtilTime::now();
+      that->setPingListenKeyTimer(wsConnectionPtr);
+      http::request<http::string_body> req;
+      req.set(http::field::host, that->hostRest);
+      req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+      req.method(http::verb::put);
+      std::string queryString;
+      std::map<std::string, std::string> params;
+      auto listenKey = that->extraPropertyByConnectionIdMap.at(wsConnectionPtr->id).at("listenKey");
+      params.insert({"listenKey", listenKey});
+      for (const auto& param : params) {
+        queryString += param.first + "=" + Url::urlEncode(param.second);
+        queryString += "&";
+      }
+      auto credential = wsConnectionPtr->subscriptionList.at(0).getCredential();
+      if (credential.empty()) {
+        credential = that->credentialDefault;
+      }
+      auto apiKey = mapGetWithDefault(credential, that->apiKeyName);
+      req.set("X-MEXC-APIKEY", apiKey);
+      that->signRequest(queryString, {}, now, credential);
+      req.target(that->listenKeyTarget + "?" + queryString);
+      that->sendRequest(
+          req,
+          [wsConnectionPtr, that_2 = that->shared_from_base<ExecutionManagementServiceMexc>()](const beast::error_code& ec) {
+            CCAPI_LOGGER_ERROR("ping listen key fail");
+            that_2->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "ping listen key");
+          },
+          [wsConnectionPtr, that_2 = that->shared_from_base<ExecutionManagementServiceMexc>()](const http::response<http::string_body>& res) {
+            CCAPI_LOGGER_DEBUG("ping listen key success");
+          },
+          that->sessionOptions.httpRequestTimeoutMilliSeconds);
+    });
+    this->pingListenKeyTimerMapByConnectionIdMap[wsConnectionPtr->id] = timerPtr;
+  }
+  void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
+    if (this->pingListenKeyTimerMapByConnectionIdMap.find(wsConnectionPtr->id) != this->pingListenKeyTimerMapByConnectionIdMap.end()) {
+      this->pingListenKeyTimerMapByConnectionIdMap.at(wsConnectionPtr->id)->cancel();
+      this->pingListenKeyTimerMapByConnectionIdMap.erase(wsConnectionPtr->id);
+    }
+    ExecutionManagementService::onClose(wsConnectionPtr, ec);
+  }
 #endif
+  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
+                                                                const std::map<std::string, std::string>& credential) override {
+    std::vector<std::string> sendStringList;
+    rj::Document document;
+    document.SetObject();
+    auto& allocator = document.GetAllocator();
+    document.AddMember("method", rj::Value("SUBSCRIPTION").Move(), allocator);
+    rj::Value params(rj::kArrayType);
+    const auto& fieldSet = subscription.getFieldSet();
+    for (const auto& field : subscription.getFieldSet()) {
+      std::string channelId;
+      if (field == CCAPI_EM_ORDER_UPDATE) {
+        channelId = "spot@private.orders.v3.api";
+      } else if (field == CCAPI_EM_PRIVATE_TRADE) {
+        channelId = "spot@private.deals.v3.api";
+      }
+      params.PushBack(rj::Value(channelId.c_str(), allocator).Move(), allocator);
+    }
+    document.AddMember("params", params, allocator);
+    rj::StringBuffer stringBuffer;
+    rj::Writer<rj::StringBuffer> writer(stringBuffer);
+    document.Accept(writer);
+    std::string sendString = stringBuffer.GetString();
+    sendStringList.push_back(sendString);
+    return sendStringList;
+  }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    auto subscription = wsConnection.subscriptionList.at(0);
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(subscription, textMessage, document, timeReceived);
+    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
     }
   }
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
+#else
+  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                     const TimePoint& timeReceived) override {
+    std::string textMessage(textMessageView);
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event, nullptr);
+    }
+  }
+#endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
+                    const rj::Document& document, const TimePoint& timeReceived) {
+#else
+  Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                    const rj::Document& document, const TimePoint& timeReceived) {
+    std::string textMessage(textMessageView);
+#endif
     Event event;
     std::vector<Message> messageList;
     if (document.IsObject() && document.HasMember("code") && std::string(document["code"].GetString()) == "0") {

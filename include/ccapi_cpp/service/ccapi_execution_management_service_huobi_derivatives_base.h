@@ -244,10 +244,12 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     sendStringList.push_back(sendString);
     return sendStringList;
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
+                     const TimePoint& timeReceived) override {
+#else
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-#else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
 #endif

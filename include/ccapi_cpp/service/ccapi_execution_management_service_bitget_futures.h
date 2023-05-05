@@ -310,8 +310,8 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     return sendStringList;
   }
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
+                     const TimePoint& timeReceived) override {
 #else
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
@@ -350,7 +350,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-        this->send(hdl, sendString, wspp::frame::opcode::text, ec);
+        this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
         this->send(wsConnectionPtr, sendString, ec);
 #endif
@@ -359,7 +359,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         }
       } else {
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-        Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, eventStr, timeReceived);
+        Event event = this->createEvent(wsConnection, wsConnection.hdl, subscription, textMessage, document, eventStr, timeReceived);
 #else
         Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, eventStr, timeReceived);
 #endif

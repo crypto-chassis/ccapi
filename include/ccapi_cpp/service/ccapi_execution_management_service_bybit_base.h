@@ -113,8 +113,8 @@ class ExecutionManagementServiceBybitBase : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-  virtual Event createEvent(wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage, const rj::Document& document,
-                            const TimePoint& timeReceived) {
+  virtual Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
+                            const rj::Document& document, const TimePoint& timeReceived) {
     return {};
   }
 #else

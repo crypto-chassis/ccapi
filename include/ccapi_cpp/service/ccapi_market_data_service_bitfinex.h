@@ -38,21 +38,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
 #endif
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
-#else
-  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", ec); }
-#endif
-  void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
-                                 const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
-    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    if (field == CCAPI_MARKET_DEPTH) {
-      int marketDepthSubscribedToExchange = 1;
-      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({1, 25, 100, 250}));
-      channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
-      this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
-    }
-  }
-  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void onOpen(wspp::connection_hdl hdl) override {
     MarketDataService::onOpen(hdl);
     rj::Document document;
@@ -76,6 +61,126 @@ class MarketDataServiceBitfinex : public MarketDataService {
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
   }
+  bool checkSequence(const WsConnection& wsConnection, int sequence) {
+    if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
+      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->exchangeName)) {
+        CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = " + toString(wsConnection));
+        return false;
+      }
+      this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnection.id, sequence));
+      return true;
+    } else {
+      if (sequence - this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
+        this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+  void onOutOfSequence(WsConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
+                       const std::string& exchangeSubscriptionId) {
+    int previous = 0;
+    if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
+      previous = this->sequenceByConnectionIdMap[wsConnection.id];
+    }
+    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND,
+                  "out of sequence: previous = " + toString(previous) + ", current = " + toString(sequence) + ", connection = " + toString(wsConnection) +
+                      ", textMessage = " + textMessage + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived));
+    this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId].clear();
+    ErrorCode ec;
+    this->close(wsConnection, hdl, websocketpp::close::status::normal, "out of sequence", ec);
+    if (ec) {
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+    }
+    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
+  }
+  void onIncorrectStatesFound(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
+                              const std::string& exchangeSubscriptionId, std::string const& reason) override {
+    CCAPI_LOGGER_ERROR("incorrect states found: connection = " + toString(wsConnection) + ", textMessage = " + textMessage +
+                       ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ", reason = " + reason);
+    this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId].clear();
+    MarketDataService::onIncorrectStatesFound(wsConnection, hdl, textMessage, timeReceived, exchangeSubscriptionId, reason);
+  }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, R"({"op":"ping"})", ec); }
+  void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
+    MarketDataService::onOpen(wsConnectionPtr);
+    rj::Document document;
+    document.SetObject();
+    rj::Document::AllocatorType& allocator = document.GetAllocator();
+    document.AddMember("event", rj::Value("conf").Move(), allocator);
+    document.AddMember("flags", rj::Value(229376).Move(), allocator);
+    rj::StringBuffer stringBuffer;
+    rj::Writer<rj::StringBuffer> writer(stringBuffer);
+    document.Accept(writer);
+    std::string sendString = stringBuffer.GetString();
+    ErrorCode ec;
+    this->send(wsConnectionPtr, sendString, ec);
+    if (ec) {
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+    }
+  }
+  void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
+    this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap.erase(wsConnectionPtr->id);
+    this->sequenceByConnectionIdMap.erase(wsConnectionPtr->id);
+    MarketDataService::onClose(wsConnectionPtr, ec);
+  }
+  bool checkSequence(std::shared_ptr<WsConnection> wsConnectionPtr, int sequence) {
+    if (this->sequenceByConnectionIdMap.find(wsConnectionPtr->id) == this->sequenceByConnectionIdMap.end()) {
+      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->exchangeName)) {
+        CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = " + toString(*wsConnectionPtr));
+        return false;
+      }
+      this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnectionPtr->id, sequence));
+      return true;
+    } else {
+      if (sequence - this->sequenceByConnectionIdMap[wsConnectionPtr->id] == 1) {
+        this->sequenceByConnectionIdMap[wsConnectionPtr->id] = sequence;
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+  void onOutOfSequence(std::shared_ptr<WsConnection> wsConnectionPtr, int sequence, boost::beast::string_view textMessageView, const TimePoint& timeReceived,
+                       const std::string& exchangeSubscriptionId) {
+    int previous = 0;
+    if (this->sequenceByConnectionIdMap.find(wsConnectionPtr->id) != this->sequenceByConnectionIdMap.end()) {
+      previous = this->sequenceByConnectionIdMap[wsConnectionPtr->id];
+    }
+    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND,
+                  "out of sequence: previous = " + toString(previous) + ", current = " + toString(sequence) + ", connection = " + toString(*wsConnectionPtr) +
+                      ", textMessage = " + std::string(textMessageView) + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived));
+    this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId].clear();
+    ErrorCode ec;
+    this->close(wsConnectionPtr, beast::websocket::close_code::normal, beast::websocket::close_reason(beast::websocket::close_code::normal, "out of sequence"),
+                ec);
+    if (ec) {
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+    }
+    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnectionPtr->id] = false;
+  }
+  void onIncorrectStatesFound(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived,
+                              const std::string& exchangeSubscriptionId, std::string const& reason) override {
+    CCAPI_LOGGER_ERROR("incorrect states found: connection = " + toString(*wsConnectionPtr) + ", textMessage = " + std::string(textMessageView) +
+                       ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ", reason = " + reason);
+    this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId].clear();
+    MarketDataService::onIncorrectStatesFound(wsConnectionPtr, textMessageView, timeReceived, exchangeSubscriptionId, reason);
+  }
+#endif
+  void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
+                                 const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
+    auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
+    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    if (field == CCAPI_MARKET_DEPTH) {
+      int marketDepthSubscribedToExchange = 1;
+      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({1, 25, 100, 250}));
+      channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
+      this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
+    }
+  }
+  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void processTextMessage(
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
@@ -96,10 +201,17 @@ class MarketDataServiceBitfinex : public MarketDataService {
       if (document.Size() >= 2 && document[1].IsString() && std::string(document[1].GetString()) == "hb") {
         if (this->sessionOptions.enableCheckSequence) {
           int sequence = std::stoi(document[2].GetString());
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
           if (!this->checkSequence(wsConnection, sequence)) {
             this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
             return;
           }
+#else
+          if (!this->checkSequence(wsConnectionPtr, sequence)) {
+            this->onOutOfSequence(wsConnectionPtr, sequence, textMessageView, timeReceived, exchangeSubscriptionId);
+            return;
+          }
+#endif
         }
       } else {
         auto channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
@@ -111,10 +223,17 @@ class MarketDataServiceBitfinex : public MarketDataService {
           if (document[1].IsArray()) {
             if (this->sessionOptions.enableCheckSequence) {
               int sequence = std::stoi(document[2].GetString());
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
               if (!this->checkSequence(wsConnection, sequence)) {
                 this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
                 return;
               }
+#else
+              if (!this->checkSequence(wsConnectionPtr, sequence)) {
+                this->onOutOfSequence(wsConnectionPtr, sequence, textMessageView, timeReceived, exchangeSubscriptionId);
+                return;
+              }
+#endif
             }
             const rj::Value& content = document[1].GetArray();
             if (content[0].IsArray()) {
@@ -207,10 +326,17 @@ class MarketDataServiceBitfinex : public MarketDataService {
             if (str == "tu" || str == "te") {
               if (this->sessionOptions.enableCheckSequence) {
                 int sequence = std::stoi(document[3].GetString());
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
                   return;
                 }
+#else
+                if (!this->checkSequence(wsConnectionPtr, sequence)) {
+                  this->onOutOfSequence(wsConnectionPtr, sequence, textMessageView, timeReceived, exchangeSubscriptionId);
+                  return;
+                }
+#endif
               }
               if (str == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) {
                 const rj::Value& x = document[2].GetArray();
@@ -235,10 +361,17 @@ class MarketDataServiceBitfinex : public MarketDataService {
             } else if (str == "cs") {
               if (this->sessionOptions.enableCheckSequence) {
                 int sequence = std::stoi(document[3].GetString());
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
                   return;
                 }
+#else
+                if (!this->checkSequence(wsConnectionPtr, sequence)) {
+                  this->onOutOfSequence(wsConnectionPtr, sequence, textMessageView, timeReceived, exchangeSubscriptionId);
+                  return;
+                }
+#endif
               }
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
                 this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
@@ -297,7 +430,11 @@ class MarketDataServiceBitfinex : public MarketDataService {
         }
         for (const auto& sendString : sendStringList) {
           ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
           this->send(hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+          this->send(wsConnectionPtr, sendString, ec);
+#endif
           if (ec) {
             this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
           }
@@ -340,40 +477,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
       }
     }
   }
-  bool checkSequence(const WsConnection& wsConnection, int sequence) {
-    if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
-      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->exchangeName)) {
-        CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = " + toString(wsConnection));
-        return false;
-      }
-      this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnection.id, sequence));
-      return true;
-    } else {
-      if (sequence - this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
-        this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
-        return true;
-      } else {
-        return false;
-      }
-    }
-  }
-  void onOutOfSequence(WsConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
-                       const std::string& exchangeSubscriptionId) {
-    int previous = 0;
-    if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
-      previous = this->sequenceByConnectionIdMap[wsConnection.id];
-    }
-    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND,
-                  "out of sequence: previous = " + toString(previous) + ", current = " + toString(sequence) + ", connection = " + toString(wsConnection) +
-                      ", textMessage = " + textMessage + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived));
-    this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId].clear();
-    ErrorCode ec;
-    this->close(wsConnection, hdl, websocketpp::close::status::normal, "out of sequence", ec);
-    if (ec) {
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
-    }
-    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
-  }
   std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
     auto i = 0;
     auto i1 = snapshotBid.rbegin();
@@ -395,13 +498,6 @@ class MarketDataServiceBitfinex : public MarketDataService {
     std::string csStr = UtilString::join(csData, ":");
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
-  }
-  void onIncorrectStatesFound(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
-                              const std::string& exchangeSubscriptionId, std::string const& reason) override {
-    CCAPI_LOGGER_ERROR("incorrect states found: connection = " + toString(wsConnection) + ", textMessage = " + textMessage +
-                       ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ", reason = " + reason);
-    this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId].clear();
-    MarketDataService::onIncorrectStatesFound(wsConnection, hdl, textMessage, timeReceived, exchangeSubscriptionId, reason);
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
