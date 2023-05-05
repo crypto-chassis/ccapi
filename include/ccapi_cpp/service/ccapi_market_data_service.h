@@ -409,7 +409,11 @@ class MarketDataService : public Service {
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+      this->send(wsConnectionPtr, sendString, ec);
+#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
       }
@@ -437,7 +441,11 @@ class MarketDataService : public Service {
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+      this->send(wsConnectionPtr, sendString, ec);
+#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
       }
@@ -558,10 +566,10 @@ class MarketDataService : public Service {
     this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnectionPtr, timeReceived);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void onIncorrectStatesFound(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessage, const TimePoint& timeReceived,
+  virtual void onIncorrectStatesFound(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived,
                                       const std::string& exchangeSubscriptionId, std::string const& reason) {
     WsConnection& wsConnection = *wsConnectionPtr;
-    std::string errorMessage = "incorrect states found: connection = " + toString(wsConnection) + ", textMessage = " + std::string(textMessage) +
+    std::string errorMessage = "incorrect states found: connection = " + toString(wsConnection) + ", textMessage = " + std::string(textMessageView) +
                                ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ", exchangeSubscriptionId = " + exchangeSubscriptionId +
                                ", reason = " + reason;
     CCAPI_LOGGER_ERROR(errorMessage);

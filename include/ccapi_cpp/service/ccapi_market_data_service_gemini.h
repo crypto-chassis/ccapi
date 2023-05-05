@@ -49,6 +49,7 @@ class MarketDataServiceGemini : public MarketDataService {
     }
   }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void onOpen(wspp::connection_hdl hdl) override {
     MarketDataService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
@@ -85,6 +86,110 @@ class MarketDataServiceGemini : public MarketDataService {
     this->sequenceByConnectionIdMap.erase(wsConnection.id);
     MarketDataService::onClose(hdl);
   }
+  bool checkSequence(const WsConnection& wsConnection, int sequence) {
+    if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
+      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->exchangeName)) {
+        CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = " + toString(wsConnection));
+        return false;
+      }
+      this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnection.id, sequence));
+      return true;
+    } else {
+      if (sequence - this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
+        this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+  void onOutOfSequence(WsConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
+                       const std::string& exchangeSubscriptionId) {
+    int previous = 0;
+    if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
+      previous = this->sequenceByConnectionIdMap[wsConnection.id];
+    }
+    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND,
+                  "out of sequence: previous = " + toString(previous) + ", current = " + toString(sequence) + ", connection = " + toString(wsConnection) +
+                      ", textMessage = " + textMessage + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived));
+    ErrorCode ec;
+    this->close(wsConnection, hdl, websocketpp::close::status::normal, "out of sequence", ec);
+    if (ec) {
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+    }
+    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
+  }
+#else
+  void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
+    MarketDataService::onOpen(wsConnectionPtr);
+    std::vector<std::string> correlationIdList;
+    for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id)) {
+      auto channelId = subscriptionListByChannelIdSymbolId.first;
+      for (auto& subscriptionListByInstrument : subscriptionListByChannelIdSymbolId.second) {
+        auto symbolId = subscriptionListByInstrument.first;
+        int marketDepthSubscribedToExchange = this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId];
+        if (marketDepthSubscribedToExchange == 1) {
+          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId] = true;
+        }
+        auto exchangeSubscriptionId = wsConnectionPtr->url;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
+        std::vector<std::string> correlationIdList_2 =
+            this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).at(symbolId);
+        correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
+      }
+    }
+    auto timeReceived = UtilTime::now();
+    Event event;
+    event.setType(Event::Type::SUBSCRIPTION_STATUS);
+    std::vector<Message> messageList;
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList(correlationIdList);
+    message.setType(Message::Type::SUBSCRIPTION_STARTED);
+    messageList.emplace_back(std::move(message));
+    event.setMessageList(messageList);
+    this->eventHandler(event, nullptr);
+  }
+  void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
+    this->sequenceByConnectionIdMap.erase(wsConnectionPtr->id);
+    MarketDataService::onClose(wsConnectionPtr, ec);
+  }
+  bool checkSequence(std::shared_ptr<WsConnection> wsConnectionPtr, int sequence) {
+    if (this->sequenceByConnectionIdMap.find(wsConnectionPtr->id) == this->sequenceByConnectionIdMap.end()) {
+      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->exchangeName)) {
+        CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = " + toString(*wsConnectionPtr));
+        return false;
+      }
+      this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnectionPtr->id, sequence));
+      return true;
+    } else {
+      if (sequence - this->sequenceByConnectionIdMap[wsConnectionPtr->id] == 1) {
+        this->sequenceByConnectionIdMap[wsConnectionPtr->id] = sequence;
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+  void onOutOfSequence(std::shared_ptr<WsConnection> wsConnectionPtr, int sequence, boost::beast::string_view textMessageView, const TimePoint& timeReceived,
+                       const std::string& exchangeSubscriptionId) {
+    int previous = 0;
+    if (this->sequenceByConnectionIdMap.find(wsConnectionPtr->id) != this->sequenceByConnectionIdMap.end()) {
+      previous = this->sequenceByConnectionIdMap[wsConnectionPtr->id];
+    }
+    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND,
+                  "out of sequence: previous = " + toString(previous) + ", current = " + toString(sequence) + ", connection = " + toString(*wsConnectionPtr) +
+                      ", textMessage = " + std::string(textMessageView) + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived));
+    ErrorCode ec;
+    this->close(wsConnectionPtr, beast::websocket::close_code::normal, beast::websocket::close_reason(beast::websocket::close_code::normal, "out of sequence"),
+                ec);
+    if (ec) {
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+    }
+    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnectionPtr->id] = false;
+  }
+#endif
   void processTextMessage(
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
@@ -103,14 +208,25 @@ class MarketDataServiceGemini : public MarketDataService {
     auto type = std::string(document["type"].GetString());
     if (this->sessionOptions.enableCheckSequence) {
       int sequence = std::stoi(document["socket_sequence"].GetString());
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       if (!this->checkSequence(wsConnection, sequence)) {
         this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, "");
         return;
       }
+#else
+      if (!this->checkSequence(wsConnectionPtr, sequence)) {
+        this->onOutOfSequence(wsConnectionPtr, sequence, textMessageView, timeReceived, "");
+        return;
+      }
+#endif
     }
     if (type == "update" && !document["events"].GetArray().Empty()) {
       MarketDataMessage marketDataMessage;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       marketDataMessage.exchangeSubscriptionId = wsConnection.url;
+#else
+      marketDataMessage.exchangeSubscriptionId = wsConnectionPtr->url;
+#endif
       TimePoint time = timeReceived;
       auto it = document.FindMember("timestampms");
       if (it != document.MemberEnd()) {
@@ -194,39 +310,6 @@ class MarketDataServiceGemini : public MarketDataService {
       url += parameter + "=true";
     }
     return url;
-  }
-  bool checkSequence(const WsConnection& wsConnection, int sequence) {
-    if (this->sequenceByConnectionIdMap.find(wsConnection.id) == this->sequenceByConnectionIdMap.end()) {
-      if (sequence != this->sessionConfigs.getInitialSequenceByExchangeMap().at(this->exchangeName)) {
-        CCAPI_LOGGER_WARN("incorrect initial sequence, wsConnection = " + toString(wsConnection));
-        return false;
-      }
-      this->sequenceByConnectionIdMap.insert(std::pair<std::string, int>(wsConnection.id, sequence));
-      return true;
-    } else {
-      if (sequence - this->sequenceByConnectionIdMap[wsConnection.id] == 1) {
-        this->sequenceByConnectionIdMap[wsConnection.id] = sequence;
-        return true;
-      } else {
-        return false;
-      }
-    }
-  }
-  void onOutOfSequence(WsConnection& wsConnection, int sequence, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
-                       const std::string& exchangeSubscriptionId) {
-    int previous = 0;
-    if (this->sequenceByConnectionIdMap.find(wsConnection.id) != this->sequenceByConnectionIdMap.end()) {
-      previous = this->sequenceByConnectionIdMap[wsConnection.id];
-    }
-    this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND,
-                  "out of sequence: previous = " + toString(previous) + ", current = " + toString(sequence) + ", connection = " + toString(wsConnection) +
-                      ", textMessage = " + textMessage + ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived));
-    ErrorCode ec;
-    this->close(wsConnection, hdl, websocketpp::close::status::normal, "out of sequence", ec);
-    if (ec) {
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
-    }
-    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
   }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
