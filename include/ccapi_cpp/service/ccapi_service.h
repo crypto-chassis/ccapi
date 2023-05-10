@@ -378,31 +378,31 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(host, port, streamPtr));
     CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
-    tcp::resolver newResolver(*this->serviceContextPtr->ioContextPtr);
-    newResolver.async_resolve(
-        host, port,
-        beast::bind_front_handler(&Service::onResolve, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds));
+    std::shared_ptr<tcp::resolver> newResolverPtr(new tcp::resolver(*this->serviceContextPtr->ioContextPtr));
+    newResolverPtr->async_resolve(host, port,
+                                  beast::bind_front_handler(&Service::onResolve, shared_from_this(), httpConnectionPtr, newResolverPtr, req, errorHandler,
+                                                            responseHandler, timeoutMilliSeconds));
   }
-  void onResolve(std::shared_ptr<HttpConnection> httpConnectionPtr, http::request<http::string_body> req,
+  void onResolve(std::shared_ptr<HttpConnection> httpConnectionPtr, std::shared_ptr<tcp::resolver> newResolverPtr, http::request<http::string_body> req,
                  std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
-                 long timeoutMilliSeconds, beast::error_code ec, tcp::resolver::results_type tcpResolverResults) {
+                 long timeoutMilliSeconds, beast::error_code ec, tcp::resolver::results_type tcpNewResolverResults) {
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       errorHandler(ec);
       return;
     }
-    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds, tcpResolverResultsRest);
+    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds, tcpNewResolverResults);
   }
   void startConnect(std::shared_ptr<HttpConnection> httpConnectionPtr, http::request<http::string_body> req,
                     std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
-                    long timeoutMilliSeconds, tcp::resolver::results_type tcpResolverResults) {
+                    long timeoutMilliSeconds, tcp::resolver::results_type tcpNewResolverResults) {
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     if (timeoutMilliSeconds > 0) {
       beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliSeconds));
     }
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
-        tcpResolverResults, beast::bind_front_handler(&Service::onConnect, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler));
+        tcpNewResolverResults, beast::bind_front_handler(&Service::onConnect, shared_from_this(), httpConnectionPtr, req, errorHandler, responseHandler));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
   void onConnect(std::shared_ptr<HttpConnection> httpConnectionPtr, http::request<http::string_body> req,
@@ -1215,8 +1215,22 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_DEBUG("connection initialization on id " + wsConnection.id);
     std::string url = wsConnection.url;
     CCAPI_LOGGER_DEBUG("url = " + url);
-    this->startConnectWs(wsConnectionPtr, this->sessionOptions.websocketConnectTimeoutMilliSeconds, this->tcpResolverResultsWs);
+    this->startResolveWs(wsConnectionPtr);
     CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  void startResolveWs(std::shared_ptr<WsConnection> wsConnectionPtr) {
+    std::shared_ptr<tcp::resolver> newResolverPtr(new tcp::resolver(*this->serviceContextPtr->ioContextPtr));
+    newResolverPtr->async_resolve(wsConnectionPtr->host, wsConnectionPtr->port,
+                                  beast::bind_front_handler(&Service::onResolveWs, shared_from_this(), wsConnectionPtr, newResolverPtr));
+  }
+  void onResolveWs(std::shared_ptr<WsConnection> wsConnectionPtr, std::shared_ptr<tcp::resolver> newResolverPtr, beast::error_code ec,
+                   tcp::resolver::results_type tcpNewResolverResultsWs) {
+    if (ec) {
+      CCAPI_LOGGER_TRACE("fail");
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "dns resolve", wsConnectionPtr->correlationIdList);
+      return;
+    }
+    this->startConnectWs(wsConnectionPtr, this->sessionOptions.websocketConnectTimeoutMilliSeconds, tcpNewResolverResultsWs);
   }
   void startConnectWs(std::shared_ptr<WsConnection> wsConnectionPtr, long timeoutMilliSeconds, tcp::resolver::results_type tcpResolverResults) {
     beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>& stream = *wsConnectionPtr->streamPtr;
