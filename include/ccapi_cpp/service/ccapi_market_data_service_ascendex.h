@@ -46,7 +46,11 @@ class MarketDataServiceAscendex : public MarketDataService {
       }
     }
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, R"({"op":"ping"})", ec); }
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -73,8 +77,19 @@ class MarketDataServiceAscendex : public MarketDataService {
     }
     return sendStringList;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
-                          std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     std::string m = document["m"].GetString();
@@ -147,7 +162,11 @@ class MarketDataServiceAscendex : public MarketDataService {
       }
     } else if (m == "ping") {
       ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       this->send(hdl, R"({ "op": "pong" })", wspp::frame::opcode::text, ec);
+#else
+      this->send(wsConnectionPtr, R"({ "op": "pong" })", ec);
+#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "pong");
       }
@@ -196,7 +215,11 @@ class MarketDataServiceAscendex : public MarketDataService {
         std::string sendString = stringBuffer.GetString();
         ErrorCode ec;
         CCAPI_LOGGER_TRACE(sendString);
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
         this->send(hdl, sendString, wspp::frame::opcode::text, ec);
+#else
+        this->send(wsConnectionPtr, sendString, ec);
+#endif
         if (ec) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }

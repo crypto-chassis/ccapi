@@ -37,6 +37,7 @@ class MarketDataServiceDeribit : public MarketDataService {
 
  private:
 #endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void onOpen(wspp::connection_hdl hdl) override {
     MarketDataService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
@@ -58,6 +59,37 @@ class MarketDataServiceDeribit : public MarketDataService {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
     }
   }
+  void onClose(wspp::connection_hdl hdl) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
+    MarketDataService::onClose(hdl);
+  }
+#else
+  void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
+    MarketDataService::onOpen(wsConnectionPtr);
+    rj::Document document;
+    document.SetObject();
+    rj::Document::AllocatorType& allocator = document.GetAllocator();
+    auto now = UtilTime::now();
+    this->appendParam(document, allocator, std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count(), "public/set_heartbeat",
+                      {
+                          {"interval", "10"},
+                      });
+    rj::StringBuffer stringBuffer;
+    rj::Writer<rj::StringBuffer> writer(stringBuffer);
+    document.Accept(writer);
+    std::string msg = stringBuffer.GetString();
+    ErrorCode ec;
+    this->send(wsConnectionPtr, msg, ec);
+    if (ec) {
+      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
+    }
+  }
+  void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
+    this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnectionPtr->id);
+    MarketDataService::onClose(wsConnectionPtr, ec);
+  }
+#endif
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -141,8 +173,19 @@ class MarketDataServiceDeribit : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
-                          std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto it = document.FindMember("result");
@@ -261,7 +304,11 @@ class MarketDataServiceDeribit : public MarketDataService {
           document.Accept(writer);
           std::string msg = stringBuffer.GetString();
           ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
           this->send(hdl, msg, wspp::frame::opcode::text, ec);
+#else
+          this->send(wsConnectionPtr, msg, ec);
+#endif
           if (ec) {
             this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
           }
@@ -467,12 +514,6 @@ class MarketDataServiceDeribit : public MarketDataService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  void onClose(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-  }
-
   std::map<std::string, std::set<int64_t>> subscriptionJsonrpcIdSetByConnectionIdMap;
   std::string restTarget;
 };

@@ -17,14 +17,14 @@ class ExecutionManagementServiceKucoinFutures : public ExecutionManagementServic
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-#else
-    try {
-      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-#endif
+    // #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+    // #else
+    //     try {
+    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #endif
     this->apiKeyName = CCAPI_KUCOIN_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_KUCOIN_FUTURES_API_SECRET;
     this->apiPassphraseName = CCAPI_KUCOIN_FUTURES_API_PASSPHRASE;

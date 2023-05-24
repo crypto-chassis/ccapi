@@ -39,11 +39,6 @@ class MarketDataServiceBitmart : public MarketDataService {
 
  private:
 #endif
-  void onClose(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->subscriptionStartedByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-  }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -57,7 +52,20 @@ class MarketDataServiceBitmart : public MarketDataService {
       }
     }
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
+  void onClose(wspp::connection_hdl hdl) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    this->subscriptionStartedByConnectionIdChannelIdSymbolIdMap.erase(wsConnection.id);
+    MarketDataService::onClose(hdl);
+  }
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
+  void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
+    this->subscriptionStartedByConnectionIdChannelIdSymbolIdMap.erase(wsConnectionPtr->id);
+    MarketDataService::onClose(wsConnectionPtr, ec);
+  }
+#endif
   bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*1000")); }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
@@ -88,8 +96,19 @@ class MarketDataServiceBitmart : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
-                          std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     if (textMessage != "pong") {
       rj::Document document;
       document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());

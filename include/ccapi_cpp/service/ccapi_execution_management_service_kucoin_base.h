@@ -14,11 +14,16 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
 
  protected:
 #endif
+  bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\"")); }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void onOpen(wspp::connection_hdl hdl) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     wsConnection.status = WsConnection::Status::OPEN;
   }
-  bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"200000\"")); }
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    auto now = UtilTime::now();
+    this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
+  }
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     http::request<http::string_body> req;
@@ -66,10 +71,56 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         },
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+#else
+  void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override { wsConnectionPtr->status = WsConnection::Status::OPEN; }
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     auto now = UtilTime::now();
-    this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
+    this->send(wsConnectionPtr, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", ec);
   }
+  void prepareConnect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
+    auto now = UtilTime::now();
+    http::request<http::string_body> req;
+    req.set(http::field::host, this->hostRest);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.method(http::verb::post);
+    req.target("/api/v1/bullet-private");
+    auto credential = wsConnectionPtr->subscriptionList.at(0).getCredential();
+    if (credential.empty()) {
+      credential = this->credentialDefault;
+    }
+    this->prepareReq(req, now, credential);
+    this->signRequest(req, "", credential);
+    this->sendRequest(
+        req,
+        [wsConnectionPtr, that = shared_from_base<ExecutionManagementServiceKucoinBase>()](const beast::error_code& ec) { that->onFail_(wsConnectionPtr); },
+        [wsConnectionPtr, that = shared_from_base<ExecutionManagementServiceKucoinBase>()](const http::response<http::string_body>& res) {
+          int statusCode = res.result_int();
+          std::string body = res.body();
+          if (statusCode / 100 == 2) {
+            std::string urlWebsocketBase;
+            try {
+              rj::Document document;
+              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
+              const rj::Value& instanceServer = document["data"]["instanceServers"][0];
+              urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
+              urlWebsocketBase += "?token=";
+              urlWebsocketBase += std::string(document["data"]["token"].GetString());
+              wsConnectionPtr->url = urlWebsocketBase;
+              that->connect(wsConnectionPtr);
+              that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
+                  {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},
+                  {"pingTimeout", std::string(instanceServer["pingTimeout"].GetString())},
+              });
+              return;
+            } catch (const std::runtime_error& e) {
+              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+            }
+          }
+          that->onFail_(wsConnectionPtr);
+        },
+        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+  }
+#endif
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -356,6 +407,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto subscription = wsConnection.subscriptionList.at(0);
@@ -366,8 +418,27 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
+#else
+  void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                     const TimePoint& timeReceived) override {
+    std::string textMessage(textMessageView);
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
+    if (!event.getMessageList().empty()) {
+      this->eventHandler(event, nullptr);
+    }
+  }
+#endif
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
   Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
                     const rj::Document& document, const TimePoint& timeReceived) {
+#else
+  Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
+                    const rj::Document& document, const TimePoint& timeReceived) {
+    std::string textMessage(textMessageView);
+    const WsConnection& wsConnection = *wsConnectionPtr;
+#endif
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -457,7 +528,11 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
             this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
       }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       ExecutionManagementService::onOpen(hdl);
+#else
+      ExecutionManagementService::onOpen(wsConnectionPtr);
+#endif
     } else if (type == "pong") {
       auto now = UtilTime::now();
       this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = now;

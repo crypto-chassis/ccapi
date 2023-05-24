@@ -43,6 +43,15 @@ class MarketDataServiceKucoinBase : public MarketDataService {
       }
     }
   }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+    auto now = UtilTime::now();
+    this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
+  }
+  void onOpen(wspp::connection_hdl hdl) override {
+    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
+    wsConnection.status = WsConnection::Status::OPEN;
+  }
   void prepareConnect(WsConnection& wsConnection) override {
     http::request<http::string_body> req;
     req.set(http::field::host, this->hostRest);
@@ -88,14 +97,53 @@ class MarketDataServiceKucoinBase : public MarketDataService {
         },
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
+#else
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     auto now = UtilTime::now();
-    this->send(hdl, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", wspp::frame::opcode::text, ec);
+    this->send(wsConnectionPtr, "{\"id\":\"" + std::to_string(UtilTime::getUnixTimestamp(now)) + "\",\"type\":\"ping\"}", ec);
   }
-  void onOpen(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    wsConnection.status = WsConnection::Status::OPEN;
+  void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override { wsConnectionPtr->status = WsConnection::Status::OPEN; }
+  void prepareConnect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
+    http::request<http::string_body> req;
+    req.set(http::field::host, this->hostRest);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.set(beast::http::field::content_type, "application/json");
+    req.method(http::verb::post);
+    req.target("/api/v1/bullet-public");
+    this->sendRequest(
+        req, [wsConnectionPtr, that = shared_from_base<MarketDataServiceKucoinBase>()](const beast::error_code& ec) { that->onFail_(wsConnectionPtr); },
+        [wsConnectionPtr, that = shared_from_base<MarketDataServiceKucoinBase>()](const http::response<http::string_body>& res) {
+          int statusCode = res.result_int();
+          std::string body = res.body();
+          if (statusCode / 100 == 2) {
+            std::string urlWebsocketBase;
+            try {
+              rj::Document document;
+              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
+              const rj::Value& instanceServer = document["data"]["instanceServers"][0];
+              urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
+              urlWebsocketBase += "?token=";
+              urlWebsocketBase += std::string(document["data"]["token"].GetString());
+              wsConnectionPtr->url = urlWebsocketBase;
+              that->connect(wsConnectionPtr);
+              for (const auto& subscription : wsConnectionPtr->subscriptionList) {
+                auto instrument = subscription.getInstrument();
+                that->subscriptionStatusByInstrumentGroupInstrumentMap[wsConnectionPtr->group][instrument] = Subscription::Status::SUBSCRIBING;
+              }
+              that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
+                  {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},
+                  {"pingTimeout", std::string(instanceServer["pingInterval"].GetString())},
+              });
+              return;
+            } catch (const std::runtime_error& e) {
+              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
+            }
+          }
+          that->onFail_(wsConnectionPtr);
+        },
+        this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
+#endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     std::map<std::string, std::vector<std::string>> symbolListByTopicMap;
@@ -189,8 +237,19 @@ class MarketDataServiceKucoinBase : public MarketDataService {
       input[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
     }
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
-                          std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsObject()) {
@@ -321,9 +380,14 @@ class MarketDataServiceKucoinBase : public MarketDataService {
             this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
                 this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
           }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
           Service::onOpen(hdl);
           WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
           this->startSubscribe(wsConnection);
+#else
+          Service::onOpen(wsConnectionPtr);
+          this->startSubscribe(wsConnectionPtr);
+#endif
         } else if (type == "pong") {
           auto now = UtilTime::now();
           this->lastPongTpByMethodByConnectionIdMap[wsConnection.id][PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = now;
