@@ -94,16 +94,27 @@ class WsConnection CCAPI_FINAL {
     std::transform(subscriptionList.cbegin(), subscriptionList.cend(), this->correlationIdList.begin(),
                    [](Subscription subscription) { return subscription.getCorrelationId(); });
     auto splitted1 = UtilString::split(url, "://");
-    auto foundSlash = splitted1[1].find_first_of('/');
-    auto foundQuestionMark = splitted1[1].find_first_of('?');
+    auto foundSlash = splitted1.at(1).find_first_of('/');
+    auto foundQuestionMark = splitted1.at(1).find_first_of('?');
     if (foundSlash == std::string::npos && foundQuestionMark == std::string::npos) {
       this->path = "/";
     } else if (foundSlash == std::string::npos && foundQuestionMark != std::string::npos) {
-      this->path = "/" + splitted1[1].substr(foundQuestionMark);
+      this->path = "/" + splitted1.at(1).substr(foundQuestionMark);
     } else if (foundSlash != std::string::npos && foundQuestionMark == std::string::npos) {
-      this->path = splitted1[1].substr(foundSlash);
+      this->path = splitted1.at(1).substr(foundSlash);
     } else {
-      this->path = splitted1[1].substr(foundSlash);
+      this->path = splitted1.at(1).substr(foundSlash);
+    }
+    auto splitted2 = UtilString::split(UtilString::split(splitted1.at(1), "/").at(0), ":");
+    this->host = splitted2.at(0);
+    if (splitted2.size() == 2) {
+      this->port = splitted2.at(1);
+    } else {
+      if (splitted1.at(0) == "https" || splitted1.at(0) == "wss") {
+        this->port = CCAPI_HTTPS_PORT_DEFAULT;
+      } else {
+        this->port = CCAPI_HTTP_PORT_DEFAULT;
+      }
     }
   }
   WsConnection() {}
@@ -166,6 +177,8 @@ class WsConnection CCAPI_FINAL {
   beast::websocket::close_reason remoteCloseReason;
   std::string hostHttpHeaderValue;
   std::string path;
+  std::string host;
+  std::string port;
 };
 } /* namespace ccapi */
 #endif

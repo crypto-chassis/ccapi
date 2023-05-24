@@ -11,7 +11,7 @@ class ExecutionManagementServiceKrakenFuturesTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceKrakenFutures>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                              wspp::lib::make_shared<ServiceContext>());
+                                                                              std::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_KRAKEN_FUTURES_API_KEY, "Bx0+DtmSNWLNXQVaJ6dcvaWwEKitPU4MadMhEltVe9aSY/nfhkab46IJ"},
         {CCAPI_KRAKEN_FUTURES_API_SECRET, "oMpjprZZIUvn8+0B55zgO3ncp448AI+a7KFwo5lHSmf650mawBQ7ez5pNvDkhRlsHDZuPM+gvPs6dDB8k+Skr9gw"},
@@ -436,7 +436,11 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, createEventFills) {
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+#else
+  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+#endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -479,7 +483,11 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, createEventOpenOrders) {
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+#else
+  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+#endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);

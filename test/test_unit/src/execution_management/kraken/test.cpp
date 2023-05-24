@@ -11,7 +11,7 @@ class ExecutionManagementServiceKrakenTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceKraken>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                       wspp::lib::make_shared<ServiceContext>());
+                                                                       std::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_KRAKEN_API_KEY, "uvgK51G7bnksHUgrU++Cib03e15cCRJQA9e1f30TPuhZ+BagVrb2WUNi"},
         {CCAPI_KRAKEN_API_SECRET, "q+INlIikVemcqFtJu9CZk0QIXBMYRFpwKblA/N9iP61uGCMpsMa06ycI8VuwdxeqAvXnGPAnMIBYeiY1AoG67w=="},
@@ -682,7 +682,11 @@ TEST_F(ExecutionManagementServiceKrakenTest, createEventOwnTrades) {
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+#else
+  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+#endif
   EXPECT_EQ(messageList.size(), 3);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -827,7 +831,11 @@ TEST_F(ExecutionManagementServiceKrakenTest, createEventOpenOrders) {
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(subscription, textMessage, document, this->now).getMessageList();
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+#else
+  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+#endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);

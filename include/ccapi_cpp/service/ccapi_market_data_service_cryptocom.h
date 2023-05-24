@@ -100,8 +100,19 @@ class MarketDataServiceCryptocom : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
-                          std::vector<MarketDataMessage>& marketDataMessageList) override {
+  void processTextMessage(
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
+#else
+      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
+#endif
+      ,
+      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#else
+    WsConnection& wsConnection = *wsConnectionPtr;
+    std::string textMessage(textMessageView);
+#endif
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto it = document.FindMember("id");
@@ -208,7 +219,11 @@ class MarketDataServiceCryptocom : public MarketDataService {
       } else if (method == "public/heartbeat") {
         std::string msg = R"({"id":)" + id + R"(,"method":"public/respond-heartbeat"})";
         ErrorCode ec;
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
         this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
+#else
+        this->send(wsConnectionPtr, msg, ec);
+#endif
         if (ec) {
           this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
         }

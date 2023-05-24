@@ -10,8 +10,8 @@ class ExecutionManagementServiceErisxTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceErisx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                      wspp::lib::make_shared<ServiceContext>());
+    this->service =
+        std::make_shared<ExecutionManagementServiceErisx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), std::make_shared<ServiceContext>());
     this->credential = {
         {CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4"},
         {CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},

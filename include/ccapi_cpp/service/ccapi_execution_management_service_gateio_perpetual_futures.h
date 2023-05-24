@@ -87,28 +87,42 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
     CCAPI_LOGGER_DEBUG("this->baseUrlWs = " + this->baseUrlWs);
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
-        wspp::lib::asio::post(this->serviceContextPtr->tlsClientPtr->get_io_service(),
-                              [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(), subscription]() mutable {
-                                auto now = UtilTime::now();
-                                subscription.setTimeSent(now);
-                                const auto& instrumentSet = subscription.getInstrumentSet();
-                                auto it = instrumentSet.begin();
-                                if (it != instrumentSet.end()) {
-                                  std::string settle;
-                                  std::string symbolId = *it;
-                                  if (UtilString::endsWith(symbolId, "_USD")) {
-                                    settle = "btc";
-                                  } else if (UtilString::endsWith(symbolId, "_USDT")) {
-                                    settle = "usdt";
-                                  }
-                                  auto credential = subscription.getCredential();
-                                  if (credential.empty()) {
-                                    credential = that->credentialDefault;
-                                  }
-                                  WsConnection wsConnection(that->baseUrlWs + settle, "", {subscription}, credential);
-                                  that->prepareConnect(wsConnection);
+        boost::asio::post(*this->serviceContextPtr->ioContextPtr,
+                          [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(), subscription]() mutable {
+                            auto now = UtilTime::now();
+                            subscription.setTimeSent(now);
+                            const auto& instrumentSet = subscription.getInstrumentSet();
+                            auto it = instrumentSet.begin();
+                            if (it != instrumentSet.end()) {
+                              std::string settle;
+                              std::string symbolId = *it;
+                              if (UtilString::endsWith(symbolId, "_USD")) {
+                                settle = "btc";
+                              } else if (UtilString::endsWith(symbolId, "_USDT")) {
+                                settle = "usdt";
+                              }
+                              auto credential = subscription.getCredential();
+                              if (credential.empty()) {
+                                credential = that->credentialDefault;
+                              }
+#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+                              WsConnection wsConnection(that->baseUrlWs + settle, "", {subscription}, credential);
+                              that->prepareConnect(wsConnection);
+#else
+                              std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(nullptr);
+                                try {
+                                  streamPtr = that->createStream<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(that->serviceContextPtr->ioContextPtr, that->serviceContextPtr->sslContextPtr, that->hostWs);
+                                } catch (const beast::error_code& ec) {
+                                  CCAPI_LOGGER_TRACE("fail");
+                                  that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
+                                  return;
                                 }
-                              });
+                                std::shared_ptr<WsConnection> wsConnectionPtr(new WsConnection(that->baseUrlWs + settle, "", {subscription}, credential, streamPtr));
+                                CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
+                                that->prepareConnect(wsConnectionPtr);
+#endif
+                            }
+                          });
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
