@@ -34,7 +34,7 @@ jobs:
                           {"type": "test", "release": "patch"},
                           {"type": "minor", "release": "minor"},
                           {"type": "major", "release": "major"},
-                          {"type": "dev", "release": "patch"},
+                          {"type": "dev", "release": "patch"}
                         ]
                       }], ["@semantic-release/release-notes-generator", {
                         "preset": "conventionalcommits"
