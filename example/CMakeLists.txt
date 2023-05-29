@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 set(NAME example)
 project(${NAME})
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 if(NOT APPLE AND NOT MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()

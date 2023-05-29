@@ -76,7 +76,7 @@ option(BUILD_PYTHON "Build Python Library" OFF)
 option(INSTALL_PYTHON "Install Python Library" OFF)
 message(STATUS "Build Python: ${BUILD_PYTHON}")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
