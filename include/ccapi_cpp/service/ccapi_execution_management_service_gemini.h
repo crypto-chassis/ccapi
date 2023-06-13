@@ -315,16 +315,16 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       credential = this->credentialDefault;
     }
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    wsConnectionPtr->url += "?heartbeat=true";
+    wsConnectionPtr->appendUrlPart("?heartbeat=true");
     if (fieldSet == std::set<std::string>({CCAPI_EM_PRIVATE_TRADE})) {
-      wsConnectionPtr->url += "&eventTypeFilter=fill";
+      wsConnectionPtr->appendUrlPart("&eventTypeFilter=fill");
     }
     if (!instrumentSet.empty()) {
       for (const auto& instrument : instrumentSet) {
-        wsConnectionPtr->url += "&symbolFilter=" + instrument;
+        wsConnectionPtr->appendUrlPart("&symbolFilter=" + instrument);
       }
     }
-    wsConnectionPtr->url += "&apiSessionFilter=" + apiKey;
+    wsConnectionPtr->appendUrlPart("&apiSessionFilter=" + apiKey);
     wsConnectionPtr->headers.insert({"X-GEMINI-APIKEY", apiKey});
     int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     std::string payload = R"({"request":"/v1/order/events","nonce":)" + std::to_string(nonce) + "}";

@@ -379,6 +379,8 @@ class Service : public std::enable_shared_from_this<Service> {
     std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(host, port, streamPtr));
     CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
     std::shared_ptr<tcp::resolver> newResolverPtr(new tcp::resolver(*this->serviceContextPtr->ioContextPtr));
+    CCAPI_LOGGER_TRACE("host = " + host);
+    CCAPI_LOGGER_TRACE("port = " + port);
     newResolverPtr->async_resolve(host, port,
                                   beast::bind_front_handler(&Service::onResolve, shared_from_this(), httpConnectionPtr, newResolverPtr, req, errorHandler,
                                                             responseHandler, timeoutMilliSeconds));
@@ -500,19 +502,10 @@ class Service : public std::enable_shared_from_this<Service> {
   }
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
 #else
-  template <>
-  std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> createStream(std::shared_ptr<net::io_context> iocPtr,
-                                                                                               std::shared_ptr<net::ssl::context> ctxPtr,
-                                                                                               const std::string& host) {
-    CCAPI_LOGGER_TRACE("host = " + host)
+  std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> createWsStream(std::shared_ptr<net::io_context> iocPtr,
+                                                                                                 std::shared_ptr<net::ssl::context> ctxPtr) {
     std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(
         new beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>(*iocPtr, *ctxPtr));
-    // Set SNI Hostname (many hosts need this to handshake successfully)
-    if (!SSL_set_tlsext_host_name(streamPtr->next_layer().native_handle(), host.c_str())) {
-      beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-      CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
-      throw ec;
-    }
     return streamPtr;
   }
 #endif
@@ -1213,13 +1206,16 @@ class Service : public std::enable_shared_from_this<Service> {
     WsConnection& wsConnection = *wsConnectionPtr;
     wsConnection.status = WsConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on id " + wsConnection.id);
-    std::string url = wsConnection.url;
+    std::string url = wsConnection.getUrl();
     CCAPI_LOGGER_DEBUG("url = " + url);
     this->startResolveWs(wsConnectionPtr);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void startResolveWs(std::shared_ptr<WsConnection> wsConnectionPtr) {
     std::shared_ptr<tcp::resolver> newResolverPtr(new tcp::resolver(*this->serviceContextPtr->ioContextPtr));
+    CCAPI_LOGGER_TRACE("wsConnectionPtr = " + wsConnectionPtr->toString());
+    CCAPI_LOGGER_TRACE("wsConnectionPtr->host = " + wsConnectionPtr->host);
+    CCAPI_LOGGER_TRACE("wsConnectionPtr->port = " + wsConnectionPtr->port);
     newResolverPtr->async_resolve(wsConnectionPtr->host, wsConnectionPtr->port,
                                   beast::bind_front_handler(&Service::onResolveWs, shared_from_this(), wsConnectionPtr, newResolverPtr));
   }
@@ -1237,6 +1233,14 @@ class Service : public std::enable_shared_from_this<Service> {
     if (timeoutMilliSeconds > 0) {
       beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliSeconds));
     }
+    // Set SNI Hostname (many hosts need this to handshake successfully)
+    CCAPI_LOGGER_TRACE("wsConnectionPtr->host = " + wsConnectionPtr->host)
+    if (!SSL_set_tlsext_host_name(stream.next_layer().native_handle(), wsConnectionPtr->host.c_str())) {
+      beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
+      CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "set SNI Hostname", wsConnectionPtr->correlationIdList);
+      return;
+    }
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(tcpResolverResults, beast::bind_front_handler(&Service::onConnectWs, shared_from_this(), wsConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
@@ -1250,7 +1254,8 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     CCAPI_LOGGER_TRACE("connected");
     CCAPI_LOGGER_TRACE("ep.port() = " + std::to_string(ep.port()));
-    wsConnectionPtr->hostHttpHeaderValue = this->hostWs + ':' + std::to_string(ep.port());
+    wsConnectionPtr->hostHttpHeaderValue = wsConnectionPtr->host + ':' + std::to_string(ep.port());
+    CCAPI_LOGGER_TRACE("wsConnectionPtr->hostHttpHeaderValue = " + wsConnectionPtr->hostHttpHeaderValue);
     beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>& stream = *wsConnectionPtr->streamPtr;
     beast::get_lowest_layer(stream).socket().set_option(tcp::no_delay(true));
     CCAPI_LOGGER_TRACE("before ssl async_handshake");
@@ -1348,7 +1353,7 @@ class Service : public std::enable_shared_from_this<Service> {
     WsConnection& wsConnection = *wsConnectionPtr;
     wsConnection.status = WsConnection::Status::OPEN;
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " established");
-    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
+    auto urlBase = UtilString::split(wsConnection.getUrl(), "?").at(0);
     this->connectNumRetryOnFailByConnectionUrlMap[urlBase] = 0;
     Event event;
     event.setType(Event::Type::SESSION_STATUS);
@@ -1360,7 +1365,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setCorrelationIdList(correlationIdList);
     Element element;
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
-    element.insert(CCAPI_CONNECTION_URL, wsConnection.url);
+    element.insert(CCAPI_CONNECTION_URL, wsConnection.getUrl());
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event, nullptr);
@@ -1427,7 +1432,7 @@ class Service : public std::enable_shared_from_this<Service> {
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionByIdMap.erase(thisWsConnection.id);
-    auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
+    auto urlBase = UtilString::split(thisWsConnection.getUrl(), "?").at(0);
     long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
     CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(thisWsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
@@ -1460,8 +1465,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::shared_ptr<WsConnection> thatWsConnectionPtr = wsConnectionPtr;
     std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(nullptr);
     try {
-      streamPtr = this->createStream<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(this->serviceContextPtr->ioContextPtr,
-                                                                                                     this->serviceContextPtr->sslContextPtr, this->hostWs);
+      streamPtr = this->createWsStream(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr);
     } catch (const beast::error_code& ec) {
       throw ec;
     }
@@ -1520,7 +1524,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
-    element.insert(CCAPI_CONNECTION_URL, wsConnection.url);
+    element.insert(CCAPI_CONNECTION_URL, wsConnection.getUrl());
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
     std::vector<std::string> correlationIdList;

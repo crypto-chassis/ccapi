@@ -131,7 +131,7 @@ class MarketDataServiceGemini : public MarketDataService {
         if (marketDepthSubscribedToExchange == 1) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId] = true;
         }
-        auto exchangeSubscriptionId = wsConnectionPtr->url;
+        auto exchangeSubscriptionId = wsConnectionPtr->getUrl();
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
         std::vector<std::string> correlationIdList_2 =
@@ -225,7 +225,7 @@ class MarketDataServiceGemini : public MarketDataService {
 #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
       marketDataMessage.exchangeSubscriptionId = wsConnection.url;
 #else
-      marketDataMessage.exchangeSubscriptionId = wsConnectionPtr->url;
+      marketDataMessage.exchangeSubscriptionId = wsConnectionPtr.getUrl();
 #endif
       TimePoint time = timeReceived;
       auto it = document.FindMember("timestampms");
