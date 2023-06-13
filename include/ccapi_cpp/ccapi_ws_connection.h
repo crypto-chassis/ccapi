@@ -93,29 +93,7 @@ class WsConnection CCAPI_FINAL {
     this->correlationIdList.reserve(subscriptionList.size());
     std::transform(subscriptionList.cbegin(), subscriptionList.cend(), this->correlationIdList.begin(),
                    [](Subscription subscription) { return subscription.getCorrelationId(); });
-    auto splitted1 = UtilString::split(url, "://");
-    auto foundSlash = splitted1.at(1).find_first_of('/');
-    auto foundQuestionMark = splitted1.at(1).find_first_of('?');
-    if (foundSlash == std::string::npos && foundQuestionMark == std::string::npos) {
-      this->path = "/";
-    } else if (foundSlash == std::string::npos && foundQuestionMark != std::string::npos) {
-      this->path = "/" + splitted1.at(1).substr(foundQuestionMark);
-    } else if (foundSlash != std::string::npos && foundQuestionMark == std::string::npos) {
-      this->path = splitted1.at(1).substr(foundSlash);
-    } else {
-      this->path = splitted1.at(1).substr(foundSlash);
-    }
-    auto splitted2 = UtilString::split(UtilString::split(splitted1.at(1), "/").at(0), ":");
-    this->host = splitted2.at(0);
-    if (splitted2.size() == 2) {
-      this->port = splitted2.at(1);
-    } else {
-      if (splitted1.at(0) == "https" || splitted1.at(0) == "wss") {
-        this->port = CCAPI_HTTPS_PORT_DEFAULT;
-      } else {
-        this->port = CCAPI_HTTP_PORT_DEFAULT;
-      }
-    }
+    this->setUrlParts();
   }
   WsConnection() {}
   std::string toString() const {
@@ -127,7 +105,10 @@ class WsConnection CCAPI_FINAL {
     oss << streamPtr;
     std::string output = "WsConnection [id = " + id + ", url = " + url + ", group = " + group + ", subscriptionList = " + ccapi::toString(subscriptionList) +
                          ", credential = " + ccapi::toString(shortCredential) + ", status = " + statusToString(status) +
-                         ", headers = " + ccapi::toString(headers) + ", streamPtr = " + oss.str() + "]";
+                         ", headers = " + ccapi::toString(headers) + ", streamPtr = " + oss.str() + ", remoteCloseCode = " + std::to_string(remoteCloseCode) +
+                         ", remoteCloseReason = " + std::string(remoteCloseReason.reason.c_str()) +
+                         ", hostHttpHeaderValue = " + ccapi::toString(hostHttpHeaderValue) + ", path = " + ccapi::toString(path) +
+                         ", host = " + ccapi::toString(host) + ", port = " + ccapi::toString(port) + "]";
     return output;
   }
   enum class Status {
@@ -164,8 +145,43 @@ class WsConnection CCAPI_FINAL {
     }
     return output;
   }
+  std::string getUrl() const { return url; }
+  void setUrl(const std::string& url) {
+    this->url = url;
+    this->setUrlParts();
+  }
+  void setUrlParts() {
+    auto splitted1 = UtilString::split(url, "://");
+    if (splitted1.size() >= 2) {
+      auto foundSlash = splitted1.at(1).find_first_of('/');
+      auto foundQuestionMark = splitted1.at(1).find_first_of('?');
+      if (foundSlash == std::string::npos && foundQuestionMark == std::string::npos) {
+        this->path = "/";
+      } else if (foundSlash == std::string::npos && foundQuestionMark != std::string::npos) {
+        this->path = "/" + splitted1.at(1).substr(foundQuestionMark);
+      } else if (foundSlash != std::string::npos && foundQuestionMark == std::string::npos) {
+        this->path = splitted1.at(1).substr(foundSlash);
+      } else {
+        this->path = splitted1.at(1).substr(foundSlash);
+      }
+      auto splitted2 = UtilString::split(UtilString::split(splitted1.at(1), "/").at(0), ":");
+      this->host = splitted2.at(0);
+      if (splitted2.size() == 2) {
+        this->port = splitted2.at(1);
+      } else {
+        if (splitted1.at(0) == "https" || splitted1.at(0) == "wss") {
+          this->port = CCAPI_HTTPS_PORT_DEFAULT;
+        } else {
+          this->port = CCAPI_HTTP_PORT_DEFAULT;
+        }
+      }
+    }
+  }
+  void appendUrlPart(const std::string& urlPart) {
+    this->url += urlPart;
+    this->setUrlParts();
+  }
   std::string id;
-  std::string url;
   std::string group;
   std::vector<Subscription> subscriptionList;
   std::vector<std::string> correlationIdList;
@@ -179,6 +195,10 @@ class WsConnection CCAPI_FINAL {
   std::string path;
   std::string host;
   std::string port;
+#ifndef CCAPI_EXPOSE_INTERNAL
+ private:
+#endif
+  std::string url;
 };
 } /* namespace ccapi */
 #endif

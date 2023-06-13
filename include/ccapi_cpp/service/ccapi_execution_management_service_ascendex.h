@@ -369,7 +369,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
 #else
                               std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(nullptr);
                                 try {
-                                  streamPtr = that->createStream<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>>(that->serviceContextPtr->ioContextPtr, that->serviceContextPtr->sslContextPtr, that->hostWs);
+                                  streamPtr = that->createWsStream(that->serviceContextPtr->ioContextPtr, that->serviceContextPtr->sslContextPtr);
                                 } catch (const beast::error_code& ec) {
                                   CCAPI_LOGGER_TRACE("fail");
                                   that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()});

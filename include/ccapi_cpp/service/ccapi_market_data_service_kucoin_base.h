@@ -124,7 +124,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
               urlWebsocketBase += std::string(instanceServer["endpoint"].GetString());
               urlWebsocketBase += "?token=";
               urlWebsocketBase += std::string(document["data"]["token"].GetString());
-              wsConnectionPtr->url = urlWebsocketBase;
+              wsConnectionPtr->setUrl(urlWebsocketBase);
               that->connect(wsConnectionPtr);
               for (const auto& subscription : wsConnectionPtr->subscriptionList) {
                 auto instrument = subscription.getInstrument();

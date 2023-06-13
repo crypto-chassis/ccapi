@@ -367,7 +367,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
               if (document.HasMember("token") && document.HasMember("user_id")) {
                 std::string token = document["token"].GetString();
                 std::string userId = document["user_id"].GetString();
-                wsConnectionPtr->url = that->baseUrlWs;
+                wsConnectionPtr->setUrl(that->baseUrlWs);
                 that->connect(wsConnectionPtr);
                 that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
                     {"token", token},
