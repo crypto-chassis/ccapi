@@ -360,7 +360,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               std::string listenKey = document["listenKey"].GetString();
               std::string url = that->baseUrlWs + "?listenKey=" + listenKey;
-              wsConnectionPtr->url = url;
+              wsConnectionPtr->setUrl(url);
               that->connect(wsConnectionPtr);
               that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
                   {"listenKey", listenKey},
