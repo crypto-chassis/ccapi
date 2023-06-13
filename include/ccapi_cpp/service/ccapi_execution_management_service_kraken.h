@@ -361,7 +361,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               if (document.HasMember("result") && document["result"].HasMember("token")) {
                 std::string token = document["result"]["token"].GetString();
-                wsConnectionPtr->url = that->baseUrlWs;
+                wsConnectionPtr->setUrl(that->baseUrlWs);
                 that->connect(wsConnectionPtr);
                 that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
                     {"token", token},

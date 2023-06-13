@@ -76,7 +76,7 @@ Notification to Maintainers and Developers: we are aiming at an effort to transi
 ### C++
 * This library is header-only.
 * Example CMake: example/CMakeLists.txt.
-* Require C++14 and OpenSSL.
+* Require C++14 (prefer C++17) and OpenSSL.
 * Macros in the compiler command line:
   * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of [`include/ccapi_cpp/ccapi_session.h`](include/ccapi_cpp/ccapi_session.h).
 * Include directories:
