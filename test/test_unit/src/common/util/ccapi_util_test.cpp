@@ -1,3 +1,6 @@
+#include <chrono>
+#include <iostream>
+
 #include "ccapi_cpp/ccapi_util_private.h"
 #include "gtest/gtest.h"
 namespace ccapi {
@@ -144,5 +147,37 @@ TEST(UtilTimeTest, divideMilliSecondsStr_4) {
 TEST(UtilTimeTest, divideMilliSecondsStr_5) {
   std::string str("1634929946010.123");
   EXPECT_EQ(UtilTime::divideMilli(str), (std::make_pair<long long, long long>(1634929946010, 123000)));
+}
+TEST(UtilTimeTest, getISOTimestamp_1) {
+  std::string str("2019-11-21T01:38:23Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str);
+}
+TEST(UtilTimeTest, getISOTimestamp_2) {
+  std::string str("2019-11-21T01:38:23");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
+}
+TEST(UtilTimeTest, getISOTimestamp_3) {
+  std::string str("2019-11-21T01:38:23.123Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str);
+}
+TEST(UtilTimeTest, getISOTimestamp_4) {
+  std::string str("2019-11-21T01:38:23.123");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
+}
+TEST(UtilTimeTest, getISOTimestamp_5) {
+  std::string str("2019-11-21T01:38:23.123456Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str);
+}
+TEST(UtilTimeTest, getISOTimestamp_6) {
+  std::string str("2019-11-21T01:38:23.123456");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
+}
+TEST(UtilTimeTest, getISOTimestamp_7) {
+  std::string str("2019-11-21T01:38:23.123456789Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str);
+}
+TEST(UtilTimeTest, getISOTimestamp_8) {
+  std::string str("2019-11-21T01:38:23.123456789");
+  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
 }
 } /* namespace ccapi */

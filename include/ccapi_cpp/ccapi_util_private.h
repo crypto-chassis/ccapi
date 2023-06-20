@@ -1,5 +1,8 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
+#ifdef _WIN32
+#define timegm _mkgmtime
+#endif
 #include <unistd.h>
 
 #include <algorithm>
@@ -21,8 +24,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "ccapi_cpp/ccapi_date.h"
-#include "ccapi_cpp/ccapi_logger.h"
+#include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util.h"
 #include "openssl/evp.h"
 namespace ccapi {
@@ -302,7 +304,8 @@ class UtilTime CCAPI_FINAL {
     output += millisecondStr;
     return output;
   }
-  static void timePointToParts(TimePoint tp, int& year, int& month, int& day, int& hour, int& minute, int& second, int& millisecond) {
+  template <typename T = std::chrono::milliseconds>
+  static void timePointToParts(TimePoint tp, int& year, int& month, int& day, int& hour, int& minute, int& second, int& fractionalSecond) {
     auto epoch_sec = std::chrono::time_point_cast<std::chrono::seconds>(tp).time_since_epoch().count();
     auto day_sec = epoch_sec - (epoch_sec % 86400);
     auto days_since_epoch = day_sec / 86400;
@@ -317,28 +320,44 @@ class UtilTime CCAPI_FINAL {
     day = doy - (153 * mp + 2) / 5 + 1;
     month = mp + (mp < 10 ? 3 : -9);
     year += month <= 2;
-    auto in_day = tp - std::chrono::seconds(day_sec);
-    millisecond = std::chrono::time_point_cast<std::chrono::milliseconds>(in_day).time_since_epoch().count();
-    hour = millisecond / (60 * 60 * 1000);
-    millisecond -= hour * 60 * 60 * 1000;
-    minute = millisecond / (60 * 1000);
-    millisecond -= minute * 60 * 1000;
-    second = millisecond / 1000;
-    millisecond -= second * 1000;
+    auto in_day = tp - std::chrono::duration_cast<T>(std::chrono::seconds(day_sec));
+    auto in_day_sec_original = std::chrono::time_point_cast<std::chrono::seconds>(in_day).time_since_epoch().count();
+    auto in_day_sec = in_day_sec_original;
+    hour = in_day_sec / 3600;
+    in_day_sec -= hour * 3600;
+    minute = in_day_sec / 60;
+    second = in_day_sec - minute * 60;
+    auto in_day_fractional_second = in_day - std::chrono::duration_cast<T>(std::chrono::seconds(in_day_sec_original));
+    fractionalSecond = std::chrono::time_point_cast<T>(in_day_fractional_second).time_since_epoch().count();
   }
 
   static TimePoint now() {
     auto now = std::chrono::system_clock::now();
     return TimePoint(now);
   }
-  static TimePoint parse(const std::string& s, const std::string& fmt = "%FT%TZ") {
-    TimePoint tp;
-    std::istringstream ss{s};
-    ss >> date::parse(fmt, tp);
-    if (ss.fail()) {
-      CCAPI_LOGGER_FATAL("unable to parse time string");
+  static TimePoint parse(const std::string& input) {
+    std::tm time{};
+    time.tm_year = std::strtol(&input[0], nullptr, 10) - 1900;
+    time.tm_mon = std::strtol(&input[5], nullptr, 10) - 1;
+    time.tm_mday = std::strtol(&input[8], nullptr, 10);
+    time.tm_hour = std::strtol(&input[11], nullptr, 10);
+    time.tm_min = std::strtol(&input[14], nullptr, 10);
+    time.tm_sec = std::strtol(&input[17], nullptr, 10);
+    time.tm_isdst = 0;
+    long nanoseconds = 0;
+    if (input.length() > 20) {
+      std::string trail = input.substr(20);
+      if (trail.back() == 'Z') {
+        trail.pop_back();
+      }
+      if (!trail.empty()) {
+        if (trail.length() > 9) {
+          throw std::invalid_argument("input too long");
+        }
+        nanoseconds = std::stoll(UtilString::rightPadTo(trail, 9, '0'));
+      }
     }
-    return tp;
+    return TimePoint(std::chrono::system_clock::from_time_t(timegm(&time))) + std::chrono::nanoseconds(nanoseconds);
   }
   static TimePoint makeTimePoint(const std::pair<long long, long long>& timePair) {
     auto tp = TimePoint(std::chrono::duration<int64_t>(timePair.first));
@@ -385,8 +404,48 @@ class UtilTime CCAPI_FINAL {
     return std::make_pair(std::stoll(nanoseconds.substr(0, nanoseconds.length() - 9)), std::stoll(nanoseconds.substr(nanoseconds.length() - 9)));
   }
   template <typename T = std::chrono::nanoseconds>
-  static std::string getISOTimestamp(const TimePoint& tp, const std::string& fmt = "%FT%TZ") {
-    return date::format(fmt.c_str(), date::floor<T>(tp));
+  static std::string getISOTimestamp(const TimePoint& tp) {
+    int year, month, day, hour, minute, second, fractionalSecond;
+    timePointToParts<T>(tp, year, month, day, hour, minute, second, fractionalSecond);
+    std::string output;
+    output += std::to_string(year);
+    output += "-";
+    auto monthStr = std::to_string(month);
+    output += std::string(2 - monthStr.length(), '0');
+    output += monthStr;
+    output += "-";
+    auto dayStr = std::to_string(day);
+    output += std::string(2 - dayStr.length(), '0');
+    output += dayStr;
+    output += "T";
+    auto hourStr = std::to_string(hour);
+    output += std::string(2 - hourStr.length(), '0');
+    output += hourStr;
+    output += ":";
+    auto minuteStr = std::to_string(minute);
+    output += std::string(2 - minuteStr.length(), '0');
+    output += minuteStr;
+    output += ":";
+    auto secondStr = std::to_string(second);
+    output += std::string(2 - secondStr.length(), '0');
+    output += secondStr;
+    if (fractionalSecond > 0) {
+      output += ".";
+      auto fractionalSecondStr = std::to_string(fractionalSecond);
+      int padToLength;
+      if (std::is_same<T, std::chrono::nanoseconds>::value) {
+        padToLength = 9;
+      } else if (std::is_same<T, std::chrono::microseconds>::value) {
+        padToLength = 6;
+      } else if (std::is_same<T, std::chrono::milliseconds>::value) {
+        padToLength = 3;
+      }
+      output += std::string(9 - fractionalSecondStr.length(), '0');
+      UtilString::rtrimInPlace(fractionalSecondStr, '0');
+      output += fractionalSecondStr;
+    }
+    output += "Z";
+    return output;
   }
   static int getUnixTimestamp(const TimePoint& tp) {
     auto then = tp.time_since_epoch();
@@ -414,8 +473,7 @@ class UtilAlgorithm CCAPI_FINAL {
       case ShaVersion::SHA512:
         EVP_DigestInit_ex(context, EVP_sha512(), NULL);
         break;
-      default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+      default:;
     }
     EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length());
     unsigned char hash[EVP_MAX_MD_SIZE];

@@ -10,7 +10,7 @@ class Session;
 class EventHandler {
  public:
   virtual ~EventHandler() {}
-  virtual bool processEvent(const Event& event, Session* session) { return true; }
+  virtual bool processEvent(const Event& event, Session* sessionPtr) { return true; }
   // An implementation of processEvent should process the specified
   // 'event' which originates from the specified 'session' and
   // return true to indicate events should continue to be delivered

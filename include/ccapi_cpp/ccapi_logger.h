@@ -68,12 +68,12 @@
 #define CCAPI_LOGGER_FUNCTION_ENTER CCAPI_LOGGER_TRACE(std::string("enter ") + std::string(__ccapi_cpp_func__))
 #define CCAPI_LOGGER_FUNCTION_EXIT CCAPI_LOGGER_TRACE(std::string("exit ") + std::string(__ccapi_cpp_func__))
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <thread>
 
-#include "ccapi_cpp/ccapi_date.h"
 #include "ccapi_cpp/ccapi_macro.h"
-#include "ccapi_cpp/ccapi_util.h"
+#include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 /**
  * This class is used for library logging.
@@ -122,11 +122,7 @@ class Logger {
                          const std::string& fileName, const std::string& lineNumber, const std::string& message) {
     std::stringstream ss;
     ss << threadId;
-    this->logMessage(severity, ss.str(), getISOTimestamp(time), fileName, lineNumber, message);
-  }
-  template <typename T = std::chrono::nanoseconds>
-  static std::string getISOTimestamp(const TimePoint& tp, const std::string& fmt = "%FT%TZ") {
-    return date::format(fmt.c_str(), date::floor<T>(tp));
+    this->logMessage(severity, ss.str(), UtilTime::getISOTimestamp(time), fileName, lineNumber, message);
   }
 };
 } /* namespace ccapi */
