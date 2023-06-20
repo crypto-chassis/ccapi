@@ -340,9 +340,11 @@ class UtilTime CCAPI_FINAL {
     time.tm_year = std::strtol(&input[0], nullptr, 10) - 1900;
     time.tm_mon = std::strtol(&input[5], nullptr, 10) - 1;
     time.tm_mday = std::strtol(&input[8], nullptr, 10);
-    time.tm_hour = std::strtol(&input[11], nullptr, 10);
-    time.tm_min = std::strtol(&input[14], nullptr, 10);
-    time.tm_sec = std::strtol(&input[17], nullptr, 10);
+    if (input.length() > 10) {
+      time.tm_hour = std::strtol(&input[11], nullptr, 10);
+      time.tm_min = std::strtol(&input[14], nullptr, 10);
+      time.tm_sec = std::strtol(&input[17], nullptr, 10);
+    }
     time.tm_isdst = 0;
     long nanoseconds = 0;
     if (input.length() > 20) {
@@ -429,7 +431,7 @@ class UtilTime CCAPI_FINAL {
     auto secondStr = std::to_string(second);
     output += std::string(2 - secondStr.length(), '0');
     output += secondStr;
-    if (fractionalSecond > 0) {
+    if (!std::is_same<T, std::chrono::seconds>::value) {
       output += ".";
       auto fractionalSecondStr = std::to_string(fractionalSecond);
       int padToLength;
@@ -440,8 +442,8 @@ class UtilTime CCAPI_FINAL {
       } else if (std::is_same<T, std::chrono::milliseconds>::value) {
         padToLength = 3;
       }
-      output += std::string(9 - fractionalSecondStr.length(), '0');
-      UtilString::rtrimInPlace(fractionalSecondStr, '0');
+      output += std::string(padToLength - fractionalSecondStr.length(), '0');
+      // UtilString::rtrimInPlace(fractionalSecondStr, '0');
       output += fractionalSecondStr;
     }
     output += "Z";
@@ -473,7 +475,8 @@ class UtilAlgorithm CCAPI_FINAL {
       case ShaVersion::SHA512:
         EVP_DigestInit_ex(context, EVP_sha512(), NULL);
         break;
-      default:;
+      default:
+        throw std::invalid_argument("invalid shaVersion");
     }
     EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length());
     unsigned char hash[EVP_MAX_MD_SIZE];

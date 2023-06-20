@@ -150,27 +150,27 @@ TEST(UtilTimeTest, divideMilliSecondsStr_5) {
 }
 TEST(UtilTimeTest, getISOTimestamp_1) {
   std::string str("2019-11-21T01:38:23Z");
-  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str);
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::seconds>(UtilTime::parse(str)), str);
 }
 TEST(UtilTimeTest, getISOTimestamp_2) {
   std::string str("2019-11-21T01:38:23");
-  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::seconds>(UtilTime::parse(str)), str + "Z");
 }
 TEST(UtilTimeTest, getISOTimestamp_3) {
   std::string str("2019-11-21T01:38:23.123Z");
-  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str);
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::milliseconds>(UtilTime::parse(str)), str);
 }
 TEST(UtilTimeTest, getISOTimestamp_4) {
   std::string str("2019-11-21T01:38:23.123");
-  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::milliseconds>(UtilTime::parse(str)), str + "Z");
 }
 TEST(UtilTimeTest, getISOTimestamp_5) {
   std::string str("2019-11-21T01:38:23.123456Z");
-  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str);
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::microseconds>(UtilTime::parse(str)), str);
 }
 TEST(UtilTimeTest, getISOTimestamp_6) {
   std::string str("2019-11-21T01:38:23.123456");
-  EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::microseconds>(UtilTime::parse(str)), str + "Z");
 }
 TEST(UtilTimeTest, getISOTimestamp_7) {
   std::string str("2019-11-21T01:38:23.123456789Z");
@@ -179,5 +179,17 @@ TEST(UtilTimeTest, getISOTimestamp_7) {
 TEST(UtilTimeTest, getISOTimestamp_8) {
   std::string str("2019-11-21T01:38:23.123456789");
   EXPECT_EQ(UtilTime::getISOTimestamp(UtilTime::parse(str)), str + "Z");
+}
+TEST(UtilTimeTest, getISOTimestamp_9) {
+  std::string str("2019-11-21T01:38:23.123456789");
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::seconds>(UtilTime::parse(str)), "2019-11-21T01:38:23Z");
+}
+TEST(UtilTimeTest, getISOTimestamp_10) {
+  std::string str("2019-11-21");
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::seconds>(UtilTime::parse(str)), "2019-11-21T00:00:00Z");
+}
+TEST(UtilTimeTest, getISOTimestamp_11) {
+  std::string str("2019-11-21T01:38:23Z");
+  EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::milliseconds>(UtilTime::parse(str)), "2019-11-21T01:38:23.000Z");
 }
 } /* namespace ccapi */

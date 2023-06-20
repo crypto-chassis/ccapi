@@ -51,7 +51,8 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryParamMap.insert(std::make_pair("AccessKeyId", apiKey));
     queryParamMap.insert(std::make_pair("SignatureMethod", "HmacSHA256"));
     queryParamMap.insert(std::make_pair("SignatureVersion", "2"));
-    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
+    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now);
+    timestamp.pop_back();
     queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
     std::string signature;
     this->createSignature(signature, queryString, methodString, this->hostRest, path, queryParamMap, credential);
@@ -111,7 +112,8 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryParamMap.insert(std::make_pair("AccessKeyId", apiKey));
     queryParamMap.insert(std::make_pair("SignatureMethod", "HmacSHA256"));
     queryParamMap.insert(std::make_pair("SignatureVersion", "2"));
-    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
+    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now);
+    timestamp.pop_back();
     queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
     this->convertReqDetail(req, request, now, symbolId, credential, queryParamMap);
   }
