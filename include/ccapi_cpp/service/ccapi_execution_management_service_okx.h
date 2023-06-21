@@ -122,8 +122,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("OK-ACCESS-KEY", apiKey);
-    std::string timeStr = UtilTime::getISOTimestamp(now);
-    req.set("OK-ACCESS-TIMESTAMP", timeStr.substr(0, timeStr.length() - 7) + "Z");
+    std::string timeStr = UtilTime::getISOTimestamp<std::chrono::milliseconds>(now);
+    req.set("OK-ACCESS-TIMESTAMP", timeStr);
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     req.set("OK-ACCESS-PASSPHRASE", apiPassphrase);
     auto apiXSimulatedTrading = mapGetWithDefault(credential, this->apiXSimulatedTradingName);
