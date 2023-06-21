@@ -217,7 +217,8 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now, "%FT%T");
+    std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now);
+    timestamp.pop_back();
     std::string signature;
     std::string queryString;
     std::map<std::string, std::string> queryParamMap;

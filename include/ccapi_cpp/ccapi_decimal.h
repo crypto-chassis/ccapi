@@ -2,6 +2,7 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_DECIMAL_H_
 #include <string>
 
+#include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 /**

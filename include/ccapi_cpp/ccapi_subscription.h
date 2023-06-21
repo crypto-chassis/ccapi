@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 
+#include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
