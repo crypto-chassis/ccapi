@@ -81,6 +81,7 @@
 #include <random>
 #include <string>
 
+#include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 namespace ccapi {
 class AppUtil {

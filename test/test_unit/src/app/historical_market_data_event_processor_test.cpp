@@ -15,9 +15,9 @@ class HistoricalMarketDataEventProcessorTest : public ::testing::Test {
     this->historicalMarketDataEventProcessor->baseAsset = UtilSystem::getEnvAsString("BASE_ASSET", splitted.at(1));
     this->historicalMarketDataEventProcessor->quoteAsset = UtilSystem::getEnvAsString("QUOTE_ASSET", splitted.at(2));
     this->historicalMarketDataEventProcessor->historicalMarketDataStartDateTp =
-        UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE", splitted.at(3)), "%F");
+        UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE", splitted.at(3)));
     this->historicalMarketDataEventProcessor->historicalMarketDataEndDateTp =
-        UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE", splitted.at(4)), "%F");
+        UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE", splitted.at(4)));
     this->historicalMarketDataEventProcessor->historicalMarketDataDirectory = UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_DIRECTORY", splitted.at(5));
     this->historicalMarketDataEventProcessor->clockStepSeconds = UtilSystem::getEnvAsInt("CLOCK_STEP_MILLISECONDS", 1000) / 1000;
   }
@@ -78,7 +78,7 @@ TEST_F(HistoricalMarketDataEventProcessorTest, processEvent) {
   std::vector<std::string> previousSplittedMarketDepth;
   while (currentDateTp < this->historicalMarketDataEventProcessor->historicalMarketDataEndDateTp) {
     int currentSeconds;
-    auto currentDateISO = UtilTime::getISOTimestamp(currentDateTp, "%F");
+    auto currentDateISO = UtilTime::getISOTimestamp<std::chrono::seconds>(currentDateTp).substr(0, 10);
     std::string fileNameWithDirBase = this->historicalMarketDataEventProcessor->historicalMarketDataDirectory + "/" +
                                       this->historicalMarketDataEventProcessor->exchange + "__" + this->historicalMarketDataEventProcessor->baseAsset + "-" +
                                       this->historicalMarketDataEventProcessor->quoteAsset + "__" + currentDateISO + "__";

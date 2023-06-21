@@ -17,7 +17,7 @@ class HistoricalMarketDataEventProcessor {
     bool shouldContinueTrade{true};
     std::vector<std::string> previousSplittedMarketDepth;
     while (currentDateTp < this->historicalMarketDataEndDateTp) {
-      const auto& currentDateISO = UtilTime::getISOTimestamp(currentDateTp, "%F");
+      const auto& currentDateISO = UtilTime::getISOTimestamp<std::chrono::seconds>(currentDateTp).substr(0, 10);
       APP_LOGGER_INFO("Start processing " + currentDateISO + ".");
       std::string fileNameWithDirBase = this->historicalMarketDataDirectory + "/" + this->historicalMarketDataFilePrefix + this->exchange + "__" +
                                         this->baseAsset + "-" + this->quoteAsset + "__" + currentDateISO + "__";

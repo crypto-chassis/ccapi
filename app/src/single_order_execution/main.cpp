@@ -100,11 +100,11 @@ int main(int argc, char** argv) {
     eventHandler.marketImpfactFactor = UtilSystem::getEnvAsDouble("MARKET_IMPACT_FACTOR");
   }
   if (eventHandler.tradingMode == EventHandlerBase::TradingMode::BACKTEST) {
-    eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"), "%F");
+    eventHandler.historicalMarketDataStartDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_START_DATE"));
     if (startTimeStr.empty()) {
       eventHandler.startTimeTp = eventHandler.historicalMarketDataStartDateTp;
     }
-    eventHandler.historicalMarketDataEndDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE"), "%F");
+    eventHandler.historicalMarketDataEndDateTp = UtilTime::parse(UtilSystem::getEnvAsString("HISTORICAL_MARKET_DATA_END_DATE"));
     if (totalDurationSecondsStr.empty()) {
       eventHandler.totalDurationSeconds =
           std::chrono::duration_cast<std::chrono::seconds>(eventHandler.historicalMarketDataEndDateTp - eventHandler.historicalMarketDataStartDateTp).count();
