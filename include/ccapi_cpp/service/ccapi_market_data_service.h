@@ -136,7 +136,7 @@ class MarketDataService : public Service {
               CCAPI_LOGGER_TRACE("fail");
               std::vector<std::string> correlationIdList;
               correlationIdList.reserve(subscriptionListGivenInstrumentGroup.size());
-              std::transform(subscriptionListGivenInstrumentGroup.cbegin(), subscriptionListGivenInstrumentGroup.cend(), correlationIdList.begin(),
+              std::transform(subscriptionListGivenInstrumentGroup.cbegin(), subscriptionListGivenInstrumentGroup.cend(), std::back_inserter(correlationIdList),
                              [](Subscription subscription) { return subscription.getCorrelationId(); });
               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", correlationIdList);
               return;

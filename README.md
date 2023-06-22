@@ -145,7 +145,7 @@ cmake --build . --target <example-name>
 [Python](binding/python/example)
 * Python API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
 * Build and install the Python binding as shown [above](#python).
-* Run python3 main.py.
+* Run `python3 main.py`.
 
 ## Documentations
 

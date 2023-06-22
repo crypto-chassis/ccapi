@@ -91,7 +91,7 @@ class WsConnection CCAPI_FINAL {
       : url(url), group(group), subscriptionList(subscriptionList), credential(credential), streamPtr(streamPtr) {
     this->id = this->url + "||" + this->group + "||" + ccapi::toString(this->subscriptionList) + "||" + ccapi::toString(this->credential);
     this->correlationIdList.reserve(subscriptionList.size());
-    std::transform(subscriptionList.cbegin(), subscriptionList.cend(), this->correlationIdList.begin(),
+    std::transform(subscriptionList.cbegin(), subscriptionList.cend(), std::back_inserter(this->correlationIdList),
                    [](Subscription subscription) { return subscription.getCorrelationId(); });
     this->setUrlParts();
   }
