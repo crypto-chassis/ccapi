@@ -112,6 +112,14 @@ TEST(UtilStringTest, normalizeDecimalString_5) {
   EXPECT_EQ(UtilString::normalizeDecimalString(original), "1.1");
   EXPECT_EQ(UtilString::normalizeDecimalString(original.c_str()), "1.1");
 }
+TEST(UtilStringTest, toUpper) {
+  std::string original("ab");
+  EXPECT_EQ(UtilString::toUpper(original), "AB");
+}
+TEST(UtilStringTest, toLower) {
+  std::string original("AB");
+  EXPECT_EQ(UtilString::toLower(original), "ab");
+}
 TEST(UtilTimeTest, divideSecondsStr_1) {
   std::string str("1634929946");
   EXPECT_EQ(UtilTime::divide(str), (std::make_pair<long long, long long>(1634929946, 0)));
