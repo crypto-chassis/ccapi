@@ -19,7 +19,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -44,7 +44,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
 
  private:
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
@@ -370,14 +370,14 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     return sendStringList;
   }
   void onTextMessage(
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage
 #else
       std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView
 #endif
       ,
       const TimePoint& timeReceived) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     std::string textMessage(textMessageView);
 #endif
@@ -411,8 +411,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         document.Accept(writerSubscribe);
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
         this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
         this->send(wsConnectionPtr, sendString, ec);

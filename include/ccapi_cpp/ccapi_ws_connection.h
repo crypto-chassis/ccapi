@@ -1,6 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #include <string>
 
 #include "ccapi_cpp/ccapi_logger.h"

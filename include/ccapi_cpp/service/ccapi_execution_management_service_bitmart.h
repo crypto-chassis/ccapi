@@ -19,7 +19,7 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -38,7 +38,7 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/spot/v1/cancel_orders";
     this->getAccountBalancesTarget = "/spot/v1/wallet";
     this->needDecompressWebsocketMessage = true;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
     ErrorCode ec = this->inflater.init(false);
 #else
     ErrorCode ec = this->inflater.init();
@@ -52,7 +52,7 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
 
  private:
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
@@ -301,7 +301,7 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
                      const TimePoint& timeReceived) override {
 #else
@@ -338,7 +338,7 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
           document.Accept(writerSubscribe);
           std::string sendString = stringBufferSubscribe.GetString();
           ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
           this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
           this->send(wsConnectionPtr, sendString, ec);

@@ -82,12 +82,54 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 get_filename_component(CCAPI_PROJECT_DIR ../ ABSOLUTE)
 message(STATUS "CCAPI_PROJECT_DIR: ${CCAPI_PROJECT_DIR}")
-if(USE_BOOST_BEAST_WEBSOCKET)
+if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   message(STATUS "use boost beast websocket")
-  add_compile_definitions(CCAPI_USE_BOOST_BEAST_WEBSOCKET)
+  if(NOT BOOST_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(boost
+    URL    https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz
+    SOURCE_DIR        "${CMAKE_BINARY_DIR}/boost"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+  )
+  set(BOOST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/boost")
+  else()
+  add_library(boost INTERFACE)
+  endif()
+  if(NOT RAPIDJSON_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(rapidjson
+    URL    https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz
+    SOURCE_DIR        "${CMAKE_BINARY_DIR}/rapidjson"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+  )
+  set(RAPIDJSON_INCLUDE_DIR "${CMAKE_BINARY_DIR}/rapidjson/include")
+  else()
+  add_library(rapidjson INTERFACE)
+  endif()
+  if(NOT HFFIX_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(hffix
+    URL    https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.3.0.tar.gz
+    SOURCE_DIR        "${CMAKE_BINARY_DIR}/hffix"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+  )
+  set(HFFIX_INCLUDE_DIR "${CMAKE_BINARY_DIR}/hffix/include")
+  else()
+  add_library(hffix INTERFACE)
+  endif()
 	include_directories(${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 else()
   message(STATUS "use websocketpp")
+  add_compile_definitions(CCAPI_LEGACY_USE_WEBSOCKETPP)
   set(RAPIDJSON_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/rapidjson/include)
   set(WEBSOCKETPP_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/websocketpp)
   set(BOOST_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/boost)
@@ -106,4 +148,68 @@ if(BUILD_TEST)
   include(CTest)
 endif()
 add_compile_options(-Wno-deprecated -Wno-nonnull -Wno-deprecated-declarations)
+
+add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
+
+add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
+
+add_compile_definitions(CCAPI_ENABLE_SERVICE_FIX)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GEMINI)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITSTAMP)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITFINEX)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITMEX)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_US)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_MARGIN)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKX)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ERISX)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KUCOIN_FUTURES)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_DERIBIT)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GATEIO)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_CRYPTOCOM)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BYBIT)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_ASCENDEX)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITGET)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BITMART)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_MEXC)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES)
+
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_WHITEBIT)
+
+find_package(ZLIB REQUIRED)
+link_libraries(ZLIB::ZLIB)
+
 add_subdirectory(python)

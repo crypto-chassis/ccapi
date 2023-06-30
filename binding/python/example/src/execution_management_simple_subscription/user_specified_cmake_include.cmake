@@ -1,2 +1,0 @@
-add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
