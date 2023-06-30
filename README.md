@@ -1,3 +1,5 @@
+Breaking changes in v6: Greetings, Ladies and Gentlemen, we've introduced some simplifications and breaking changes to our build process. Compared to v5, it should be much easier. If you have any questions, feel free to ping us on Discord https://discord.gg/b5EKcp9s8T. Thank you.
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -74,15 +76,15 @@
 ### C++
 * This library is header-only.
 * Example CMake: example/CMakeLists.txt.
-* Require C++14 (prefer C++17) and OpenSSL.
+* Require C++17 and OpenSSL.
 * Macros in the compiler command line:
   * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of [`include/ccapi_cpp/ccapi_session.h`](include/ccapi_cpp/ccapi_session.h).
-* Include directories:
+* Dependencies:
+  * boost https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz (notice that its include directory is boost).
+  * rapidjson https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz (notice that its include directory is rapidjson/include).
+  * If you use FIX API, also need hffix https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.3.0.tar.gz (notice that its include directory is hffix/include).
+* Include directory for this library:
   * include.
-  * dependency/websocketpp.
-  * dependency/boost.
-  * dependency/rapidjson/include.
-  * If you need FIX API, also include dependency/hffix/include.
 * Link libraries:
   * OpenSSL: libssl.
   * OpenSSL: libcrypto.
