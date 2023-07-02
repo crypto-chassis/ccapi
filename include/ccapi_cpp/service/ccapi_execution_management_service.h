@@ -55,7 +55,7 @@ class ExecutionManagementService : public Service {
           if (credential.empty()) {
             credential = that->credentialDefault;
           }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
           WsConnection wsConnection(that->baseUrlWs, "", {subscription}, credential);
           that->prepareConnect(wsConnection);
 #else
@@ -185,7 +185,7 @@ class ExecutionManagementService : public Service {
     auto errorMessage = "Websocket unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
     throw std::runtime_error(errorMessage);
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   virtual void logonToExchange(const WsConnection& wsConnection, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     CCAPI_LOGGER_INFO("about to logon to exchange");
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
@@ -194,7 +194,7 @@ class ExecutionManagementService : public Service {
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
       this->send(wsConnectionPtr, sendString, ec);
@@ -329,7 +329,7 @@ class ExecutionManagementService : public Service {
         that->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "Websocket connection was not found", {correlationId});
         return;
       }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       auto& wsConnection = it->second;
 #else
       auto wsConnectionPtr = it->second;
@@ -353,7 +353,7 @@ class ExecutionManagementService : public Service {
       document.Accept(writer);
       std::string sendString = stringBuffer.GetString();
       CCAPI_LOGGER_TRACE("sendString = " + sendString);
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       that->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
       that->send(wsConnectionPtr, sendString,  ec);
@@ -389,7 +389,7 @@ class ExecutionManagementService : public Service {
   std::string getAccountBalancesTarget;
   std::string getAccountPositionsTarget;
   std::map<std::string, std::string> correlationIdByConnectionIdMap;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   std::map<std::string, WsConnection> wsConnectionByCorrelationIdMap;
 #else
   std::map<std::string, std::shared_ptr<WsConnection> >

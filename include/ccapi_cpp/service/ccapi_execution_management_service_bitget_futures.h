@@ -19,7 +19,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -309,7 +309,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
                      const TimePoint& timeReceived) override {
 #else
@@ -349,7 +349,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         document.Accept(writerSubscribe);
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
         this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
         this->send(wsConnectionPtr, sendString, ec);
@@ -358,7 +358,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }
       } else {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
         Event event = this->createEvent(wsConnection, wsConnection.hdl, subscription, textMessage, document, eventStr, timeReceived);
 #else
         Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, eventStr, timeReceived);
@@ -369,7 +369,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       }
     }
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
                     const rj::Document& document, const std::string& eventStr, const TimePoint& timeReceived) {
 #else

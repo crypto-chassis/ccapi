@@ -42,7 +42,7 @@ class MarketDataService : public Service {
       }
     }
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   // subscriptions are grouped and each group creates a unique websocket connection
   void subscribe(std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -155,7 +155,7 @@ class MarketDataService : public Service {
 
  protected:
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   typedef wspp::lib::error_code ErrorCode;
   typedef wspp::lib::function<void(ErrorCode const&)> TimerHandler;
 #else
@@ -195,7 +195,7 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_TRACE("this->correlationIdListByConnectionIdChannelSymbolIdMap = " + toString(this->correlationIdListByConnectionIdChannelIdSymbolIdMap));
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void processMarketDataMessageList(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
                                     Event& event, std::vector<MarketDataMessage>& marketDataMessageList) {
     CCAPI_LOGGER_TRACE("marketDataMessageList = " + toString(marketDataMessageList));
@@ -408,7 +408,7 @@ class MarketDataService : public Service {
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
       this->send(wsConnectionPtr, sendString, ec);
@@ -440,7 +440,7 @@ class MarketDataService : public Service {
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_INFO("sendString = " + sendString);
       ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
       this->send(wsConnectionPtr, sendString, ec);
@@ -1373,7 +1373,7 @@ class MarketDataService : public Service {
                   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                 } else {
                   if (
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
                       this->wsConnectionByIdMap.at(wsConnection.id).status == WsConnection::Status::OPEN
 #else
                       this->wsConnectionByIdMap.at(wsConnection.id)->status == WsConnection::Status::OPEN
@@ -1741,7 +1741,7 @@ class MarketDataService : public Service {
   }
   virtual void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                                      std::vector<MarketDataMessage>& marketDataMessageList) {}
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   virtual void processTextMessage(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
                                   Event& event, std::vector<MarketDataMessage>& marketDataMessageList) {}
 #else

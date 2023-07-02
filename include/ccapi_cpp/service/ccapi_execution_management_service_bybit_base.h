@@ -15,7 +15,7 @@ class ExecutionManagementServiceBybitBase : public ExecutionManagementService {
  protected:
 #endif
   bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("retCode":0)") == std::string::npos; }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, R"({"op":"ping"})", ec); }
@@ -102,7 +102,7 @@ class ExecutionManagementServiceBybitBase : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto subscription = wsConnection.subscriptionList.at(0);

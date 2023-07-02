@@ -19,7 +19,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -238,7 +238,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
                     const rj::Document& document, const TimePoint& timeReceived) override{
 #else
@@ -350,7 +350,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
         document.Accept(writer);
         std::string sendString = stringBuffer.GetString();
         ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
         this->send(hdl, sendString, wspp::frame::opcode::text, ec);
 #else
           this->send(wsConnectionPtr, sendString, ec);
