@@ -419,15 +419,6 @@ jobs:
     - name: Test Python
       shell: cmake -P {0}
       run: |
-        execute_process(
-          COMMAND ctest -VV
-          WORKING_DIRECTORY test/build
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
         if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
           execute_process(
             COMMAND ctest -VV
