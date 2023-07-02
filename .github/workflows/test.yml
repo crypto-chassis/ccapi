@@ -309,14 +309,6 @@ jobs:
         # execute_process(COMMAND ccache -z)
 
         execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build -j 2
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-        execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build example/build -j 2
           RESULT_VARIABLE result
         )
@@ -324,18 +316,24 @@ jobs:
           message(FATAL_ERROR "Bad exit status")
         endif()
 
-        if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
-          execute_process(
-            COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build binding/build -j 2
-            RESULT_VARIABLE result
-          )
-          if (NOT result EQUAL 0)
-            message(FATAL_ERROR "Bad exit status")
-          endif()
+        execute_process(
+          COMMAND rm -rf example/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
         endif()
 
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build performance/build -j 2
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND rm -rf performance/build
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -350,9 +348,75 @@ jobs:
           message(FATAL_ERROR "Bad exit status")
         endif()
 
+        execute_process(
+          COMMAND rm -rf app/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build -j 2
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
         # execute_process(COMMAND ccache -s)
 
     - name: Test
+      shell: cmake -P {0}
+      run: |
+        execute_process(
+          COMMAND ctest -VV
+          WORKING_DIRECTORY test/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND rm -rf test/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+    - name: Build Python
+      shell: cmake -P {0}
+      run: |
+        set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
+
+        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+          file(STRINGS environment_script_output.txt output_lines)
+          foreach(line IN LISTS output_lines)
+            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+            endif()
+          endforeach()
+        endif()
+
+        set(path_separator ":")
+        if ("${{ runner.os }}" STREQUAL "Windows")
+          set(path_separator ";")
+        endif()
+        set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
+
+        if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
+          execute_process(
+            COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build binding/build -j 2
+            RESULT_VARIABLE result
+          )
+          if (NOT result EQUAL 0)
+            message(FATAL_ERROR "Bad exit status")
+          endif()
+        endif()
+
+    - name: Test Python
       shell: cmake -P {0}
       run: |
         execute_process(
@@ -375,7 +439,7 @@ jobs:
           endif()
         endif()
 
-    - name: Install
+    - name: Install Python
       shell: cmake -P {0}
       run:  |
         if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
@@ -387,4 +451,12 @@ jobs:
           if (NOT result EQUAL 0)
             message(FATAL_ERROR "Bad exit status")
           endif()
+        endif()
+
+        execute_process(
+          COMMAND rm -rf binding/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
         endif()
