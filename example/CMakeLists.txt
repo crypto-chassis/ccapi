@@ -14,12 +14,40 @@ endif()
 message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 get_filename_component(CCAPI_PROJECT_DIR ../ ABSOLUTE)
 message(STATUS "CCAPI_PROJECT_DIR: ${CCAPI_PROJECT_DIR}")
-if(USE_BOOST_BEAST_WEBSOCKET)
+if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   message(STATUS "use boost beast websocket")
-  add_compile_definitions(CCAPI_USE_BOOST_BEAST_WEBSOCKET)
+  if(NOT BOOST_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(boost
+    URL    https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz
+    SOURCE_DIR        "${CMAKE_BINARY_DIR}/boost"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+  )
+  set(BOOST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/boost")
+  else()
+  add_library(boost INTERFACE)
+  endif()
+  if(NOT RAPIDJSON_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(rapidjson
+    URL    https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz
+    SOURCE_DIR        "${CMAKE_BINARY_DIR}/rapidjson"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+  )
+  set(RAPIDJSON_INCLUDE_DIR "${CMAKE_BINARY_DIR}/rapidjson/include")
+  else()
+  add_library(rapidjson INTERFACE)
+  endif()
 	include_directories(${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 else()
   message(STATUS "use websocketpp")
+  add_compile_definitions(CCAPI_LEGACY_USE_WEBSOCKETPP)
   set(RAPIDJSON_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/rapidjson/include)
   set(WEBSOCKETPP_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/websocketpp)
   set(BOOST_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/boost)

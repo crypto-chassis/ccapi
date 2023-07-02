@@ -19,7 +19,7 @@ class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -111,14 +111,14 @@ class MarketDataServiceBybitDerivatives : public MarketDataServiceBybitBase {
     return sendStringList;
   }
   void processTextMessage(
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
 #else
       std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
 #endif
       ,
       const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);

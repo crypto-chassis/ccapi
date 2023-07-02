@@ -14,7 +14,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
 
  protected:
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(hdl,
@@ -141,14 +141,14 @@ class MarketDataServiceGateioBase : public MarketDataService {
     return sendStringList;
   }
   void processTextMessage(
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
 #else
       std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
 #endif
       ,
       const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);

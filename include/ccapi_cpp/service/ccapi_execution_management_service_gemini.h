@@ -19,7 +19,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -273,7 +273,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       }
     }
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void prepareConnect(WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     auto subscription = wsConnection.subscriptionList.at(0);
@@ -336,7 +336,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     this->connect(wsConnectionPtr);
   }
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto subscription = wsConnection.subscriptionList.at(0);
@@ -359,7 +359,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     }
   }
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
                     const rj::Document& document, const TimePoint& timeReceived) {
 #else

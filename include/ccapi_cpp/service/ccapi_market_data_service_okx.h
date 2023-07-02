@@ -19,7 +19,7 @@ class MarketDataServiceOkx : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -63,7 +63,7 @@ class MarketDataServiceOkx : public MarketDataService {
       }
     }
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
@@ -122,14 +122,14 @@ class MarketDataServiceOkx : public MarketDataService {
     return intToHex(csCalc);
   }
   void processTextMessage(
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
 #else
       std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
 #endif
       ,
       const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
@@ -140,7 +140,7 @@ class MarketDataServiceOkx : public MarketDataService {
       auto it = document.FindMember("event");
       std::string eventStr = it != document.MemberEnd() ? it->value.GetString() : "";
       if (eventStr == "login") {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
         this->startSubscribe(wsConnection);
 #else
         this->startSubscribe(wsConnectionPtr);

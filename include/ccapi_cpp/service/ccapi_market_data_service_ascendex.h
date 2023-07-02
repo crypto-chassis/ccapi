@@ -19,7 +19,7 @@ class MarketDataServiceAscendex : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -46,7 +46,7 @@ class MarketDataServiceAscendex : public MarketDataService {
       }
     }
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, R"({"op":"ping"})", ec); }
@@ -78,14 +78,14 @@ class MarketDataServiceAscendex : public MarketDataService {
     return sendStringList;
   }
   void processTextMessage(
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
 #else
       std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
 #endif
       ,
       const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
@@ -162,7 +162,7 @@ class MarketDataServiceAscendex : public MarketDataService {
       }
     } else if (m == "ping") {
       ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       this->send(hdl, R"({ "op": "pong" })", wspp::frame::opcode::text, ec);
 #else
       this->send(wsConnectionPtr, R"({ "op": "pong" })", ec);
@@ -215,7 +215,7 @@ class MarketDataServiceAscendex : public MarketDataService {
         std::string sendString = stringBuffer.GetString();
         ErrorCode ec;
         CCAPI_LOGGER_TRACE(sendString);
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
         this->send(hdl, sendString, wspp::frame::opcode::text, ec);
 #else
         this->send(wsConnectionPtr, sendString, ec);

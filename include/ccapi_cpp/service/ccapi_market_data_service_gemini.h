@@ -19,7 +19,7 @@ class MarketDataServiceGemini : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -49,7 +49,7 @@ class MarketDataServiceGemini : public MarketDataService {
     }
   }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onOpen(wspp::connection_hdl hdl) override {
     MarketDataService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
@@ -191,14 +191,14 @@ class MarketDataServiceGemini : public MarketDataService {
   }
 #endif
   void processTextMessage(
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
 #else
       std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
 #endif
       ,
       const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
@@ -208,7 +208,7 @@ class MarketDataServiceGemini : public MarketDataService {
     auto type = std::string(document["type"].GetString());
     if (this->sessionOptions.enableCheckSequence) {
       int sequence = std::stoi(document["socket_sequence"].GetString());
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       if (!this->checkSequence(wsConnection, sequence)) {
         this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, "");
         return;
@@ -222,10 +222,10 @@ class MarketDataServiceGemini : public MarketDataService {
     }
     if (type == "update" && !document["events"].GetArray().Empty()) {
       MarketDataMessage marketDataMessage;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       marketDataMessage.exchangeSubscriptionId = wsConnection.url;
 #else
-      marketDataMessage.exchangeSubscriptionId = wsConnectionPtr.getUrl();
+      marketDataMessage.exchangeSubscriptionId = wsConnectionPtr->getUrl();
 #endif
       TimePoint time = timeReceived;
       auto it = document.FindMember("timestampms");

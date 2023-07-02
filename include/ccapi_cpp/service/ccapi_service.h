@@ -31,7 +31,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 // clang-format off
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #include "websocketpp/config/boost_config.hpp"
 #include "websocketpp/client.hpp"
 #include "websocketpp/common/connection_hdl.hpp"
@@ -41,7 +41,7 @@
 #endif
 // clang-format on
 
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
     defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
@@ -71,7 +71,7 @@ namespace http = beast::http;
 namespace net = boost::asio;
 namespace ssl = boost::asio::ssl;
 using tcp = boost::asio::ip::tcp;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 namespace wspp = websocketpp;
 #endif
 namespace rj = rapidjson;
@@ -83,7 +83,7 @@ namespace ccapi {
 class Service : public std::enable_shared_from_this<Service> {
  public:
   typedef std::shared_ptr<ServiceContext> ServiceContextPtr;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   typedef wspp::lib::error_code ErrorCode;
 #else
   typedef boost::system::error_code ErrorCode;  // a.k.a. beast::error_code
@@ -155,7 +155,7 @@ class Service : public std::enable_shared_from_this<Service> {
     this->shouldContinue = false;
     for (const auto& x : this->wsConnectionByIdMap) {
       ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       auto wsConnection = x.second;
       this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
 #else
@@ -165,7 +165,7 @@ class Service : public std::enable_shared_from_this<Service> {
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
       }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
 #else
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnectionPtr->id] = false;
@@ -303,7 +303,7 @@ class Service : public std::enable_shared_from_this<Service> {
   //   return output;
   // }
   typedef ServiceContext::SslContextPtr SslContextPtr;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   typedef ServiceContext::TlsClient TlsClient;
 #endif
   typedef std::shared_ptr<boost::asio::steady_timer> TimerPtr;
@@ -500,7 +500,7 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     return streamPtr;
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
   std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> createWsStream(std::shared_ptr<net::io_context> iocPtr,
                                                                                                  std::shared_ptr<net::ssl::context> ctxPtr) {
@@ -850,7 +850,7 @@ class Service : public std::enable_shared_from_this<Service> {
     std::string methodStringUpper = UtilString::toUpper(methodString);
     return http::string_to_verb(methodStringUpper);
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   SslContextPtr onTlsInit(wspp::connection_hdl hdl) { return this->serviceContextPtr->sslContextPtr; }
   WsConnection& getWsConnectionFromConnectionPtr(TlsClient::connection_ptr connectionPtr) {
     return this->wsConnectionByIdMap.at(this->connectionAddressToString(connectionPtr));
@@ -1731,7 +1731,7 @@ class Service : public std::enable_shared_from_this<Service> {
   TimerPtr httpConnectionPoolPurgeTimer;
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   std::map<std::string, WsConnection> wsConnectionByIdMap;
 #else
   std::map<std::string, std::shared_ptr<WsConnection>> wsConnectionByIdMap;  // TODO(cryptochassis): for consistency, to be renamed to wsConnectionPtrByIdMap
@@ -1761,7 +1761,7 @@ class Service : public std::enable_shared_from_this<Service> {
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
     defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
         (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   struct monostate {};
   websocketpp::extensions_workaround::permessage_deflate::enabled<monostate> inflater;
 #else

@@ -19,7 +19,7 @@ class ExecutionManagementServiceMexcFutures : public ExecutionManagementService 
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -45,7 +45,7 @@ class ExecutionManagementServiceMexcFutures : public ExecutionManagementService 
 
  private:
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"method":"ping"})", wspp::frame::opcode::text, ec); }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
@@ -364,7 +364,7 @@ class ExecutionManagementServiceMexcFutures : public ExecutionManagementService 
   }
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
@@ -401,7 +401,7 @@ class ExecutionManagementServiceMexcFutures : public ExecutionManagementService 
     //     document.Accept(writerSubscribe);
     //     std::string sendString = stringBufferSubscribe.GetString();
     //     ErrorCode ec;
-    //     #ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+    //     #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
     this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
 this->send(wsConnectionPtr, sendString, ec);

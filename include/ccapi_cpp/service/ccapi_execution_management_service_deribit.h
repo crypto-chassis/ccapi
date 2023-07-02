@@ -19,7 +19,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -45,7 +45,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
 
  protected:
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onOpen(wspp::connection_hdl hdl) override {
     ExecutionManagementService::onOpen(hdl);
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
@@ -356,7 +356,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
     auto subscription = wsConnection.subscriptionList.at(0);
@@ -379,7 +379,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     }
   }
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
                     const rj::Document& document, const TimePoint& timeReceived) {
 #else
@@ -448,7 +448,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             document.Accept(writer);
             std::string sendString = stringBuffer.GetString();
             ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
             this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
             this->send(wsConnectionPtr, sendString, ec);
@@ -554,7 +554,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             document.Accept(writer);
             std::string msg = stringBuffer.GetString();
             ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
             this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
 #else
             this->send(wsConnectionPtr, msg, ec);
