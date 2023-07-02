@@ -19,7 +19,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -36,7 +36,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
 
  private:
 #endif
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
   void onOpen(wspp::connection_hdl hdl) override {
     MarketDataService::onOpen(hdl);
@@ -182,14 +182,14 @@ class MarketDataServiceBitfinex : public MarketDataService {
   }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override { return std::vector<std::string>(); }
   void processTextMessage(
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
 #else
       std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
 #endif
       ,
       const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
@@ -201,7 +201,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
       if (document.Size() >= 2 && document[1].IsString() && std::string(document[1].GetString()) == "hb") {
         if (this->sessionOptions.enableCheckSequence) {
           int sequence = std::stoi(document[2].GetString());
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
           if (!this->checkSequence(wsConnection, sequence)) {
             this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
             return;
@@ -223,7 +223,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
           if (document[1].IsArray()) {
             if (this->sessionOptions.enableCheckSequence) {
               int sequence = std::stoi(document[2].GetString());
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
               if (!this->checkSequence(wsConnection, sequence)) {
                 this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
                 return;
@@ -326,7 +326,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
             if (str == "tu" || str == "te") {
               if (this->sessionOptions.enableCheckSequence) {
                 int sequence = std::stoi(document[3].GetString());
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
                   return;
@@ -361,7 +361,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
             } else if (str == "cs") {
               if (this->sessionOptions.enableCheckSequence) {
                 int sequence = std::stoi(document[3].GetString());
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
                 if (!this->checkSequence(wsConnection, sequence)) {
                   this->onOutOfSequence(wsConnection, sequence, hdl, textMessage, timeReceived, exchangeSubscriptionId);
                   return;
@@ -430,7 +430,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
         }
         for (const auto& sendString : sendStringList) {
           ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
           this->send(hdl, sendString, wspp::frame::opcode::text, ec);
 #else
           this->send(wsConnectionPtr, sendString, ec);

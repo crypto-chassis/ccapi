@@ -54,7 +54,7 @@ class SessionOptions CCAPI_FINAL {
   long httpConnectionPoolIdleTimeoutMilliSeconds{0};  // used to purge the http connection pool if all connections in the
                                                       // pool have stayed idle for at least this amount of time
   bool enableOneHttpConnectionPerRequest{};           // create a new http connection for each request
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
   long websocketConnectTimeoutMilliSeconds{10000};
 #endif

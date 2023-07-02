@@ -19,7 +19,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
@@ -254,7 +254,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
                      const TimePoint& timeReceived) override{
 #else
@@ -295,7 +295,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     document.Accept(writerSubscribe);
     std::string sendString = stringBufferSubscribe.GetString();
     ErrorCode ec;
-#ifndef CCAPI_USE_BOOST_BEAST_WEBSOCKET
+#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
     this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
 #else
         this->send(wsConnectionPtr, sendString, ec);
