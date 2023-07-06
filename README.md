@@ -57,13 +57,12 @@ Breaking changes in v6: Greetings, Ladies and Gentlemen, we've introduced some s
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx (Cboe Digital), kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc, mexc-futures, whitebit.
+  * Market Data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx (Cboe Digital), kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc, mexc-futures, whitebit.
   * Execution Management: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx (Cboe Digital), kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc.
   * FIX: coinbase, gemini.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
 * A single order execution application is provided as an end-to-end solution for executing large orders.
 * To spur innovation and industry collaboration, this library is open for use by the public without cost.
-* For historical market data, see https://github.com/crypto-chassis/cryptochassis-api-docs.
 * We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
 
