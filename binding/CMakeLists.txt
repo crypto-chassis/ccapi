@@ -76,6 +76,10 @@ option(BUILD_PYTHON "Build Python Library" OFF)
 option(INSTALL_PYTHON "Install Python Library" OFF)
 message(STATUS "Build Python: ${BUILD_PYTHON}")
 
+option(BUILD_JAVA "Build Java Library" OFF)
+option(INSTALL_JAVA "Install Java Library" OFF)
+message(STATUS "Build Java: ${BUILD_JAVA}")
+
 set(CMAKE_CXX_STANDARD 17)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
@@ -212,4 +216,12 @@ add_compile_definitions(CCAPI_ENABLE_EXCHANGE_WHITEBIT)
 find_package(ZLIB REQUIRED)
 link_libraries(ZLIB::ZLIB)
 
-add_subdirectory(python)
+set(SWIG_INTERFACE ${CCAPI_PROJECT_DIR}/binding/swig_interface.i)
+
+if(BUILD_PYTHON)
+  add_subdirectory(python)
+endif()
+
+if(BUILD_JAVA)
+  add_subdirectory(java)
+endif()
