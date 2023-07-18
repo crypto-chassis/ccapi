@@ -111,7 +111,7 @@ Breaking changes in v6: Greetings, Ladies and Gentlemen, we've introduced some s
 mkdir binding/build
 cd binding/build
 rm -rf * (if rebuild from scratch)
-cmake -DBUILD_PYTHON=ON -DINSTALL_PYTHON=ON .. (optional: -DBUILD_VERSION=<anything>)
+cmake -DBUILD_PYTHON=ON .. (optional: -DBUILD_VERSION=<anything>)
 cmake --build .
 cmake --install .
 ```
@@ -155,7 +155,7 @@ For a specific exchange and instrument, get recents trades.
 
 **Code 1:**
 
-[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/src/market_data_simple_request/main.py)
+[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -228,7 +228,7 @@ For a specific exchange and instrument, whenever the best bid's or ask's price o
 
 **Code 2:**
 
-[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/src/market_data_simple_subscription/main.py)
+[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -402,7 +402,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code 1:**
 
-[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/src/execution_management_simple_request/main.py)
+[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -492,7 +492,7 @@ For a specific exchange and instrument, receive order updates.
 
 **Code 2:**
 
-[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/src/execution_management_simple_subscription/main.py)
+[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -735,7 +735,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code:**
 
-[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/src/fix_simple/main.py)
+[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -879,7 +879,7 @@ An example can be found [here](example/src/market_data_advanced_subscription/mai
 
 #### Enable library logging
 
-[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/src/enable_library_logging/main.py)
+[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py)
 
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```
