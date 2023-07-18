@@ -32,8 +32,11 @@ target_link_libraries(${SWIG_TARGET_NAME}	PRIVATE	${Python_LIBRARIES})
 # #######################
 configure_file(
   setup.py.in
-  ${CMAKE_CURRENT_BINARY_DIR}/setup.py
+  ${CMAKE_CURRENT_BINARY_DIR}/setup.py.in
   @ONLY)
+file(GENERATE
+  OUTPUT setup.py
+  INPUT ${CMAKE_CURRENT_BINARY_DIR}/setup.py.in)
 
 # Find if python module MODULE_NAME is available,
 # if not install it to the Python user install directory.
