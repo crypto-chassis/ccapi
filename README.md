@@ -1,5 +1,3 @@
-Breaking changes in v6: Greetings, Ladies and Gentlemen, we've introduced some simplifications and breaking changes to our build process. Compared to v5, it should be much easier. If you have any questions, feel free to ping us on Discord https://discord.gg/b5EKcp9s8T. Thank you.
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -53,7 +51,7 @@ Breaking changes in v6: Greetings, Ladies and Gentlemen, we've introduced some s
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 # ccapi
 * A header-only C++ library for streaming market data and executing trades directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
-* Bindings for other languages such as Python are provided.
+* Bindings for other languages such as Python and Java are provided.
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
@@ -102,8 +100,8 @@ Breaking changes in v6: Greetings, Ladies and Gentlemen, we've introduced some s
   * "string table overflow at offset \<a>". Try to add optimization flag `-O1` or `-O2`. See https://stackoverflow.com/questions/14125007/gcc-string-table-overflow-error-during-compilation.
   * On Windows, if you still encounter resource related issues, try to add optimization flag `-O3 -DNDEBUG`.
 
-### Python
-* Require Python 3, SWIG, and CMake.
+### Python and Java
+* Require SWIG and CMake.
   * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
   * CMake: https://cmake.org/download/.
 * Run the following commands.
@@ -111,9 +109,8 @@ Breaking changes in v6: Greetings, Ladies and Gentlemen, we've introduced some s
 mkdir binding/build
 cd binding/build
 rm -rf * (if rebuild from scratch)
-cmake -DBUILD_PYTHON=ON .. (optional: -DBUILD_VERSION=<anything>)
+cmake -DBUILD_PYTHON=ON -DBUILD_VERSION=1.0.0 .. (For)
 cmake --build .
-cmake --install .
 ```
 * If a virtual environment (managed by `venv` or `conda`) is active (i.e. the `activate` script has been evaluated), the package will be installed into the virtual environment rather than globally.
 * Currently not working on Windows.

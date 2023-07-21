@@ -4,7 +4,7 @@ import com.cryptochassis.ccapi.SessionConfigs;
 import com.cryptochassis.ccapi.Session;
 import com.cryptochassis.ccapi.Request;
 import com.cryptochassis.ccapi.Event;
-import com.cryptochassis.ccapi.map_string_string;
+import com.cryptochassis.ccapi.MapStringString;
 
 public class Main {
     static class MyEventHandler extends EventHandler {
@@ -17,9 +17,11 @@ public class Main {
     public static void main(String[] args) {
         if(System.getenv("BINANCE_API_KEY") == null) {
             System.err.println("Please set environment variable BINANCE_API_KEY");
+            return;
         }
         if(System.getenv("BINANCE_API_SECRET") == null) {
             System.err.println("Please set environment variable BINANCE_API_SECRET");
+            return;
         }
         System.loadLibrary("ccapi_binding_java");
         var eventHandler = new MyEventHandler();
@@ -27,7 +29,7 @@ public class Main {
         var config = new SessionConfigs();
         var session = new Session(option, config, eventHandler);
         var request = new Request(Request.Operation.CREATE_ORDER, "binance", "BTCUSDT");
-        var param = new map_string_string();
+        var param = new MapStringString();
         param.put("SIDE","BUY");
         param.put("QUANTITY","0.0005");
         param.put("LIMIT_PRICE","20000");
