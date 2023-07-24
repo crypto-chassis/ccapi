@@ -143,7 +143,7 @@ cmake --build . --target <example-name>
 
 [Python](binding/python/example)
 * Python API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
-* Build and install the Python binding as shown [above](#non-C++).
+* Build and install the Python binding as shown [above](#non-C).
 * Inside a concrete example directory (e.g. binding/python/example/market_data_simple_subscription), run
 ```
 python3 main.py
@@ -151,7 +151,7 @@ python3 main.py
 
 [Java](binding/java/example)
 * Java API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
-* Build and install the Java binding as shown [above](#non-C++).
+* Build and install the Java binding as shown [above](#non-C).
 * Inside a concrete example directory (e.g. binding/python/example/market_data_simple_subscription), run
 ```
 mkdir build
