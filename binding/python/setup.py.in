@@ -19,4 +19,5 @@ setup(
   packages=[''],
   py_modules = ['ccapi'],
   package_data={'': ['$<TARGET_FILE_NAME:@SWIG_TARGET_NAME@>']},
+  install_requires=['setuptools', 'wheel'],
 )

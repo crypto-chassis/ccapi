@@ -6,6 +6,10 @@ project(${NAME} LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
+if(POLICY CMP0122)
+cmake_policy(SET CMP0122 NEW)
+endif()
+
 # Apple: Don't modify install_name when touching RPATH.
 if(POLICY CMP0068)
   cmake_policy(SET CMP0068 NEW)
@@ -73,8 +77,13 @@ else()
 endif()
 
 option(BUILD_PYTHON "Build Python Library" OFF)
-option(INSTALL_PYTHON "Install Python Library" OFF)
 message(STATUS "Build Python: ${BUILD_PYTHON}")
+
+option(BUILD_JAVA "Build Java Library" OFF)
+message(STATUS "Build Java: ${BUILD_JAVA}")
+
+option(BUILD_CSHARP "Build C# Library" OFF)
+message(STATUS "Build C#: ${BUILD_CSHARP}")
 
 set(CMAKE_CXX_STANDARD 17)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -141,7 +150,7 @@ link_libraries(OpenSSL::Crypto OpenSSL::SSL)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(SOURCE_LOGGER ${CCAPI_PROJECT_DIR}/binding/ccapi_logger.cpp)
-set(CMAKE_SWIG_FLAGS)
+# set(CMAKE_SWIG_FLAGS)
 find_package(SWIG REQUIRED)
 include(UseSWIG)
 if(BUILD_TEST)
@@ -212,4 +221,30 @@ add_compile_definitions(CCAPI_ENABLE_EXCHANGE_WHITEBIT)
 find_package(ZLIB REQUIRED)
 link_libraries(ZLIB::ZLIB)
 
-add_subdirectory(python)
+if(BUILD_PYTHON)
+configure_file(
+  swig_interface.i.in
+  ${CMAKE_BINARY_DIR}/python/swig_interface.i
+@ONLY)
+set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/python/swig_interface.i)
+  add_subdirectory(python)
+endif()
+
+if(BUILD_JAVA)
+configure_file(
+  swig_interface.i.in
+  ${CMAKE_BINARY_DIR}/java/swig_interface.i
+@ONLY)
+set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/java/swig_interface.i)
+  add_subdirectory(java)
+endif()
+
+if(BUILD_CSHARP)
+file(READ csharp/swig_interface_ccapi_language_specific.i SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC)
+configure_file(
+  swig_interface.i.in
+  ${CMAKE_BINARY_DIR}/csharp/swig_interface.i
+@ONLY)
+set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/csharp/swig_interface.i)
+  add_subdirectory(csharp)
+endif()
