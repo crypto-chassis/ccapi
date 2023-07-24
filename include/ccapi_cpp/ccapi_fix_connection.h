@@ -6,11 +6,11 @@
 #include "ccapi_cpp/ccapi_subscription.h"
 namespace beast = boost::beast;
 namespace ccapi {
+/**
+ * This class represents a TCP socket connection for the FIX API.
+ */
 template <class T>
 class FixConnection CCAPI_FINAL {
-  /**
-   * This class represents a TCP socket connection for the FIX API.
-   */
  public:
   FixConnection(std::string host, std::string port, Subscription subscription, std::shared_ptr<T> streamPtr)
       : host(host), port(port), subscription(subscription), streamPtr(streamPtr) {

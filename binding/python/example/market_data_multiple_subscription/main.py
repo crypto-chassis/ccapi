@@ -6,7 +6,8 @@ class MyEventHandler(EventHandler):
     def processEvent(self, event: Event, session: Session) -> bool:
         if event.getType() == Event.Type_SUBSCRIPTION_DATA:
             for message in event.getMessageList():
-                print(f'Best bid and ask at {message.getTimeISO()} are:')
+                correlationId = message.getCorrelationIdList()[0]
+                print(f'{correlationId}: Best bid and ask at {message.getTimeISO()} are:')
                 for element in message.getElementList():
                     elementNameValueMap = element.getNameValueMap()
                     for name, value in elementNameValueMap.items():
@@ -18,8 +19,8 @@ if __name__ == '__main__':
     config = SessionConfigs()
     session = Session(option, config, eventHandler)
     subscriptionList = SubscriptionList()
-    subscriptionList.append(Subscription('coinbase', 'BTC-USD', 'MARKET_DEPTH'))
-    subscriptionList.append(Subscription('coinbase', 'ETH-USD', 'MARKET_DEPTH'))
+    subscriptionList.append(Subscription('coinbase', 'BTC-USD', 'MARKET_DEPTH', '', 'BTC'))
+    subscriptionList.append(Subscription('coinbase', 'ETH-USD', 'MARKET_DEPTH', '', 'ETH'))
     session.subscribe(subscriptionList)
     time.sleep(10)
     session.stop()

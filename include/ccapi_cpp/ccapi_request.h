@@ -7,6 +7,15 @@
 
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
+// We use macros instead of static constants in the Request class so that SWIG can properly generate C# bindings
+#define CCAPI_REQUEST_OPERATION_TYPE_CUSTOM 0x100
+#define CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PUBLIC_REQUEST 0x200
+#define CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PRIVATE_REQUEST 0x300
+#define CCAPI_REQUEST_OPERATION_TYPE_FIX 0x400
+#define CCAPI_REQUEST_OPERATION_TYPE_MARKET_DATA 0x500
+#define CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT 0x600
+#define CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT
+#define CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ACCOUNT 0x700
 namespace ccapi {
 /**
  * A single request. Request objects are created using Request constructors. They are used with Session::sendRequest() or Session::sendRequestByWebsocket() or
@@ -16,29 +25,21 @@ namespace ccapi {
  */
 class Request CCAPI_FINAL {
  public:
-  static constexpr int operationTypeCustom = 0x100;
-  static constexpr int operationTypeGenericPublicRequest = 0x200;
-  static constexpr int operationTypeGenericPrivateRequest = 0x300;
-  static constexpr int operationTypeFix = 0x400;
-  static constexpr int operationTypeMarketData = 0x500;
-  static constexpr int operationTypeExecutionManagement = 0x600;
-  static constexpr int operationTypeExecutionManagementOrder = operationTypeExecutionManagement;
-  static constexpr int operationTypeExecutionManagementAccount = 0x700;
   enum class Operation {
-    CUSTOM = operationTypeCustom,
-    GENERIC_PUBLIC_REQUEST = operationTypeGenericPublicRequest,
-    GENERIC_PRIVATE_REQUEST = operationTypeGenericPrivateRequest,
-    FIX = operationTypeFix,
-    GET_RECENT_TRADES = operationTypeMarketData,
+    CUSTOM = CCAPI_REQUEST_OPERATION_TYPE_CUSTOM,
+    GENERIC_PUBLIC_REQUEST = CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PUBLIC_REQUEST,
+    GENERIC_PRIVATE_REQUEST = CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PRIVATE_REQUEST,
+    FIX = CCAPI_REQUEST_OPERATION_TYPE_FIX,
+    GET_RECENT_TRADES = CCAPI_REQUEST_OPERATION_TYPE_MARKET_DATA,
     GET_RECENT_AGG_TRADES,
     GET_INSTRUMENT,
     GET_INSTRUMENTS,
-    CREATE_ORDER = operationTypeExecutionManagementOrder,
+    CREATE_ORDER = CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER,
     CANCEL_ORDER,
     GET_ORDER,
     GET_OPEN_ORDERS,
     CANCEL_OPEN_ORDERS,
-    GET_ACCOUNTS = operationTypeExecutionManagementAccount,
+    GET_ACCOUNTS = CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ACCOUNT,
     GET_ACCOUNT_BALANCES,
     GET_ACCOUNT_POSITIONS,
   };
@@ -111,7 +112,7 @@ class Request CCAPI_FINAL {
     } else if (operation == Operation::FIX) {
       this->serviceName = CCAPI_FIX;
     } else {
-      this->serviceName = static_cast<int>(operation) >= operationTypeExecutionManagement ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
+      this->serviceName = static_cast<int>(operation) >= CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT ? CCAPI_EXECUTION_MANAGEMENT : CCAPI_MARKET_DATA;
     }
     if (this->correlationId.empty()) {
       this->correlationId = UtilString::generateRandomString(CCAPI_CORRELATION_ID_GENERATED_LENGTH);

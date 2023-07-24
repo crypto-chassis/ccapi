@@ -148,3 +148,5 @@ docs/_build/
 # Other
 .project
 .venv/
+target/
+obj/

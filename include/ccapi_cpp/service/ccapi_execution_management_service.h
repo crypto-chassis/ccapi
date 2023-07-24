@@ -115,10 +115,11 @@ class ExecutionManagementService : public Service {
     Request::Operation operation = request.getOperation();
     message.setType(this->requestOperationToMessageTypeMap.at(operation));
     auto castedOperation = static_cast<int>(operation);
-    if (castedOperation >= Request::operationTypeExecutionManagementOrder && castedOperation < Request::operationTypeExecutionManagementAccount) {
+    if (castedOperation >= CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER &&
+        castedOperation < CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ACCOUNT) {
       this->extractOrderInfoFromRequest(elementList, request, operation, document);
       message.setElementList(elementList);
-    } else if (castedOperation >= Request::operationTypeExecutionManagementAccount) {
+    } else if (castedOperation >= CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ACCOUNT) {
       this->extractAccountInfoFromRequest(elementList, request, operation, document);
       message.setElementList(elementList);
     }
