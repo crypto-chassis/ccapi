@@ -6,7 +6,7 @@
   - [Branches](#branches)
   - [Build](#build)
     - [C++](#c)
-    - [Python](#python)
+    - [non-C++](#non-c)
   - [Constants](#constants)
   - [Examples](#examples)
   - [Documentations](#documentations)
@@ -100,25 +100,29 @@
   * "string table overflow at offset \<a>". Try to add optimization flag `-O1` or `-O2`. See https://stackoverflow.com/questions/14125007/gcc-string-table-overflow-error-during-compilation.
   * On Windows, if you still encounter resource related issues, try to add optimization flag `-O3 -DNDEBUG`.
 
-### Python and Java
+### non-C++
 * Require SWIG and CMake.
-  * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`. On Windows, http://www.swig.org/Doc4.0/Windows.html#Windows.
+  * SWIG: On macOS, `brew install SWIG`. On Linux, `sudo apt-get install -y swig`.
   * CMake: https://cmake.org/download/.
 * Run the following commands.
 ```
 mkdir binding/build
 cd binding/build
 rm -rf * (if rebuild from scratch)
-cmake -DBUILD_PYTHON=ON -DBUILD_VERSION=1.0.0 .. (For)
+cmake -DBUILD_PYTHON=ON -DBUILD_VERSION=1.0.0 .. (Use -DBUILD_JAVA=ON if the target language is Java)
 cmake --build .
 ```
 * If a virtual environment (managed by `venv` or `conda`) is active (i.e. the `activate` script has been evaluated), the package will be installed into the virtual environment rather than globally.
-* Currently not working on Windows.
 * Troubleshoot:
-  * "CMake Error at python/CMakeLists.txt:... (message): Require Python 3". Try to create and activate a virtual environment (managed by `venv` or `conda`) with Python 3.
-  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Ubuntu, `sudo apt-get install libssl-dev`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
-  * "Fatal Python error: Segmentation fault". If the macOS version is relatively new and the Python version is relatively old, please upgrade Python to a relatively new version.
-  * "‘_PyObject_GC_UNTRACK’ was not declared in this scope". If you use Python >= 3.8, please use SWIG >= 4.0.
+  * Python:
+    * "CMake Error at python/CMakeLists.txt:... (message): Require Python 3". Try to create and activate a virtual environment (managed by `venv` or `conda`) with Python 3.
+    * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Ubuntu, `sudo apt-get install libssl-dev`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
+    * "Fatal Python error: Segmentation fault". If the macOS version is relatively new and the Python version is relatively old, please upgrade Python to a relatively new version.
+    * "‘_PyObject_GC_UNTRACK’ was not declared in this scope". If you use Python >= 3.8, please use SWIG >= 4.0.
+  * Java:
+    * "Could NOT find JNI (missing: JAVA_INCLUDE_PATH JAVA_INCLUDE_PATH2 JAVA_AWT_INCLUDE_PATH)". Check that the environment variable `JAVA_HOME` is correct.
+    * "../Main.java:1: error: package com.cryptochassis.ccapi does not exist". Check that `javac`'s classpath includes `binding/build/java/packaging/1.0.0/ccapi-1.0.0.jar`.
+    * "Exception in thread "main" java.lang.UnsatisfiedLinkError: no ccapi_binding_java in java.library.path: ...". Check that `java`'s `java.library.path` property includes `binding/build/java/packaging/1.0.0`. See https://stackoverflow.com/questions/1403788/java-lang-unsatisfiedlinkerror-no-dll-in-java-library-path.
 
 ## Constants
 [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h)
@@ -139,8 +143,23 @@ cmake --build . --target <example-name>
 
 [Python](binding/python/example)
 * Python API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
-* Build and install the Python binding as shown [above](#python).
-* Run `python3 main.py`.
+* Build and install the Python binding as shown [above](#non-C++).
+* Inside a concrete example directory (e.g. binding/python/example/market_data_simple_subscription), run
+```
+python3 main.py
+```
+
+[Java](binding/java/example)
+* Java API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
+* Build and install the Java binding as shown [above](#non-C++).
+* Inside a concrete example directory (e.g. binding/python/example/market_data_simple_subscription), run
+```
+mkdir build
+cd build
+rm -rf * (if rebuild from scratch)
+javac -cp ../../../../build/java/packaging/1.0.0/ccapi-1.0.0.jar -d . ../Main.java
+java -cp .:../../../../build/java/packaging/1.0.0/ccapi-1.0.0.jar -Djava.library.path=../../../../build/java/packaging/1.0.0  Main
+```
 
 ## Documentations
 
@@ -217,7 +236,7 @@ Bye
 ```
 * Request operation types: `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_RECENT_TRADES`, `GET_RECENT_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list).
 * Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
-* Message's `time` represents the exchange's reported timestamp. Its `timeReceived` represents the library's receiving timestamp. `time` can be retrieved by `getTime` method and `timeReceived` can be retrieved by `getTimeReceived` method. (For Python, please use `getTimeUnix` and `getTimeReceivedUnix` methods or `getTimeISO` and `getTimeReceivedISO` methods).
+* Message's `time` represents the exchange's reported timestamp. Its `timeReceived` represents the library's receiving timestamp. `time` can be retrieved by `getTime` method and `timeReceived` can be retrieved by `getTimeReceived` method. (For non-C++, please use `getTimeUnix` and `getTimeReceivedUnix` methods or `getTimeISO` and `getTimeReceivedISO` methods).
 
 **Objective 2:**
 
@@ -225,7 +244,7 @@ For a specific exchange and instrument, whenever the best bid's or ask's price o
 
 **Code 2:**
 
-[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py)
+[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -399,7 +418,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code 1:**
 
-[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py)
+[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
