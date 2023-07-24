@@ -34,18 +34,21 @@
         SWIG_exception(SWIG_RuntimeError, s.c_str());
     }
 }
-%template(map_string_string) std::map<std::string, std::string>;
-%template(map_int_string) std::map<int, std::string>;
-%template(pair_int_string) std::pair<int, std::string>;
-%template(pair_long_long_long_long) std::pair<long long, long long>;
-%template(vector_pair_int_string) std::vector<std::pair<int, std::string> >;
+%template(MapStringString) std::map<std::string, std::string>;
+%template(MapIntString) std::map<int, std::string>;
+%template(PairIntString) std::pair<int, std::string>;
+%template(PairLongLongLongLong) std::pair<long long, long long>;
+%template(VectorPairIntString) std::vector<std::pair<int, std::string> >;
 %template(ElementList) std::vector<ccapi::Element>;
-%template(vector_string) std::vector<std::string>;
+%template(VectorString) std::vector<std::string>;
 %template(MessageList) std::vector<ccapi::Message>;
-%template(map_string_map_string_string) std::map<std::string, std::map<std::string, std::string> >;
+%template(MapStringMapStringString) std::map<std::string, std::map<std::string, std::string> >;
 %template(EventList) std::vector<ccapi::Event>;
 %template(SubscriptionList) std::vector<ccapi::Subscription>;
 %template(RequestList) std::vector<ccapi::Request>;
+
+@SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC@
+
 %include "ccapi_cpp/ccapi_macro.h"
 %include "ccapi_cpp/ccapi_util.h"
 %include "ccapi_cpp/ccapi_element.h"
