@@ -331,16 +331,16 @@ This is used to match a particular request or subscription with its returned dat
 
 Send a `std::vector<Request>`.
 ```
-Request request_1(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD");
+Request request_1(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD", "cool correlation id for BTC");
 request_1.appendParam(...);
-Request request_2(Request::Operation::GET_RECENT_TRADES, "coinbase", "ETH-USD");
+Request request_2(Request::Operation::GET_RECENT_TRADES, "coinbase", "ETH-USD", "cool correlation id for ETH");
 request_2.appendParam(...);
 session.sendRequest({request_1, request_2});
 ```
 Subscribe a `std::vector<Subscription>`.
 ```
-Subscription subscription_1("coinbase", "BTC-USD", "MARKET_DEPTH");
-Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH");
+Subscription subscription_1("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id for coinbase BTC-USD");
+Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH", "", "cool correlation id for binance-us ethusd");
 session.subscribe({subscription_1, subscription_2});
 ```
 
@@ -660,9 +660,9 @@ This is used to match a particular request or subscription with its returned dat
 
 Send a `std::vector<Request>`.
 ```
-Request request_1(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
+Request request_1(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD", "cool correlation id for BTC");
 request_1.appendParam(...);
-Request request_2(Request::Operation::CREATE_ORDER, "binance-us", "ETHUSD");
+Request request_2(Request::Operation::CREATE_ORDER, "binance-us", "ETHUSD", "cool correlation id for ETH");
 request_2.appendParam(...);
 session.sendRequest({request_1, request_2});
 ```

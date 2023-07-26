@@ -150,7 +150,6 @@ link_libraries(OpenSSL::Crypto OpenSSL::SSL)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(SOURCE_LOGGER ${CCAPI_PROJECT_DIR}/binding/ccapi_logger.cpp)
-# set(CMAKE_SWIG_FLAGS)
 find_package(SWIG REQUIRED)
 include(UseSWIG)
 if(BUILD_TEST)
