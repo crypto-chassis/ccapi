@@ -48,12 +48,12 @@ add_dependencies(${JAVA_PACKAGING_TARGET_NAME} ${SWIG_TARGET_NAME})
 
 # Test
 if(BUILD_TEST)
-  message(STATUS "BUILD_TEST")
+  # message(STATUS "BUILD_TEST")
   set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/test)
   file(COPY example DESTINATION ${TEST_DIR})
   set(SUBDIRECTORY_LIST "enable_library_logging" "execution_management_simple_request" "execution_management_simple_subscription" "fix_simple" "handle_exception" "market_data_multiple_subscription" "market_data_simple_request" "market_data_simple_subscription")
   foreach(SUBDIRECTORY IN LISTS SUBDIRECTORY_LIST)
-    message(STATUS "SUBDIRECTORY=${SUBDIRECTORY}")
+    # message(STATUS "SUBDIRECTORY=${SUBDIRECTORY}")
     set(JAVA_TEST_TARGET_NAME java_test_${SUBDIRECTORY})
     set(JAVA_TEST_BUILD_DIRECTORY ${TEST_DIR}/example/${SUBDIRECTORY}/build)
     file(MAKE_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
@@ -64,4 +64,18 @@ if(BUILD_TEST)
     )
     add_dependencies(${JAVA_TEST_TARGET_NAME} ${JAVA_PACKAGING_TARGET_NAME})
   endforeach()
+  file(COPY test DESTINATION ${TEST_DIR})
+  set(JAVA_TEST_TARGET_NAME java_test_test)
+    set(JAVA_TEST_BUILD_DIRECTORY ${TEST_DIR}/test/build)
+    file(MAKE_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
+    add_custom_target(${JAVA_TEST_TARGET_NAME} ALL
+      COMMAND ${CMAKE_COMMAND} -E rm -rf *
+      COMMAND ${Java_JAVAC_EXECUTABLE} -cp ${PACKAGING_DIR_FULL}/ccapi-${BUILD_VERSION}.jar -d . ../Main.java
+      WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY}
+    )
+    add_dependencies(${JAVA_TEST_TARGET_NAME} ${JAVA_PACKAGING_TARGET_NAME})
+    add_test(NAME java_test
+    COMMAND ${Java_JAVA_EXECUTABLE} -cp ".:${PACKAGING_DIR_FULL}" -Djava.library.path=${PACKAGING_DIR_FULL} Main
+
+  WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
 endif()
