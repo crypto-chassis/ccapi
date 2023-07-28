@@ -8,10 +8,10 @@ class MyEventHandler(EventHandler):
     def processEvent(self, event: Event, session: Session) -> bool:
         try:
             raise Exception('oops')
-            return True  # This line is needed.
         except Exception:
             print(traceback.format_exc())
             sys.exit(1)
+        return True  # This line is needed.
 if __name__ == '__main__':
     eventHandler = MyEventHandler()
     option = SessionOptions()

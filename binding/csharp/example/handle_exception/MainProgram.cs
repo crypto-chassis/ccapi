@@ -1,18 +1,11 @@
 class MainProgram {
   class MyEventHandler : ccapi.EventHandler {
     public override bool ProcessEvent(ccapi.Event event_, ccapi.Session session) {
-      if (event_.GetType_() == ccapi.Event.Type.SUBSCRIPTION_DATA) {
-        foreach (var message in event_.GetMessageList()) {
-          System.Console.WriteLine(string.Format("Best bid and ask at {0} are:", message.GetTimeISO()));
-          foreach (var element in message.GetElementList()) {
-            var elementNameValueMap = element.GetNameValueMap();
-            foreach (var entry in elementNameValueMap) {
-              var name = entry.Key;
-              var value = entry.Value;
-              System.Console.WriteLine(string.Format("  {0} = {1}", name, value));
-            }
-          }
-        }
+      try {
+        throw new System.Exception("oops");
+      } catch (System.Exception e) {
+        System.Console.WriteLine(e.ToString());
+        System.Environment.Exit(0);
       }
       return true;
     }

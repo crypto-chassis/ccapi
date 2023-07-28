@@ -44,14 +44,29 @@ if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   else()
   add_library(rapidjson INTERFACE)
   endif()
-	include_directories(${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+  if(NOT HFFIX_INCLUDE_DIR)
+  include(ExternalProject)
+  ExternalProject_Add(hffix
+    URL    https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.3.0.tar.gz
+    SOURCE_DIR        "${CMAKE_BINARY_DIR}/hffix"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND     ""
+    INSTALL_COMMAND   ""
+    TEST_COMMAND      ""
+  )
+  set(HFFIX_INCLUDE_DIR "${CMAKE_BINARY_DIR}/hffix/include")
+  else()
+  add_library(hffix INTERFACE)
+  endif()
+	include_directories(${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 else()
   message(STATUS "use websocketpp")
   add_compile_definitions(CCAPI_LEGACY_USE_WEBSOCKETPP)
   set(RAPIDJSON_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/rapidjson/include)
   set(WEBSOCKETPP_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/websocketpp)
   set(BOOST_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/boost)
-  include_directories(${CCAPI_PROJECT_DIR}/include ${WEBSOCKETPP_INCLUDE_DIR} ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+  set(HFFIX_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/hffix/include)
+  include_directories(${CCAPI_PROJECT_DIR}/include ${WEBSOCKETPP_INCLUDE_DIR} ${BOOST_INCLUDE_DIR} ${HFFIX_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 endif()
 find_package(OpenSSL REQUIRED)
 set(ADDITIONAL_LINK_LIBRARIES "")

@@ -51,7 +51,7 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 # ccapi
 * A header-only C++ library for streaming market data and executing trades directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
-* Bindings for other languages such as Python and Java are provided.
+* Bindings for other languages such as Python, Java, and C# are provided.
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
@@ -109,20 +109,19 @@
 mkdir binding/build
 cd binding/build
 rm -rf * (if rebuild from scratch)
-cmake -DBUILD_PYTHON=ON -DBUILD_VERSION=1.0.0 .. (Use -DBUILD_JAVA=ON if the target language is Java)
+cmake -DBUILD_PYTHON=ON -DBUILD_VERSION=1.0.0 .. (Use -DBUILD_JAVA=ON if the target language is Java, -DBUILD_CSHARP=ON if the target language is C#)
 cmake --build .
 ```
+* The packaged build artifacts are located in the `binding/build/<language>/packaging/<BUILD_VERSION>` directory. SWIG generated raw files and build artifacts are located in the `binding/build/<language>/ccapi_binding_<language>` directory.
 * Python: If a virtual environment (managed by `venv` or `conda`) is active (i.e. the `activate` script has been evaluated), the package will be installed into the virtual environment rather than globally.
+* C#: The shared library is built using the .NET framework.
 * Troubleshoot:
+  * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Ubuntu, `sudo apt-get install libssl-dev`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
   * Python:
     * "CMake Error at python/CMakeLists.txt:... (message): Require Python 3". Try to create and activate a virtual environment (managed by `venv` or `conda`) with Python 3.
-    * "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR)". Try `cmake -DOPENSSL_ROOT_DIR=...`. On macOS, you might be missing headers for OpenSSL, `brew install openssl` and `cmake -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl`. On Ubuntu, `sudo apt-get install libssl-dev`. On Windows, `vcpkg install openssl:x64-windows` and `cmake -DOPENSSL_ROOT_DIR=C:/vcpkg/installed/x64-windows-static`.
-    * "Fatal Python error: Segmentation fault". If the macOS version is relatively new and the Python version is relatively old, please upgrade Python to a relatively new version.
     * "‘_PyObject_GC_UNTRACK’ was not declared in this scope". If you use Python >= 3.8, please use SWIG >= 4.0.
   * Java:
     * "Could NOT find JNI (missing: JAVA_INCLUDE_PATH JAVA_INCLUDE_PATH2 JAVA_AWT_INCLUDE_PATH)". Check that the environment variable `JAVA_HOME` is correct.
-    * "../Main.java:1: error: package com.cryptochassis.ccapi does not exist". Check that `javac`'s classpath includes `binding/build/java/packaging/1.0.0/ccapi-1.0.0.jar`.
-    * "Exception in thread "main" java.lang.UnsatisfiedLinkError: no ccapi_binding_java in java.library.path: ...". Check that `java`'s `java.library.path` property includes `binding/build/java/packaging/1.0.0`. See https://stackoverflow.com/questions/1403788/java-lang-unsatisfiedlinkerror-no-dll-in-java-library-path.
 
 ## Constants
 [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h)
@@ -148,6 +147,8 @@ cmake --build . --target <example-name>
 ```
 python3 main.py
 ```
+* Troubleshoot:
+  * "Fatal Python error: Segmentation fault". If the macOS version is relatively new and the Python version is relatively old, please upgrade Python to a relatively new version.
 
 [Java](binding/java/example)
 * Java API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
@@ -160,6 +161,21 @@ rm -rf * (if rebuild from scratch)
 javac -cp ../../../../build/java/packaging/1.0.0/ccapi-1.0.0.jar -d . ../Main.java
 java -cp .:../../../../build/java/packaging/1.0.0/ccapi-1.0.0.jar -Djava.library.path=../../../../build/java/packaging/1.0.0  Main
 ```
+* Troubleshoot:
+  * "../Main.java:1: error: package com.cryptochassis.ccapi does not exist". Check that `javac`'s classpath includes `binding/build/java/packaging/1.0.0/ccapi-1.0.0.jar`.
+  * "Exception in thread "main" java.lang.UnsatisfiedLinkError: no ccapi_binding_java in java.library.path: ...". Check that `java`'s `java.library.path` property includes `binding/build/java/packaging/1.0.0`. See https://stackoverflow.com/questions/1403788/java-lang-unsatisfiedlinkerror-no-dll-in-java-library-path.
+
+[C#](binding/csharp/example)
+* C# API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
+* Build and install the C# binding as shown [above](#non-c).
+* Inside a concrete example directory (e.g. binding/csharp/example/market_data_simple_subscription), run
+```
+dotnet clean (if rebuild from scratch)
+env LD_LIBRARY_PATH="$LD_LIBRARY_PATH:../../../build/csharp/packaging/1.0.0" dotnet run --property:CcapiLibraryPath=../../../build/csharp/packaging/1.0.0/ccapi.dll -c Release
+```
+* Troubleshoot:
+  * "error CS0246: The type or namespace name 'ccapi' could not be found". Check that you aren't missing the ccapi assembly reference.
+  * "System.DllNotFoundException: Unable to load shared library 'ccapi_binding_csharp.so' or one of its dependencies.". Check that environment variable `LD_LIBRARY_PATH` includes `binding/build/csharp/packaging/1.0.0`.
 
 ## Documentations
 
@@ -171,7 +187,7 @@ For a specific exchange and instrument, get recents trades.
 
 **Code 1:**
 
-[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py)
+[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py) / [Java](binding/java/example/market_data_simple_request/Main.java) / [C#](binding/csharp/example/market_data_simple_request/MainProgram.cs)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -244,7 +260,7 @@ For a specific exchange and instrument, whenever the best bid's or ask's price o
 
 **Code 2:**
 
-[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java)
+[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java) / [C#](binding/csharp/example/market_data_simple_subscription/MainProgram.cs)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -331,16 +347,16 @@ This is used to match a particular request or subscription with its returned dat
 
 Send a `std::vector<Request>`.
 ```
-Request request_1(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD");
+Request request_1(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD", "cool correlation id for BTC");
 request_1.appendParam(...);
-Request request_2(Request::Operation::GET_RECENT_TRADES, "coinbase", "ETH-USD");
+Request request_2(Request::Operation::GET_RECENT_TRADES, "coinbase", "ETH-USD", "cool correlation id for ETH");
 request_2.appendParam(...);
 session.sendRequest({request_1, request_2});
 ```
 Subscribe a `std::vector<Subscription>`.
 ```
-Subscription subscription_1("coinbase", "BTC-USD", "MARKET_DEPTH");
-Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH");
+Subscription subscription_1("coinbase", "BTC-USD", "MARKET_DEPTH", "", "cool correlation id for coinbase BTC-USD");
+Subscription subscription_2("binance-us", "ethusd", "MARKET_DEPTH", "", "cool correlation id for binance-us ethusd");
 session.subscribe({subscription_1, subscription_2});
 ```
 
@@ -418,7 +434,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code 1:**
 
-[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java)
+[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java) / [C#](binding/csharp/example/execution_management_simple_request/MainProgram.cs)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -508,7 +524,7 @@ For a specific exchange and instrument, receive order updates.
 
 **Code 2:**
 
-[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py)
+[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py) / [Java](binding/java/example/execution_management_simple_subscription/Main.java) / [C#](binding/csharp/example/execution_management_simple_subscription/MainProgram.cs)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -660,9 +676,9 @@ This is used to match a particular request or subscription with its returned dat
 
 Send a `std::vector<Request>`.
 ```
-Request request_1(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD");
+Request request_1(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD", "cool correlation id for BTC");
 request_1.appendParam(...);
-Request request_2(Request::Operation::CREATE_ORDER, "binance-us", "ETHUSD");
+Request request_2(Request::Operation::CREATE_ORDER, "binance-us", "ETHUSD", "cool correlation id for ETH");
 request_2.appendParam(...);
 session.sendRequest({request_1, request_2});
 ```
@@ -751,7 +767,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code:**
 
-[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py)
+[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -895,7 +911,7 @@ An example can be found [here](example/src/market_data_advanced_subscription/mai
 
 #### Enable library logging
 
-[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py)
+[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py) / [Java](binding/java/example/enable_library_logging/Main.java) / [C#](binding/csharp/example/enable_library_logging/MainProgram.cs)
 
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```

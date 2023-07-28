@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-find . -type f -path "*/binding/*" -not -path "*/dependency/*" -not -path "*/build/*" -name "*.java" -exec clang-format -i -style=file {} \+
+find . -type f -path "*/binding/*" -not -path "*/build/*" -name "*.java" -exec clang-format -i -style=file {} \+
