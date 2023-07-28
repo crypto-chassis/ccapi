@@ -5,6 +5,8 @@ import com.cryptochassis.ccapi.SessionConfigs;
 import com.cryptochassis.ccapi.SessionOptions;
 import com.cryptochassis.ccapi.Subscription;
 import com.cryptochassis.ccapi.SubscriptionList;
+import com.cryptochassis.ccapi.Request;
+import com.cryptochassis.ccapi.MapStringString;
 
 public class Main {
   static class MyEventHandler extends EventHandler {
