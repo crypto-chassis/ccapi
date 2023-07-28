@@ -53,8 +53,8 @@ add_dependencies(${PYTHON_PACKAGING_TARGET_NAME} ${SWIG_TARGET_NAME})
 # Test
 if(BUILD_TEST)
   set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/test)
-  configure_file(test/test.py ${TEST_DIR}/test.py COPYONLY)
-  add_test(NAME test
-    COMMAND ${Python_EXECUTABLE} test.py
+  configure_file(test/main.py ${TEST_DIR}/main.py COPYONLY)
+  add_test(NAME python_test
+    COMMAND ${Python_EXECUTABLE} main.py
   WORKING_DIRECTORY ${TEST_DIR})
 endif()

@@ -3,7 +3,8 @@ class MainProgram {
     public override bool ProcessEvent(ccapi.Event event_, ccapi.Session session) {
       if (event_.GetType_() == ccapi.Event.Type.SUBSCRIPTION_DATA) {
         foreach (var message in event_.GetMessageList()) {
-          System.Console.WriteLine(string.Format("Best bid and ask at {0} are:", message.GetTimeISO()));
+          var correlationId = message.GetCorrelationIdList()[0];
+          System.Console.WriteLine(string.Format("{0}: Best bid and ask at {1} are:", correlationId, message.GetTimeISO()));
           foreach (var element in message.GetElementList()) {
             var elementNameValueMap = element.GetNameValueMap();
             foreach (var entry in elementNameValueMap) {
@@ -23,7 +24,8 @@ class MainProgram {
     var config = new ccapi.SessionConfigs();
     var session = new ccapi.Session(option, config, eventHandler);
     var subscriptionList = new ccapi.SubscriptionList();
-    subscriptionList.Add(new ccapi.Subscription("okx", "BTC-USDT", "MARKET_DEPTH"));
+    subscriptionList.Add(new ccapi.Subscription("okx", "BTC-USDT", "MARKET_DEPTH", "", "BTC"));
+    subscriptionList.Add(new ccapi.Subscription("okx", "ETH-USDT", "MARKET_DEPTH", "", "ETH"));
     session.Subscribe(subscriptionList);
     System.Threading.Thread.Sleep(10000);
     session.Stop();

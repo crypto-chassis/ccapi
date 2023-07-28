@@ -229,8 +229,8 @@ jobs:
           execute_process(
             COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
               -DBUILD_PYTHON=ON
+              -DBUILD_JAVA=ON
               -DBUILD_TEST=ON
-              -DINSTALL_PYTHON=ON
               -S binding
               -B binding/build
               -D CMAKE_BUILD_TYPE=$ENV{BUILD_TYPE}
@@ -386,7 +386,7 @@ jobs:
           message(FATAL_ERROR "Bad exit status")
         endif()
 
-    - name: Build Python
+    - name: Build non-C++
       shell: cmake -P {0}
       run: |
         set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
@@ -416,7 +416,7 @@ jobs:
           endif()
         endif()
 
-    - name: Test Python
+    - name: Test non-C++
       shell: cmake -P {0}
       run: |
         if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
@@ -428,26 +428,4 @@ jobs:
           if (NOT result EQUAL 0)
             message(FATAL_ERROR "Bad exit status")
           endif()
-        endif()
-
-    - name: Install Python
-      shell: cmake -P {0}
-      run:  |
-        if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
-          execute_process(
-            COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-              --install binding/build
-            RESULT_VARIABLE result
-          )
-          if (NOT result EQUAL 0)
-            message(FATAL_ERROR "Bad exit status")
-          endif()
-        endif()
-
-        execute_process(
-          COMMAND rm -rf binding/build
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
         endif()
