@@ -10,6 +10,19 @@ public class Main {
   static class MyEventHandler extends EventHandler {
     @Override
     public boolean processEvent(Event event, Session session) {
+      if (event.getType() == Event.Type.SUBSCRIPTION_DATA) {
+        for (var message : event.getMessageList()) {
+          System.out.println(String.format("Best bid and ask at %s are:", message.getTimeISO()));
+          for (var element : message.getElementList()) {
+            var elementNameValueMap = element.getNameValueMap();
+            for (var entry : elementNameValueMap.entrySet()) {
+              var name = entry.getKey();
+              var value = entry.getValue();
+              System.out.println(String.format("  %s = %s", name, value));
+            }
+          }
+        }
+      }
       return true;
     }
   }
@@ -22,10 +35,11 @@ public class Main {
     var subscriptionList = new SubscriptionList();
     subscriptionList.add(new Subscription("okx", "BTC-USDT", "MARKET_DEPTH"));
     session.subscribe(subscriptionList);
-    try {
-      Thread.sleep(10);
-    } catch (InterruptedException e) {
-    }
+    var request = new Request(Request.Operation.GET_RECENT_TRADES, "okx", "BTC-USDT");
+    var param = new MapStringString();
+    param.put("LIMIT", "1");
+    request.appendParam(param);
+    session.sendRequest(request);
     session.stop();
     System.out.println("Bye");
   }

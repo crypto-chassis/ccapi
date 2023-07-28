@@ -17,8 +17,13 @@ if __name__ == '__main__':
     option = SessionOptions()
     config = SessionConfigs()
     session = Session(option, config, eventHandler)
-    subscription = Subscription('coinbase', 'BTC-USD', 'MARKET_DEPTH')
+    subscription = Subscription('okx', 'BTC-USDT', 'MARKET_DEPTH')
     session.subscribe(subscription)
+    request = Request(Request.Operation_GET_RECENT_TRADES, 'okx', 'BTC-USDT')
+    request.appendParam({
+        'LIMIT':'1',
+    })
+    session.sendRequest(request)
     time.sleep(10)
     session.stop()
     print('Bye')
