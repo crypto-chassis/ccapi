@@ -55,3 +55,32 @@ add_custom_target(${CSHARP_PACKAGING_TARGET_NAME} ALL
   WORKING_DIRECTORY ${SRC_DIR_FULL}
 )
 add_dependencies(${CSHARP_PACKAGING_TARGET_NAME} ${SWIG_TARGET_NAME})
+
+# Test
+if(BUILD_TEST)
+  # message(STATUS "BUILD_TEST")
+  set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/test)
+  file(COPY example DESTINATION ${TEST_DIR})
+  set(SUBDIRECTORY_LIST "enable_library_logging" "execution_management_simple_request" "execution_management_simple_subscription" "fix_simple" "handle_exception" "market_data_multiple_subscription" "market_data_simple_request" "market_data_simple_subscription")
+  foreach(SUBDIRECTORY IN LISTS SUBDIRECTORY_LIST)
+    # message(STATUS "SUBDIRECTORY=${SUBDIRECTORY}")
+    set(CSHARP_TEST_TARGET_NAME csharp_test_${SUBDIRECTORY})
+    add_custom_target(${CSHARP_TEST_TARGET_NAME} ALL
+      COMMAND ${DOTNET_EXECUTABLE} clean
+      COMMAND ${DOTNET_EXECUTABLE} build --property:CcapiLibraryPath=${PACKAGING_DIR_FULL}/ccapi.dll -c ${DOTNET_BUILD_CONFIGURATION}
+      WORKING_DIRECTORY ${TEST_DIR}/example/${SUBDIRECTORY}
+    )
+    add_dependencies(${CSHARP_TEST_TARGET_NAME} ${CSHARP_PACKAGING_TARGET_NAME})
+  endforeach()
+  file(COPY test DESTINATION ${TEST_DIR})
+  set(CSHARP_TEST_TARGET_NAME csharp_test_test)
+    add_custom_target(${CSHARP_TEST_TARGET_NAME} ALL
+      COMMAND ${DOTNET_EXECUTABLE} clean
+      COMMAND ${DOTNET_EXECUTABLE} build --property:CcapiLibraryPath=${PACKAGING_DIR_FULL}/ccapi.dll -c ${DOTNET_BUILD_CONFIGURATION}
+      WORKING_DIRECTORY ${TEST_DIR}/test
+    )
+    add_dependencies(${CSHARP_TEST_TARGET_NAME} ${CSHARP_PACKAGING_TARGET_NAME})
+    add_test(NAME csharp_test
+    COMMAND env LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${PACKAGING_DIR_FULL} ${DOTNET_EXECUTABLE} run -c ${DOTNET_BUILD_CONFIGURATION} --no-build
+  WORKING_DIRECTORY ${TEST_DIR}/test)
+endif()

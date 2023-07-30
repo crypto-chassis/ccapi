@@ -76,6 +76,5 @@ if(BUILD_TEST)
     add_dependencies(${JAVA_TEST_TARGET_NAME} ${JAVA_PACKAGING_TARGET_NAME})
     add_test(NAME java_test
     COMMAND ${Java_JAVA_EXECUTABLE} -cp ".:${PACKAGING_DIR_FULL}" -Djava.library.path=${PACKAGING_DIR_FULL} Main
-
   WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
 endif()
