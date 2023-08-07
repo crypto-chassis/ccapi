@@ -242,9 +242,7 @@ if(CCAPI_ENABLE_LOG_TRACE)
 endif()
 
 set(LANG_LIST "python" "java" "csharp" "go" "javascript")
-# option(BUILD_GO "Build ${LANG} library" OFF)
 foreach(LANG IN LISTS LANG_LIST)
-    # message(STATUS "language is ${LANG}")
     string(TOUPPER ${LANG} LANG_UPPER)
     option(BUILD_${LANG_UPPER} "Build ${LANG} library" OFF)
     message(STATUS "Build ${LANG_UPPER}: ${BUILD_${LANG_UPPER}}")
@@ -260,40 +258,3 @@ foreach(LANG IN LISTS LANG_LIST)
       add_subdirectory(${LANG})
     endif()
 endforeach()
-
-# option(BUILD_PYTHON "Build Python Library" OFF)
-# message(STATUS "Build Python: ${BUILD_PYTHON}")
-
-# option(BUILD_JAVA "Build Java Library" OFF)
-# message(STATUS "Build Java: ${BUILD_JAVA}")
-
-# option(BUILD_CSHARP "Build C# Library" OFF)
-# message(STATUS "Build C#: ${BUILD_CSHARP}")
-
-# if(BUILD_PYTHON)
-# configure_file(
-#   swig_interface.i.in
-#   ${CMAKE_BINARY_DIR}/python/swig_interface.i
-# @ONLY)
-# set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/python/swig_interface.i)
-#   add_subdirectory(python)
-# endif()
-
-# if(BUILD_JAVA)
-# configure_file(
-#   swig_interface.i.in
-#   ${CMAKE_BINARY_DIR}/java/swig_interface.i
-# @ONLY)
-# set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/java/swig_interface.i)
-#   add_subdirectory(java)
-# endif()
-
-# if(BUILD_CSHARP)
-# file(READ csharp/swig_interface_ccapi_language_specific.i SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC)
-# configure_file(
-#   swig_interface.i.in
-#   ${CMAKE_BINARY_DIR}/csharp/swig_interface.i
-# @ONLY)
-# set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/csharp/swig_interface.i)
-#   add_subdirectory(csharp)
-# endif()
