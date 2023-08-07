@@ -4,7 +4,9 @@ Logger* Logger::logger = nullptr;  // This line is needed.
 class MyEventHandler : public EventHandler {
  public:
   bool processEvent(const Event& event, Session* session) override {
-    if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
+    if (event.getType() == Event::Type::SUBSCRIPTION_STATUS) {
+      std::cout << "Received an event of type SUBSCRIPTION_STATUS:\n" + event.toStringPretty(2, 2) << std::endl;
+    } else if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto& message : event.getMessageList()) {
         std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
         for (const auto& element : message.getElementList()) {

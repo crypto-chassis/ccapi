@@ -15,6 +15,17 @@ class Queue {
   std::string EXCEPTION_QUEUE_FULL = "queue is full";
   std::string EXCEPTION_QUEUE_EMPTY = "queue is empty";
   explicit Queue(const size_t maxSize = 0) : maxSize(maxSize) {}
+  void pushBack(const T& t) {
+#ifndef CCAPI_USE_SINGLE_THREAD
+    std::lock_guard<std::mutex> lock(this->m);
+#endif
+    if (this->maxSize <= 0 || this->queue.size() < this->maxSize) {
+      CCAPI_LOGGER_TRACE("this->queue.size() = " + size_tToString(this->queue.size()));
+      this->queue.push_back(t);
+    } else {
+      throw std::runtime_error(EXCEPTION_QUEUE_FULL);
+    }
+  }
   void pushBack(T&& t) {
 #ifndef CCAPI_USE_SINGLE_THREAD
     std::lock_guard<std::mutex> lock(this->m);

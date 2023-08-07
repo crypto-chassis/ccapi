@@ -5,7 +5,7 @@ class MainProgram {
         throw new System.Exception("oops");
       } catch (System.Exception e) {
         System.Console.WriteLine(e.ToString());
-        System.Environment.Exit(0);
+        System.Environment.Exit(1);
       }
       return true;
     }

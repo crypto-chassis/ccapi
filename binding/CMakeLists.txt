@@ -76,21 +76,18 @@ else()
   endforeach()
 endif()
 
-option(BUILD_PYTHON "Build Python Library" OFF)
-message(STATUS "Build Python: ${BUILD_PYTHON}")
-
-option(BUILD_JAVA "Build Java Library" OFF)
-message(STATUS "Build Java: ${BUILD_JAVA}")
-
-option(BUILD_CSHARP "Build C# Library" OFF)
-message(STATUS "Build C#: ${BUILD_CSHARP}")
-
 set(CMAKE_CXX_STANDARD 17)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 endif()
 get_filename_component(CCAPI_PROJECT_DIR ../ ABSOLUTE)
 message(STATUS "CCAPI_PROJECT_DIR: ${CCAPI_PROJECT_DIR}")
+find_package(OpenSSL REQUIRED)
+message(STATUS "OPENSSL_INCLUDE_DIR: ${OPENSSL_INCLUDE_DIR}")
+message(STATUS "OPENSSL_CRYPTO_LIBRARY: ${OPENSSL_CRYPTO_LIBRARY}")
+get_filename_component(OPENSSL_CRYPTO_LIBRARY_DIR ${OPENSSL_CRYPTO_LIBRARY} DIRECTORY)
+message(STATUS "OPENSSL_SSL_LIBRARY: ${OPENSSL_SSL_LIBRARY}")
+get_filename_component(OPENSSL_SSL_LIBRARY_DIR ${OPENSSL_SSL_LIBRARY} DIRECTORY)
 if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   message(STATUS "use boost beast websocket")
   if(NOT BOOST_INCLUDE_DIR)
@@ -145,12 +142,19 @@ else()
   set(HFFIX_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/hffix/include)
   include_directories(${CCAPI_PROJECT_DIR}/include ${WEBSOCKETPP_INCLUDE_DIR} ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 endif()
-find_package(OpenSSL REQUIRED)
+
 link_libraries(OpenSSL::Crypto OpenSSL::SSL)
+
+find_package(ZLIB REQUIRED)
+link_libraries(ZLIB::ZLIB)
+message(STATUS "ZLIB_INCLUDE_DIRS: ${ZLIB_INCLUDE_DIRS}")
+message(STATUS "ZLIB_LIBRARIES: ${ZLIB_LIBRARIES}")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(SOURCE_LOGGER ${CCAPI_PROJECT_DIR}/binding/ccapi_logger.cpp)
 find_package(SWIG REQUIRED)
+message(STATUS "SWIG_VERSION: ${SWIG_VERSION}")
+message(STATUS "SWIG_EXECUTABLE: ${SWIG_EXECUTABLE}")
 include(UseSWIG)
 if(BUILD_TEST)
   include(CTest)
@@ -217,33 +221,79 @@ add_compile_definitions(CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES)
 
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_WHITEBIT)
 
-find_package(ZLIB REQUIRED)
-link_libraries(ZLIB::ZLIB)
-
-if(BUILD_PYTHON)
-configure_file(
-  swig_interface.i.in
-  ${CMAKE_BINARY_DIR}/python/swig_interface.i
-@ONLY)
-set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/python/swig_interface.i)
-  add_subdirectory(python)
+if(CCAPI_ENABLE_LOG_ERROR)
+  add_compile_definitions(CCAPI_ENABLE_LOG_ERROR)
 endif()
 
-if(BUILD_JAVA)
-configure_file(
-  swig_interface.i.in
-  ${CMAKE_BINARY_DIR}/java/swig_interface.i
-@ONLY)
-set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/java/swig_interface.i)
-  add_subdirectory(java)
+if(CCAPI_ENABLE_LOG_WARN)
+  add_compile_definitions(CCAPI_ENABLE_LOG_WARN)
 endif()
 
-if(BUILD_CSHARP)
-file(READ csharp/swig_interface_ccapi_language_specific.i SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC)
-configure_file(
-  swig_interface.i.in
-  ${CMAKE_BINARY_DIR}/csharp/swig_interface.i
-@ONLY)
-set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/csharp/swig_interface.i)
-  add_subdirectory(csharp)
+if(CCAPI_ENABLE_LOG_INFO)
+  add_compile_definitions(CCAPI_ENABLE_LOG_INFO)
 endif()
+
+if(CCAPI_ENABLE_LOG_DEBUG)
+  add_compile_definitions(CCAPI_ENABLE_LOG_DEBUG)
+endif()
+
+if(CCAPI_ENABLE_LOG_TRACE)
+  add_compile_definitions(CCAPI_ENABLE_LOG_TRACE)
+endif()
+
+set(LANG_LIST "python" "java" "csharp" "go" "javascript")
+# option(BUILD_GO "Build ${LANG} library" OFF)
+foreach(LANG IN LISTS LANG_LIST)
+    # message(STATUS "language is ${LANG}")
+    string(TOUPPER ${LANG} LANG_UPPER)
+    option(BUILD_${LANG_UPPER} "Build ${LANG} library" OFF)
+    message(STATUS "Build ${LANG_UPPER}: ${BUILD_${LANG_UPPER}}")
+    if(BUILD_${LANG_UPPER})
+      if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${LANG}/swig_interface_ccapi_language_specific.i")
+        file(READ ${LANG}/swig_interface_ccapi_language_specific.i SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC)
+      endif()
+      configure_file(
+        swig_interface.i.in
+        ${CMAKE_BINARY_DIR}/${LANG}/swig_interface.i
+      @ONLY)
+      set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/${LANG}/swig_interface.i)
+      add_subdirectory(${LANG})
+    endif()
+endforeach()
+
+# option(BUILD_PYTHON "Build Python Library" OFF)
+# message(STATUS "Build Python: ${BUILD_PYTHON}")
+
+# option(BUILD_JAVA "Build Java Library" OFF)
+# message(STATUS "Build Java: ${BUILD_JAVA}")
+
+# option(BUILD_CSHARP "Build C# Library" OFF)
+# message(STATUS "Build C#: ${BUILD_CSHARP}")
+
+# if(BUILD_PYTHON)
+# configure_file(
+#   swig_interface.i.in
+#   ${CMAKE_BINARY_DIR}/python/swig_interface.i
+# @ONLY)
+# set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/python/swig_interface.i)
+#   add_subdirectory(python)
+# endif()
+
+# if(BUILD_JAVA)
+# configure_file(
+#   swig_interface.i.in
+#   ${CMAKE_BINARY_DIR}/java/swig_interface.i
+# @ONLY)
+# set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/java/swig_interface.i)
+#   add_subdirectory(java)
+# endif()
+
+# if(BUILD_CSHARP)
+# file(READ csharp/swig_interface_ccapi_language_specific.i SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC)
+# configure_file(
+#   swig_interface.i.in
+#   ${CMAKE_BINARY_DIR}/csharp/swig_interface.i
+# @ONLY)
+# set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/csharp/swig_interface.i)
+#   add_subdirectory(csharp)
+# endif()
