@@ -14,7 +14,7 @@ public class Main {
         throw new Exception("oops");
       } catch (Exception e) {
         e.printStackTrace();
-        System.exit(0);
+        System.exit(1);
       }
       return true;
     }

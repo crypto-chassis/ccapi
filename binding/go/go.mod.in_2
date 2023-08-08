@@ -1,0 +1,7 @@
+module main
+
+require (
+    cryptochassis.com/ccapi v1.0.0
+)
+
+replace cryptochassis.com/ccapi => @PACKAGING_DIR_FULL@

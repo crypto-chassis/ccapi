@@ -1,12 +1,6 @@
 class MainProgram {
   class MyEventHandler : ccapi.EventHandler {
     public override bool ProcessEvent(ccapi.Event event_, ccapi.Session session) {
-      try {
-        throw new System.Exception("oops");
-      } catch (System.Exception e) {
-        System.Console.WriteLine(e.ToString());
-        System.Environment.Exit(1);
-      }
       return true;
     }
   }
@@ -18,7 +12,11 @@ class MainProgram {
     var subscriptionList = new ccapi.SubscriptionList();
     subscriptionList.Add(new ccapi.Subscription("okx", "BTC-USDT", "MARKET_DEPTH"));
     session.Subscribe(subscriptionList);
-    System.Threading.Thread.Sleep(10000);
+    var request = new ccapi.Request(ccapi.Request.Operation.GET_RECENT_TRADES, "okx", "BTC-USDT");
+    var param = new ccapi.MapStringString();
+    param.Add("LIMIT", "1");
+    request.AppendParam(param);
+    session.SendRequest(request);
     session.Stop();
     System.Console.WriteLine("Bye");
   }

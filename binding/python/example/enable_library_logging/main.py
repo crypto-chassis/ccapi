@@ -1,3 +1,4 @@
+# usage: when generating the binding code, do cmake -DCCAPI_ENABLE_LOG_TRACE=ON ..., see https://github.com/crypto-chassis/ccapi#non-c
 from threading import Lock
 import time
 from ccapi import Logger, Session, Subscription
