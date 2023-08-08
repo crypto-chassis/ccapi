@@ -58,12 +58,10 @@ add_dependencies(${CSHARP_PACKAGING_TARGET_NAME} ${SWIG_TARGET_NAME})
 
 # Test
 if(BUILD_TEST)
-  # message(STATUS "BUILD_TEST")
   set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/test)
   file(COPY example DESTINATION ${TEST_DIR})
   set(SUBDIRECTORY_LIST "enable_library_logging" "execution_management_simple_request" "execution_management_simple_subscription" "fix_simple" "handle_exception" "market_data_multiple_subscription" "market_data_simple_request" "market_data_simple_subscription")
   foreach(SUBDIRECTORY IN LISTS SUBDIRECTORY_LIST)
-    # message(STATUS "SUBDIRECTORY=${SUBDIRECTORY}")
     set(CSHARP_TEST_TARGET_NAME csharp_test_${SUBDIRECTORY})
     add_custom_target(${CSHARP_TEST_TARGET_NAME} ALL
       COMMAND ${DOTNET_EXECUTABLE} clean

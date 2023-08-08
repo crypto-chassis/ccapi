@@ -4,7 +4,9 @@ class MyEventHandler(EventHandler):
     def __init__(self):
         super().__init__()
     def processEvent(self, event: Event, session: Session) -> bool:
-        if event.getType() == Event.Type_SUBSCRIPTION_DATA:
+        if event.getType() == Event.SUBSCRIPTION_STATUS:
+            print(f'Received an event of type SUBSCRIPTION_STATUS:\n{event.toStringPretty(2, 2)}')
+        elif event.getType() == Event.Type_SUBSCRIPTION_DATA:
             for message in event.getMessageList():
                 print(f'Best bid and ask at {message.getTimeISO()} are:')
                 for element in message.getElementList():
