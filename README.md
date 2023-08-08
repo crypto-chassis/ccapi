@@ -51,7 +51,7 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 # ccapi
 * A header-only C++ library for streaming market data and executing trades directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
-* Bindings for other languages such as Python, Java, and C# are provided.
+* Bindings for other languages such as Python, Java, C#, and Go are provided.
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
@@ -109,7 +109,7 @@
 mkdir binding/build
 cd binding/build
 rm -rf * (if rebuild from scratch)
-cmake -DBUILD_PYTHON=ON -DBUILD_VERSION=1.0.0 .. (Use -DBUILD_JAVA=ON if the target language is Java, -DBUILD_CSHARP=ON if the target language is C#)
+cmake -DBUILD_PYTHON=ON -DBUILD_VERSION=1.0.0 .. (Use -DBUILD_JAVA=ON if the target language is Java, -DBUILD_CSHARP=ON if the target language is C#, -DBUILD_GO=ON if the target language is Go)
 cmake --build .
 ```
 * The packaged build artifacts are located in the `binding/build/<language>/packaging/<BUILD_VERSION>` directory. SWIG generated raw files and build artifacts are located in the `binding/build/<language>/ccapi_binding_<language>` directory.
@@ -177,6 +177,19 @@ env LD_LIBRARY_PATH="$LD_LIBRARY_PATH:../../../build/csharp/packaging/1.0.0" dot
   * "error CS0246: The type or namespace name 'ccapi' could not be found". Check that you aren't missing the ccapi assembly reference.
   * "System.DllNotFoundException: Unable to load shared library 'ccapi_binding_csharp.so' or one of its dependencies.". Check that environment variable `LD_LIBRARY_PATH` includes `binding/build/csharp/packaging/1.0.0`.
 
+[Go](binding/go/example)
+* Go API is nearly identical to C++ API and covers nearly all the functionalities from C++ API.
+* Build and install the Go binding as shown [above](#non-c).
+* Inside a concrete example directory (e.g. binding/go/example/market_data_simple_subscription), run
+```
+go clean (if rebuild from scratch)
+source ../../../build/go/packaging/1.0.0/export_compiler_options.sh (this step is important)
+go build .
+./main
+```
+* Troubleshoot:
+  * Some C/C++ header files not found. Check that you sourced the export_compiler_options.sh file which provides important environment variables needed by the cgo tool.
+
 ## Documentations
 
 ### Simple Market Data
@@ -187,7 +200,7 @@ For a specific exchange and instrument, get recents trades.
 
 **Code 1:**
 
-[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py) / [Java](binding/java/example/market_data_simple_request/Main.java) / [C#](binding/csharp/example/market_data_simple_request/MainProgram.cs)
+[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py) / [Java](binding/java/example/market_data_simple_request/Main.java) / [C#](binding/csharp/example/market_data_simple_request/MainProgram.cs) / [Go](binding/go/example/market_data_simple_request/main.go)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -260,7 +273,7 @@ For a specific exchange and instrument, whenever the best bid's or ask's price o
 
 **Code 2:**
 
-[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java) / [C#](binding/csharp/example/market_data_simple_subscription/MainProgram.cs)
+[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java) / [C#](binding/csharp/example/market_data_simple_subscription/MainProgram.cs) / [Go](binding/go/example/market_data_simple_subscription/main.go)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -434,7 +447,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code 1:**
 
-[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java) / [C#](binding/csharp/example/execution_management_simple_request/MainProgram.cs)
+[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java) / [C#](binding/csharp/example/execution_management_simple_request/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_request/main.go)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -524,7 +537,7 @@ For a specific exchange and instrument, receive order updates.
 
 **Code 2:**
 
-[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py) / [Java](binding/java/example/execution_management_simple_subscription/Main.java) / [C#](binding/csharp/example/execution_management_simple_subscription/MainProgram.cs)
+[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py) / [Java](binding/java/example/execution_management_simple_subscription/Main.java) / [C#](binding/csharp/example/execution_management_simple_subscription/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_subscription/main.go)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -767,7 +780,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code:**
 
-[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs)
+[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs) / [Go](binding/go/example/fix_simple/main.go)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 namespace ccapi {
@@ -911,7 +924,7 @@ An example can be found [here](example/src/market_data_advanced_subscription/mai
 
 #### Enable library logging
 
-[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py) / [Java](binding/java/example/enable_library_logging/Main.java) / [C#](binding/csharp/example/enable_library_logging/MainProgram.cs)
+[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py) / [Java](binding/java/example/enable_library_logging/Main.java) / [C#](binding/csharp/example/enable_library_logging/MainProgram.cs) / [Go](binding/go/example/enable_library_logging/main.go)
 
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```

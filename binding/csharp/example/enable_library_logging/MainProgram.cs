@@ -1,3 +1,4 @@
+// usage: when generating the binding code, do cmake -DCCAPI_ENABLE_LOG_TRACE=ON ..., see https://github.com/crypto-chassis/ccapi#non-c
 public class MainProgram {
   class MyLogger : ccapi.Logger {
     public override void LogMessage(string severity, string threadId, string timeISO, string fileName, string lineNumber, string message) {

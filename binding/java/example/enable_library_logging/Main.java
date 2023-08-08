@@ -1,3 +1,4 @@
+// usage: when generating the binding code, do cmake -DCCAPI_ENABLE_LOG_TRACE=ON ..., see https://github.com/crypto-chassis/ccapi#non-c
 import com.cryptochassis.ccapi.Logger;
 import com.cryptochassis.ccapi.Session;
 import com.cryptochassis.ccapi.SessionConfigs;
