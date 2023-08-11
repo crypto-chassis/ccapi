@@ -1,0 +1,65 @@
+{
+  "targets": [
+    {
+      "target_name": "index",
+      "sources": [
+        "swig_interface_wrap.cxx",
+        "ccapi_logger.cpp"
+      ],
+      "include_dirs": [
+        "@CCAPI_PROJECT_DIR@/include",
+        "@BOOST_INCLUDE_DIR@",
+        "@RAPIDJSON_INCLUDE_DIR@",
+        "@HFFIX_INCLUDE_DIR@",
+        "<(node_root_dir)/deps/openssl/openssl/include"
+      ],
+      "cflags_cc!": [
+        "-fno-exceptions"
+      ],
+      "conditions": [
+        [
+          "OS=='mac'",
+          {
+            "xcode_settings": {
+              "OTHER_CPLUSPLUSFLAGS" : [ "@BINDING_GYP_CFLAGS_CC@" ],
+              "GCC_ENABLE_CPP_EXCEPTIONS": "YES"
+            }
+          }
+        ],
+        [
+          "target_arch=='ia32'",
+          {
+            "include_dirs": [
+              "<(node_root_dir)/deps/openssl/config/piii"
+            ]
+          }
+        ],
+        [
+          "target_arch=='x64'",
+          {
+            "include_dirs": [
+              "<(node_root_dir)/deps/openssl/config/k8"
+            ]
+          }
+        ],
+        [
+          "target_arch=='arm'",
+          {
+            "include_dirs": [
+              "<(node_root_dir)/deps/openssl/config/arm"
+            ]
+          }
+        ]
+      ],
+      "cflags_cc": [
+        "@BINDING_GYP_CFLAGS_CC@"
+      ],
+      "ldflags": [
+        "@BINDING_GYP_LDFLAGS@"
+      ],
+      "defines": [
+        "@BINDING_GYP_DEFINES@"
+      ]
+    }
+  ]
+}

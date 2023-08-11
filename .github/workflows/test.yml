@@ -190,9 +190,11 @@ jobs:
         if ("$ENV{GITHUB_EVENT_NAME}" STREQUAL "push")
           set(ENV{CMAKE_BUILD_TYPE} "Release")
           set(ENV{DOTNET_BUILD_CONFIGURATION} "Release")
+          set(ENV{NODE_GYP_BUILD_MODE} "release")
         else()
           set(ENV{CMAKE_BUILD_TYPE} "Debug")
           set(ENV{DOTNET_BUILD_CONFIGURATION} "Debug")
+          set(ENV{NODE_GYP_BUILD_MODE} "debug")
         endif()
 
         execute_process(
@@ -233,11 +235,14 @@ jobs:
               -DBUILD_PYTHON=ON
               -DBUILD_JAVA=ON
               -DBUILD_CSHARP=ON
+              -DBUILD_GO=ON
+              -DBUILD_JAVASCRIPT=ON
               -DBUILD_TEST=ON
               -S binding
               -B binding/build
               -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
               -D DOTNET_BUILD_CONFIGURATION=$ENV{DOTNET_BUILD_CONFIGURATION}
+              -D DNODE_GYP_BUILD_MODE=$ENV{NODE_GYP_BUILD_MODE}
               -G Ninja
               -D CMAKE_MAKE_PROGRAM=ninja
               # -D CMAKE_C_COMPILER_LAUNCHER=ccache
