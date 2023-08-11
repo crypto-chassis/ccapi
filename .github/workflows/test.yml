@@ -157,6 +157,13 @@ jobs:
           )
         endif()
 
+    - name: Install node-gyp
+      shell: cmake -P {0}
+      run: |
+        execute_process(
+            COMMAND npm install -g node-gyp
+          )
+
     - name: Configure
       shell: cmake -P {0}
       run: |
