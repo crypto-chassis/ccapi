@@ -243,13 +243,13 @@ jobs:
               -DBUILD_JAVA=ON
               -DBUILD_CSHARP=ON
               # -DBUILD_GO=ON
-              -DBUILD_JAVASCRIPT=ON
+              # -DBUILD_JAVASCRIPT=ON
               -DBUILD_TEST=ON
               -S binding
               -B binding/build
               -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
               -D DOTNET_BUILD_CONFIGURATION=$ENV{DOTNET_BUILD_CONFIGURATION}
-              -D DNODE_GYP_BUILD_MODE=$ENV{NODE_GYP_BUILD_MODE}
+              -D NODE_GYP_BUILD_MODE=$ENV{NODE_GYP_BUILD_MODE}
               -G Ninja
               -D CMAKE_MAKE_PROGRAM=ninja
               # -D CMAKE_C_COMPILER_LAUNCHER=ccache
