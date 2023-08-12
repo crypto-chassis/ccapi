@@ -243,7 +243,7 @@ jobs:
               -DBUILD_JAVA=ON
               -DBUILD_CSHARP=ON
               # -DBUILD_GO=ON
-              # -DBUILD_JAVASCRIPT=ON
+              -DBUILD_JAVASCRIPT=ON
               -DBUILD_TEST=ON
               -S binding
               -B binding/build
