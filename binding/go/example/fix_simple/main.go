@@ -41,7 +41,7 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bo
 				param.Add(aParam)
 			}
 			request.AppendParamFix(param)
-			session.SendRequest(request)
+			session.SendRequestByFix(request)
 		}
 	} else if event.GetType() == ccapi.EventType_FIX {
 		fmt.Printf("Received an event of type FIX:\n%s\n", event.ToStringPretty(2, 2))

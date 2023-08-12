@@ -29,7 +29,7 @@ target_link_libraries(${SWIG_TARGET_NAME}	PRIVATE	${Python_LIBRARIES})
 # ## Python Packaging  ##
 # #######################
 configure_file(
-  setup.py.in
+  ${CMAKE_CURRENT_SOURCE_DIR}/setup.py.in
   ${CMAKE_CURRENT_BINARY_DIR}/setup.py.in
   @ONLY)
 file(GENERATE
