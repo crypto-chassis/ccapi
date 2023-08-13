@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "ccapi": "file:../../../build/javascript/packaging/1.0.0"
+  }
+}

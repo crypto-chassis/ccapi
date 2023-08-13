@@ -21,18 +21,18 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bo
 			elementList := message.GetElementList()
 			for j := 0; j < int(elementList.Size()); j++ {
 				element := elementList.Get(j)
-				nameValueMap := element.GetNameValueMap()
-				if nameValueMap.Has_key("BID_PRICE") {
-					fmt.Printf("  %s = %s\n", "BID_PRICE", nameValueMap.Get("BID_PRICE"))
+				elementNameValueMap := element.GetNameValueMap()
+				if elementNameValueMap.Has_key("BID_PRICE") {
+					fmt.Printf("  BID_PRICE = %s\n", elementNameValueMap.Get("BID_PRICE"))
 				}
-				if nameValueMap.Has_key("BID_SIZE") {
-					fmt.Printf("  %s = %s\n", "BID_SIZE", nameValueMap.Get("BID_SIZE"))
+				if elementNameValueMap.Has_key("BID_SIZE") {
+					fmt.Printf("  BID_SIZE = %s\n", elementNameValueMap.Get("BID_SIZE"))
 				}
-				if nameValueMap.Has_key("ASK_PRICE") {
-					fmt.Printf("  %s = %s\n", "ASK_PRICE", nameValueMap.Get("ASK_PRICE"))
+				if elementNameValueMap.Has_key("ASK_PRICE") {
+					fmt.Printf("  ASK_PRICE = %s\n", elementNameValueMap.Get("ASK_PRICE"))
 				}
-				if nameValueMap.Has_key("ASK_SIZE") {
-					fmt.Printf("  %s = %s\n", "ASK_SIZE", nameValueMap.Get("ASK_SIZE"))
+				if elementNameValueMap.Has_key("ASK_SIZE") {
+					fmt.Printf("  ASK_SIZE = %s\n", elementNameValueMap.Get("ASK_SIZE"))
 				}
 			}
 		}

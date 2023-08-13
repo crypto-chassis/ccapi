@@ -29,7 +29,7 @@ public class Main {
           param.add(new PairIntString(40, "2"));
           param.add(new PairIntString(59, "1"));
           request.appendParamFix(param);
-          session.sendRequest(request);
+          session.sendRequestByFix(request);
         }
       } else if (event.getType() == Event.Type.FIX) {
         System.out.println(String.format("Received an event of type FIX:\n%s", event.toStringPretty(2, 2)));

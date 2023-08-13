@@ -22,7 +22,7 @@ set(GO_PACKAGE "ccapi")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${SWIG_TARGET_NAME})
 
 add_custom_target(${SWIG_TARGET_NAME} ALL
-  COMMAND ${SWIG_EXECUTABLE} -outcurrentdir -c++ -go -package ${GO_PACKAGE} -I${CCAPI_PROJECT_DIR}/include ${SWIG_INTERFACE}
+  COMMAND ${SWIG_EXECUTABLE} -outcurrentdir -c++ -go -intgosize 64 -package ${GO_PACKAGE} -I${CCAPI_PROJECT_DIR}/include ${SWIG_INTERFACE}
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${SWIG_TARGET_NAME}
 )
 add_dependencies(${SWIG_TARGET_NAME} boost rapidjson hffix)

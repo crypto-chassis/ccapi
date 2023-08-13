@@ -3,3 +3,4 @@
 ./format_csharp.sh
 ./format_go.sh
 ./format_java.sh
+./format_javascript.sh

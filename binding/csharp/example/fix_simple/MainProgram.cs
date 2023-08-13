@@ -16,7 +16,7 @@ class MainProgram {
           param.Add(new ccapi.PairIntString(40, "2"));
           param.Add(new ccapi.PairIntString(59, "1"));
           request.AppendParamFix(param);
-          session.SendRequest(request);
+          session.SendRequestByFix(request);
         }
       } else if (event_.GetType_() == ccapi.Event.Type.FIX) {
         System.Console.WriteLine(string.Format("Received an event of type FIX:\n{0}", event_.ToStringPretty(2, 2)));
