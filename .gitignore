@@ -150,3 +150,5 @@ docs/_build/
 .venv/
 target/
 obj/
+node_modules/
+package-lock.json
