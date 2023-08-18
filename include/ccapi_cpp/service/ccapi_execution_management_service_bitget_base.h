@@ -8,7 +8,9 @@ class ExecutionManagementServiceBitgetBase : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitgetBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                        ServiceContextPtr serviceContextPtr)
-      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+    this->hostHttpHeaderValueIgnorePort = true;
+  }
   virtual ~ExecutionManagementServiceBitgetBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 

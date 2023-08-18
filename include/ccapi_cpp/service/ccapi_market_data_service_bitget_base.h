@@ -8,7 +8,9 @@ class MarketDataServiceBitgetBase : public MarketDataService {
  public:
   MarketDataServiceBitgetBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                               std::shared_ptr<ServiceContext> serviceContextPtr)
-      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+      : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+    this->hostHttpHeaderValueIgnorePort = true;
+  }
   virtual ~MarketDataServiceBitgetBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 

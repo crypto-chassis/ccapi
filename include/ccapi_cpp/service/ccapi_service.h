@@ -1254,7 +1254,8 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     CCAPI_LOGGER_TRACE("connected");
     CCAPI_LOGGER_TRACE("ep.port() = " + std::to_string(ep.port()));
-    wsConnectionPtr->hostHttpHeaderValue = wsConnectionPtr->host + ':' + std::to_string(ep.port());
+    wsConnectionPtr->hostHttpHeaderValue =
+        this->hostHttpHeaderValueIgnorePort ? wsConnectionPtr->host : wsConnectionPtr->host + ':' + std::to_string(ep.port());
     CCAPI_LOGGER_TRACE("wsConnectionPtr->hostHttpHeaderValue = " + wsConnectionPtr->hostHttpHeaderValue);
     beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>& stream = *wsConnectionPtr->streamPtr;
     beast::get_lowest_layer(stream).socket().set_option(tcp::no_delay(true));
@@ -1711,6 +1712,7 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   virtual void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessage, const TimePoint& timeReceived) {}
 #endif
+  bool hostHttpHeaderValueIgnorePort{};
   std::string apiKeyName;
   std::string apiSecretName;
   std::string exchangeName;
