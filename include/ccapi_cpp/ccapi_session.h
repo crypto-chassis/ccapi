@@ -935,7 +935,7 @@ class Session {
 #endif
 #ifndef CCAPI_EXPOSE_INTERNAL
 
- private:
+ protected:
 #endif
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
