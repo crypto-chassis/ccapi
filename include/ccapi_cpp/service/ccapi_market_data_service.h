@@ -390,7 +390,7 @@ class MarketDataService : public Service {
   void onClose(wspp::connection_hdl hdl) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.erase(wsConnection.id);
+    this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.erase(wsConnection.id);
     this->exchangeJsonPayloadIdByConnectionIdMap.erase(wsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     this->correlationIdByConnectionIdMap.erase(wsConnection.id);
@@ -650,7 +650,7 @@ class MarketDataService : public Service {
   virtual void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     WsConnection& wsConnection = *wsConnectionPtr;
-    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.erase(wsConnection.id);
+    this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.erase(wsConnection.id);
     this->exchangeJsonPayloadIdByConnectionIdMap.erase(wsConnection.id);
     this->instrumentGroupByWsConnectionIdMap.erase(wsConnection.id);
     this->correlationIdByConnectionIdMap.erase(wsConnection.id);
@@ -1787,7 +1787,7 @@ class MarketDataService : public Service {
   std::string getInstrumentTarget;
   std::string getInstrumentsTarget;
   std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
-  std::map<std::string, std::map<int, std::vector<std::string>>> exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap;
+  std::map<std::string, std::map<int, std::vector<std::string>>> exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap;
   // only needed for generic public subscription
   std::map<std::string, std::string> correlationIdByConnectionIdMap;
   std::map<std::string, std::map<std::string, std::map<int64_t, MarketDataMessage::TypeForData>>>
