@@ -459,14 +459,16 @@ class MarketDataService : public Service {
     for (auto& marketDataMessage : marketDataMessageList) {
       if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
-          marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-        if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
-            std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
-                this->sessionOptions.warnLateEventMaxMilliSeconds &&
-            marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
-          CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp) +
-                            ", wsConnection = " + toString(wsConnection));
-        }
+          marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE ||
+          marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK) {
+        // if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+        //     std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
+        //         this->sessionOptions.warnLateEventMaxMilliSeconds &&
+        //     marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
+        //   CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp)
+        //   +
+        //                     ", wsConnection = " + toString(wsConnection));
+        // }
 
         std::string& exchangeSubscriptionId = marketDataMessage.exchangeSubscriptionId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
@@ -530,6 +532,11 @@ class MarketDataService : public Service {
           bool isSolicited = marketDataMessage.recapType == MarketDataMessage::RecapType::SOLICITED;
           this->processTrade(wsConnection, channelId, symbolId, event, marketDataMessage.tp, timeReceived, marketDataMessage.data, field, optionMap,
                              correlationIdList, isSolicited);
+        }
+        if (marketDataMessage.data.find(MarketDataMessage::DataType::CANDLESTICK) != marketDataMessage.data.end()) {
+          bool isSolicited = marketDataMessage.recapType == MarketDataMessage::RecapType::SOLICITED;
+          this->processExchangeProvidedCandlestick(wsConnection, channelId, symbolId, event, marketDataMessage.tp, timeReceived, marketDataMessage.data, field,
+                                                   optionMap, correlationIdList, isSolicited);
         }
       } else {
         CCAPI_LOGGER_WARN("websocket event type is unknown for " + toString(marketDataMessage));
@@ -968,20 +975,62 @@ class MarketDataService : public Service {
       }
     }
   }
-  void updateElementListWithOhlc(const WsConnection& wsConnection, const std::string& channelId, const std::string& symbolId, const std::string& field,
-                                 std::vector<Element>& elementList) {
+  void updateElementListWithExchangeProvidedCandlestick(const std::string& field, MarketDataMessage::TypeForData& input, std::vector<Element>& elementList) {
+    if (field == CCAPI_CANDLESTICK) {
+      for (auto& x : input) {
+        auto& type = x.first;
+        auto& detail = x.second;
+        if (type == MarketDataMessage::DataType::CANDLESTICK) {
+          for (auto& y : detail) {
+            auto& openPrice = y.at(MarketDataMessage::DataFieldType::OPEN_PRICE);
+            auto& highPrice = y.at(MarketDataMessage::DataFieldType::HIGH_PRICE);
+            auto& lowPrice = y.at(MarketDataMessage::DataFieldType::LOW_PRICE);
+            auto& closePrice = y.at(MarketDataMessage::DataFieldType::CLOSE_PRICE);
+            Element element;
+            std::string k1(CCAPI_OPEN_PRICE);
+            std::string k2(CCAPI_HIGH_PRICE);
+            std::string k3(CCAPI_LOW_PRICE);
+            std::string k4(CCAPI_CLOSE_PRICE);
+            element.emplace(k1, y.at(MarketDataMessage::DataFieldType::OPEN_PRICE));
+            element.emplace(k2, y.at(MarketDataMessage::DataFieldType::HIGH_PRICE));
+            element.emplace(k3, y.at(MarketDataMessage::DataFieldType::LOW_PRICE));
+            element.emplace(k4, y.at(MarketDataMessage::DataFieldType::CLOSE_PRICE));
+            {
+              auto it = y.find(MarketDataMessage::DataFieldType::VOLUME);
+              if (it != y.end()) {
+                std::string k(CCAPI_VOLUME);
+                element.emplace(k, it->second);
+              }
+            }
+            {
+              auto it = y.find(MarketDataMessage::DataFieldType::QUOTE_VOLUME);
+              if (it != y.end()) {
+                std::string k(CCAPI_QUOTE_VOLUME);
+                element.emplace(k, it->second);
+              }
+            }
+            elementList.emplace_back(std::move(element));
+          }
+        } else {
+          CCAPI_LOGGER_WARN("extra type " + MarketDataMessage::dataTypeToString(type));
+        }
+      }
+    }
+  }
+  void updateElementListWithCalculatedCandlestick(const WsConnection& wsConnection, const std::string& channelId, const std::string& symbolId,
+                                                  const std::string& field, std::vector<Element>& elementList) {
     if (field == CCAPI_TRADE || field == CCAPI_AGG_TRADE) {
       Element element;
       if (this->openByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].empty()) {
-        element.insert(CCAPI_OPEN, CCAPI_OHLC_EMPTY);
-        element.insert(CCAPI_HIGH, CCAPI_OHLC_EMPTY);
-        element.insert(CCAPI_LOW, CCAPI_OHLC_EMPTY);
-        element.insert(CCAPI_CLOSE, CCAPI_OHLC_EMPTY);
+        element.insert(CCAPI_OPEN_PRICE, CCAPI_CANDLESTICK_EMPTY);
+        element.insert(CCAPI_HIGH_PRICE, CCAPI_CANDLESTICK_EMPTY);
+        element.insert(CCAPI_LOW_PRICE, CCAPI_CANDLESTICK_EMPTY);
+        element.insert(CCAPI_CLOSE_PRICE, CCAPI_CANDLESTICK_EMPTY);
       } else {
-        element.insert(CCAPI_OPEN, this->openByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]);
-        element.insert(CCAPI_HIGH, this->highByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].toString());
-        element.insert(CCAPI_LOW, this->lowByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].toString());
-        element.insert(CCAPI_CLOSE, this->closeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]);
+        element.insert(CCAPI_OPEN_PRICE, this->openByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]);
+        element.insert(CCAPI_HIGH_PRICE, this->highByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].toString());
+        element.insert(CCAPI_LOW_PRICE, this->lowByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId].toString());
+        element.insert(CCAPI_CLOSE_PRICE, this->closeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]);
       }
       elementList.emplace_back(std::move(element));
       this->openByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = "";
@@ -1220,7 +1269,7 @@ class MarketDataService : public Service {
       std::vector<Message> messageList;
       std::vector<Element> elementList;
       if (shouldConflate && intervalChanged) {
-        this->updateElementListWithOhlc(wsConnection, channelId, symbolId, field, elementList);
+        this->updateElementListWithCalculatedCandlestick(wsConnection, channelId, symbolId, field, elementList);
       } else {
         this->updateElementListWithTrade(field, input, elementList);
       }
@@ -1242,14 +1291,38 @@ class MarketDataService : public Service {
       }
       if (shouldConflate) {
         this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = conflateTp;
-        this->updateOhlc(wsConnection, channelId, symbolId, field, input);
+        this->updateCalculatedCandlestick(wsConnection, channelId, symbolId, field, input);
       }
     } else {
-      this->updateOhlc(wsConnection, channelId, symbolId, field, input);
+      this->updateCalculatedCandlestick(wsConnection, channelId, symbolId, field, input);
     }
   }
-  void updateOhlc(const WsConnection& wsConnection, const std::string& channelId, const std::string& symbolId, const std::string& field,
-                  const MarketDataMessage::TypeForData& input) {
+  void processExchangeProvidedCandlestick(const WsConnection& wsConnection, const std::string& channelId, const std::string& symbolId, Event& event,
+                                          const TimePoint& tp, const TimePoint& timeReceived, MarketDataMessage::TypeForData& input, const std::string& field,
+                                          const std::map<std::string, std::string>& optionMap, const std::vector<std::string>& correlationIdList,
+                                          bool isSolicited) {
+    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
+    CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
+    std::vector<Message> messageList;
+    std::vector<Element> elementList;
+    this->updateElementListWithExchangeProvidedCandlestick(field, input, elementList);
+    CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
+    if (!elementList.empty()) {
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::MARKET_DATA_EVENTS_CANDLESTICK);
+      message.setRecapType(isSolicited ? Message::RecapType::SOLICITED : Message::RecapType::NONE);
+      message.setTime(tp);
+      message.setElementList(elementList);
+      message.setCorrelationIdList(correlationIdList);
+      messageList.emplace_back(std::move(message));
+    }
+    if (!messageList.empty()) {
+      event.addMessages(messageList);
+    }
+  }
+  void updateCalculatedCandlestick(const WsConnection& wsConnection, const std::string& channelId, const std::string& symbolId, const std::string& field,
+                                   const MarketDataMessage::TypeForData& input) {
     if (field == CCAPI_TRADE || field == CCAPI_AGG_TRADE) {
       for (const auto& x : input) {
         auto type = x.first;
@@ -1390,7 +1463,7 @@ class MarketDataService : public Service {
                         this->updateElementListWithUpdateMarketDepth(field, optionMap, snapshotBid, std::map<Decimal, std::string>(), snapshotAsk,
                                                                      std::map<Decimal, std::string>(), elementList, true);
                       } else if (field == CCAPI_TRADE || field == CCAPI_AGG_TRADE) {
-                        this->updateElementListWithOhlc(wsConnection, channelId, symbolId, field, elementList);
+                        this->updateElementListWithCalculatedCandlestick(wsConnection, channelId, symbolId, field, elementList);
                       }
                       CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
                       this->previousConflateTimeMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId) = conflateTp;
