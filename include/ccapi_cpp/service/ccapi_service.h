@@ -1392,6 +1392,7 @@ class Service : public std::enable_shared_from_this<Service> {
     memcpy(writeMessageBuffer.data() + n, data, dataSize);
     writeMessageBufferBoundary.push_back(dataSize);
     n += dataSize;
+    CCAPI_LOGGER_TRACE("connectionId = " + connectionId);
     CCAPI_LOGGER_DEBUG("about to send " + std::string(data, dataSize));
     CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
     if (writeMessageBufferWrittenLength == 0) {
