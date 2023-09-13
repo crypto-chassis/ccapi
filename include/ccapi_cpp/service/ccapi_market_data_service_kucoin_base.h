@@ -176,7 +176,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
       for (const auto& symbol : symbolList) {
         exchangeSubscriptionIdList.push_back(topic + ":" + symbol);
       }
-      this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap[wsConnection.id][this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+      this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap[wsConnection.id][this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
           exchangeSubscriptionIdList;
       this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
       document.AddMember("id", rj::Value(requestId.c_str(), allocator).Move(), allocator);
@@ -400,11 +400,11 @@ class MarketDataServiceKucoinBase : public MarketDataService {
           if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
               this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
             int id = std::stoi(document["id"].GetString());
-            if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.find(wsConnection.id) !=
-                    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.end() &&
-                this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).find(id) !=
-                    this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).end()) {
-              auto exchangeSubscriptionIdList = this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).at(id);
+            if (this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.find(wsConnection.id) !=
+                    this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.end() &&
+                this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnection.id).find(id) !=
+                    this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnection.id).end()) {
+              auto exchangeSubscriptionIdList = this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnection.id).at(id);
               for (const auto& exchangeSubscriptionId : exchangeSubscriptionIdList) {
                 auto splitted = UtilString::split(exchangeSubscriptionId, ":");
                 auto channelId = splitted.at(0);

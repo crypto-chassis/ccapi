@@ -164,7 +164,7 @@ jobs:
             COMMAND npm install -g node-gyp
           )
 
-    - name: Configure
+    - name: Configure 1
       shell: cmake -P {0}
       run: |
         set(ENV{CC} ${{ matrix.config.cc }})
@@ -207,7 +207,7 @@ jobs:
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
             -DBUILD_TEST_BUILD=ON
-            -DBUILD_TEST_UNIT=ON
+            -DBUILD_TEST_UNIT=OFF
             -S test
             -B test/build
             -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
@@ -291,7 +291,7 @@ jobs:
           message(FATAL_ERROR "Bad exit status")
         endif()
 
-    - name: Build
+    - name: Build 1
       shell: cmake -P {0}
       run: |
         set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
@@ -371,6 +371,114 @@ jobs:
         if (NOT result EQUAL 0)
           message(FATAL_ERROR "Bad exit status")
         endif()
+
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build -j 2
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        execute_process(
+          COMMAND rm -rf test/build
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+        # execute_process(COMMAND ccache -s)
+
+    - name: Configure 2
+      shell: cmake -P {0}
+      run: |
+        set(ENV{CC} ${{ matrix.config.cc }})
+        set(ENV{CXX} ${{ matrix.config.cxx }})
+        if ("${{ runner.os }}" STREQUAL "macOS")
+          set(ENV{OPENSSL_ROOT_DIR} "/usr/local/Cellar/openssl")
+        elseif ("${{ runner.os }}" STREQUAL "Windows")
+          set(ENV{OPENSSL_ROOT_DIR} "C:/vcpkg/installed/x64-windows-static")
+          # set(ENV{CMAKE_TOOLCHAIN_FILE} "C:/vcpkg/scripts/buildsystems/vcpkg.cmake")
+        endif()
+        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+          execute_process(
+            COMMAND "${{ matrix.config.environment_script }}" && set
+            OUTPUT_FILE environment_script_output.txt
+          )
+          file(STRINGS environment_script_output.txt output_lines)
+          foreach(line IN LISTS output_lines)
+            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+            endif()
+          endforeach()
+        endif()
+
+        set(path_separator ":")
+        if ("${{ runner.os }}" STREQUAL "Windows")
+          set(path_separator ";")
+        endif()
+        set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
+
+        if ("$ENV{GITHUB_EVENT_NAME}" STREQUAL "push")
+          set(ENV{CMAKE_BUILD_TYPE} "Release")
+          set(ENV{DOTNET_BUILD_CONFIGURATION} "Release")
+          set(ENV{NODE_GYP_BUILD_MODE} "release")
+        else()
+          set(ENV{CMAKE_BUILD_TYPE} "Debug")
+          set(ENV{DOTNET_BUILD_CONFIGURATION} "Debug")
+          set(ENV{NODE_GYP_BUILD_MODE} "debug")
+        endif()
+
+        execute_process(
+          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+            -DBUILD_TEST_BUILD=OFF
+            -DBUILD_TEST_UNIT=ON
+            -S test
+            -B test/build
+            -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
+            -G Ninja
+            -D CMAKE_MAKE_PROGRAM=ninja
+            # -D CMAKE_C_COMPILER_LAUNCHER=ccache
+            # -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Bad exit status")
+        endif()
+
+    - name: Build 2
+      shell: cmake -P {0}
+      run: |
+        set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
+
+        if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+          file(STRINGS environment_script_output.txt output_lines)
+          foreach(line IN LISTS output_lines)
+            if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+              set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+            endif()
+          endforeach()
+        endif()
+
+        set(path_separator ":")
+        if ("${{ runner.os }}" STREQUAL "Windows")
+          set(path_separator ";")
+        endif()
+        set(ENV{PATH} "$ENV{GITHUB_WORKSPACE}${path_separator}$ENV{PATH}")
+
+        # file(TO_CMAKE_PATH "$ENV{GITHUB_WORKSPACE}" ccache_basedir)
+        # set(ENV{CCACHE_BASEDIR} "${ccache_basedir}")
+        # set(ENV{CCACHE_DIR} "${ccache_basedir}/.ccache")
+        # set(ENV{CCACHE_COMPRESS} "true")
+        # set(ENV{CCACHE_COMPRESSLEVEL} "6")
+        # set(ENV{CCACHE_MAXSIZE} "400M")
+        # if ("${{ matrix.config.cxx }}" STREQUAL "cl")
+        #   set(ENV{CCACHE_MAXSIZE} "600M")
+        # endif()
+        #
+        # execute_process(COMMAND ccache -p)
+        # execute_process(COMMAND ccache -z)
 
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build test/build -j 2

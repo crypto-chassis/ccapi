@@ -83,13 +83,12 @@ class MarketDataServiceGateioBase : public MarketDataService {
           exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
         }
         document.AddMember("payload", payload, allocator);
-        if (!this->isDerivatives) {
-          document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
-          this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]
-                                                                                  [this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
-              exchangeSubscriptionIdList;
-          this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
-        }
+        // if (!this->isDerivatives) {
+        document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
+        this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap[wsConnection.id][this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+            exchangeSubscriptionIdList;
+        this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
+        // }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
@@ -121,15 +120,15 @@ class MarketDataServiceGateioBase : public MarketDataService {
           std::string exchangeSubscriptionId = std::string(this->websocketChannelOrderBook) + "|" + symbolId;
           this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
           this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
-          if (!this->isDerivatives) {
-            std::vector<std::string> exchangeSubscriptionIdList;
-            exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
-            document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
-            this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]
-                                                                                    [this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
-                exchangeSubscriptionIdList;
-            this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
-          }
+          // if (!this->isDerivatives) {
+          std::vector<std::string> exchangeSubscriptionIdList;
+          exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
+          document.AddMember("id", rj::Value(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]).Move(), allocator);
+          this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap[wsConnection.id]
+                                                                                [this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+              exchangeSubscriptionIdList;
+          this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
+          // }
           rj::StringBuffer stringBuffer;
           rj::Writer<rj::StringBuffer> writer(stringBuffer);
           document.Accept(writer);
@@ -165,20 +164,19 @@ class MarketDataServiceGateioBase : public MarketDataService {
         if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
             this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
           int id = std::stoi(document["id"].GetString());
-          if (this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.find(wsConnection.id) !=
-                  this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.end() &&
-              this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).find(id) !=
-                  this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).end()) {
-            for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByExchangeJsonPayloadIdByConnectionIdMap.at(wsConnection.id).at(id)) {
+          if (this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.find(wsConnection.id) !=
+                  this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.end() &&
+              this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnection.id).find(id) !=
+                  this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnection.id).end()) {
+            for (const auto& exchangeSubscriptionId : this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap.at(wsConnection.id).at(id)) {
               auto splitted = UtilString::split(exchangeSubscriptionId, '|');
               std::string channelId = splitted.at(0);
               std::string symbolId = splitted.at(1);
-              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
-                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-                if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
-                  std::vector<std::string> correlationIdList_2 =
-                      this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+              const auto& it = this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).lower_bound(channelId);
+              if (it != this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
+                const std::string& k = it->first;
+                if (k.compare(0, channelId.size(), channelId) == 0) {
+                  std::vector<std::string> correlationIdList_2 = it->second.at(symbolId);
                   correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
                 }
               }
