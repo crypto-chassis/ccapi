@@ -97,6 +97,7 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapOkx = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_OKX_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_OKX_CHANNEL_CANDLESTICK},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapErisx = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_ERISX_CHANNEL_MARKET_DATA_SUBSCRIBE},
