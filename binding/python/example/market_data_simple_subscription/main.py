@@ -1,8 +1,11 @@
 import time
 from ccapi import EventHandler, SessionOptions, SessionConfigs, Session, Subscription, Event
+
+
 class MyEventHandler(EventHandler):
     def __init__(self):
         super().__init__()
+
     def processEvent(self, event: Event, session: Session) -> bool:
         if event.getType() == Event.Type_SUBSCRIPTION_STATUS:
             print(f'Received an event of type SUBSCRIPTION_STATUS:\n{event.toStringPretty(2, 2)}')
@@ -14,6 +17,8 @@ class MyEventHandler(EventHandler):
                     for name, value in elementNameValueMap.items():
                         print(f'  {name} = {value}')
         return True  # This line is needed.
+
+
 if __name__ == '__main__':
     eventHandler = MyEventHandler()
     option = SessionOptions()
