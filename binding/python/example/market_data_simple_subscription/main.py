@@ -4,7 +4,7 @@ class MyEventHandler(EventHandler):
     def __init__(self):
         super().__init__()
     def processEvent(self, event: Event, session: Session) -> bool:
-        if event.getType() == Event.SUBSCRIPTION_STATUS:
+        if event.getType() == Event.Type_SUBSCRIPTION_STATUS:
             print(f'Received an event of type SUBSCRIPTION_STATUS:\n{event.toStringPretty(2, 2)}')
         elif event.getType() == Event.Type_SUBSCRIPTION_DATA:
             for message in event.getMessageList():
@@ -21,11 +21,6 @@ if __name__ == '__main__':
     session = Session(option, config, eventHandler)
     subscription = Subscription('okx', 'BTC-USDT', 'MARKET_DEPTH')
     session.subscribe(subscription)
-    request = Request(Request.Operation_GET_RECENT_TRADES, 'okx', 'BTC-USDT')
-    request.appendParam({
-        'LIMIT':'1',
-    })
-    session.sendRequest(request)
     time.sleep(10)
     session.stop()
     print('Bye')
