@@ -2,6 +2,7 @@ import time
 from ccapi import EventHandler, SessionOptions, SessionConfigs, Session, Subscription, Event
 import matplotlib.pyplot as plt
 import seaborn as sns
+import time
 
 if __name__ == "__main__":
     option = SessionOptions()
@@ -12,6 +13,7 @@ if __name__ == "__main__":
     subscription = Subscription(exchange, instrument, "MARKET_DEPTH", "MARKET_DEPTH_MAX=400&CONFLATE_INTERVAL_MILLISECONDS=100")
     session.subscribe(subscription)
     fig, ax = plt.subplots()
+    startTime = time.time()
     while True:
         bids = {"price": [], "size": []}
         asks = {"price": [], "size": []}
@@ -47,5 +49,7 @@ if __name__ == "__main__":
                     )
                     sns.ecdfplot(x="price", weights="size", legend=False, stat="count", data={"price": asks["price"], "size": asks["size"]}, ax=ax, color="r")
         plt.pause(0.1)
+        if time.time() - startTime > 10:
+            break
     session.stop()
     print("Bye")
