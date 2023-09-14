@@ -142,10 +142,12 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapBybit = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BYBIT_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BYBIT_CHANNEL_KLINE},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapBybitDerivatives = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BYBIT_DERIVATIVES_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BYBIT_DERIVATIVES_CHANNEL_ORDERBOOK},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BYBIT_DERIVATIVES_CHANNEL_KLINE},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapAscendex = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_TRADES},
