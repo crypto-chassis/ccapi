@@ -8,24 +8,24 @@ class MyEventHandler(EventHandler):
 
     def processEvent(self, event: Event, session: Session) -> bool:
         if event.getType() == Event.Type_SUBSCRIPTION_STATUS:
-            print(f'Received an event of type SUBSCRIPTION_STATUS:\n{event.toStringPretty(2, 2)}')
+            print(f"Received an event of type SUBSCRIPTION_STATUS:\n{event.toStringPretty(2, 2)}")
         elif event.getType() == Event.Type_SUBSCRIPTION_DATA:
             for message in event.getMessageList():
-                print(f'Best bid and ask at {message.getTimeISO()} are:')
+                print(f"Best bid and ask at {message.getTimeISO()} are:")
                 for element in message.getElementList():
                     elementNameValueMap = element.getNameValueMap()
                     for name, value in elementNameValueMap.items():
-                        print(f'  {name} = {value}')
+                        print(f"  {name} = {value}")
         return True  # This line is needed.
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     eventHandler = MyEventHandler()
     option = SessionOptions()
     config = SessionConfigs()
     session = Session(option, config, eventHandler)
-    subscription = Subscription('okx', 'BTC-USDT', 'MARKET_DEPTH')
+    subscription = Subscription("okx", "BTC-USDT", "MARKET_DEPTH")
     session.subscribe(subscription)
     time.sleep(10)
     session.stop()
-    print('Bye')
+    print("Bye")

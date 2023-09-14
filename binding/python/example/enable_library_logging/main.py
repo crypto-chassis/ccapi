@@ -17,11 +17,11 @@ class MyLogger(Logger):
 
 myLogger = MyLogger()
 Logger.logger = myLogger
-if __name__ == '__main__':
+if __name__ == "__main__":
     session = Session()
-    subscription = Subscription('coinbase', 'BTC-USD', 'MARKET_DEPTH')
+    subscription = Subscription("coinbase", "BTC-USD", "MARKET_DEPTH")
     session.subscribe(subscription)
     time.sleep(10)
     session.stop()
-    print('Bye')
+    print("Bye")
     Logger.logger = None
