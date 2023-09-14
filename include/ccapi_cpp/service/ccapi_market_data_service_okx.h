@@ -70,19 +70,9 @@ class MarketDataServiceOkx : public MarketDataService {
         }
       }
     } else if (field == CCAPI_CANDLESTICK) {
-      int intervalSeconds = std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS));
-      std::string interval;
-      if (intervalSeconds < 60) {
-        interval = std::to_string(intervalSeconds) + "s";
-      } else if (intervalSeconds < 3600) {
-        interval = std::to_string(intervalSeconds / 60) + "m";
-      } else if (intervalSeconds < 86400) {
-        interval = std::to_string(intervalSeconds / 3600) + "H";
-      } else if (intervalSeconds < 604800) {
-        interval = std::to_string(intervalSeconds / 86400) + "D";
-      } else {
-        interval = std::to_string(intervalSeconds / 604800) + "W";
-      }
+      ;
+      std::string interval =
+          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), "s", "m", "H", "D", "W");
       channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_CANDLESTICK + interval;
     }
   }

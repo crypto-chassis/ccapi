@@ -1808,6 +1808,22 @@ class MarketDataService : public Service {
         },
         this->sessionOptions.httpRequestTimeoutMilliSeconds);
   }
+  std::string convertCandlestickIntervalSecondsToInterval(int intervalSeconds, const std::string& secondStr, const std::string& minuteStr,
+                                                          const std::string& hourStr, const std::string& dayStr, const std::string& weekStr) {
+    std::string interval;
+    if (intervalSeconds < 60) {
+      interval = std::to_string(intervalSeconds) + secondStr;
+    } else if (intervalSeconds < 3600) {
+      interval = std::to_string(intervalSeconds / 60) + minuteStr;
+    } else if (intervalSeconds < 86400) {
+      interval = std::to_string(intervalSeconds / 3600) + hourStr;
+    } else if (intervalSeconds < 604800) {
+      interval = std::to_string(intervalSeconds / 86400) + dayStr;
+    } else {
+      interval = std::to_string(intervalSeconds / 604800) + weekStr;
+    }
+    return interval;
+  }
   virtual std::vector<std::string> createSendStringListFromSubscriptionList(const WsConnection& wsConnection, const std::vector<Subscription>& subscriptionList,
                                                                             const TimePoint& now, const std::map<std::string, std::string>& credential) {
     return {};
