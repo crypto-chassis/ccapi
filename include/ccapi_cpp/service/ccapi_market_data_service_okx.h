@@ -40,6 +40,14 @@ class MarketDataServiceOkx : public MarketDataService {
 
  private:
 #endif
+  std::string getInstrumentGroup(const Subscription& subscription) override {
+    std::string baseUrlWsGivenSubscription(this->baseUrlWs);
+    if (subscription.getField() == CCAPI_CANDLESTICK) {
+      baseUrlWsGivenSubscription = this->sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_BUSINESS_WS_PATH;
+    }
+    return baseUrlWsGivenSubscription + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" +
+           subscription.getSerializedCredential();
+  }
   bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"0\"")); }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
@@ -61,6 +69,11 @@ class MarketDataServiceOkx : public MarketDataService {
           channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_PUBLIC_DEPTH400;
         }
       }
+    } else if (field == CCAPI_CANDLESTICK) {
+      ;
+      std::string interval =
+          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), "s", "m", "H", "D", "W");
+      channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_CANDLESTICK + interval;
     }
   }
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
@@ -247,6 +260,23 @@ class MarketDataServiceOkx : public MarketDataService {
                 dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString()});
                 dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "sell" ? "1" : "0"});
                 marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+                marketDataMessageList.emplace_back(std::move(marketDataMessage));
+              }
+            } else if (channelId.rfind(CCAPI_WEBSOCKET_OKX_CHANNEL_CANDLESTICK, 0) == 0) {
+              for (const auto& datum : document["data"].GetArray()) {
+                MarketDataMessage marketDataMessage;
+                marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
+                marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+                marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum[0].GetString())));
+                marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+                MarketDataMessage::TypeForDataPoint dataPoint;
+                dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, datum[1].GetString()});
+                dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, datum[2].GetString()});
+                dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, datum[3].GetString()});
+                dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, datum[4].GetString()});
+                dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, datum[5].GetString()});
+                dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, datum[7].GetString()});
+                marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
                 marketDataMessageList.emplace_back(std::move(marketDataMessage));
               }
             }

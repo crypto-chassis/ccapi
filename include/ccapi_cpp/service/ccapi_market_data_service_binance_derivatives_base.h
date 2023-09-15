@@ -38,6 +38,10 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         }
         this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
       }
+    } else if (field == CCAPI_CANDLESTICK) {
+      std::string interval =
+          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), "s", "m", "h", "d", "w");
+      channelId = channelId + "_" + interval;
     }
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {

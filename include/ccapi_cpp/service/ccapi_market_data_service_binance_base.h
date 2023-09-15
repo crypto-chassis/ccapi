@@ -53,6 +53,10 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         }
         this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
       }
+    } else if (field == CCAPI_CANDLESTICK) {
+      std::string interval =
+          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), "s", "m", "h", "d", "w");
+      channelId = channelId + "_" + interval;
     }
   }
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
@@ -239,6 +243,22 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         dataPoint.insert({MarketDataMessage::DataFieldType::AGG_TRADE_ID, data["a"].GetString()});
         dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, data["m"].GetBool() ? "1" : "0"});
         marketDataMessage.data[MarketDataMessage::DataType::AGG_TRADE].emplace_back(std::move(dataPoint));
+        marketDataMessageList.emplace_back(std::move(marketDataMessage));
+      } else if (channelId.find(CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_KLINE) != std::string::npos) {
+        MarketDataMessage marketDataMessage;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
+        marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+        const rj::Value& k = data["k"];
+        marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(k["t"].GetString())));
+        marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+        MarketDataMessage::TypeForDataPoint dataPoint;
+        dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, k["o"].GetString()});
+        dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, k["h"].GetString()});
+        dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, k["l"].GetString()});
+        dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, k["c"].GetString()});
+        dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, k["v"].GetString()});
+        dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, k["q"].GetString()});
+        marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
       }
     }

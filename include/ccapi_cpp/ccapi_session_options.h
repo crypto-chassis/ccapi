@@ -12,8 +12,7 @@ namespace ccapi {
 class SessionOptions CCAPI_FINAL {
  public:
   std::string toString() const {
-    std::string output = "SessionOptions [warnLateEventMaxMilliSeconds = " + ccapi::toString(warnLateEventMaxMilliSeconds) +
-                         ", enableCheckSequence = " + ccapi::toString(enableCheckSequence) +
+    std::string output = "SessionOptions [enableCheckSequence = " + ccapi::toString(enableCheckSequence) +
                          ", enableCheckOrderBookChecksum = " + ccapi::toString(enableCheckOrderBookChecksum) +
                          ", enableCheckOrderBookCrossed = " + ccapi::toString(enableCheckOrderBookCrossed) +
                          ", enableCheckPingPongWebsocketProtocolLevel = " + ccapi::toString(enableCheckPingPongWebsocketProtocolLevel) +
@@ -33,7 +32,7 @@ class SessionOptions CCAPI_FINAL {
                          ", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) + "]";
     return output;
   }
-  long warnLateEventMaxMilliSeconds{};                      // used to print a warning log message if en event arrives late
+  // long warnLateEventMaxMilliSeconds{};                      // used to print a warning log message if en event arrives late
   bool enableCheckSequence{};                               // used to check sequence number discontinuity
   bool enableCheckOrderBookChecksum{};                      // used to check order book checksum
   bool enableCheckOrderBookCrossed{true};                   // used to check order book cross, usually this should be set to true
