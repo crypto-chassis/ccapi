@@ -47,6 +47,7 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapKraken = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_OHLC},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapKrakenFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KRAKEN_FUTURES_CHANNEL_TRADE},
