@@ -111,6 +111,7 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapKucoin = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_MATCH},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_KLINES},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapKucoinFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_MATCH},

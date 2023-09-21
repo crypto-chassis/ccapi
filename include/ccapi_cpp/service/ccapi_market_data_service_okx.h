@@ -70,7 +70,6 @@ class MarketDataServiceOkx : public MarketDataService {
         }
       }
     } else if (field == CCAPI_CANDLESTICK) {
-      ;
       std::string interval =
           this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), "s", "m", "H", "D", "W");
       channelId = CCAPI_WEBSOCKET_OKX_CHANNEL_CANDLESTICK + interval;

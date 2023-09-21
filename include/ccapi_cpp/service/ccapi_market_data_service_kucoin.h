@@ -38,10 +38,12 @@ class MarketDataServiceKucoin : public MarketDataServiceKucoinBase {
     this->channelMarketLevel2Depth5 = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH5;
     this->channelMarketLevel2Depth50 = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2DEPTH50;
     this->channelMarketLevel2 = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2;
+    this->channelMarketKlines = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_KLINES;
     this->tickerSubject = "trade.ticker";
     this->tickerBestBidPriceKey = "bestBid";
     this->tickerBestAskPriceKey = "bestAsk";
     this->matchSubject = "trade.l3match";
+    this->klineSubject = "trade.candles.update";
     this->level2Subject = "level2";
     this->recentTradesTimeKey = "time";
   }
