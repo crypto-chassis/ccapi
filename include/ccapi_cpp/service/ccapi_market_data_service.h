@@ -473,15 +473,21 @@ class MarketDataService : public Service {
         std::string& exchangeSubscriptionId = marketDataMessage.exchangeSubscriptionId;
         CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap = " +
                            toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap));
+        CCAPI_LOGGER_TRACE("this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id) = " +
+                           toString(this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id)));
+        CCAPI_LOGGER_TRACE("exchangeSubscriptionId = " + exchangeSubscriptionId);
         std::string& channelId =
             this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
+        CCAPI_LOGGER_TRACE("channelId = " + toString(channelId));
         std::string& symbolId =
             this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnection.id).at(exchangeSubscriptionId).at(CCAPI_SYMBOL_ID);
+        CCAPI_LOGGER_TRACE("symbolId = " + toString(symbolId));
+        CCAPI_LOGGER_TRACE("this->fieldByConnectionIdChannelIdSymbolIdMap = " + toString(this->fieldByConnectionIdChannelIdSymbolIdMap));
+        CCAPI_LOGGER_TRACE("this->fieldByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id) = " +
+                           toString(this->fieldByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)));
         auto& field = this->fieldByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
         CCAPI_LOGGER_TRACE("this->optionMapByConnectionIdChannelIdSymbolIdMap = " + toString(this->optionMapByConnectionIdChannelIdSymbolIdMap));
         CCAPI_LOGGER_TRACE("wsConnection = " + toString(wsConnection));
-        CCAPI_LOGGER_TRACE("channelId = " + toString(channelId));
-        CCAPI_LOGGER_TRACE("symbolId = " + toString(symbolId));
         auto& optionMap = this->optionMapByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
         CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
         auto& correlationIdList = this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);

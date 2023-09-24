@@ -59,7 +59,8 @@ class SessionConfigs CCAPI_FINAL {
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitfinex = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_TRADES},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOKS},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_CANDLES},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitmex = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITMEX_CHANNEL_TRADE},
