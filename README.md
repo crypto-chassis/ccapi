@@ -55,8 +55,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market Data: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx (Cboe Digital), kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc, mexc-futures, whitebit.
-  * Execution Management: coinbase, gemini, kraken, kraken-futures, bitstamp, bitfinex, bitmex, binance-us, binance, binance-usds-futures, binance-coin-futures, huobi, huobi-usdt-swap, huobi-coin-swap, okx, erisx (Cboe Digital), kucoin, kucoin-futures, deribit, gateio, gateio-perpetual-futures, cryptocom, bybit, bybit-derivatives, ascendex, bitget, bitget-futures, bitmart, mexc.
+  * Market Data: ascendex, binance, binance-usds-futures, binance-coin-futures, binance-us, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, bybit-derivatives, coinbase, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, mexc-futures, okx, whitebit.
+  * Execution Management: ascendex, binance, binance-usds-futures, binance-coin-futures, binance-us, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, bybit-derivatives, coinbase, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, okx.
   * FIX: coinbase, gemini.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
 * A single order execution application is provided as an end-to-end solution for executing large orders.

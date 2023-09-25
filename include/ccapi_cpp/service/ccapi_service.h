@@ -1301,7 +1301,9 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("about to start read");
     this->startReadWs(wsConnectionPtr);
     auto& stream = *wsConnectionPtr->streamPtr;
-    stream.control_callback(beast::bind_front_handler(&Service::onControlCallback, shared_from_this(), wsConnectionPtr));
+    stream.control_callback([wsConnectionPtr, that = shared_from_this()](boost::beast::websocket::frame_type kind, boost::beast::string_view payload) {
+      that->onControlCallback(wsConnectionPtr, kind, payload);
+    });
   }
   void startReadWs(std::shared_ptr<WsConnection> wsConnectionPtr) {
     auto& stream = *wsConnectionPtr->streamPtr;
@@ -1345,7 +1347,7 @@ class Service : public std::enable_shared_from_this<Service> {
     this->onMessage(wsConnectionPtr, (const char*)readMessageBuffer.data().data(), readMessageBuffer.size());
     readMessageBuffer.consume(readMessageBuffer.size());
     this->startReadWs(wsConnectionPtr);
-    this->onPongByMethod(PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL, wsConnectionPtr, now);
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL, wsConnectionPtr, now, false);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) {
@@ -1608,27 +1610,31 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   void onPong(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view payload) {
     auto now = UtilTime::now();
-    this->onPongByMethod(PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL, wsConnectionPtr, now);
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL, wsConnectionPtr, now, true);
   }
-  void onPongByMethod(PingPongMethod method, std::shared_ptr<WsConnection> wsConnectionPtr, const TimePoint& timeReceived) {
+  void onPongByMethod(PingPongMethod method, std::shared_ptr<WsConnection> wsConnectionPtr, const TimePoint& timeReceived, bool truePong) {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_TRACE(pingPongMethodToString(method) + ": received a pong from " + toString(*wsConnectionPtr));
+    CCAPI_LOGGER_TRACE(pingPongMethodToString(method) + ": received a " + (truePong ? "websocket protocol pong" : "data message") + " from " +
+                       toString(*wsConnectionPtr));
     this->lastPongTpByMethodByConnectionIdMap[wsConnectionPtr->id][method] = timeReceived;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void onPing(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view payload) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    auto now = UtilTime::now();
     CCAPI_LOGGER_TRACE("received a ping from " + toString(*wsConnectionPtr));
+    this->lastPongTpByMethodByConnectionIdMap[wsConnectionPtr->id][PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = now;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   void send(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view payload, ErrorCode& ec) {
     this->writeMessage(wsConnectionPtr, payload.data(), payload.length());
   }
   void ping(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view payload, ErrorCode& ec) {
-    if (!this->wsConnectionPendingPingingByIdMap[wsConnectionPtr->id]) {
+    if (!this->wsConnectionPendingPingingByConnectionIdMap[wsConnectionPtr->id]) {
       auto& stream = *wsConnectionPtr->streamPtr;
-      stream.async_ping("", [that = this, wsConnectionPtr](ErrorCode const& ec) { that->wsConnectionPendingPingingByIdMap[wsConnectionPtr->id] = false; });
-      this->wsConnectionPendingPingingByIdMap[wsConnectionPtr->id] = true;
+      stream.async_ping(
+          "", [that = this, wsConnectionPtr](ErrorCode const& ec) { that->wsConnectionPendingPingingByConnectionIdMap[wsConnectionPtr->id] = false; });
+      this->wsConnectionPendingPingingByConnectionIdMap[wsConnectionPtr->id] = true;
     }
   }
   virtual void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) {}
@@ -1743,7 +1749,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::map<std::string, size_t> writeMessageBufferWrittenLengthByConnectionIdMap;
   std::map<std::string, std::vector<size_t>> writeMessageBufferBoundaryByConnectionIdMap;
 #endif
-  std::map<std::string, bool> wsConnectionPendingPingingByIdMap;
+  std::map<std::string, bool> wsConnectionPendingPingingByConnectionIdMap;
   std::map<std::string, bool> shouldProcessRemainingMessageOnClosingByConnectionIdMap;
   std::map<std::string, int> connectNumRetryOnFailByConnectionUrlMap;
   std::map<std::string, TimerPtr> connectRetryOnFailTimerByConnectionIdMap;

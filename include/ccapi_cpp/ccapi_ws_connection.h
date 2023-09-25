@@ -189,8 +189,8 @@ class WsConnection CCAPI_FINAL {
   std::map<std::string, std::string> headers;
   std::map<std::string, std::string> credential;
   std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream> > > streamPtr;
-  beast::websocket::close_code remoteCloseCode;
-  beast::websocket::close_reason remoteCloseReason;
+  beast::websocket::close_code remoteCloseCode{};
+  beast::websocket::close_reason remoteCloseReason{};
   std::string hostHttpHeaderValue;
   std::string path;
   std::string host;
