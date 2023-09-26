@@ -307,7 +307,7 @@ class MarketDataService : public Service {
       event.setMessageList({message});
       this->eventHandler(event, nullptr);
     }
-    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived);
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, hdl, textMessage, timeReceived, false);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void onIncorrectStatesFound(WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived,
@@ -575,7 +575,7 @@ class MarketDataService : public Service {
       event.setMessageList({message});
       this->eventHandler(event, nullptr);
     }
-    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnectionPtr, timeReceived);
+    this->onPongByMethod(PingPongMethod::WEBSOCKET_APPLICATION_LEVEL, wsConnectionPtr, timeReceived, false);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void onIncorrectStatesFound(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived,
