@@ -41,6 +41,10 @@ class MarketDataServiceKucoinBase : public MarketDataService {
         }
         // }
       }
+    } else if (field == CCAPI_CANDLESTICK) {
+      std::string interval =
+          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), "", "min", "hour", "day", "week");
+      channelId += interval;
     }
   }
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
@@ -155,6 +159,9 @@ class MarketDataServiceKucoinBase : public MarketDataService {
         if (channelId == this->channelMarketTicker || channelId == this->channelMarketLevel2Depth5 || channelId == this->channelMarketLevel2Depth50) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
+        if (channelId.rfind(this->channelMarketKlines, 0) == 0) {
+          exchangeSubscriptionId = this->channelMarketKlines + ":" + symbolId + "_" + channelId.substr(this->channelMarketKlines.length());
+        }
         symbolListByTopicMap[channelId].push_back(symbolId);
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
         this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
@@ -163,28 +170,56 @@ class MarketDataServiceKucoinBase : public MarketDataService {
     for (const auto& x : symbolListByTopicMap) {
       auto topic = x.first;
       auto symbolList = x.second;
-      rj::Document document;
-      document.SetObject();
-      rj::Document::AllocatorType& allocator = document.GetAllocator();
-      document.AddMember("type", rj::Value("subscribe").Move(), allocator);
-      document.AddMember("privateChannel", false, allocator);
-      document.AddMember("response", true, allocator);
-      document.AddMember("topic", rj::Value((topic + ":" + UtilString::join(symbolList, ",")).c_str(), allocator).Move(), allocator);
-      int nextRequestId = this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id];
-      std::string requestId = std::to_string(nextRequestId);
-      std::vector<std::string> exchangeSubscriptionIdList;
-      for (const auto& symbol : symbolList) {
-        exchangeSubscriptionIdList.push_back(topic + ":" + symbol);
+      if (topic.rfind(this->channelMarketKlines, 0) == 0) {
+        for (const auto& symbol : symbolList) {
+          rj::Document document;
+          document.SetObject();
+          rj::Document::AllocatorType& allocator = document.GetAllocator();
+          document.AddMember("type", rj::Value("subscribe").Move(), allocator);
+          document.AddMember("privateChannel", false, allocator);
+          document.AddMember("response", true, allocator);
+          std::string exchangeSubscriptionId =
+              std::string(this->channelMarketKlines) + ":" + symbol + "_" + topic.substr(std::string(this->channelMarketKlines).length());
+          document.AddMember("topic", rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
+          int nextRequestId = this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id];
+          std::string requestId = std::to_string(nextRequestId);
+          std::vector<std::string> exchangeSubscriptionIdList;
+          exchangeSubscriptionIdList.push_back(exchangeSubscriptionId);
+          this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap[wsConnection.id]
+                                                                                [this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+              exchangeSubscriptionIdList;
+          this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
+          document.AddMember("id", rj::Value(requestId.c_str(), allocator).Move(), allocator);
+          rj::StringBuffer stringBuffer;
+          rj::Writer<rj::StringBuffer> writer(stringBuffer);
+          document.Accept(writer);
+          std::string sendString = stringBuffer.GetString();
+          sendStringList.push_back(sendString);
+        }
+      } else {
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        document.AddMember("type", rj::Value("subscribe").Move(), allocator);
+        document.AddMember("privateChannel", false, allocator);
+        document.AddMember("response", true, allocator);
+        document.AddMember("topic", rj::Value((topic + ":" + UtilString::join(symbolList, ",")).c_str(), allocator).Move(), allocator);
+        int nextRequestId = this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id];
+        std::string requestId = std::to_string(nextRequestId);
+        std::vector<std::string> exchangeSubscriptionIdList;
+        for (const auto& symbol : symbolList) {
+          exchangeSubscriptionIdList.push_back(topic + ":" + symbol);
+        }
+        this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap[wsConnection.id][this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
+            exchangeSubscriptionIdList;
+        this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
+        document.AddMember("id", rj::Value(requestId.c_str(), allocator).Move(), allocator);
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        std::string sendString = stringBuffer.GetString();
+        sendStringList.push_back(sendString);
       }
-      this->exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap[wsConnection.id][this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]] =
-          exchangeSubscriptionIdList;
-      this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
-      document.AddMember("id", rj::Value(requestId.c_str(), allocator).Move(), allocator);
-      rj::StringBuffer stringBuffer;
-      rj::Writer<rj::StringBuffer> writer(stringBuffer);
-      document.Accept(writer);
-      std::string sendString = stringBuffer.GetString();
-      sendStringList.push_back(sendString);
     }
     return sendStringList;
   }
@@ -257,7 +292,8 @@ class MarketDataServiceKucoinBase : public MarketDataService {
       if (it != document.MemberEnd()) {
         std::string type = it->value.GetString();
         if (type == "message") {
-          if (std::string(document["subject"].GetString()) == "trade.l2update") {
+          std::string subject = document["subject"].GetString();
+          if (subject == "trade.l2update") {
             MarketDataMessage marketDataMessage;
             marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
             std::string exchangeSubscriptionId = document["topic"].GetString();
@@ -292,7 +328,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
             int64_t versionId = std::stoll(data["sequenceEnd"].GetString());
             this->processOrderBookWithVersionId(versionId, wsConnection, channelId, symbolId, exchangeSubscriptionId, optionMap, marketDataMessageList,
                                                 marketDataMessage);
-          } else if (std::string(document["subject"].GetString()) == this->tickerSubject) {
+          } else if (subject == this->tickerSubject) {
             MarketDataMessage marketDataMessage;
             std::string exchangeSubscriptionId = document["topic"].GetString();
             std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
@@ -320,7 +356,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
               marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
-          } else if (std::string(document["subject"].GetString()) == this->level2Subject) {
+          } else if (subject == this->level2Subject) {
             MarketDataMessage marketDataMessage;
             std::string exchangeSubscriptionId = document["topic"].GetString();
             std::string channelId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID];
@@ -353,7 +389,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
               }
             }
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
-          } else if (std::string(document["subject"].GetString()) == this->matchSubject) {
+          } else if (subject == this->matchSubject) {
             const rj::Value& data = document["data"];
             MarketDataMessage marketDataMessage;
             marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
@@ -368,6 +404,23 @@ class MarketDataServiceKucoinBase : public MarketDataService {
             dataPoint.insert({MarketDataMessage::DataFieldType::SEQUENCE_NUMBER, std::string(data["sequence"].GetString())});
             dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(data["side"].GetString()) == "sell" ? "1" : "0"});
             marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
+          } else if (subject == this->klineSubject) {
+            const rj::Value& x = document["data"]["candles"].GetArray();
+            MarketDataMessage marketDataMessage;
+            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
+            std::string exchangeSubscriptionId = document["topic"].GetString();
+            marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+            marketDataMessage.tp = UtilTime::makeTimePoint(std::make_pair(std::stoll(x[0].GetString()), 0));
+            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+            MarketDataMessage::TypeForDataPoint dataPoint;
+            dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, x[1].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, x[3].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, x[4].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, x[2].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, x[5].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, x[6].GetString()});
+            marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         } else if (type == "welcome") {
@@ -529,10 +582,12 @@ class MarketDataServiceKucoinBase : public MarketDataService {
   std::string channelMarketLevel2Depth5;
   std::string channelMarketLevel2Depth50;
   std::string channelMarketLevel2;
+  std::string channelMarketKlines;
   std::string tickerSubject;
   std::string tickerBestBidPriceKey;
   std::string tickerBestAskPriceKey;
   std::string matchSubject;
+  std::string klineSubject;
   std::string recentTradesTimeKey;
   std::string level2Subject;
   std::string apiPassphraseName;

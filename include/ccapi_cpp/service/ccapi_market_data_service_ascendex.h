@@ -44,6 +44,9 @@ class MarketDataServiceAscendex : public MarketDataService {
       if (marketDepthRequested == 1) {
         channelId = CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_BBO;
       }
+    } else if (field == CCAPI_CANDLESTICK) {
+      std::string interval = std::to_string(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)) / 60);
+      channelId += ":" + interval;
     }
   }
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
@@ -160,6 +163,24 @@ class MarketDataServiceAscendex : public MarketDataService {
         marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
       }
+    } else if (m == "bar") {
+      std::string channelId = m;
+      const rj::Value& data = document["data"];
+      std::string symbolId = document["s"].GetString();
+      std::string exchangeSubscriptionId = channelId + ":" + std::string(data["i"].GetString()) + ":" + symbolId;
+      MarketDataMessage marketDataMessage;
+      marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
+      marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+      marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+      marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(data["ts"].GetString())));
+      MarketDataMessage::TypeForDataPoint dataPoint;
+      dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, data["o"].GetString()});
+      dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, data["h"].GetString()});
+      dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, data["l"].GetString()});
+      dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, data["c"].GetString()});
+      dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, data["v"].GetString()});
+      marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
+      marketDataMessageList.emplace_back(std::move(marketDataMessage));
     } else if (m == "ping") {
       ErrorCode ec;
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
