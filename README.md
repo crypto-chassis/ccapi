@@ -1,3 +1,6 @@
+# Notification: we've added a new feature that allows our users to subscribe to exchange provided candlesticks. There is a small renaming: "OPEN" has been renamed to "OPEN_PRICE", "CLOSE" has been renamed to "CLOSE_PRICE", "HIGH" has been renamed to "HIGH_PRICE", "LOW" has been renamed to "LOW_PRICE". If you have any questions, feel free to directly ask us on Discord https://discord.gg/b5EKcp9s8T.
+
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
