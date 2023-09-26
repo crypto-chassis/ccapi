@@ -133,10 +133,12 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapGateio = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_GATEIO_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_GATEIO_CHANNEL_ORDER_BOOK},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_GATEIO_CHANNEL_CANDLESTICKS},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapGateioPerpetualFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_ORDER_BOOK},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_CANDLESTICKS},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapCryptocom = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_CRYPTOCOM_CHANNEL_TRADE},
