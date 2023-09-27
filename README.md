@@ -1,3 +1,6 @@
+# Notification: we've added a new feature that allows our users to subscribe to exchange provided candlesticks. There is a small renaming: "OPEN" has been renamed to "OPEN_PRICE", "CLOSE" has been renamed to "CLOSE_PRICE", "HIGH" has been renamed to "HIGH_PRICE", "LOW" has been renamed to "LOW_PRICE". If you have any questions, feel free to directly ask us on Discord https://discord.gg/b5EKcp9s8T.
+
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -20,7 +23,8 @@
       - [Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed](#receive-subscription-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
       - [Receive subscription market depth updates](#receive-subscription-market-depth-updates)
       - [Receive subscription trade events](#receive-subscription-trade-events)
-      - [Receive subscription OHLC events at periodic intervals](#receive-subscription-ohlc-events-at-periodic-intervals)
+      - [Receive subscription calculated-candlestick events at periodic intervals](#receive-subscription-calculated-candlestick-events-at-periodic-intervals)
+      - [Receive subscription exchange-provided-candlestick events at periodic intervals](#receive-subscription-exchange-provided-candlestick-events-at-periodic-intervals)
       - [Send generic public requests](#send-generic-public-requests)
       - [Make generic public subscriptions](#make-generic-public-subscriptions)
       - [Send generic private requests](#send-generic-private-requests)
@@ -413,11 +417,18 @@ Instantiate `Subscription` with field `TRADE`.
 Subscription subscription("coinbase", "BTC-USD", "TRADE");
 ```
 
-#### Receive subscription OHLC events at periodic intervals
+#### Receive subscription calculated-candlestick events at periodic intervals
 
 Instantiate `Subscription` with field `TRADE` and option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CONFLATE_GRACE_PERIOD_MILLISECONDS` to be your network latency.
 ```
 Subscription subscription("coinbase", "BTC-USD", "TRADE", "CONFLATE_INTERVAL_MILLISECONDS=5000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
+```
+
+#### Receive subscription exchange-provided-candlestick events at periodic intervals
+
+Instantiate `Subscription` with field `CANDLESTICK` and option `CANDLESTICK_INTERVAL_SECONDS` set to be the desired interval.
+```
+Subscription subscription("okx", "BTC-USDT", "CANDLESTICK", "CANDLESTICK_INTERVAL_SECONDS=60");
 ```
 
 #### Send generic public requests

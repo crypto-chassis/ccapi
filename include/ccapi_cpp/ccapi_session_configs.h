@@ -47,6 +47,7 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapKraken = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_BOOK},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_KRAKEN_CHANNEL_OHLC},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapKrakenFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KRAKEN_FUTURES_CHANNEL_TRADE},
@@ -58,7 +59,8 @@ class SessionConfigs CCAPI_FINAL {
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitfinex = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_TRADES},
-        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOK},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_BOOKS},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BITFINEX_CHANNEL_CANDLES},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitmex = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITMEX_CHANNEL_TRADE},
@@ -110,6 +112,7 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapKucoin = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_MATCH},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_LEVEL2},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_KLINES},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapKucoinFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_KUCOIN_FUTURES_CHANNEL_MARKET_MATCH},
@@ -130,10 +133,12 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapGateio = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_GATEIO_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_GATEIO_CHANNEL_ORDER_BOOK},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_GATEIO_CHANNEL_CANDLESTICKS},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapGateioPerpetualFutures = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_ORDER_BOOK},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_CANDLESTICKS},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapCryptocom = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_CRYPTOCOM_CHANNEL_TRADE},
@@ -152,6 +157,7 @@ class SessionConfigs CCAPI_FINAL {
     std::map<std::string, std::string> fieldWebsocketChannelMapAscendex = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_DEPTH},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_ASCENDEX_CHANNEL_BAR},
     };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitget = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_TRADES},
