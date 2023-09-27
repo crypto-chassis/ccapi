@@ -37,6 +37,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     this->websocketChannelTrades = CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_TRADES;
     this->websocketChannelBookTicker = CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_BOOK_TICKER;
     this->websocketChannelOrderBook = CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_ORDER_BOOK;
+    this->websocketChannelCandlesticks = CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_CANDLESTICKS;
     this->symbolName = "contract";
   }
   virtual ~MarketDataServiceGateioPerpetualFutures() {}

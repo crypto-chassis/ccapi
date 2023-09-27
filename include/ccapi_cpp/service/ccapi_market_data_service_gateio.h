@@ -36,6 +36,7 @@ class MarketDataServiceGateio : public MarketDataServiceGateioBase {
     this->websocketChannelTrades = CCAPI_WEBSOCKET_GATEIO_CHANNEL_TRADES;
     this->websocketChannelBookTicker = CCAPI_WEBSOCKET_GATEIO_CHANNEL_BOOK_TICKER;
     this->websocketChannelOrderBook = CCAPI_WEBSOCKET_GATEIO_CHANNEL_ORDER_BOOK;
+    this->websocketChannelCandlesticks = CCAPI_WEBSOCKET_GATEIO_CHANNEL_CANDLESTICKS;
     this->symbolName = "currency_pair";
   }
   virtual ~MarketDataServiceGateio() {}
