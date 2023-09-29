@@ -22,7 +22,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
     auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
-      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
+      marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
       if (marketDepthSubscribedToExchange == 1) {
         channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
       } else {
@@ -58,6 +58,32 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
       } else if (filterType == "MIN_NOTIONAL") {
         element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, y["notional"].GetString());
       }
+    }
+  }
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                             const std::map<std::string, std::string>& credential) override {
+    this->prepareReq(req, credential);
+    switch (request.getOperation()) {
+      case Request::Operation::GET_MARKET_DEPTH: {
+        req.method(http::verb::get);
+        auto target = this->getMarketDepthTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_MARKET_DEPTH_MAX, "limit"},
+                          },
+                          {
+                              {CCAPI_MARKET_DEPTH_MAX,
+                               [that = shared_from_base<MarketDataServiceBinanceDerivativesBase>()](const std::string& input) {
+                                 return std::to_string(that->calculateMarketDepthAllowedByExchange(std::stoi(input), {5, 10, 20, 50, 100, 500, 1000}));
+                               }},
+                          });
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
+      } break;
+      default:
+        MarketDataServiceBinanceBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,

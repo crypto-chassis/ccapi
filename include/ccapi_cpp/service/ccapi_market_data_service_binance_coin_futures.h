@@ -30,7 +30,12 @@ class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDeriv
     this->apiKeyName = CCAPI_BINANCE_COIN_FUTURES_API_KEY;
     this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/dapi/v1/trades";
+    this->getHistoricalTradesTarget = "/dapi/v1/historicalTrades";
     this->getRecentAggTradesTarget = "/dapi/v1/aggTrades";
+    this->getHistoricalAggTradesTarget = "/dapi/v1/aggTrades";
+    this->getRecentCandlesticksTarget = "/dapi/v1/klines";
+    this->getHistoricalCandlesticksTarget = "/dapi/v1/klines";
+    this->getMarketDepthTarget = "/dapi/v1/depth";
     this->getInstrumentTarget = "/dapi/v1/exchangeInfo";
     this->getInstrumentsTarget = "/dapi/v1/exchangeInfo";
   }

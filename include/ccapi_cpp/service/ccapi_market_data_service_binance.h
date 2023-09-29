@@ -30,7 +30,12 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
     this->apiKeyName = CCAPI_BINANCE_API_KEY;
     this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/api/v3/trades";
+    this->getHistoricalTradesTarget = "/api/v3/historicalTrades";
     this->getRecentAggTradesTarget = "/api/v3/aggTrades";
+    this->getHistoricalAggTradesTarget = "/api/v3/aggTrades";
+    this->getRecentCandlesticksTarget = "/api/v3/klines";
+    this->getHistoricalCandlesticksTarget = "/api/v3/klines";
+    this->getMarketDepthTarget = "/api/v3/depth";
     this->getInstrumentTarget = "/api/v3/exchangeInfo";
     this->getInstrumentsTarget = "/api/v3/exchangeInfo";
   }

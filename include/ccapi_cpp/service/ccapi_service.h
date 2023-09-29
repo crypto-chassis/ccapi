@@ -814,14 +814,15 @@ class Service : public std::enable_shared_from_this<Service> {
       }
     }
   }
-  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
-                   const std::map<std::string, std::string> standardizationMap = {}) {
+  void appendParam(std::string& queryString, const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {},
+                   const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) {
     int i = 0;
     for (const auto& kv : param) {
       std::string key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       queryString += key;
       queryString += "=";
-      queryString += Url::urlEncode(kv.second);
+      std::string value = conversionMap.find(kv.first) != conversionMap.end() ? conversionMap.at(kv.first)(kv.second) : kv.second;
+      queryString += Url::urlEncode(value);
       queryString += "&";
       ++i;
     }
