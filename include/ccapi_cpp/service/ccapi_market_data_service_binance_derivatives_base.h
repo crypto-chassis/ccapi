@@ -19,7 +19,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
       marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
@@ -27,9 +27,9 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
       } else {
         std::string updateSpeed;
-        if (conflateIntervalMilliSeconds < 250) {
+        if (conflateIntervalMilliseconds < 250) {
           updateSpeed = "100ms";
-        } else if (conflateIntervalMilliSeconds >= 500) {
+        } else if (conflateIntervalMilliseconds >= 500) {
           updateSpeed = "500ms";
         }
         channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);

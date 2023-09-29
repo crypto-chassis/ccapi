@@ -329,7 +329,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
           }
           that->onFail_(thisWsConnection);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 #else
   void prepareConnect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
@@ -381,7 +381,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
           }
           that->onFail_(wsConnectionPtr);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 #endif
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,

@@ -69,7 +69,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
           }
           that->onFail_(thisWsConnection);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 #else
   void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override { wsConnectionPtr->status = WsConnection::Status::OPEN; }
@@ -119,7 +119,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
           }
           that->onFail_(wsConnectionPtr);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 #endif
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
@@ -520,14 +520,14 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       message.setElementList({element});
       messageList.emplace_back(std::move(message));
     } else if (type == "welcome") {
-      this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+      this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
           std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
-      this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+      this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
           std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
-      if (this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
-          this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
-        this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
-            this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
+      if (this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
+          this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
+        this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+            this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
       }
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
       ExecutionManagementService::onOpen(hdl);

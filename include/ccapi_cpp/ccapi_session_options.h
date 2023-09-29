@@ -18,44 +18,44 @@ class SessionOptions CCAPI_FINAL {
                          ", enableCheckPingPongWebsocketProtocolLevel = " + ccapi::toString(enableCheckPingPongWebsocketProtocolLevel) +
                          ", enableCheckPingPongWebsocketApplicationLevel = " + ccapi::toString(enableCheckPingPongWebsocketApplicationLevel) +
                          ", enableCheckHeartbeatFix = " + ccapi::toString(enableCheckHeartbeatFix) +
-                         ", pingWebsocketProtocolLevelIntervalMilliSeconds = " + ccapi::toString(pingWebsocketProtocolLevelIntervalMilliSeconds) +
-                         ", pongWebsocketProtocolLevelTimeoutMilliSeconds = " + ccapi::toString(pongWebsocketProtocolLevelTimeoutMilliSeconds) +
-                         ", pingWebsocketApplicationLevelIntervalMilliSeconds = " + ccapi::toString(pingWebsocketApplicationLevelIntervalMilliSeconds) +
-                         ", pongWebsocketApplicationLevelTimeoutMilliSeconds = " + ccapi::toString(pongWebsocketApplicationLevelTimeoutMilliSeconds) +
-                         ", heartbeatFixIntervalMilliSeconds = " + ccapi::toString(heartbeatFixIntervalMilliSeconds) +
-                         ", heartbeatFixTimeoutMilliSeconds = " + ccapi::toString(heartbeatFixTimeoutMilliSeconds) +
+                         ", pingWebsocketProtocolLevelIntervalMilliseconds = " + ccapi::toString(pingWebsocketProtocolLevelIntervalMilliseconds) +
+                         ", pongWebsocketProtocolLevelTimeoutMilliseconds = " + ccapi::toString(pongWebsocketProtocolLevelTimeoutMilliseconds) +
+                         ", pingWebsocketApplicationLevelIntervalMilliseconds = " + ccapi::toString(pingWebsocketApplicationLevelIntervalMilliseconds) +
+                         ", pongWebsocketApplicationLevelTimeoutMilliseconds = " + ccapi::toString(pongWebsocketApplicationLevelTimeoutMilliseconds) +
+                         ", heartbeatFixIntervalMilliseconds = " + ccapi::toString(heartbeatFixIntervalMilliseconds) +
+                         ", heartbeatFixTimeoutMilliseconds = " + ccapi::toString(heartbeatFixTimeoutMilliseconds) +
                          ", maxEventQueueSize = " + ccapi::toString(maxEventQueueSize) + ", httpMaxNumRetry = " + ccapi::toString(httpMaxNumRetry) +
                          ", httpMaxNumRedirect = " + ccapi::toString(httpMaxNumRedirect) +
-                         ", httpRequestTimeoutMilliSeconds = " + ccapi::toString(httpRequestTimeoutMilliSeconds) +
+                         ", httpRequestTimeoutMilliseconds = " + ccapi::toString(httpRequestTimeoutMilliseconds) +
                          ", httpConnectionPoolMaxSize = " + ccapi::toString(httpConnectionPoolMaxSize) +
-                         ", httpConnectionPoolIdleTimeoutMilliSeconds = " + ccapi::toString(httpConnectionPoolIdleTimeoutMilliSeconds) +
+                         ", httpConnectionPoolIdleTimeoutMilliseconds = " + ccapi::toString(httpConnectionPoolIdleTimeoutMilliseconds) +
                          ", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) + "]";
     return output;
   }
-  // long warnLateEventMaxMilliSeconds{};                      // used to print a warning log message if en event arrives late
+  // long warnLateEventMaxMilliseconds{};                      // used to print a warning log message if en event arrives late
   bool enableCheckSequence{};                               // used to check sequence number discontinuity
   bool enableCheckOrderBookChecksum{};                      // used to check order book checksum
   bool enableCheckOrderBookCrossed{true};                   // used to check order book cross, usually this should be set to true
   bool enableCheckPingPongWebsocketProtocolLevel{true};     // used to check ping-pong health for exchange connections on websocket protocol level
   bool enableCheckPingPongWebsocketApplicationLevel{true};  // used to check ping-pong health for exchange connections on websocket application level
   bool enableCheckHeartbeatFix{true};                       // used to check heartbeat health for exchange connections on FIX
-  long pingWebsocketProtocolLevelIntervalMilliSeconds{60000};
-  long pongWebsocketProtocolLevelTimeoutMilliSeconds{30000};  // should be less than pingWebsocketProtocolLevelIntervalMilliSeconds
-  long pingWebsocketApplicationLevelIntervalMilliSeconds{60000};
-  long pongWebsocketApplicationLevelTimeoutMilliSeconds{30000};  // should be less than pingWebsocketApplicationLevelIntervalMilliSeconds
-  long heartbeatFixIntervalMilliSeconds{60000};
-  long heartbeatFixTimeoutMilliSeconds{30000};  // should be less than heartbeatFixIntervalMilliSeconds
+  long pingWebsocketProtocolLevelIntervalMilliseconds{60000};
+  long pongWebsocketProtocolLevelTimeoutMilliseconds{30000};  // should be less than pingWebsocketProtocolLevelIntervalMilliseconds
+  long pingWebsocketApplicationLevelIntervalMilliseconds{60000};
+  long pongWebsocketApplicationLevelTimeoutMilliseconds{30000};  // should be less than pingWebsocketApplicationLevelIntervalMilliseconds
+  long heartbeatFixIntervalMilliseconds{60000};
+  long heartbeatFixTimeoutMilliseconds{30000};  // should be less than heartbeatFixIntervalMilliseconds
   int maxEventQueueSize{0};                     // if set to a positive integer, the event queue will throw an exception when overflown
   int httpMaxNumRetry{1};
   int httpMaxNumRedirect{1};
-  long httpRequestTimeoutMilliSeconds{10000};
+  long httpRequestTimeoutMilliseconds{10000};
   int httpConnectionPoolMaxSize{1};  // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
-  long httpConnectionPoolIdleTimeoutMilliSeconds{0};  // used to purge the http connection pool if all connections in the
+  long httpConnectionPoolIdleTimeoutMilliseconds{0};  // used to purge the http connection pool if all connections in the
                                                       // pool have stayed idle for at least this amount of time
   bool enableOneHttpConnectionPerRequest{};           // create a new http connection for each request
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
-  long websocketConnectTimeoutMilliSeconds{10000};
+  long websocketConnectTimeoutMilliseconds{10000};
 #endif
 };
 } /* namespace ccapi */

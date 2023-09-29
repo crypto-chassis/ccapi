@@ -36,7 +36,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
@@ -44,7 +44,7 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         int marketDepthSubscribedToExchange = 1;
         marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
         std::string updateSpeed;
-        if (conflateIntervalMilliSeconds < 1000) {
+        if (conflateIntervalMilliseconds < 1000) {
           updateSpeed = "100ms";
         }
         channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
@@ -269,10 +269,6 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       req.set("X-MBX-APIKEY", apiKey);
     }
   }
-  std::string convertParamStartTimeEndTime(const std::string& input) { return std::to_string(std::stoll(input) * 1000); }
-  std::string convertParamInterval(const std::string& input) {
-    return this->convertCandlestickIntervalSecondsToInterval(std::stoi(input), "s", "m", "h", "d", "w");
-  }
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, credential);
@@ -311,20 +307,19 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         auto target = this->getRecentAggTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(
-            queryString, param,
-            {
-                {CCAPI_LIMIT, "limit"},
-                {CCAPI_START_TIME_SECONDS, "startTime"},
-                {CCAPI_END_TIME_SECONDS, "endTime"},
-                {CCAPI_START_AGG_TRADE_ID, "fromId"},
-            },
-            {
-                {CCAPI_START_TIME_SECONDS,
-                 [that = shared_from_base<MarketDataServiceBinanceBase>()](const std::string& input) { return that->convertParamStartTimeEndTime(input); }},
-                {CCAPI_END_TIME_SECONDS,
-                 [that = shared_from_base<MarketDataServiceBinanceBase>()](const std::string& input) { return that->convertParamStartTimeEndTime(input); }},
-            });
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                              {CCAPI_START_TIME_SECONDS, "startTime"},
+                              {CCAPI_END_TIME_SECONDS, "endTime"},
+                              {CCAPI_START_AGG_TRADE_ID, "fromId"},
+                          },
+                          {
+                              {CCAPI_START_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBinanceBase>()](
+                                                             const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                              {CCAPI_END_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBinanceBase>()](
+                                                           const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                          });
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
@@ -334,22 +329,23 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         auto target = this->getRecentCandlesticksTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(
-            queryString, param,
-            {
-                {CCAPI_LIMIT, "limit"},
-                {CCAPI_START_TIME_SECONDS, "startTime"},
-                {CCAPI_END_TIME_SECONDS, "endTime"},
-                {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "interval"},
-            },
-            {
-                {CCAPI_CANDLESTICK_INTERVAL_SECONDS,
-                 [that = shared_from_base<MarketDataServiceBinanceBase>()](const std::string& input) { return that->convertParamInterval(input); }},
-                {CCAPI_START_TIME_SECONDS,
-                 [that = shared_from_base<MarketDataServiceBinanceBase>()](const std::string& input) { return that->convertParamStartTimeEndTime(input); }},
-                {CCAPI_END_TIME_SECONDS,
-                 [that = shared_from_base<MarketDataServiceBinanceBase>()](const std::string& input) { return that->convertParamStartTimeEndTime(input); }},
-            });
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "interval"},
+                              {CCAPI_LIMIT, "limit"},
+                              {CCAPI_START_TIME_SECONDS, "startTime"},
+                              {CCAPI_END_TIME_SECONDS, "endTime"},
+                          },
+                          {
+                              {CCAPI_CANDLESTICK_INTERVAL_SECONDS,
+                               [that = shared_from_base<MarketDataServiceBinanceBase>()](const std::string& input) {
+                                 return that->convertCandlestickIntervalSecondsToInterval(std::stoi(input), "s", "m", "h", "d", "w");
+                               }},
+                              {CCAPI_START_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBinanceBase>()](
+                                                             const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                              {CCAPI_END_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBinanceBase>()](
+                                                           const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                          });
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;

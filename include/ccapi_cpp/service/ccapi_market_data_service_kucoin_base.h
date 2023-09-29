@@ -18,7 +18,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
       if (this->isDerivatives) {
         if (marketDepthRequested == 1) {
@@ -29,7 +29,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
           channelId = this->channelMarketLevel2Depth50;
         }
       } else {
-        // if (conflateIntervalMilliSeconds < 100) {
+        // if (conflateIntervalMilliseconds < 100) {
         //     channelId = this->channelMarketLevel2;
         // }else{
         if (marketDepthRequested == 1) {
@@ -99,7 +99,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
           }
           that->onFail_(thisWsConnection);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 #else
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
@@ -145,7 +145,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
           }
           that->onFail_(wsConnectionPtr);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 #endif
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
@@ -424,14 +424,14 @@ class MarketDataServiceKucoinBase : public MarketDataService {
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         } else if (type == "welcome") {
-          this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+          this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
               std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingInterval"));
-          this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+          this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
               std::stol(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("pingTimeout"));
-          if (this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
-              this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
-            this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
-                this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
+          if (this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] <=
+              this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL]) {
+            this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] =
+                this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] - 1;
           }
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
           Service::onOpen(hdl);

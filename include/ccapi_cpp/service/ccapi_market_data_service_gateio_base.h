@@ -32,7 +32,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
       if (marketDepthRequested == 1) {
         channelId = this->websocketChannelBookTicker;
@@ -44,7 +44,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
         if (this->isDerivatives) {
           updateSpeed = "0";
         } else {
-          if (conflateIntervalMilliSeconds < 1000) {
+          if (conflateIntervalMilliseconds < 1000) {
             updateSpeed = "100ms";
           } else {
             updateSpeed = "1000ms";

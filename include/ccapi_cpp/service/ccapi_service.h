@@ -121,12 +121,12 @@ class Service : public std::enable_shared_from_this<Service> {
         httpConnectionPool(sessionOptions.httpConnectionPoolMaxSize) {
     this->enableCheckPingPongWebsocketProtocolLevel = this->sessionOptions.enableCheckPingPongWebsocketProtocolLevel;
     this->enableCheckPingPongWebsocketApplicationLevel = this->sessionOptions.enableCheckPingPongWebsocketApplicationLevel;
-    // this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingWebsocketProtocolLevelIntervalMilliSeconds;
-    // this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongWebsocketProtocolLevelTimeoutMilliSeconds;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingWebsocketApplicationLevelIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongWebsocketApplicationLevelTimeoutMilliSeconds;
-    this->pingIntervalMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixIntervalMilliSeconds;
-    this->pongTimeoutMilliSecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixTimeoutMilliSeconds;
+    // this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pingWebsocketProtocolLevelIntervalMilliseconds;
+    // this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_PROTOCOL_LEVEL] = sessionOptions.pongWebsocketProtocolLevelTimeoutMilliseconds;
+    this->pingIntervalMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pingWebsocketApplicationLevelIntervalMilliseconds;
+    this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::WEBSOCKET_APPLICATION_LEVEL] = sessionOptions.pongWebsocketApplicationLevelTimeoutMilliseconds;
+    this->pingIntervalMillisecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixIntervalMilliseconds;
+    this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixTimeoutMilliseconds;
   }
   virtual ~Service() {
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
@@ -182,14 +182,14 @@ class Service : public std::enable_shared_from_this<Service> {
                                      const std::map<std::string, std::string>& credential) {}
   virtual void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived,
                                                 Queue<Event>* eventQueuePtr) {}
-  std::shared_ptr<std::future<void>> sendRequest(Request& request, const bool useFuture, const TimePoint& now, long delayMilliSeconds,
+  std::shared_ptr<std::future<void>> sendRequest(Request& request, const bool useFuture, const TimePoint& now, long delayMilliseconds,
                                                  Queue<Event>* eventQueuePtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("request = " + toString(request));
     CCAPI_LOGGER_DEBUG("useFuture = " + toString(useFuture));
     TimePoint then;
-    if (delayMilliSeconds > 0) {
-      then = now + std::chrono::milliseconds(delayMilliSeconds);
+    if (delayMilliseconds > 0) {
+      then = now + std::chrono::milliseconds(delayMilliseconds);
     } else {
       then = now;
     }
@@ -217,8 +217,8 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     std::shared_ptr<std::promise<void>> promisePtr(promisePtrRaw);
     HttpRetry retry(0, 0, "", promisePtr);
-    if (delayMilliSeconds > 0) {
-      TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(delayMilliSeconds)));
+    if (delayMilliseconds > 0) {
+      TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(delayMilliseconds)));
       timerPtr->async_wait([that = shared_from_this(), request, req, retry, eventQueuePtr](ErrorCode const& ec) mutable {
         if (ec) {
           CCAPI_LOGGER_ERROR("request = " + toString(request) + ", sendRequest timer error: " + ec.message());
@@ -341,7 +341,7 @@ class Service : public std::enable_shared_from_this<Service> {
     return std::static_pointer_cast<Derived>(shared_from_this());
   }
   void sendRequest(const http::request<http::string_body>& req, std::function<void(const beast::error_code&)> errorHandler,
-                   std::function<void(const http::response<http::string_body>&)> responseHandler, long timeoutMilliSeconds) {
+                   std::function<void(const http::response<http::string_body>&)> responseHandler, long timeoutMilliseconds) {
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << req;
@@ -358,11 +358,11 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(this->hostRest, this->portRest, streamPtr));
     CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
-    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds, this->tcpResolverResultsRest);
+    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliseconds, this->tcpResolverResultsRest);
   }
   void sendRequest(const std::string& host, const std::string& port, const http::request<http::string_body>& req,
                    std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
-                   long timeoutMilliSeconds) {
+                   long timeoutMilliseconds) {
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     std::ostringstream oss;
     oss << req;
@@ -383,24 +383,24 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("port = " + port);
     newResolverPtr->async_resolve(host, port,
                                   beast::bind_front_handler(&Service::onResolve, shared_from_this(), httpConnectionPtr, newResolverPtr, req, errorHandler,
-                                                            responseHandler, timeoutMilliSeconds));
+                                                            responseHandler, timeoutMilliseconds));
   }
   void onResolve(std::shared_ptr<HttpConnection> httpConnectionPtr, std::shared_ptr<tcp::resolver> newResolverPtr, http::request<http::string_body> req,
                  std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
-                 long timeoutMilliSeconds, beast::error_code ec, tcp::resolver::results_type tcpNewResolverResults) {
+                 long timeoutMilliseconds, beast::error_code ec, tcp::resolver::results_type tcpNewResolverResults) {
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       errorHandler(ec);
       return;
     }
-    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliSeconds, tcpNewResolverResults);
+    this->startConnect(httpConnectionPtr, req, errorHandler, responseHandler, timeoutMilliseconds, tcpNewResolverResults);
   }
   void startConnect(std::shared_ptr<HttpConnection> httpConnectionPtr, http::request<http::string_body> req,
                     std::function<void(const beast::error_code&)> errorHandler, std::function<void(const http::response<http::string_body>&)> responseHandler,
-                    long timeoutMilliSeconds, tcp::resolver::results_type tcpNewResolverResults) {
+                    long timeoutMilliseconds, tcp::resolver::results_type tcpNewResolverResults) {
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-    if (timeoutMilliSeconds > 0) {
-      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliSeconds));
+    if (timeoutMilliseconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliseconds));
     }
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
@@ -526,9 +526,9 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-    CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliSeconds = " + toString(this->sessionOptions.httpRequestTimeoutMilliSeconds));
-    if (this->sessionOptions.httpRequestTimeoutMilliSeconds > 0) {
-      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
+    CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliseconds = " + toString(this->sessionOptions.httpRequestTimeoutMilliseconds));
+    if (this->sessionOptions.httpRequestTimeoutMilliseconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliseconds));
     }
     CCAPI_LOGGER_TRACE("before async_connect");
     beast::get_lowest_layer(stream).async_connect(
@@ -569,8 +569,8 @@ class Service : public std::enable_shared_from_this<Service> {
   void startWrite_2(std::shared_ptr<HttpConnection> httpConnectionPtr, Request request, http::request<http::string_body> req, HttpRetry retry,
                     Queue<Event>* eventQueuePtr) {
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-    if (this->sessionOptions.httpRequestTimeoutMilliSeconds > 0) {
-      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliSeconds));
+    if (this->sessionOptions.httpRequestTimeoutMilliseconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliseconds));
     }
     std::shared_ptr<http::request<http::string_body>> reqPtr(new http::request<http::string_body>(std::move(req)));
     CCAPI_LOGGER_TRACE("before async_write");
@@ -610,7 +610,7 @@ class Service : public std::enable_shared_from_this<Service> {
         that->onError(Event::Type::SESSION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
       } else {
         if (std::chrono::duration_cast<std::chrono::milliseconds>(now - that->lastHttpConnectionPoolPushBackTp).count() >
-            that->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds) {
+            that->sessionOptions.httpConnectionPoolIdleTimeoutMilliseconds) {
           that->httpConnectionPool.purge();
         }
         that->setHttpConnectionPoolPurgeTimer();
@@ -637,7 +637,7 @@ class Service : public std::enable_shared_from_this<Service> {
     if (!this->sessionOptions.enableOneHttpConnectionPerRequest) {
       try {
         if (std::chrono::duration_cast<std::chrono::seconds>(this->lastHttpConnectionPoolPushBackTp.time_since_epoch()).count() == 0 &&
-            this->sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds > 0) {
+            this->sessionOptions.httpConnectionPoolIdleTimeoutMilliseconds > 0) {
           this->setHttpConnectionPoolPurgeTimer();
         }
         this->httpConnectionPool.pushBack(std::move(httpConnectionPtr));
@@ -1114,11 +1114,11 @@ class Service : public std::enable_shared_from_this<Service> {
                         std::function<void(wspp::connection_hdl, ErrorCode&)> pingMethod) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("method = " + pingPongMethodToString(method));
-    auto pingIntervalMilliSeconds = this->pingIntervalMilliSecondsByMethodMap[method];
-    auto pongTimeoutMilliSeconds = this->pongTimeoutMilliSecondsByMethodMap[method];
-    CCAPI_LOGGER_TRACE("pingIntervalMilliSeconds = " + toString(pingIntervalMilliSeconds));
-    CCAPI_LOGGER_TRACE("pongTimeoutMilliSeconds = " + toString(pongTimeoutMilliSeconds));
-    if (pingIntervalMilliSeconds <= pongTimeoutMilliSeconds) {
+    auto pingIntervalMilliseconds = this->pingIntervalMillisecondsByMethodMap[method];
+    auto pongTimeoutMilliseconds = this->pongTimeoutMillisecondsByMethodMap[method];
+    CCAPI_LOGGER_TRACE("pingIntervalMilliseconds = " + toString(pingIntervalMilliseconds));
+    CCAPI_LOGGER_TRACE("pongTimeoutMilliseconds = " + toString(pongTimeoutMilliseconds));
+    if (pingIntervalMilliseconds <= pongTimeoutMilliseconds) {
       return;
     }
     if (wsConnection.status == WsConnection::Status::OPEN) {
@@ -1127,8 +1127,8 @@ class Service : public std::enable_shared_from_this<Service> {
         this->pingTimerByMethodByConnectionIdMap.at(wsConnection.id).at(method)->cancel();
       }
       TimerPtr timerPtr(
-          new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pingIntervalMilliSeconds - pongTimeoutMilliSeconds)));
-      timerPtr->async_wait([wsConnection, that = shared_from_this(), hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+          new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pingIntervalMilliseconds - pongTimeoutMilliseconds)));
+      timerPtr->async_wait([wsConnection, that = shared_from_this(), hdl, pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
         if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
           if (ec) {
             CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", ping timer error: " + ec.message());
@@ -1140,7 +1140,7 @@ class Service : public std::enable_shared_from_this<Service> {
               if (ec) {
                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "ping");
               }
-              if (pongTimeoutMilliSeconds <= 0) {
+              if (pongTimeoutMilliseconds <= 0) {
                 return;
               }
               if (that->pongTimeOutTimerByMethodByConnectionIdMap.find(wsConnection.id) != that->pongTimeOutTimerByMethodByConnectionIdMap.end() &&
@@ -1148,8 +1148,8 @@ class Service : public std::enable_shared_from_this<Service> {
                       that->pongTimeOutTimerByMethodByConnectionIdMap.at(wsConnection.id).end()) {
                 that->pongTimeOutTimerByMethodByConnectionIdMap.at(wsConnection.id).at(method)->cancel();
               }
-              TimerPtr timerPtr(new boost::asio::steady_timer(*that->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pongTimeoutMilliSeconds)));
-              timerPtr->async_wait([wsConnection, that, hdl, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+              TimerPtr timerPtr(new boost::asio::steady_timer(*that->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pongTimeoutMilliseconds)));
+              timerPtr->async_wait([wsConnection, that, hdl, pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
                 if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
                   if (ec) {
                     CCAPI_LOGGER_ERROR("wsConnection = " + toString(wsConnection) + ", pong time out timer error: " + ec.message());
@@ -1161,7 +1161,7 @@ class Service : public std::enable_shared_from_this<Service> {
                           that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(method) !=
                               that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).end() &&
                           std::chrono::duration_cast<std::chrono::milliseconds>(now - that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).at(method))
-                                  .count() >= pongTimeoutMilliSeconds) {
+                                  .count() >= pongTimeoutMilliseconds) {
                         auto thisWsConnection = wsConnection;
                         ErrorCode ec;
                         that->close(thisWsConnection, hdl, websocketpp::close::status::normal, "pong timeout", ec);
@@ -1227,12 +1227,12 @@ class Service : public std::enable_shared_from_this<Service> {
       this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "dns resolve", wsConnectionPtr->correlationIdList);
       return;
     }
-    this->startConnectWs(wsConnectionPtr, this->sessionOptions.websocketConnectTimeoutMilliSeconds, tcpNewResolverResultsWs);
+    this->startConnectWs(wsConnectionPtr, this->sessionOptions.websocketConnectTimeoutMilliseconds, tcpNewResolverResultsWs);
   }
-  void startConnectWs(std::shared_ptr<WsConnection> wsConnectionPtr, long timeoutMilliSeconds, tcp::resolver::results_type tcpResolverResults) {
+  void startConnectWs(std::shared_ptr<WsConnection> wsConnectionPtr, long timeoutMilliseconds, tcp::resolver::results_type tcpResolverResults) {
     beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>& stream = *wsConnectionPtr->streamPtr;
-    if (timeoutMilliSeconds > 0) {
-      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliSeconds));
+    if (timeoutMilliseconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(timeoutMilliseconds));
     }
     // Set SNI Hostname (many hosts need this to handshake successfully)
     CCAPI_LOGGER_TRACE("wsConnectionPtr->host = " + wsConnectionPtr->host)
@@ -1274,8 +1274,8 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("ssl handshaked");
     beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>& stream = *wsConnectionPtr->streamPtr;
     beast::get_lowest_layer(stream).expires_never();
-    beast::websocket::stream_base::timeout opt{std::chrono::milliseconds(this->sessionOptions.websocketConnectTimeoutMilliSeconds),
-                                               std::chrono::milliseconds(this->sessionOptions.pongWebsocketProtocolLevelTimeoutMilliSeconds), true};
+    beast::websocket::stream_base::timeout opt{std::chrono::milliseconds(this->sessionOptions.websocketConnectTimeoutMilliseconds),
+                                               std::chrono::milliseconds(this->sessionOptions.pongWebsocketProtocolLevelTimeoutMilliseconds), true};
 
     stream.set_option(opt);
     stream.set_option(beast::websocket::stream_base::decorator([wsConnectionPtr](beast::websocket::request_type& req) {
@@ -1642,11 +1642,11 @@ class Service : public std::enable_shared_from_this<Service> {
   void setPingPongTimer(PingPongMethod method, std::shared_ptr<WsConnection> wsConnectionPtr, std::function<void(ErrorCode&)> pingMethod) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("method = " + pingPongMethodToString(method));
-    auto pingIntervalMilliSeconds = this->pingIntervalMilliSecondsByMethodMap[method];
-    auto pongTimeoutMilliSeconds = this->pongTimeoutMilliSecondsByMethodMap[method];
-    CCAPI_LOGGER_TRACE("pingIntervalMilliSeconds = " + toString(pingIntervalMilliSeconds));
-    CCAPI_LOGGER_TRACE("pongTimeoutMilliSeconds = " + toString(pongTimeoutMilliSeconds));
-    if (pingIntervalMilliSeconds <= pongTimeoutMilliSeconds) {
+    auto pingIntervalMilliseconds = this->pingIntervalMillisecondsByMethodMap[method];
+    auto pongTimeoutMilliseconds = this->pongTimeoutMillisecondsByMethodMap[method];
+    CCAPI_LOGGER_TRACE("pingIntervalMilliseconds = " + toString(pingIntervalMilliseconds));
+    CCAPI_LOGGER_TRACE("pongTimeoutMilliseconds = " + toString(pongTimeoutMilliseconds));
+    if (pingIntervalMilliseconds <= pongTimeoutMilliseconds) {
       return;
     }
     WsConnection& wsConnection = *wsConnectionPtr;
@@ -1656,8 +1656,8 @@ class Service : public std::enable_shared_from_this<Service> {
         this->pingTimerByMethodByConnectionIdMap.at(wsConnection.id).at(method)->cancel();
       }
       TimerPtr timerPtr(
-          new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pingIntervalMilliSeconds - pongTimeoutMilliSeconds)));
-      timerPtr->async_wait([wsConnectionPtr, that = shared_from_this(), pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+          new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pingIntervalMilliseconds - pongTimeoutMilliseconds)));
+      timerPtr->async_wait([wsConnectionPtr, that = shared_from_this(), pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
         WsConnection& wsConnection = *wsConnectionPtr;
         if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
           if (ec) {
@@ -1670,7 +1670,7 @@ class Service : public std::enable_shared_from_this<Service> {
               if (ec) {
                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "ping");
               }
-              if (pongTimeoutMilliSeconds <= 0) {
+              if (pongTimeoutMilliseconds <= 0) {
                 return;
               }
               if (that->pongTimeOutTimerByMethodByConnectionIdMap.find(wsConnection.id) != that->pongTimeOutTimerByMethodByConnectionIdMap.end() &&
@@ -1678,8 +1678,8 @@ class Service : public std::enable_shared_from_this<Service> {
                       that->pongTimeOutTimerByMethodByConnectionIdMap.at(wsConnection.id).end()) {
                 that->pongTimeOutTimerByMethodByConnectionIdMap.at(wsConnection.id).at(method)->cancel();
               }
-              TimerPtr timerPtr(new boost::asio::steady_timer(*that->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pongTimeoutMilliSeconds)));
-              timerPtr->async_wait([wsConnectionPtr, that, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+              TimerPtr timerPtr(new boost::asio::steady_timer(*that->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pongTimeoutMilliseconds)));
+              timerPtr->async_wait([wsConnectionPtr, that, pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
                 WsConnection& wsConnection = *wsConnectionPtr;
                 if (that->wsConnectionByIdMap.find(wsConnection.id) != that->wsConnectionByIdMap.end()) {
                   if (ec) {
@@ -1692,7 +1692,7 @@ class Service : public std::enable_shared_from_this<Service> {
                           that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).find(method) !=
                               that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).end() &&
                           std::chrono::duration_cast<std::chrono::milliseconds>(now - that->lastPongTpByMethodByConnectionIdMap.at(wsConnection.id).at(method))
-                                  .count() >= pongTimeoutMilliSeconds) {
+                                  .count() >= pongTimeoutMilliseconds) {
                         auto thisWsConnectionPtr = wsConnectionPtr;
                         ErrorCode ec;
                         that->close(thisWsConnectionPtr, beast::websocket::close_code::normal,
@@ -1717,6 +1717,14 @@ class Service : public std::enable_shared_from_this<Service> {
       this->pingTimerByMethodByConnectionIdMap[wsConnection.id][method] = timerPtr;
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+  std::string convertParamTimeSecondsToTimeMilliseconds(const std::string& input) {
+    auto dotPosition = input.find('.');
+    if (dotPosition == std::string::npos) {
+      return std::to_string(std::stoll(input) * 1000);
+    } else {
+    }
+    return std::to_string(std::stoll(input.substr(0, dotPosition)) * 1000 + std::stoll(UtilString::rightPadTo(input.substr(dotPosition + 1, 3), 3, '0')));
   }
   virtual void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessage, const TimePoint& timeReceived) {}
 #endif
@@ -1757,8 +1765,8 @@ class Service : public std::enable_shared_from_this<Service> {
   std::map<std::string, std::map<PingPongMethod, TimePoint>> lastPongTpByMethodByConnectionIdMap;
   std::map<std::string, std::map<PingPongMethod, TimerPtr>> pingTimerByMethodByConnectionIdMap;
   std::map<std::string, std::map<PingPongMethod, TimerPtr>> pongTimeOutTimerByMethodByConnectionIdMap;
-  std::map<PingPongMethod, long> pingIntervalMilliSecondsByMethodMap;
-  std::map<PingPongMethod, long> pongTimeoutMilliSecondsByMethodMap;
+  std::map<PingPongMethod, long> pingIntervalMillisecondsByMethodMap;
+  std::map<PingPongMethod, long> pongTimeoutMillisecondsByMethodMap;
   std::atomic<bool> shouldContinue{true};
   std::map<std::string, std::map<std::string, std::string>> extraPropertyByConnectionIdMap;
   bool enableCheckPingPongWebsocketProtocolLevel{};

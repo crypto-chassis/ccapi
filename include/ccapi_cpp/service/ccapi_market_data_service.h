@@ -209,9 +209,9 @@ class MarketDataService : public Service {
       if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-        if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+        if (this->sessionOptions.warnLateEventMaxMilliseconds > 0 &&
             std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
-                this->sessionOptions.warnLateEventMaxMilliSeconds &&
+                this->sessionOptions.warnLateEventMaxMilliseconds &&
             marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
           CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp) +
                             ", wsConnection = " + toString(wsConnection));
@@ -466,9 +466,9 @@ class MarketDataService : public Service {
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK) {
-        // if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+        // if (this->sessionOptions.warnLateEventMaxMilliseconds > 0 &&
         //     std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
-        //         this->sessionOptions.warnLateEventMaxMilliSeconds &&
+        //         this->sessionOptions.warnLateEventMaxMilliseconds &&
         //     marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
         //   CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp)
         //   +
@@ -1722,43 +1722,43 @@ class MarketDataService : public Service {
       }
     } else {
       if (this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap[wsConnection.id][exchangeSubscriptionId].empty()) {
-        int delayMilliSeconds = std::stoi(optionMap.at(CCAPI_FETCH_MARKET_DEPTH_INITIAL_SNAPSHOT_DELAY_MILLISECONDS));
-        if (delayMilliSeconds > 0) {
-          TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(delayMilliSeconds)));
-          timerPtr->async_wait([wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = this](ErrorCode const& ec) {
+        int delayMilliseconds = std::stoi(optionMap.at(CCAPI_FETCH_MARKET_DEPTH_INITIAL_SNAPSHOT_DELAY_MILLISECONDS));
+        if (delayMilliseconds > 0) {
+          TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(delayMilliseconds)));
+          timerPtr->async_wait([wsConnection, exchangeSubscriptionId, delayMilliseconds, that = this](ErrorCode const& ec) {
             auto now = UtilTime::now();
             if (ec) {
               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
             } else {
-              that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+              that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
             }
           });
           this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] = timerPtr;
         } else {
-          this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+          this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
         }
       }
       this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap[wsConnection.id][exchangeSubscriptionId][versionId] =
           marketDataMessage.data;
     }
   }
-  void buildOrderBookInitialOnFail(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliSeconds) {
-    auto thisDelayMilliSeconds = delayMilliSeconds * 2;
-    if (thisDelayMilliSeconds > 0) {
-      TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(thisDelayMilliSeconds)));
-      timerPtr->async_wait([wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds, that = this](ErrorCode const& ec) {
+  void buildOrderBookInitialOnFail(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliseconds) {
+    auto thisDelayMilliseconds = delayMilliseconds * 2;
+    if (thisDelayMilliseconds > 0) {
+      TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(thisDelayMilliseconds)));
+      timerPtr->async_wait([wsConnection, exchangeSubscriptionId, thisDelayMilliseconds, that = this](ErrorCode const& ec) {
         if (ec) {
           that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
         } else {
-          that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+          that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliseconds);
         }
       });
       this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] = timerPtr;
     } else {
-      this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+      this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliseconds);
     }
   }
-  void buildOrderBookInitial(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliSeconds) {
+  void buildOrderBookInitial(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliseconds) {
     auto now = UtilTime::now();
     http::request<http::string_body> req;
     std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
@@ -1769,10 +1769,10 @@ class MarketDataService : public Service {
     this->createFetchOrderBookInitialReq(req, symbolId, now, credential);
     this->sendRequest(
         req,
-        [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
-          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+        [wsConnection, exchangeSubscriptionId, delayMilliseconds, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
+          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliseconds);
         },
-        [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
+        [wsConnection, exchangeSubscriptionId, delayMilliseconds, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
           auto timeReceived = UtilTime::now();
           int statusCode = res.result_int();
           std::string body = res.body();
@@ -1897,19 +1897,19 @@ class MarketDataService : public Service {
                 that->eventHandler(event, nullptr);
                 that->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
               } else {
-                that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
-                // if (delayMilliSeconds > 0) {
+                that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliseconds);
+                // if (delayMilliseconds > 0) {
                 //   that->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
                 //       that->serviceContextPtr->tlsClientPtr->set_timer(
-                //           delayMilliSeconds, [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that](ErrorCode const& ec) {
+                //           delayMilliseconds, [wsConnection, exchangeSubscriptionId, delayMilliseconds, that](ErrorCode const& ec) {
                 //             if (ec) {
                 //               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                 //             } else {
-                //               that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+                //               that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
                 //             }
                 //           });
                 // } else {
-                //   that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+                //   that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
                 // }
               }
               return;
@@ -1917,11 +1917,11 @@ class MarketDataService : public Service {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
             }
           }
-          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliseconds);
           // WsConnection thisWsConnection = wsConnection;
           // that->onFail_(thisWsConnection);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
   std::string convertCandlestickIntervalSecondsToInterval(int intervalSeconds, const std::string& secondStr, const std::string& minuteStr,
                                                           const std::string& hourStr, const std::string& dayStr, const std::string& weekStr) {
