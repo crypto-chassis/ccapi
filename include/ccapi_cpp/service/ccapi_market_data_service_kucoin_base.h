@@ -502,12 +502,70 @@ class MarketDataServiceKucoinBase : public MarketDataService {
       case Request::Operation::GENERIC_PUBLIC_REQUEST: {
         MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
       } break;
-      case Request::Operation::GET_RECENT_TRADES: {
+      case Request::Operation::GET_RECENT_TRADES:
+      case Request::Operation::GET_HISTORICAL_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
+      } break;
+      case Request::Operation::GET_RECENT_CANDLESTICKS:
+      case Request::Operation::GET_HISTORICAL_CANDLESTICKS: {
+        req.method(http::verb::get);
+        auto target = this->getRecentCandlesticksTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        if (this->isDerivatives) {
+          this->appendParam(queryString, param,
+                            {
+                                {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "granularity"},
+                                {CCAPI_START_TIME_SECONDS, "from"},
+                                {CCAPI_END_TIME_SECONDS, "to"},
+                            },
+                            {
+                                {CCAPI_CANDLESTICK_INTERVAL_SECONDS, [that = shared_from_base<MarketDataServiceKucoinBase>()](
+                                                                         const std::string& input) { return std::to_string(std::stoi(input) / 60); }},
+                                {CCAPI_START_TIME_SECONDS, [that = shared_from_base<MarketDataServiceKucoinBase>()](
+                                                               const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                                {CCAPI_END_TIME_SECONDS, [that = shared_from_base<MarketDataServiceKucoinBase>()](
+                                                             const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                            });
+        } else {
+          this->appendParam(queryString, param,
+                            {
+                                {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "type"},
+                                {CCAPI_START_TIME_SECONDS, "startAt"},
+                                {CCAPI_END_TIME_SECONDS, "endAt"},
+                            },
+                            {
+                                {CCAPI_CANDLESTICK_INTERVAL_SECONDS,
+                                 [that = shared_from_base<MarketDataServiceKucoinBase>()](const std::string& input) {
+                                   return that->convertCandlestickIntervalSecondsToInterval(std::stoi(input), "", "min", "hour", "day", "week");
+                                 }},
+                            });
+        }
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
+      } break;
+      case Request::Operation::GET_MARKET_DEPTH: {
+        req.method(http::verb::get);
+        auto target = this->getMarketDepthTarget;
+        ;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        std::string maxMarketDepthStr = mapGetWithDefault(param, std::string(CCAPI_MARKET_DEPTH_MAX));
+        if (maxMarketDepthStr.empty()) {
+          if (this->isDerivatives) {
+            std::string toReplace = "depth";
+            target.replace(target.find(toReplace), toReplace.length(), "snapshot");
+          }
+        } else {
+          target = this->getMarketDepthTarget + (this->isDerivatives ? "" : "_") +
+                   std::to_string(this->calculateMarketDepthAllowedByExchange(std::stoi(maxMarketDepthStr), std::vector<int>({20, 100})));
+        }
         req.target(target + "?" + queryString);
       } break;
       case Request::Operation::GET_INSTRUMENT: {
@@ -529,7 +587,8 @@ class MarketDataServiceKucoinBase : public MarketDataService {
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
-      case Request::Operation::GET_RECENT_TRADES: {
+      case Request::Operation::GET_RECENT_TRADES:
+      case Request::Operation::GET_HISTORICAL_TRADES: {
         for (const auto& x : document["data"].GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
@@ -542,6 +601,52 @@ class MarketDataServiceKucoinBase : public MarketDataService {
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
+      } break;
+      case Request::Operation::GET_RECENT_CANDLESTICKS:
+      case Request::Operation::GET_HISTORICAL_CANDLESTICKS: {
+        for (const auto& x : document["data"].GetArray()) {
+          MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
+          marketDataMessage.tp = this->isDerivatives ? TimePoint(std::chrono::milliseconds(std::stoll(x[0].GetString())))
+                                                     : TimePoint(std::chrono::seconds(std::stoll(x[0].GetString())));
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          if (this->isDerivatives) {
+            dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, std::string(x[1].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, std::string(x[2].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, std::string(x[3].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, std::string(x[4].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, std::string(x[5].GetString())});
+          } else {
+            dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, std::string(x[1].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, std::string(x[3].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, std::string(x[4].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, std::string(x[2].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, std::string(x[5].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, std::string(x[6].GetString())});
+          }
+          marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
+        }
+      } break;
+      case Request::Operation::GET_MARKET_DEPTH: {
+        const rj::Value& data = document["data"];
+        MarketDataMessage marketDataMessage;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
+        marketDataMessage.tp = this->isDerivatives ? TimePoint(std::chrono::nanoseconds(std::stoll(data["ts"].GetString())))
+                                                   : TimePoint(std::chrono::milliseconds(std::stoll(data["time"].GetString())));
+        for (const auto& x : data["bids"].GetArray()) {
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
+          marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
+        }
+        for (const auto& x : data["asks"].GetArray()) {
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
+          marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
+        }
+        marketDataMessageList.emplace_back(std::move(marketDataMessage));
       } break;
       case Request::Operation::GET_INSTRUMENT: {
         Message message;
