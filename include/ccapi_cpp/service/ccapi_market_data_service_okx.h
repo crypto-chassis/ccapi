@@ -446,27 +446,18 @@ class MarketDataServiceOkx : public MarketDataService {
       case Request::Operation::GET_MARKET_DEPTH: {
         MarketDataMessage marketDataMessage;
         marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
-        CCAPI_LOGGER_DEBUG("");
         const rj::Value& data = document["data"][0];
-        CCAPI_LOGGER_DEBUG("");
         marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(data["ts"].GetString()));
-        CCAPI_LOGGER_DEBUG("");
         for (const auto& x : data["bids"].GetArray()) {
-          CCAPI_LOGGER_DEBUG("");
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
-          CCAPI_LOGGER_DEBUG("");
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
-          CCAPI_LOGGER_DEBUG("");
           marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
         }
         for (const auto& x : data["asks"].GetArray()) {
-          CCAPI_LOGGER_DEBUG("");
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
-          CCAPI_LOGGER_DEBUG("");
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
-          CCAPI_LOGGER_DEBUG("");
           marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
         }
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
