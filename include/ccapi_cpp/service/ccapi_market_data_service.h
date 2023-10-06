@@ -22,7 +22,12 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->requestOperationToMessageTypeMap = {
         {Request::Operation::GET_RECENT_TRADES, Message::Type::GET_RECENT_TRADES},
+        {Request::Operation::GET_HISTORICAL_TRADES, Message::Type::GET_HISTORICAL_TRADES},
         {Request::Operation::GET_RECENT_AGG_TRADES, Message::Type::GET_RECENT_AGG_TRADES},
+        {Request::Operation::GET_HISTORICAL_AGG_TRADES, Message::Type::GET_HISTORICAL_AGG_TRADES},
+        {Request::Operation::GET_RECENT_CANDLESTICKS, Message::Type::GET_RECENT_CANDLESTICKS},
+        {Request::Operation::GET_HISTORICAL_CANDLESTICKS, Message::Type::GET_HISTORICAL_CANDLESTICKS},
+        {Request::Operation::GET_MARKET_DEPTH, Message::Type::GET_MARKET_DEPTH},
         {Request::Operation::GET_INSTRUMENT, Message::Type::GET_INSTRUMENT},
         {Request::Operation::GET_INSTRUMENTS, Message::Type::GET_INSTRUMENTS},
     };
@@ -204,9 +209,9 @@ class MarketDataService : public Service {
       if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
-        if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+        if (this->sessionOptions.warnLateEventMaxMilliseconds > 0 &&
             std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
-                this->sessionOptions.warnLateEventMaxMilliSeconds &&
+                this->sessionOptions.warnLateEventMaxMilliseconds &&
             marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
           CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp) +
                             ", wsConnection = " + toString(wsConnection));
@@ -461,9 +466,9 @@ class MarketDataService : public Service {
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK) {
-        // if (this->sessionOptions.warnLateEventMaxMilliSeconds > 0 &&
+        // if (this->sessionOptions.warnLateEventMaxMilliseconds > 0 &&
         //     std::chrono::duration_cast<std::chrono::milliseconds>(timeReceived - marketDataMessage.tp).count() >
-        //         this->sessionOptions.warnLateEventMaxMilliSeconds &&
+        //         this->sessionOptions.warnLateEventMaxMilliseconds &&
         //     marketDataMessage.recapType == MarketDataMessage::RecapType::NONE) {
         //   CCAPI_LOGGER_WARN("late websocket message: timeReceived = " + toString(timeReceived) + ", marketDataMessage.tp = " + toString(marketDataMessage.tp)
         //   +
@@ -778,6 +783,45 @@ class MarketDataService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+  void updateElementListWithOrderBookSnapshot(const std::string& field, int maxMarketDepth, const std::map<Decimal, std::string>& snapshotBid,
+                                              const std::map<Decimal, std::string>& snapshotAsk, std::vector<Element>& elementList) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    if (field == CCAPI_MARKET_DEPTH) {
+      int bidIndex = 0;
+      for (auto iter = snapshotBid.rbegin(); iter != snapshotBid.rend(); iter++) {
+        if (bidIndex < maxMarketDepth) {
+          Element element;
+          element.insert(CCAPI_BEST_BID_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, iter->second);
+          elementList.emplace_back(std::move(element));
+        }
+        ++bidIndex;
+      }
+      if (snapshotBid.empty()) {
+        Element element;
+        element.insert(CCAPI_BEST_BID_N_PRICE, CCAPI_BEST_BID_N_PRICE_EMPTY);
+        element.insert(CCAPI_BEST_BID_N_SIZE, CCAPI_BEST_BID_N_SIZE_EMPTY);
+        elementList.emplace_back(std::move(element));
+      }
+      int askIndex = 0;
+      for (auto iter = snapshotAsk.begin(); iter != snapshotAsk.end(); iter++) {
+        if (askIndex < maxMarketDepth) {
+          Element element;
+          element.insert(CCAPI_BEST_ASK_N_PRICE, iter->first.toString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, iter->second);
+          elementList.emplace_back(std::move(element));
+        }
+        ++askIndex;
+      }
+      if (snapshotAsk.empty()) {
+        Element element;
+        element.insert(CCAPI_BEST_ASK_N_PRICE, CCAPI_BEST_ASK_N_PRICE_EMPTY);
+        element.insert(CCAPI_BEST_ASK_N_SIZE, CCAPI_BEST_ASK_N_SIZE_EMPTY);
+        elementList.emplace_back(std::move(element));
+      }
+    }
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
   std::map<Decimal, std::string> calculateMarketDepthUpdate(bool isBid, const std::map<Decimal, std::string>& c1, const std::map<Decimal, std::string>& c2,
                                                             int maxMarketDepth) {
     if (c1.empty()) {
@@ -948,8 +992,8 @@ class MarketDataService : public Service {
             Element element;
             std::string k1(CCAPI_LAST_PRICE);
             std::string k2(CCAPI_LAST_SIZE);
-            element.emplace(k1, y.at(MarketDataMessage::DataFieldType::PRICE));
-            element.emplace(k2, y.at(MarketDataMessage::DataFieldType::SIZE));
+            element.emplace(k1, price);
+            element.emplace(k2, size);
             {
               auto it = y.find(MarketDataMessage::DataFieldType::TRADE_ID);
               if (it != y.end()) {
@@ -1307,17 +1351,32 @@ class MarketDataService : public Service {
                                           const TimePoint& tp, const TimePoint& timeReceived, MarketDataMessage::TypeForData& input, const std::string& field,
                                           const std::map<std::string, std::string>& optionMap, const std::vector<std::string>& correlationIdList,
                                           bool isSolicited) {
-    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
-    CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
     std::vector<Message> messageList;
     std::vector<Element> elementList;
     this->updateElementListWithExchangeProvidedCandlestick(field, input, elementList);
-    CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
     if (!elementList.empty()) {
       Message message;
       message.setTimeReceived(timeReceived);
       message.setType(Message::Type::MARKET_DATA_EVENTS_CANDLESTICK);
       message.setRecapType(isSolicited ? Message::RecapType::SOLICITED : Message::RecapType::NONE);
+      message.setTime(tp);
+      message.setElementList(elementList);
+      message.setCorrelationIdList(correlationIdList);
+      messageList.emplace_back(std::move(message));
+    }
+    if (!messageList.empty()) {
+      event.addMessages(messageList);
+    }
+  }
+  void processExchangeProvidedCandlestick(Event& event, const TimePoint& tp, const TimePoint& timeReceived, MarketDataMessage::TypeForData& input,
+                                          const std::vector<std::string>& correlationIdList, Message::Type messageType) {
+    std::vector<Message> messageList;
+    std::vector<Element> elementList;
+    this->updateElementListWithExchangeProvidedCandlestick(CCAPI_CANDLESTICK, input, elementList);
+    if (!elementList.empty()) {
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setType(Message::Type::MARKET_DATA_EVENTS_CANDLESTICK);
       message.setTime(tp);
       message.setElementList(elementList);
       message.setCorrelationIdList(correlationIdList);
@@ -1405,7 +1464,7 @@ class MarketDataService : public Service {
     }
     return true;
   }
-  int calculateMarketDepthSubscribedToExchange(int depthWanted, std::vector<int> availableMarketDepth) {
+  int calculateMarketDepthAllowedByExchange(int depthWanted, std::vector<int> availableMarketDepth) {
     int i = ceilSearch(availableMarketDepth, 0, availableMarketDepth.size(), depthWanted);
     if (i < 0) {
       i = availableMarketDepth.size() - 1;
@@ -1552,13 +1611,24 @@ class MarketDataService : public Service {
     for (auto& marketDataMessage : marketDataMessageList) {
       if (marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH ||
           marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE ||
-          marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE) {
+          marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_AGG_TRADE ||
+          marketDataMessage.type == MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK) {
         const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
         CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
-        if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end() ||
-            marketDataMessage.data.find(MarketDataMessage::DataType::AGG_TRADE) != marketDataMessage.data.end()) {
+        if (marketDataMessage.data.find(MarketDataMessage::DataType::BID) != marketDataMessage.data.end() ||
+            marketDataMessage.data.find(MarketDataMessage::DataType::ASK) != marketDataMessage.data.end()) {
+          auto messageType = this->requestOperationToMessageTypeMap.at(request.getOperation());
+          const auto& param = request.getFirstParamWithDefault();
+          const auto& maxMarketDepthStr = mapGetWithDefault(param, std::string(CCAPI_MARKET_DEPTH_MAX));
+          int maxMarketDepth = maxMarketDepthStr.empty() ? INT_MAX : std::stoi(maxMarketDepthStr);
+          this->processOrderBookSnapshot(event, marketDataMessage.tp, timeReceived, marketDataMessage.data, correlationIdList, messageType, maxMarketDepth);
+        } else if (marketDataMessage.data.find(MarketDataMessage::DataType::TRADE) != marketDataMessage.data.end() ||
+                   marketDataMessage.data.find(MarketDataMessage::DataType::AGG_TRADE) != marketDataMessage.data.end()) {
           auto messageType = this->requestOperationToMessageTypeMap.at(request.getOperation());
           this->processTrade(event, marketDataMessage.tp, timeReceived, marketDataMessage.data, correlationIdList, messageType);
+        } else if (marketDataMessage.data.find(MarketDataMessage::DataType::CANDLESTICK) != marketDataMessage.data.end()) {
+          auto messageType = this->requestOperationToMessageTypeMap.at(request.getOperation());
+          this->processExchangeProvidedCandlestick(event, marketDataMessage.tp, timeReceived, marketDataMessage.data, correlationIdList, messageType);
         }
       } else {
         CCAPI_LOGGER_WARN("market data event type is unknown!");
@@ -1571,6 +1641,45 @@ class MarketDataService : public Service {
     std::vector<Message> messageList;
     std::vector<Element> elementList;
     this->updateElementListWithTrade(CCAPI_TRADE, input, elementList);
+    CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setType(messageType);
+    message.setTime(tp);
+    message.setElementList(elementList);
+    message.setCorrelationIdList(correlationIdList);
+    messageList.emplace_back(std::move(message));
+    event.addMessages(messageList);
+  }
+  void processOrderBookSnapshot(Event& event, const TimePoint& tp, const TimePoint& timeReceived, MarketDataMessage::TypeForData& input,
+                                const std::vector<std::string>& correlationIdList, Message::Type messageType, int maxMarketDepth) {
+    std::vector<Message> messageList;
+    std::vector<Element> elementList;
+    std::map<Decimal, std::string> snapshotBid, snapshotAsk;
+    for (auto& x : input) {
+      auto& type = x.first;
+      auto& detail = x.second;
+      if (type == MarketDataMessage::DataType::BID) {
+        for (auto& y : detail) {
+          auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
+          auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
+          snapshotBid.emplace(std::move(decimalPrice), std::move(size));
+        }
+        CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBid, maxMarketDepth));
+      } else if (type == MarketDataMessage::DataType::ASK) {
+        for (auto& y : detail) {
+          auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
+          auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
+          snapshotAsk.emplace(std::move(decimalPrice), std::move(size));
+        }
+        CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, " + toString(maxMarketDepth) + ") = " + firstNToString(snapshotAsk, maxMarketDepth));
+      } else {
+        CCAPI_LOGGER_WARN("extra type " + MarketDataMessage::dataTypeToString(type));
+      }
+    }
+    this->updateElementListWithOrderBookSnapshot(CCAPI_MARKET_DEPTH, maxMarketDepth, snapshotBid, snapshotAsk, elementList);
     CCAPI_LOGGER_TRACE("elementList = " + toString(elementList));
     Message message;
     message.setTimeReceived(timeReceived);
@@ -1613,43 +1722,43 @@ class MarketDataService : public Service {
       }
     } else {
       if (this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap[wsConnection.id][exchangeSubscriptionId].empty()) {
-        int delayMilliSeconds = std::stoi(optionMap.at(CCAPI_FETCH_MARKET_DEPTH_INITIAL_SNAPSHOT_DELAY_MILLISECONDS));
-        if (delayMilliSeconds > 0) {
-          TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(delayMilliSeconds)));
-          timerPtr->async_wait([wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = this](ErrorCode const& ec) {
+        int delayMilliseconds = std::stoi(optionMap.at(CCAPI_FETCH_MARKET_DEPTH_INITIAL_SNAPSHOT_DELAY_MILLISECONDS));
+        if (delayMilliseconds > 0) {
+          TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(delayMilliseconds)));
+          timerPtr->async_wait([wsConnection, exchangeSubscriptionId, delayMilliseconds, that = this](ErrorCode const& ec) {
             auto now = UtilTime::now();
             if (ec) {
               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
             } else {
-              that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+              that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
             }
           });
           this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] = timerPtr;
         } else {
-          this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+          this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
         }
       }
       this->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap[wsConnection.id][exchangeSubscriptionId][versionId] =
           marketDataMessage.data;
     }
   }
-  void buildOrderBookInitialOnFail(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliSeconds) {
-    auto thisDelayMilliSeconds = delayMilliSeconds * 2;
-    if (thisDelayMilliSeconds > 0) {
-      TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(thisDelayMilliSeconds)));
-      timerPtr->async_wait([wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds, that = this](ErrorCode const& ec) {
+  void buildOrderBookInitialOnFail(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliseconds) {
+    auto thisDelayMilliseconds = delayMilliseconds * 2;
+    if (thisDelayMilliseconds > 0) {
+      TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(thisDelayMilliseconds)));
+      timerPtr->async_wait([wsConnection, exchangeSubscriptionId, thisDelayMilliseconds, that = this](ErrorCode const& ec) {
         if (ec) {
           that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
         } else {
-          that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+          that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliseconds);
         }
       });
       this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] = timerPtr;
     } else {
-      this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliSeconds);
+      this->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, thisDelayMilliseconds);
     }
   }
-  void buildOrderBookInitial(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliSeconds) {
+  void buildOrderBookInitial(const WsConnection& wsConnection, const std::string& exchangeSubscriptionId, long delayMilliseconds) {
     auto now = UtilTime::now();
     http::request<http::string_body> req;
     std::string symbolId = this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID];
@@ -1660,10 +1769,10 @@ class MarketDataService : public Service {
     this->createFetchOrderBookInitialReq(req, symbolId, now, credential);
     this->sendRequest(
         req,
-        [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
-          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+        [wsConnection, exchangeSubscriptionId, delayMilliseconds, that = shared_from_base<MarketDataService>()](const beast::error_code& ec) {
+          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliseconds);
         },
-        [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
+        [wsConnection, exchangeSubscriptionId, delayMilliseconds, that = shared_from_base<MarketDataService>()](const http::response<http::string_body>& res) {
           auto timeReceived = UtilTime::now();
           int statusCode = res.result_int();
           std::string body = res.body();
@@ -1788,19 +1897,19 @@ class MarketDataService : public Service {
                 that->eventHandler(event, nullptr);
                 that->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
               } else {
-                that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
-                // if (delayMilliSeconds > 0) {
+                that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliseconds);
+                // if (delayMilliseconds > 0) {
                 //   that->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId] =
                 //       that->serviceContextPtr->tlsClientPtr->set_timer(
-                //           delayMilliSeconds, [wsConnection, exchangeSubscriptionId, delayMilliSeconds, that](ErrorCode const& ec) {
+                //           delayMilliseconds, [wsConnection, exchangeSubscriptionId, delayMilliseconds, that](ErrorCode const& ec) {
                 //             if (ec) {
                 //               that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                 //             } else {
-                //               that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+                //               that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
                 //             }
                 //           });
                 // } else {
-                //   that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+                //   that->buildOrderBookInitial(wsConnection, exchangeSubscriptionId, delayMilliseconds);
                 // }
               }
               return;
@@ -1808,11 +1917,11 @@ class MarketDataService : public Service {
               CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
             }
           }
-          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliSeconds);
+          that->buildOrderBookInitialOnFail(wsConnection, exchangeSubscriptionId, delayMilliseconds);
           // WsConnection thisWsConnection = wsConnection;
           // that->onFail_(thisWsConnection);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
   std::string convertCandlestickIntervalSecondsToInterval(int intervalSeconds, const std::string& secondStr, const std::string& minuteStr,
                                                           const std::string& hourStr, const std::string& dayStr, const std::string& weekStr) {
@@ -1879,6 +1988,10 @@ class MarketDataService : public Service {
   std::map<std::string, std::map<std::string, std::map<std::string, Decimal>>> lowByConnectionIdChannelIdSymbolIdMap;
   std::map<std::string, std::map<std::string, std::map<std::string, std::string>>> closeByConnectionIdChannelIdSymbolIdMap;
   std::string getRecentTradesTarget;
+  std::string getHistoricalTradesTarget;
+  std::string getRecentCandlesticksTarget;
+  std::string getHistoricalCandlesticksTarget;
+  std::string getMarketDepthTarget;
   std::string getInstrumentTarget;
   std::string getInstrumentsTarget;
   std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;

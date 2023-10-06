@@ -31,7 +31,12 @@ class Request CCAPI_FINAL {
     GENERIC_PRIVATE_REQUEST = CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PRIVATE_REQUEST,
     FIX = CCAPI_REQUEST_OPERATION_TYPE_FIX,
     GET_RECENT_TRADES = CCAPI_REQUEST_OPERATION_TYPE_MARKET_DATA,
+    GET_HISTORICAL_TRADES,
     GET_RECENT_AGG_TRADES,
+    GET_HISTORICAL_AGG_TRADES,
+    GET_RECENT_CANDLESTICKS,
+    GET_HISTORICAL_CANDLESTICKS,
+    GET_MARKET_DEPTH,
     GET_INSTRUMENT,
     GET_INSTRUMENTS,
     CREATE_ORDER = CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER,
@@ -61,8 +66,23 @@ class Request CCAPI_FINAL {
       case Operation::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
         break;
+      case Operation::GET_HISTORICAL_TRADES:
+        output = "GET_HISTORICAL_TRADES";
+        break;
       case Operation::GET_RECENT_AGG_TRADES:
         output = "GET_RECENT_AGG_TRADES";
+        break;
+      case Operation::GET_HISTORICAL_AGG_TRADES:
+        output = "GET_HISTORICAL_AGG_TRADES";
+        break;
+      case Operation::GET_RECENT_CANDLESTICKS:
+        output = "GET_RECENT_CANDLESTICKS";
+        break;
+      case Operation::GET_HISTORICAL_CANDLESTICKS:
+        output = "GET_HISTORICAL_CANDLESTICKS";
+        break;
+      case Operation::GET_MARKET_DEPTH:
+        output = "GET_MARKET_DEPTH";
         break;
       case Operation::GET_INSTRUMENT:
         output = "GET_INSTRUMENT";

@@ -35,11 +35,11 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
-    auto conflateIntervalMilliSeconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     CCAPI_LOGGER_TRACE("");
     if (field == CCAPI_MARKET_DEPTH) {
       CCAPI_LOGGER_TRACE("");
-      if (conflateIntervalMilliSeconds < 100) {
+      if (conflateIntervalMilliseconds < 100) {
         CCAPI_LOGGER_TRACE("");
         if (marketDepthRequested == 1) {
           CCAPI_LOGGER_TRACE("");
@@ -48,11 +48,11 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
           CCAPI_LOGGER_TRACE("");
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BY_PRICE_REFRESH_UPDATE;
           int marketDepthSubscribedToExchange = 1;
-          marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
+          marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
           channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
           this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
         }
-      } else if (conflateIntervalMilliSeconds < 1000) {
+      } else if (conflateIntervalMilliseconds < 1000) {
         if (marketDepthRequested == 1) {
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
         } else {

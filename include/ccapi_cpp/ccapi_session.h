@@ -821,13 +821,13 @@ class Session {
       this->sendRequestByWebsocket(x);
     }
   }
-  virtual void sendRequest(Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest(Request& request, Queue<Event>* eventQueuePtr = nullptr, long delayMilliseconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<Request> requestList({request});
-    this->sendRequest(requestList, eventQueuePtr, delayMilliSeconds);
+    this->sendRequest(requestList, eventQueuePtr, delayMilliseconds);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
-  virtual void sendRequest(std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliSeconds = 0) {
+  virtual void sendRequest(std::vector<Request>& requestList, Queue<Event>* eventQueuePtr = nullptr, long delayMilliseconds = 0) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::vector<std::shared_ptr<std::future<void> > > futurePtrList;
     // std::set<std::string> serviceNameExchangeSet;
@@ -854,7 +854,7 @@ class Session {
       //   serviceNameExchangeSet.insert(key);
       // }
       auto now = UtilTime::now();
-      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now, delayMilliSeconds, eventQueuePtr);
+      auto futurePtr = servicePtr->sendRequest(request, !!eventQueuePtr, now, delayMilliseconds, eventQueuePtr);
       if (eventQueuePtr) {
         futurePtrList.push_back(futurePtr);
       }
@@ -886,10 +886,10 @@ class Session {
     this->onEvent(event, eventQueuePtr);
   }
 #ifndef SWIG
-  virtual void setTimer(const std::string& id, long delayMilliSeconds, std::function<void(const boost::system::error_code&)> errorHandler,
+  virtual void setTimer(const std::string& id, long delayMilliseconds, std::function<void(const boost::system::error_code&)> errorHandler,
                         std::function<void()> successHandler) {
-    boost::asio::post(*this->serviceContextPtr->ioContextPtr, [this, id, delayMilliSeconds, errorHandler, successHandler]() {
-      std::shared_ptr<steady_timer> timerPtr(new steady_timer(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliSeconds)));
+    boost::asio::post(*this->serviceContextPtr->ioContextPtr, [this, id, delayMilliseconds, errorHandler, successHandler]() {
+      std::shared_ptr<steady_timer> timerPtr(new steady_timer(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliseconds)));
       timerPtr->async_wait([this, id, errorHandler, successHandler](const boost::system::error_code& ec) {
         if (this->eventHandler) {
 #ifdef CCAPI_USE_SINGLE_THREAD

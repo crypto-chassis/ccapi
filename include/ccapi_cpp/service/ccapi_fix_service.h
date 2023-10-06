@@ -454,11 +454,11 @@ class FixService : public Service {
                         std::function<void(std::shared_ptr<FixConnection<T>>)> pingMethod, bool pingNow = false) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("method = " + pingPongMethodToString(method));
-    auto pingIntervalMilliSeconds = this->pingIntervalMilliSecondsByMethodMap[method];
-    auto pongTimeoutMilliSeconds = this->pongTimeoutMilliSecondsByMethodMap[method];
-    CCAPI_LOGGER_TRACE("pingIntervalMilliSeconds = " + toString(pingIntervalMilliSeconds));
-    CCAPI_LOGGER_TRACE("pongTimeoutMilliSeconds = " + toString(pongTimeoutMilliSeconds));
-    if (pingIntervalMilliSeconds <= pongTimeoutMilliSeconds) {
+    auto pingIntervalMilliseconds = this->pingIntervalMillisecondsByMethodMap[method];
+    auto pongTimeoutMilliseconds = this->pongTimeoutMillisecondsByMethodMap[method];
+    CCAPI_LOGGER_TRACE("pingIntervalMilliseconds = " + toString(pingIntervalMilliseconds));
+    CCAPI_LOGGER_TRACE("pongTimeoutMilliseconds = " + toString(pongTimeoutMilliseconds));
+    if (pingIntervalMilliseconds <= pongTimeoutMilliseconds) {
       return;
     }
     if (fixConnectionPtr->status == FixConnection<T>::Status::OPEN) {
@@ -471,8 +471,8 @@ class FixService : public Service {
         this->pingTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method)->cancel();
       }
       TimerPtr timerPtr(
-          new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pingIntervalMilliSeconds - pongTimeoutMilliSeconds)));
-      timerPtr->async_wait([fixConnectionPtr, that = shared_from_base<FixService>(), pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+          new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pingIntervalMilliseconds - pongTimeoutMilliseconds)));
+      timerPtr->async_wait([fixConnectionPtr, that = shared_from_base<FixService>(), pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
         if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
           if (ec) {
             CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", ping timer error: " + ec.message());
@@ -484,7 +484,7 @@ class FixService : public Service {
               if (ec) {
                 that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "ping");
               }
-              if (pongTimeoutMilliSeconds <= 0) {
+              if (pongTimeoutMilliseconds <= 0) {
                 return;
               }
               if (that->pongTimeOutTimerByMethodByConnectionIdMap.find(fixConnectionPtr->id) != that->pongTimeOutTimerByMethodByConnectionIdMap.end() &&
@@ -492,8 +492,8 @@ class FixService : public Service {
                       that->pongTimeOutTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).end()) {
                 that->pongTimeOutTimerByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method)->cancel();
               }
-              TimerPtr timerPtr(new boost::asio::steady_timer(*that->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pongTimeoutMilliSeconds)));
-              timerPtr->async_wait([fixConnectionPtr, that, pingMethod, pongTimeoutMilliSeconds, method](ErrorCode const& ec) {
+              TimerPtr timerPtr(new boost::asio::steady_timer(*that->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pongTimeoutMilliseconds)));
+              timerPtr->async_wait([fixConnectionPtr, that, pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
                 if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
                   if (ec) {
                     CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong timeout timer error: " + ec.message());
@@ -506,7 +506,7 @@ class FixService : public Service {
                               that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).end() &&
                           std::chrono::duration_cast<std::chrono::milliseconds>(now -
                                                                                 that->lastPongTpByMethodByConnectionIdMap.at(fixConnectionPtr->id).at(method))
-                                  .count() >= pongTimeoutMilliSeconds) {
+                                  .count() >= pongTimeoutMilliseconds) {
                         auto thisFixConnectionPtr = fixConnectionPtr;
                         that->onFail(fixConnectionPtr, "pong timeout");
                       } else {
