@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
   eventHandler.promisePtr = promisePtr;
 #ifndef CCAPI_APP_IS_BACKTEST
   SessionOptions sessionOptions;
-  sessionOptions.httpConnectionPoolIdleTimeoutMilliSeconds = 1;
+  sessionOptions.httpConnectionPoolIdleTimeoutMilliseconds = 1;
   sessionOptions.httpMaxNumRetry = 0;
   sessionOptions.httpMaxNumRedirect = 0;
   SessionConfigs sessionConfigs;

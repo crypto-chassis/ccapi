@@ -1,5 +1,6 @@
-# Notification: we've added a new feature that allows our users to subscribe to exchange provided candlesticks. There is a small renaming: "OPEN" has been renamed to "OPEN_PRICE", "CLOSE" has been renamed to "CLOSE_PRICE", "HIGH" has been renamed to "HIGH_PRICE", "LOW" has been renamed to "LOW_PRICE". If you have any questions, feel free to directly ask us on Discord https://discord.gg/b5EKcp9s8T.
-
+# Notifications:
+* New features: added REST endpoints for fetching historical public trades, historical/recent candlesticks, and market depth (i.e. order book snapshot).
+* Small breaking change to correct an English typo: In `SessionOptions`, the substring "MilliSeconds" has been renamed to "Milliseconds".
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -279,8 +280,8 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_RECENT_TRADES`, `GET_RECENT_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list).
-* Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
+* Request operation types: `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_RECENT_TRADES`, `GET_HISTORICAL_TRADES`, `GET_RECENT_CANDLESTICKS`, `GET_HISTORICAL_CANDLESTICKS`, `GET_RECENT_AGG_TRADES`, `GET_HISTORICAL_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list), ``.
+* Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`, `CANDLESTICK_INTERVAL_SECONDS`, `START_TIME_SECONDS`, `END_TIME_SECONDS`, `START_TRADE_ID`, `END_TRADE_ID`, `START_AGG_TRADE_ID`, `END_AGG_TRADE_ID`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
 * Message's `time` represents the exchange's reported timestamp. Its `timeReceived` represents the library's receiving timestamp. `time` can be retrieved by `getTime` method and `timeReceived` can be retrieved by `getTimeReceived` method. (For non-C++, please use `getTimeUnix` and `getTimeReceivedUnix` methods or `getTimeISO` and `getTimeReceivedISO` methods).
 
 **Objective 2:**
@@ -338,7 +339,7 @@ Best bid and ask at 2020-07-27T23:56:51.884855000Z are:
 Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
   ...
 ```
-* Subscription fields: `MARKET_DEPTH`, `TRADE`, `AGG_TRADE`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#aggregate-trade-streams).
+* Subscription fields: `MARKET_DEPTH`, `TRADE`, `CANDLESTICK`, `AGG_TRADE`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#aggregate-trade-streams).
 
 ### Advanced Market Data
 
