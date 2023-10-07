@@ -44,7 +44,7 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
     auto msgType = "A";
     param.push_back({hff::tag::MsgType, msgType});
     param.push_back({hff::tag::EncryptMethod, "0"});
-    param.push_back({hff::tag::HeartBtInt, std::to_string(this->sessionOptions.heartbeatFixIntervalMilliSeconds / 1000)});
+    param.push_back({hff::tag::HeartBtInt, std::to_string(this->sessionOptions.heartbeatFixIntervalMilliseconds / 1000)});
     auto credential = this->credentialByConnectionIdMap[connectionId];
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     param.push_back({hff::tag::Password, apiPassphrase});

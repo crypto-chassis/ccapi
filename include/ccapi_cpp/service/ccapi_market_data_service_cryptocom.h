@@ -41,7 +41,7 @@ class MarketDataServiceCryptocom : public MarketDataService {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
-      marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({10, 150}));
+      marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({10, 150}));
       channelId = CCAPI_WEBSOCKET_CRYPTOCOM_CHANNEL_BOOK;
       this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
     }

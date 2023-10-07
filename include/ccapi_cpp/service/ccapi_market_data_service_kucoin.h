@@ -32,6 +32,10 @@ class MarketDataServiceKucoin : public MarketDataServiceKucoinBase {
     this->apiPassphraseName = CCAPI_KUCOIN_API_PASSPHRASE;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
     this->getRecentTradesTarget = "/api/v1/market/histories";
+    this->getHistoricalTradesTarget = "/api/v1/market/histories";
+    this->getRecentCandlesticksTarget = "/api/v1/market/candles";
+    this->getHistoricalCandlesticksTarget = "/api/v1/market/candles";
+    this->getMarketDepthTarget = "/api/v1/market/orderbook/level2";
     this->getInstrumentTarget = "/api/v1/symbols";
     this->getInstrumentsTarget = "/api/v1/symbols";
     this->channelMarketTicker = CCAPI_WEBSOCKET_KUCOIN_CHANNEL_MARKET_TICKER;

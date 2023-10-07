@@ -41,7 +41,7 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
     param.push_back({hff::tag::MsgType, msgType});
     param.push_back({hff::tag::ResetSeqNumFlag, "Y"});
     param.push_back({hff::tag::EncryptMethod, "0"});
-    param.push_back({hff::tag::HeartBtInt, std::to_string(this->sessionOptions.heartbeatFixIntervalMilliSeconds / 1000)});
+    param.push_back({hff::tag::HeartBtInt, std::to_string(this->sessionOptions.heartbeatFixIntervalMilliseconds / 1000)});
     for (const auto& x : logonOptionMap) {
       param.push_back({x.first, x.second});
     }

@@ -98,7 +98,7 @@ class MarketDataServiceDeribit : public MarketDataService {
         channelId = CCAPI_WEBSOCKET_DERIBIT_CHANNEL_QUOTE;
       } else if (marketDepthRequested <= 20) {
         int marketDepthSubscribedToExchange = 1;
-        marketDepthSubscribedToExchange = this->calculateMarketDepthSubscribedToExchange(marketDepthRequested, std::vector<int>({10, 20}));
+        marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({10, 20}));
         channelId = CCAPI_WEBSOCKET_DERIBIT_CHANNEL_BOOK;
         this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
       } else {

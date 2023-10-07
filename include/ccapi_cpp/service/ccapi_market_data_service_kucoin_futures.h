@@ -28,6 +28,10 @@ class MarketDataServiceKucoinFutures : public MarketDataServiceKucoinBase {
     //     }
     // #endif
     this->getRecentTradesTarget = "/api/v1/trade/history";
+    this->getHistoricalTradesTarget = "/api/v1/trade/history";
+    this->getRecentCandlesticksTarget = "/api/v1/kline/query";
+    this->getHistoricalCandlesticksTarget = "/api/v1/kline/query";
+    this->getMarketDepthTarget = "/api/v1/level2/depth";
     this->getInstrumentTarget = "/api/v1/contracts/active";
     this->getInstrumentsTarget = "/api/v1/contracts/active";
     this->isDerivatives = true;

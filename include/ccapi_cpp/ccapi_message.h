@@ -62,7 +62,12 @@ class Message CCAPI_FINAL {
     GET_ACCOUNT_BALANCES,
     GET_ACCOUNT_POSITIONS,
     GET_RECENT_TRADES,
+    GET_HISTORICAL_TRADES,
     GET_RECENT_AGG_TRADES,
+    GET_HISTORICAL_AGG_TRADES,
+    GET_RECENT_CANDLESTICKS,
+    GET_HISTORICAL_CANDLESTICKS,
+    GET_MARKET_DEPTH,
     GET_INSTRUMENT,
     GET_INSTRUMENTS,
     RESPONSE_ERROR,
@@ -147,8 +152,23 @@ class Message CCAPI_FINAL {
       case Type::GET_RECENT_TRADES:
         output = "GET_RECENT_TRADES";
         break;
+      case Type::GET_HISTORICAL_TRADES:
+        output = "GET_HISTORICAL_TRADES";
+        break;
       case Type::GET_RECENT_AGG_TRADES:
         output = "GET_RECENT_AGG_TRADES";
+        break;
+      case Type::GET_HISTORICAL_AGG_TRADES:
+        output = "GET_HISTORICAL_AGG_TRADES";
+        break;
+      case Type::GET_RECENT_CANDLESTICKS:
+        output = "GET_RECENT_CANDLESTICKS";
+        break;
+      case Type::GET_HISTORICAL_CANDLESTICKS:
+        output = "GET_HISTORICAL_CANDLESTICKS";
+        break;
+      case Type::GET_MARKET_DEPTH:
+        output = "GET_MARKET_DEPTH";
         break;
       case Type::GET_INSTRUMENT:
         output = "GET_INSTRUMENT";

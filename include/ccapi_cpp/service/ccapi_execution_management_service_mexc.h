@@ -274,7 +274,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
           }
           that->onFail_(thisWsConnection);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
   void onOpen(wspp::connection_hdl hdl) override {
     ExecutionManagementService::onOpen(hdl);
@@ -318,7 +318,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
               [wsConnection, that_2 = that->shared_from_base<ExecutionManagementServiceMexc>()](const http::response<http::string_body>& res) {
                 CCAPI_LOGGER_DEBUG("ping listen key success");
               },
-              that->sessionOptions.httpRequestTimeoutMilliSeconds);
+              that->sessionOptions.httpRequestTimeoutMilliseconds);
         });
   }
   void onClose(wspp::connection_hdl hdl) override {
@@ -372,7 +372,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
           }
           that->onFail_(wsConnectionPtr);
         },
-        this->sessionOptions.httpRequestTimeoutMilliSeconds);
+        this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
   void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     ExecutionManagementService::onOpen(wsConnectionPtr);
@@ -416,7 +416,7 @@ class ExecutionManagementServiceMexc : public ExecutionManagementService {
           [wsConnectionPtr, that_2 = that->shared_from_base<ExecutionManagementServiceMexc>()](const http::response<http::string_body>& res) {
             CCAPI_LOGGER_DEBUG("ping listen key success");
           },
-          that->sessionOptions.httpRequestTimeoutMilliSeconds);
+          that->sessionOptions.httpRequestTimeoutMilliseconds);
     });
     this->pingListenKeyTimerMapByConnectionIdMap[wsConnectionPtr->id] = timerPtr;
   }
