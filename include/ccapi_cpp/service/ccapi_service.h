@@ -147,6 +147,16 @@ class Service : public std::enable_shared_from_this<Service> {
     }
   }
   void purgeHttpConnectionPool() { this->httpConnectionPool.purge(); }
+  void forceCloseWebsocketConnections() {
+    for (const auto& x : this->wsConnectionByIdMap) {
+      ErrorCode ec;
+      auto wsConnectionPtr = x.second;
+      this->close(wsConnectionPtr, beast::websocket::close_code::normal, beast::websocket::close_reason("force close"), ec);
+      if (ec) {
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
+      }
+    }
+  }
   void stop() {
     for (const auto& x : this->sendRequestDelayTimerByCorrelationIdMap) {
       x.second->cancel();
@@ -155,21 +165,12 @@ class Service : public std::enable_shared_from_this<Service> {
     this->shouldContinue = false;
     for (const auto& x : this->wsConnectionByIdMap) {
       ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      auto wsConnection = x.second;
-      this->close(wsConnection, wsConnection.hdl, websocketpp::close::status::normal, "stop", ec);
-#else
       auto wsConnectionPtr = x.second;
       this->close(wsConnectionPtr, beast::websocket::close_code::normal, beast::websocket::close_reason("stop"), ec);
-#endif
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "shutdown");
       }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
-#else
       this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnectionPtr->id] = false;
-#endif
     }
   }
   virtual void convertRequestForRestCustom(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
