@@ -363,7 +363,7 @@ Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH", "MARKET_DEPTH_M
 
 #### Specify correlation id
 
-Instantiate `Request` with the desired correlationId.
+Instantiate `Request` with the desired correlationId. The `correlationId` should be unique.
 ```
 Request request(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD", "cool correlation id");
 ```
@@ -699,7 +699,7 @@ Bye
 
 #### Specify correlation id
 
-Instantiate `Request` with the desired correlationId.
+Instantiate `Request` with the desired correlationId. The `correlationId` should be unique.
 ```
 Request request(Request::Operation::CREATE_ORDER, "binance-us", "BTCUSD", "cool correlation id");
 ```
@@ -969,7 +969,7 @@ Logger* Logger::logger = &myLogger;
 
 [C++](example/src/utility_set_timer/main.cpp)
 
-To perform an asynchronous wait, use the utility method `setTimer` in class `Session`. The handlers are invoked in the same threads as the `processEvent` method in the `EventHandler` class.
+To perform an asynchronous wait, use the utility method `setTimer` in class `Session`. The handlers are invoked in the same threads as the `processEvent` method in the `EventHandler` class. The `id` of the timer should be unique. `delayMilliseconds` can be 0.
 ```
 session->setTimer(
     "id", 1000,

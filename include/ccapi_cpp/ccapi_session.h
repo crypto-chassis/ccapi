@@ -886,6 +886,19 @@ class Session {
     this->onEvent(event, eventQueuePtr);
   }
 #ifndef SWIG
+  virtual void setImmediate(std::function<void()> successHandler) {
+    boost::asio::post(*this->serviceContextPtr->ioContextPtr, [this, successHandler]() {
+      if (this->eventHandler) {
+#ifdef CCAPI_USE_SINGLE_THREAD
+        successHandler();
+#else
+          this->eventDispatcher->dispatch([successHandler] {
+            successHandler();
+          });
+#endif
+      }
+    });
+  }
   virtual void setTimer(const std::string& id, long delayMilliseconds, std::function<void(const boost::system::error_code&)> errorHandler,
                         std::function<void()> successHandler) {
     boost::asio::post(*this->serviceContextPtr->ioContextPtr, [this, id, delayMilliseconds, errorHandler, successHandler]() {
@@ -927,6 +940,17 @@ class Session {
         for (const auto& y : x.second) {
           if (exchangeName.empty() || exchangeName == y.first) {
             y.second->purgeHttpConnectionPool();
+          }
+        }
+      }
+    }
+  }
+  void forceCloseWebsocketConnections(const std::string& serviceName = "", const std::string& exchangeName = "") {
+    for (const auto& x : this->serviceByServiceNameExchangeMap) {
+      if (serviceName.empty() || serviceName == x.first) {
+        for (const auto& y : x.second) {
+          if (exchangeName.empty() || exchangeName == y.first) {
+            y.second->forceCloseWebsocketConnections();
           }
         }
       }
