@@ -585,8 +585,7 @@ class MarketDataService : public Service {
   }
   virtual void onIncorrectStatesFound(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived,
                                       const std::string& exchangeSubscriptionId, std::string const& reason) {
-    WsConnection& wsConnection = *wsConnectionPtr;
-    std::string errorMessage = "incorrect states found: connection = " + toString(wsConnection) + ", textMessage = " + std::string(textMessageView) +
+    std::string errorMessage = "incorrect states found: connection = " + toString(*wsConnectionPtr) + ", textMessage = " + std::string(textMessageView) +
                                ", timeReceived = " + UtilTime::getISOTimestamp(timeReceived) + ", exchangeSubscriptionId = " + exchangeSubscriptionId +
                                ", reason = " + reason;
     CCAPI_LOGGER_ERROR(errorMessage);
@@ -594,9 +593,17 @@ class MarketDataService : public Service {
     this->close(wsConnectionPtr, beast::websocket::close_code::normal,
                 beast::websocket::close_reason(beast::websocket::close_code::normal, "incorrect states found: " + reason), ec);
     if (ec) {
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, "shutdown");
+      std::string& channelId =
+          this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnectionPtr->id).at(exchangeSubscriptionId).at(CCAPI_CHANNEL_ID);
+      std::string& symbolId =
+          this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap.at(wsConnectionPtr->id).at(exchangeSubscriptionId).at(CCAPI_SYMBOL_ID);
+      CCAPI_LOGGER_TRACE("channelId = " + toString(channelId));
+      CCAPI_LOGGER_TRACE("symbolId = " + toString(symbolId));
+      auto& correlationIdList = this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).at(symbolId);
+      CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
+      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND, "shutdown", correlationIdList);
     }
-    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnection.id] = false;
+    this->shouldProcessRemainingMessageOnClosingByConnectionIdMap[wsConnectionPtr->id] = false;
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::INCORRECT_STATE_FOUND, errorMessage);
   }
   void connect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
