@@ -46,6 +46,9 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["baseAsset"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quoteAsset"].GetString());
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["marginAsset"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["pair"].GetString());
     for (const auto& y : x["filters"].GetArray()) {
@@ -55,6 +58,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
       } else if (filterType == "LOT_SIZE") {
         element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, y["stepSize"].GetString());
         element.insert(CCAPI_ORDER_QUANTITY_MIN, y["minQty"].GetString());
+        element.insert(CCAPI_ORDER_QUANTITY_MAX, y["maxQty"].GetString());
       } else if (filterType == "MIN_NOTIONAL") {
         element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, y["notional"].GetString());
       }
