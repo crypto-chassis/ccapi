@@ -403,6 +403,19 @@ class UtilTime CCAPI_FINAL {
       return std::make_pair(std::stoll(milliseconds), 0);
     }
   }
+  static std::string convertMillisecondsStrToSecondsStr(const std::string& milliseconds) {
+    std::string output;
+    if (milliseconds.length() >= 4) {
+      output = milliseconds;
+      output.insert(milliseconds.length() - 3, 1, '.');
+    } else {
+      output = "0.";
+      output += std::string(3 - milliseconds.length(), '0');
+      output += milliseconds;
+      output = UtilString::normalizeDecimalString(output);
+    }
+    return output;
+  }
   static std::pair<long long, long long> divideNanoWhole(const std::string& nanoseconds) {
     return std::make_pair(std::stoll(nanoseconds.substr(0, nanoseconds.length() - 9)), std::stoll(nanoseconds.substr(nanoseconds.length() - 9)));
   }

@@ -164,8 +164,8 @@ class ExecutionManagementService : public Service {
       this->eventHandler(event, eventQueuePtr);
     }
   }
-  virtual void extractOrderInfo(Element& element, const rj::Value& x,
-                                const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) {
+  virtual void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
+                                const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) {
     for (const auto& y : extractionFieldNameMap) {
       auto it = x.FindMember(y.second.first.c_str());
       if (it != x.MemberEnd() && !it->value.IsNull()) {
@@ -175,6 +175,10 @@ class ExecutionManagementService : public Service {
                                                                        : "null";
         if (y.first == CCAPI_EM_ORDER_SIDE) {
           value = UtilString::toLower(value).rfind("buy", 0) == 0 ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
+        }
+        auto it2 = conversionMap.find(y.first);
+        if (it2 != conversionMap.end()) {
+          value = it2->second(value);
         }
         element.insert(y.first, value);
       }
@@ -393,7 +397,7 @@ class ExecutionManagementService : public Service {
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
   std::map<std::string, WsConnection> wsConnectionByCorrelationIdMap;
 #else
-  std::map<std::string, std::shared_ptr<WsConnection> >
+  std::map<std::string, std::shared_ptr<WsConnection>>
       wsConnectionByCorrelationIdMap;  // TODO(cryptochassis): for consistency, to be renamed to wsConnectionPtrByCorrelationIdMap
 #endif
   std::map<std::string, int> wsRequestIdByConnectionIdMap;
