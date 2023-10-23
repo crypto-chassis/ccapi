@@ -200,4 +200,9 @@ TEST(UtilTimeTest, getISOTimestamp_11) {
   std::string str("2019-11-21T01:38:23Z");
   EXPECT_EQ(UtilTime::getISOTimestamp<std::chrono::milliseconds>(UtilTime::parse(str)), "2019-11-21T01:38:23.000Z");
 }
+TEST(UtilTimeTest, convertMillisecondsStrToSecondsStr) {
+  EXPECT_EQ(UtilTime::convertMillisecondsStrToSecondsStr("169782573039"), "169782573.039");
+  EXPECT_EQ(UtilTime::convertMillisecondsStrToSecondsStr("169782573030"), "169782573.030");
+  EXPECT_EQ(UtilTime::convertMillisecondsStrToSecondsStr("0"), "0");
+}
 } /* namespace ccapi */

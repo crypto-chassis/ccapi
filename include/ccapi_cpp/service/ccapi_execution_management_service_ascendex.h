@@ -288,7 +288,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
     this->extractOrderInfoFromRequest(elementList, document);
   }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const rj::Value& value) {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -337,8 +337,8 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  void extractOrderInfo(Element& element, const rj::Value& x,
-                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("cumFilledQty");
@@ -477,7 +477,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
             message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(data["t"].GetString()))));
             if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+              const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
                   {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("sd", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("p", JsonDataType::STRING)},

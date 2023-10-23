@@ -274,7 +274,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     this->extractOrderInfoFromRequest(elementList, document);
   }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const rj::Document& document) {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -326,8 +326,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  void extractOrderInfo(Element& element, const rj::Value& x,
-                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("accFillSz");
@@ -513,7 +513,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
                 message.setCorrelationIdList({subscription.getCorrelationId()});
                 message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["uTime"].GetString()))));
                 message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-                const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+                const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
                     {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
                     {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -522,6 +522,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
                     {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("avgPx", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_CUMULATIVE_FEE_QUANTITY, std::make_pair("fee", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_FEE_ASSET, std::make_pair("feeCcy", JsonDataType::STRING)},
                 };
                 Element info;
                 this->extractOrderInfo(info, x, extractionFieldNameMap);
