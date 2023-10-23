@@ -71,7 +71,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.01");
-  EXPECT_EQ(element.getValue(LAST_UPDATED_TIME_SECONDS), "1579276756075");
+  EXPECT_EQ(element.getValue(CCAPI_LAST_UPDATED_TIME_SECONDS), "1579276756.075");
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventExecutionTypeTrade) {
@@ -321,21 +321,24 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   std::string textMessage =
       R"(
         [
-            {
-                "symbol": "BTCUSDT",
-                "initialMargin": "0",
-                "maintMargin": "0",
-                "unrealizedProfit": "0.00000000",
-                "positionInitialMargin": "0",
-                "openOrderInitialMargin": "0",
-                "leverage": "100",
-                "isolated": true,
-                "entryPrice": "0.00000",
-                "maxNotional": "250000",
-                "positionSide": "BOTH",
-                "positionAmt": "0",
-                "updateTime": 0
-            }
+          {
+            "entryPrice": "0.00000",
+            "breakEvenPrice": "0.0",
+            "marginType": "isolated",
+            "isAutoAddMargin": "false",
+            "isolatedMargin": "0.00000000",
+            "leverage": "10",
+            "liquidationPrice": "0",
+            "markPrice": "6679.50671178",
+            "maxNotionalValue": "20000000",
+            "positionAmt": "0.000",
+            "notional": "0",
+            "isolatedWallet": "0",
+            "symbol": "BTCUSDT",
+            "unrealizedProfit": "0.00000000",
+            "positionSide": "BOTH",
+            "updateTime": 0
+          }
         ]
   )";
   auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
@@ -348,9 +351,9 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "BTCUSDT");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "BOTH");
-  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0.000");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE)), 0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "100");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "10");
   EXPECT_EQ(element.getValue(CCAPI_LAST_UPDATED_TIME_SECONDS), "0");
 }
 } /* namespace ccapi */

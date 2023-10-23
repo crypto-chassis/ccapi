@@ -34,19 +34,32 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
         for (const auto& x : document.GetArray()) {
           Element element;
           element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+          std::cout << __LINE__ << std::endl;
           element.insert(CCAPI_EM_POSITION_SIDE, x["positionSide"].GetString());
+          std::cout << __LINE__ << std::endl;
           std::string positionAmt;
+          std::cout << __LINE__ << std::endl;
           auto it = x.FindMember("positionAmt");
+          std::cout << __LINE__ << std::endl;
           if (it != x.MemberEnd()) {
+            std::cout << __LINE__ << std::endl;
             positionAmt = it->value.GetString();
+            std::cout << __LINE__ << std::endl;
           } else {
+            std::cout << __LINE__ << std::endl;
             positionAmt = x["maxQty"].GetString();
+            std::cout << __LINE__ << std::endl;
           }
           element.insert(CCAPI_EM_POSITION_QUANTITY, positionAmt);
+          std::cout << __LINE__ << std::endl;
           element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["entryPrice"].GetString());
+          std::cout << __LINE__ << std::endl;
           element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
-          element.insert(CCAPI_EM_UNREALIZED_PNL, x["unRealizedProfit"].GetString());
+          std::cout << __LINE__ << std::endl;
+          element.insert(CCAPI_EM_UNREALIZED_PNL, x["unrealizedProfit"].GetString());
+          std::cout << __LINE__ << std::endl;
           element.insert(CCAPI_LAST_UPDATED_TIME_SECONDS, UtilTime::convertMillisecondsStrToSecondsStr(x["updateTime"].GetString()));
+          std::cout << __LINE__ << std::endl;
           elementList.emplace_back(std::move(element));
         }
       } break;
