@@ -522,6 +522,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
                     {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("avgPx", JsonDataType::STRING)},
                     {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_CUMULATIVE_FEE_QUANTITY, std::make_pair("fee", JsonDataType::STRING)},
+                    {CCAPI_EM_ORDER_FEE_ASSET, std::make_pair("feeCcy", JsonDataType::STRING)},
                 };
                 Element info;
                 this->extractOrderInfo(info, x, extractionFieldNameMap);
