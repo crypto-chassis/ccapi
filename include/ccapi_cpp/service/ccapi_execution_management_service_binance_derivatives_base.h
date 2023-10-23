@@ -38,10 +38,10 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
           std::string positionAmt;
           auto it = x.FindMember("positionAmt");
           if (it != x.MemberEnd()) {
-              positionAmt = it->value.GetString();
-            } else {
-              positionAmt = x["maxQty"].GetString();
-            }
+            positionAmt = it->value.GetString();
+          } else {
+            positionAmt = x["maxQty"].GetString();
+          }
           element.insert(CCAPI_EM_POSITION_QUANTITY, positionAmt);
           element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["entryPrice"].GetString());
           element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
