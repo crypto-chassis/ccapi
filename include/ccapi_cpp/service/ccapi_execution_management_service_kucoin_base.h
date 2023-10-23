@@ -106,7 +106,6 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
               urlWebsocketBase += "?token=";
               urlWebsocketBase += std::string(document["data"]["token"].GetString());
               wsConnectionPtr->setUrl(urlWebsocketBase);
-              std::cout << wsConnectionPtr->toString() << std::endl;
               that->connect(wsConnectionPtr);
               that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
                   {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},

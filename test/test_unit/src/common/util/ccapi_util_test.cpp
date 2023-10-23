@@ -29,6 +29,11 @@ TEST(UtilAlgorithmTest, base64FromBase64Url) {
   auto result = UtilAlgorithm::base64FromBase64Url(original);
   EXPECT_EQ(result, "TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ=");
 }
+TEST(UtilStringTest, convertMillisecondsStrToSecondsStr) {
+  EXPECT_EQ("169782573039", "169782573.039");
+  EXPECT_EQ("169782573030", "169782573.03");
+  EXPECT_EQ("0", "0");
+}
 TEST(UtilStringTest, roundInputBySignificantFigure) {
   EXPECT_EQ(UtilString::roundInputBySignificantFigure(12345.01, 5, 1), "12346");
   EXPECT_EQ(UtilString::roundInputBySignificantFigure(12345.01, 5, -1), "12345");

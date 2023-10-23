@@ -71,6 +71,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.01");
+  EXPECT_EQ(element.getValue(LAST_UPDATED_TIME_SECONDS), "1579276756075");
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventExecutionTypeTrade) {
@@ -300,6 +301,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), "USDT");
   EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "23.72469206");
+  EXPECT_EQ(element.getValue(CCAPI_LAST_UPDATED_TIME_SECONDS), "1625474304.765");
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccountPositions) {
@@ -349,6 +351,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE)), 0);
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "100");
+  EXPECT_EQ(element.getValue(CCAPI_LAST_UPDATED_TIME_SECONDS), "0");
 }
 } /* namespace ccapi */
 #endif
