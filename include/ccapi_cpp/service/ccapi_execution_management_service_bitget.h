@@ -167,7 +167,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
   }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -211,8 +211,8 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  void extractOrderInfo(Element& element, const rj::Value& x,
-                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("accFillSz");
@@ -365,7 +365,7 @@ Event createEvent(const Subscription& subscription, const std::string& textMessa
             message.setCorrelationIdList({subscription.getCorrelationId()});
             message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["uTime"].GetString()))));
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-            const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+            const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
                 {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
