@@ -106,7 +106,6 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
               urlWebsocketBase += "?token=";
               urlWebsocketBase += std::string(document["data"]["token"].GetString());
               wsConnectionPtr->setUrl(urlWebsocketBase);
-              std::cout << wsConnectionPtr->toString() << std::endl;
               that->connect(wsConnectionPtr);
               that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
                   {"pingInterval", std::string(instanceServer["pingInterval"].GetString())},
@@ -333,7 +332,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
   }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -372,8 +371,8 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       elementList.emplace_back(std::move(element));
     }
   }
-  void extractOrderInfo(Element& element, const rj::Value& x,
-                        const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap) override {
+  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it = x.FindMember("isActive");
@@ -484,7 +483,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
             message.setCorrelationIdList({subscription.getCorrelationId()});
             message.setTime(time);
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-            std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+            std::map<std::string, std::pair<std::string, JsonDataType>> extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
                 {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},

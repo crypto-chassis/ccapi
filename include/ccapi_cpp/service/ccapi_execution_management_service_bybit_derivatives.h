@@ -198,6 +198,7 @@ class ExecutionManagementServiceBybitDerivatives : public ExecutionManagementSer
         {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("leavesQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("orderStatus", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FEE_QUANTITY, std::make_pair("cumExecFee", JsonDataType::STRING)},
     };
     if (operation == Request::Operation::GET_ORDER || operation == Request::Operation::GET_OPEN_ORDERS || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document["result"]["list"].GetArray()) {

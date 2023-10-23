@@ -446,6 +446,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair(this->isDerivatives ? "cumQuote" : "cummulativeQuoteQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
+        {CCAPI_LAST_UPDATED_TIME_SECONDS, std::make_pair("updateTime", JsonDataType::STRING)},
     };
     if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       extractionFieldNameMap.insert({CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("origClientOrderId", JsonDataType::STRING)});
@@ -454,12 +455,20 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     }
     if (document.IsObject()) {
       Element element;
-      this->extractOrderInfo(element, document, extractionFieldNameMap);
+      this->extractOrderInfo(
+          element, document, extractionFieldNameMap,
+          {
+              {CCAPI_LAST_UPDATED_TIME_SECONDS, [](const std::string& input) { return UtilTime::convertMillisecondsStrToSecondsStr(input); }},
+          });
       elementList.emplace_back(std::move(element));
     } else {
       for (const auto& x : document.GetArray()) {
         Element element;
-        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        this->extractOrderInfo(
+            element, x, extractionFieldNameMap,
+            {
+                {CCAPI_LAST_UPDATED_TIME_SECONDS, [](const std::string& input) { return UtilTime::convertMillisecondsStrToSecondsStr(input); }},
+            });
         elementList.emplace_back(std::move(element));
       }
     }
@@ -475,6 +484,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
             element.insert(CCAPI_EM_ASSET, x["asset"].GetString());
             element.insert(CCAPI_EM_QUANTITY_TOTAL, x["walletBalance"].GetString());
             element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["availableBalance"].GetString());
+            if (this->isDerivatives) {
+              element.insert(CCAPI_LAST_UPDATED_TIME_SECONDS, UtilTime::convertMillisecondsStrToSecondsStr(x["updateTime"].GetString()));
+            }
             elementList.emplace_back(std::move(element));
           }
         } else {
