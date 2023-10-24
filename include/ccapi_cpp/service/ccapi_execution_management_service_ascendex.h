@@ -347,7 +347,8 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         auto it1Str = std::string(it1->value.GetString());
         auto it2Str = std::string(it2->value.GetString());
         if (!it1Str.empty() && !it2Str.empty()) {
-          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, UtilString::printDoubleScientific(std::stod(it1Str) * std::stod(it2Str)));
+          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                         Decimal(UtilString::printDoubleScientific(std::stod(it1Str) * std::stod(it2Str))).toString());
         }
       }
     }
@@ -491,7 +492,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
               auto it = data.FindMember("ap");
               if (it != data.MemberEnd() && !it->value.IsNull()) {
                 info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                            UtilString::printDoubleScientific(std::stod(it->value.GetString()) * std::stod(data["cfq"].GetString())));
+                            Decimal(UtilString::printDoubleScientific(std::stod(it->value.GetString()) * std::stod(data["cfq"].GetString()))).toString());
               }
               info.insert(CCAPI_EM_BASE_ASSET_QUANTITY_AVAILABLE_FOR_TRADING, data["bab"].GetString());
               info.insert(CCAPI_EM_BASE_ASSET_QUANTITY_TOTAL, data["btb"].GetString());

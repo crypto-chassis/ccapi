@@ -257,7 +257,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       auto it2 = x.FindMember("avg_execution_price");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
         element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                       std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                       Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
       }
     }
     {
@@ -436,7 +436,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
                 auto it2 = x.FindMember("avg_execution_price");
                 if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
                   info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                              std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                              Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
                 }
               }
               {

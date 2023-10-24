@@ -358,14 +358,16 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
               element.insert(CCAPI_EM_ORDER_SIDE, makerSide == "buy" ? CCAPI_EM_ORDER_SIDE_SELL : CCAPI_EM_ORDER_SIDE_BUY);
               element.insert(CCAPI_IS_MAKER, "0");
               element.insert(CCAPI_EM_ORDER_ID, document["taker_order_id"].GetString());
-              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY,
-                             UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) * std::stod(document["taker_fee_rate"].GetString())));
+              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) *
+                                                                                                    std::stod(document["taker_fee_rate"].GetString())))
+                                                              .toString());
             } else if (document.FindMember("maker_user_id") != document.MemberEnd()) {
               element.insert(CCAPI_EM_ORDER_SIDE, makerSide == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
               element.insert(CCAPI_IS_MAKER, "1");
               element.insert(CCAPI_EM_ORDER_ID, document["maker_order_id"].GetString());
-              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY,
-                             UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) * std::stod(document["maker_fee_rate"].GetString())));
+              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, Decimal(UtilString::printDoubleScientific(std::stod(priceStr) * std::stod(sizeStr) *
+                                                                                                    std::stod(document["maker_fee_rate"].GetString())))
+                                                              .toString());
             }
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             elementList.emplace_back(std::move(element));

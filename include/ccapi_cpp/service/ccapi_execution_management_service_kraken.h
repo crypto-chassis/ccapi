@@ -231,7 +231,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         auto it2 = itr->value.FindMember("price");
         if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
           element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                         std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                         Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
         }
         element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
         elementList.emplace_back(std::move(element));
@@ -500,8 +500,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                   auto it1 = itr->value.FindMember("vol_exec");
                   auto it2 = itr->value.FindMember("avg_price");
                   if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
-                    element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                                   std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                    element.insert(
+                        CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
+                        Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
                   }
                   element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
                   elementList.emplace_back(std::move(element));
@@ -513,7 +514,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                 auto it2 = itr->value.FindMember("avg_price");
                 if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
                   element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                                 std::to_string(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())));
+                                 Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
                 }
                 element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
                 elementList.emplace_back(std::move(element));

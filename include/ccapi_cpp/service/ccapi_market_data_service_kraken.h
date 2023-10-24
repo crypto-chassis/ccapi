@@ -281,8 +281,8 @@ class MarketDataServiceKraken : public MarketDataService {
         dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, x[4].GetString()});
         dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, x[5].GetString()});
         dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, x[7].GetString()});
-        dataPoint.insert(
-            {MarketDataMessage::DataFieldType::QUOTE_VOLUME, UtilString::printDoubleScientific(std::stod(x[6].GetString()) * std::stod(x[7].GetString()))});
+        dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME,
+                          Decimal(UtilString::printDoubleScientific(std::stod(x[6].GetString()) * std::stod(x[7].GetString()))).toString()});
         marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
       }
