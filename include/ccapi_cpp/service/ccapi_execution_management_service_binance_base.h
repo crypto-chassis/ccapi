@@ -642,7 +642,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
             auto it = data.FindMember("ap");
             if (it != data.MemberEnd() && !it->value.IsNull()) {
               info.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                          UtilString::printDoubleScientific(std::stod(it->value.GetString()) * std::stod(data["z"].GetString())));
+                          Decimal(UtilString::printDoubleScientific(std::stod(it->value.GetString()) * std::stod(data["z"].GetString()))).toString());
             }
           }
           std::vector<Element> elementList;
