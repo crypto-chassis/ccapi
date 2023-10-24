@@ -651,6 +651,44 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           messageList.emplace_back(std::move(message));
         }
       }
+    } else if (this->isDerivatives && type == "ACCOUNT_UPDATE") {
+      event.setType(Event::Type::SUBSCRIPTION_DATA);
+      const rj::Value& data = document["a"];
+      if (fieldSet.find(CCAPI_EM_BALANCE_UPDATE) != fieldSet.end() && !data["B"].Empty()) {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setCorrelationIdList({subscription.getCorrelationId()});
+        message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(document["E"].GetString()))));
+        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_BALANCE_UPDATE);
+        std::vector<Element> elementList;
+        for (const auto& x : data["B"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_EM_ASSET, x["a"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["wb"].GetString());
+          elementList.emplace_back(std::move(element));
+        }
+        message.setElementList(elementList);
+        messageList.emplace_back(std::move(message));
+      }
+      if (fieldSet.find(CCAPI_EM_POSITION_UPDATE) != fieldSet.end() && !data["P"].Empty()) {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setCorrelationIdList({subscription.getCorrelationId()});
+        message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
+        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_POSITION_UPDATE);
+        std::vector<Element> elementList;
+        for (const auto& x : data["P"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x["s"].GetString());
+          element.insert(CCAPI_EM_POSITION_SIDE, x["ps"].GetString());
+          element.insert(CCAPI_EM_POSITION_QUANTITY, x["pa"].GetString());
+          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["ep"].GetString());
+          element.insert(CCAPI_EM_UNREALIZED_PNL, x["up"].GetString());
+          elementList.emplace_back(std::move(element));
+        }
+        message.setElementList(elementList);
+        messageList.emplace_back(std::move(message));
+      }
     }
     event.setMessageList(messageList);
     return event;
