@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceBitgetFutures : public MarketDataServiceBitgetBase {
  public:
   MarketDataServiceBitgetFutures(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                 std::shared_ptr<ServiceContext> serviceContextPtr)
+                                 ServiceContext* serviceContextPtr)
       : MarketDataServiceBitgetBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITGET_FUTURES;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/mix/v1/stream";

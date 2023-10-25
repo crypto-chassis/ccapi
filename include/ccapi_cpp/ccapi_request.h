@@ -148,7 +148,7 @@ class Request CCAPI_FINAL {
         ", correlationId = " + correlationId + ", secondaryCorrelationId = " + secondaryCorrelationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
-        ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
+        ", timeSent = " + UtilTime::getISOTimestamp(timeSent)+", index = " + ccapi::toString(index)+", localIpAddress = " + localIpAddress + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -181,11 +181,13 @@ class Request CCAPI_FINAL {
   std::pair<long long, long long> getTimeSentPair() const { return UtilTime::divide(timeSent); }
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
   int getIndex() const { return index; }
+  const std::string& getLocalIpAddress() const { return localIpAddress; }
   void setIndex(int index) { this->index = index; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
   void setCorrelationId(const std::string& correlationId) { this->correlationId = correlationId; }
   void setSecondaryCorrelationId(const std::string& secondaryCorrelationId) { this->secondaryCorrelationId = secondaryCorrelationId; }
   void setMarginType(const std::string& marginType) { this->marginType = marginType; }
+  void bind(const std::string& localIpAddress){this->localIpAddress=localIpAddress;}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -202,6 +204,7 @@ class Request CCAPI_FINAL {
   std::vector<std::vector<std::pair<int, std::string> > > paramListFix;
   TimePoint timeSent{std::chrono::seconds{0}};
   int index{};
+  std::string localIpAddress{CCAPI_LOCAL_IP_ADDRESS_DEFAULT};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_

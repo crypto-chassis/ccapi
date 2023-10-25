@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
  public:
   MarketDataServiceHuobi(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                         std::shared_ptr<ServiceContext> serviceContextPtr)
+                         ServiceContext* serviceContextPtr)
       : MarketDataServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_HUOBI;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);

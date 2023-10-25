@@ -259,7 +259,7 @@ class Session {
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
   Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
-          EventHandler* eventHandler = nullptr, EventDispatcher* eventDispatcher = nullptr)
+          EventHandler* eventHandler = nullptr, EventDispatcher* eventDispatcher = nullptr, ServiceContext* serviceContextPtr=nullptr)
       : sessionOptions(sessionOptions),
         sessionConfigs(sessionConfigs),
         eventHandler(eventHandler),
@@ -267,7 +267,10 @@ class Session {
         eventDispatcher(eventDispatcher),
 #endif
         eventQueue(sessionOptions.maxEventQueueSize),
-        serviceContextPtr(new ServiceContext()) {
+        serviceContextPtr(serviceContextPtr) {
+          if (!this->serviceContextPtr){
+            this->serviceContextPtr=new ServiceContext();
+          }
     CCAPI_LOGGER_FUNCTION_ENTER;
 #ifndef CCAPI_USE_SINGLE_THREAD
     if (this->eventHandler) {
@@ -291,6 +294,7 @@ class Session {
       delete this->eventDispatcher;
     }
 #endif
+    delete this->serviceContextPtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void start() {
@@ -968,7 +972,7 @@ class Session {
   EventDispatcher* eventDispatcher;
   bool useInternalEventDispatcher{};
 #endif
-  std::shared_ptr<ServiceContext> serviceContextPtr;
+  ServiceContext* serviceContextPtr;
   std::map<std::string, std::map<std::string, std::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
   std::thread t;
   Queue<Event> eventQueue;

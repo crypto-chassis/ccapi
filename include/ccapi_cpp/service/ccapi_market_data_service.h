@@ -17,7 +17,7 @@ namespace ccapi {
 class MarketDataService : public Service {
  public:
   MarketDataService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                    std::shared_ptr<ServiceContext> serviceContextPtr)
+                    ServiceContext* serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->requestOperationToMessageTypeMap = {

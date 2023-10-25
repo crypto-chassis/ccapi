@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceMexc : public MarketDataService {
  public:
   MarketDataServiceMexc(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                        std::shared_ptr<ServiceContext> serviceContextPtr)
+                        ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_MEXC;
     this->baseUrlWs = std::string(CCAPI_MEXC_URL_WS_BASE) + "/ws";

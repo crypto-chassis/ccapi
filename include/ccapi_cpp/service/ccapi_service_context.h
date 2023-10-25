@@ -82,11 +82,24 @@ class ServiceContext CCAPI_FINAL {
   typedef std::shared_ptr<ExecutorWorkGuard> ExecutorWorkGuardPtr;
   typedef boost::asio::ssl::context SslContext;
   typedef std::shared_ptr<SslContext> SslContextPtr;
-  ServiceContext() {
-    // this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 | SslContext::single_dh_use);
+  ServiceContext() : ServiceContext(std::make_shared<boost::asio::io_context>(),std::make_shared<SslContext>(SslContext::tls_client)){
+        // this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 | SslContext::single_dh_use);
     this->sslContextPtr->set_verify_mode(boost::asio::ssl::verify_none);
     // TODO(cryptochassis): verify ssl certificate to strengthen security
     // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp
+  }
+  ServiceContext(IoContextPtr ioContextPtr) : ServiceContext(ioContextPtr,std::make_shared<SslContext>(SslContext::tls_client)){
+        // this->sslContextPtr->set_options(SslContext::default_workarounds | SslContext::no_sslv2 | SslContext::no_sslv3 | SslContext::single_dh_use);
+    this->sslContextPtr->set_verify_mode(boost::asio::ssl::verify_none);
+    // TODO(cryptochassis): verify ssl certificate to strengthen security
+    // https://github.com/boostorg/asio/blob/develop/example/cpp03/ssl/client.cpp
+  }
+  ServiceContext(SslContextPtr sslContextPtr) : ServiceContext(std::make_shared<boost::asio::io_context>(),sslContextPtr){
+  }
+  ServiceContext(IoContextPtr ioContextPtr,SslContextPtr sslContextPtr) {
+    this->ioContextPtr = ioContextPtr;
+    this->executorWorkGuardPtr = std::make_shared<ExecutorWorkGuard>(this->ioContextPtr->get_executor());
+    this->sslContextPtr = sslContextPtr;
   }
   ServiceContext(const ServiceContext&) = delete;
   ServiceContext& operator=(const ServiceContext&) = delete;
@@ -104,9 +117,12 @@ class ServiceContext CCAPI_FINAL {
     this->executorWorkGuardPtr->reset();
     this->ioContextPtr->stop();
   }
-  IoContextPtr ioContextPtr{new IoContext()};
-  ExecutorWorkGuardPtr executorWorkGuardPtr{new ExecutorWorkGuard(ioContextPtr->get_executor())};
-  SslContextPtr sslContextPtr{new SslContext(SslContext::tls_client)};
+  IoContextPtr ioContextPtr{nullptr};
+  ExecutorWorkGuardPtr executorWorkGuardPtr{nullptr};
+  SslContextPtr sslContextPtr{nullptr};
+  // IoContextPtr ioContextPtr{new IoContext()};
+  // ExecutorWorkGuardPtr executorWorkGuardPtr{new ExecutorWorkGuard(ioContextPtr->get_executor())};
+  // SslContextPtr sslContextPtr{new SslContext(SslContext::tls_client)};
 };
 
 } /* namespace ccapi */

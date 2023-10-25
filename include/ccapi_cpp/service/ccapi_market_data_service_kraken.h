@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceKraken : public MarketDataService {
  public:
   MarketDataServiceKraken(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                          std::shared_ptr<ServiceContext> serviceContextPtr)
+                          ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);

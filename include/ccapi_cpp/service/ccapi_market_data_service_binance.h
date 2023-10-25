@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
  public:
   MarketDataServiceBinance(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                           std::shared_ptr<ServiceContext> serviceContextPtr)
+                           ServiceContext* serviceContextPtr)
       : MarketDataServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/stream";
