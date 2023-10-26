@@ -91,22 +91,25 @@ int main(int argc, char** argv) {
     });
     session.sendRequest(request);
   } else if (mode == "get_open_orders") {
-    if (argc != 3) {
-      std::cerr << "Usage: " << argv[0] << " get_open_orders <symbol>\n"
-                << "Example:\n"
-                << "    " << argv[0] << " get_open_orders BTCUSD" << std::endl;
-      session.stop();
-      return EXIT_FAILURE;
-    }
+    // if (argc != 3) {
+    //   std::cerr << "Usage: " << argv[0] << " get_open_orders <symbol>\n"
+    //             << "Example:\n"
+    //             << "    " << argv[0] << " get_open_orders BTCUSD" << std::endl;
+    //   session.stop();
+    //   return EXIT_FAILURE;
+    // }
+    std::string localIpAddress = argv[3];
     {
       Request request(Request::Operation::GET_OPEN_ORDERS, "binance-usds-futures", argv[2]);
+      request.setLocalIpAddress(localIpAddress);
       session.sendRequest(request);
     }
     // std::this_thread::sleep_for(std::chrono::seconds(1));
-    {
-      Request request(Request::Operation::GET_OPEN_ORDERS, "binance-usds-futures", argv[2]);
-      session.sendRequest(request);
-    }
+    // {
+    //   Request request(Request::Operation::GET_OPEN_ORDERS, "binance-usds-futures", argv[2]);
+    //   request.setLocalIpAddress(localIpAddress);
+    //   session.sendRequest(request);
+    // }
 
   } else if (mode == "cancel_open_orders") {
     if (argc != 3) {

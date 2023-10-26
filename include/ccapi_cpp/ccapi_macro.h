@@ -606,6 +606,12 @@
 #ifndef CCAPI_LOCAL_IP_ADDRESS_DEFAULT
 #define CCAPI_LOCAL_IP_ADDRESS_DEFAULT ""
 #endif
+#ifndef CCAPI_HOST_DEFAULT
+#define CCAPI_HOST_DEFAULT ""
+#endif
+#ifndef CCAPI_PORT_DEFAULT
+#define CCAPI_PORT_DEFAULT ""
+#endif
 
 // start: exchange REST urls
 #ifndef CCAPI_COINBASE_URL_REST_BASE

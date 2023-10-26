@@ -148,7 +148,7 @@ class Request CCAPI_FINAL {
         ", correlationId = " + correlationId + ", secondaryCorrelationId = " + secondaryCorrelationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
-        ", timeSent = " + UtilTime::getISOTimestamp(timeSent)+", index = " + ccapi::toString(index)+", localIpAddress = " + localIpAddress + "]";
+        ", timeSent = " + UtilTime::getISOTimestamp(timeSent)+", index = " + ccapi::toString(index)+", localIpAddress = " + localIpAddress+", hostPort = " + ccapi::toString(hostPort) + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -182,12 +182,14 @@ class Request CCAPI_FINAL {
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
   int getIndex() const { return index; }
   const std::string& getLocalIpAddress() const { return localIpAddress; }
+  const std::pair<std::string, std::string>& getHostPort()const{return hostPort;}
   void setIndex(int index) { this->index = index; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
   void setCorrelationId(const std::string& correlationId) { this->correlationId = correlationId; }
   void setSecondaryCorrelationId(const std::string& secondaryCorrelationId) { this->secondaryCorrelationId = secondaryCorrelationId; }
   void setMarginType(const std::string& marginType) { this->marginType = marginType; }
-  void bind(const std::string& localIpAddress){this->localIpAddress=localIpAddress;}
+  void setLocalIpAddress(const std::string& localIpAddress){this->localIpAddress=localIpAddress;}
+  void setHostPort(const std::pair<std::string, std::string>& hostPort){this->hostPort=hostPort;}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -205,6 +207,7 @@ class Request CCAPI_FINAL {
   TimePoint timeSent{std::chrono::seconds{0}};
   int index{};
   std::string localIpAddress{CCAPI_LOCAL_IP_ADDRESS_DEFAULT};
+  std::pair<std::string, std::string> hostPort{CCAPI_HOST_DEFAULT,CCAPI_PORT_DEFAULT};
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
