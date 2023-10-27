@@ -149,8 +149,8 @@ class Service : public std::enable_shared_from_this<Service> {
   void purgeHttpConnectionPool(const std::string& localIpAddress) {
     this->httpConnectionPool.erase(localIpAddress);
   }
-  void purgeHttpConnectionPool(const std::string& localIpAddress, const std::pair<std::string, std::string>& hostPort) {
-    this->httpConnectionPool[localIpAddress].erase(hostPort);
+  void purgeHttpConnectionPool(const std::string& localIpAddress, const std::string& baseUrl) {
+    this->httpConnectionPool[localIpAddress].erase(baseUrl);
   }
   void forceCloseWebsocketConnections() {
     for (const auto& x : this->wsConnectionByIdMap) {
@@ -537,6 +537,7 @@ class Service : public std::enable_shared_from_this<Service> {
                       Queue<Event>* eventQueuePtr) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("httpConnection = " + toString(*httpConnectionPtr));
+    CCAPI_LOGGER_DEBUG("request = " + toString(request));
     CCAPI_LOGGER_DEBUG("retry = " + toString(retry));
     beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
     CCAPI_LOGGER_DEBUG("this->sessionOptions.httpRequestTimeoutMilliseconds = " + toString(this->sessionOptions.httpRequestTimeoutMilliseconds));
@@ -545,7 +546,7 @@ class Service : public std::enable_shared_from_this<Service> {
     }
     const auto& localIpAddress = request.getLocalIpAddress();
     CCAPI_LOGGER_TRACE("localIpAddress = " + localIpAddress);
-    if (localIpAddress!=CCAPI_LOCAL_IP_ADDRESS_DEFAULT){
+    if (!localIpAddress.empty()){
       if (!beast::get_lowest_layer(stream).socket().is_open()){
         ErrorCode ec;
         CCAPI_LOGGER_TRACE("before socket open");
@@ -577,6 +578,8 @@ class Service : public std::enable_shared_from_this<Service> {
       }
     }
     std::shared_ptr<tcp::resolver> newResolverPtr(new tcp::resolver(*this->serviceContextPtr->ioContextPtr));
+    CCAPI_LOGGER_TRACE("httpConnectionPtr->host = " + httpConnectionPtr->host);
+    CCAPI_LOGGER_TRACE("httpConnectionPtr->port = " + httpConnectionPtr->port);
     newResolverPtr->async_resolve(httpConnectionPtr->host, httpConnectionPtr->port,
                                   beast::bind_front_handler(&Service::onResolveWorkaround, shared_from_this(), httpConnectionPtr, newResolverPtr, request, req, retry,eventQueuePtr));
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -589,15 +592,21 @@ class Service : public std::enable_shared_from_this<Service> {
       return;
     }
         CCAPI_LOGGER_TRACE("before asyncConnectWorkaround");
-        TimerPtr timerPtr(new net::steady_timer(*this->serviceContextPtr->ioContextPtr, this->sessionOptions.httpRequestTimeoutMilliseconds));
-        timerPtr->async_wait([httpConnectionPtr](ErrorCode const& ec) {
-          if (ec) {
-            CCAPI_LOGGER_ERROR("httpConnectionPtr = " + toString(*httpConnectionPtr) + ", connect timeout timer error: " + ec.message());
-          } else {
-            beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
-            beast::get_lowest_layer(stream).socket().cancel();
-          }
-        });
+        TimerPtr timerPtr{nullptr};
+        if (this->sessionOptions.httpRequestTimeoutMilliseconds > 0) {
+          timerPtr = std::make_shared<boost::asio::steady_timer>(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliseconds));
+          timerPtr->async_wait([httpConnectionPtr](ErrorCode const& ec) {
+            if (ec) {
+              if (ec != net::error::make_error_code(net::error::basic_errors::operation_aborted)) {
+                CCAPI_LOGGER_ERROR("httpConnectionPtr = " + toString(*httpConnectionPtr) + ", connect timeout timer error: " + ec.message());
+              }
+            } else {
+              CCAPI_LOGGER_TRACE("httpConnectionPtr = " + toString(*httpConnectionPtr) + ", connect timeout timer triggered");
+              beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+              beast::get_lowest_layer(stream).socket().cancel();
+            }
+          });
+        }
     this->asyncConnectWorkaround(httpConnectionPtr, timerPtr, request,req,retry,eventQueuePtr,tcpNewResolverResults,0);
     CCAPI_LOGGER_TRACE("after asyncConnectWorkaround");
   }
@@ -673,7 +682,7 @@ class Service : public std::enable_shared_from_this<Service> {
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "write", {request.getCorrelationId()}, eventQueuePtr);
-      this->httpConnectionPool[request.getLocalIpAddress()][request.getHostPort()].clear();
+      this->httpConnectionPool[request.getLocalIpAddress()][request.getBaseUrl()].clear();
       auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
@@ -700,7 +709,7 @@ class Service : public std::enable_shared_from_this<Service> {
     if (ec) {
       CCAPI_LOGGER_TRACE("fail");
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "read", {request.getCorrelationId()}, eventQueuePtr);
-      this->httpConnectionPool[request.getLocalIpAddress()][request.getHostPort()].clear();
+      this->httpConnectionPool[request.getLocalIpAddress()][request.getBaseUrl()].clear();
       auto now = UtilTime::now();
       auto req = this->convertRequest(request, now);
       retry.numRetry += 1;
@@ -710,14 +719,14 @@ class Service : public std::enable_shared_from_this<Service> {
     if (!this->sessionOptions.enableOneHttpConnectionPerRequest) {
         httpConnectionPtr->lastReceiveDataTp = now;
               const auto& localIpAddress = request.getLocalIpAddress();
-              const auto& requestHostPort = request.getHostPort();
-          if (this->sessionOptions.httpConnectionPoolMaxSize >0 && this->httpConnectionPool[localIpAddress][requestHostPort].size() >= this->sessionOptions.httpConnectionPoolMaxSize
+              const auto& requestBaseUrl = request.getBaseUrl();
+          if (this->sessionOptions.httpConnectionPoolMaxSize >0 && this->httpConnectionPool[localIpAddress][requestBaseUrl].size() >= this->sessionOptions.httpConnectionPoolMaxSize
           ) {
-              CCAPI_LOGGER_TRACE("httpConnectionPool is full for localIpAddress = "+localIpAddress+", requestHostPort = "+toString(requestHostPort));
-              this->httpConnectionPool[localIpAddress][requestHostPort].pop_front();
+              CCAPI_LOGGER_TRACE("httpConnectionPool is full for localIpAddress = "+localIpAddress+", requestBaseUrl = "+toString(requestBaseUrl));
+              this->httpConnectionPool[localIpAddress][requestBaseUrl].pop_front();
           }
-          this->httpConnectionPool[localIpAddress][requestHostPort].push_back(httpConnectionPtr);
-            CCAPI_LOGGER_TRACE("pushed back httpConnectionPtr " + toString(*httpConnectionPtr) + " to httpConnectionPool for localIpAddress = "+localIpAddress+", requestHostPort = "+toString(requestHostPort));
+          this->httpConnectionPool[localIpAddress][requestBaseUrl].push_back(httpConnectionPtr);
+            CCAPI_LOGGER_TRACE("pushed back httpConnectionPtr " + toString(*httpConnectionPtr) + " to httpConnectionPool for localIpAddress = "+localIpAddress+", requestBaseUrl = "+toString(requestBaseUrl));
     }
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     {
@@ -801,10 +810,10 @@ class Service : public std::enable_shared_from_this<Service> {
     if (retry.numRetry <= this->sessionOptions.httpMaxNumRetry && retry.numRedirect <= this->sessionOptions.httpMaxNumRedirect) {
       try {
         const auto& localIpAddress = request.getLocalIpAddress();
-        const auto& requestHostPort = request.getHostPort();
-        if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool[localIpAddress][requestHostPort].empty()
-        || std::chrono::duration_cast<std::chrono::seconds>(request.getTimeSent()-this->httpConnectionPool[localIpAddress][requestHostPort].back()->lastReceiveDataTp).count() >= this->sessionOptions.httpConnectionKeepAliveTimeoutSeconds) {
-          this->httpConnectionPool[localIpAddress][requestHostPort].clear();
+        const auto& requestBaseUrl = request.getBaseUrl();
+        if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool[localIpAddress][requestBaseUrl].empty()
+        || std::chrono::duration_cast<std::chrono::seconds>(request.getTimeSent()-this->httpConnectionPool[localIpAddress][requestBaseUrl].back()->lastReceiveDataTp).count() >= this->sessionOptions.httpConnectionKeepAliveTimeoutSeconds) {
+          this->httpConnectionPool[localIpAddress][requestBaseUrl].clear();
           std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(nullptr);
           try {
             streamPtr = this->createStream<beast::ssl_stream<beast::tcp_stream>>(this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr,
@@ -814,14 +823,21 @@ class Service : public std::enable_shared_from_this<Service> {
             this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "create stream", {request.getCorrelationId()}, eventQueuePtr);
             return;
           }
-          const auto& requestHostPort = request.getHostPort();
-          std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(requestHostPort.first == CCAPI_HOST_DEFAULT ? this->hostRest:requestHostPort.first, requestHostPort.second == CCAPI_PORT_DEFAULT ? this->portRest:requestHostPort.second, streamPtr));
-          CCAPI_LOGGER_WARN("about to perform request with new httpConnectionPtr " + toString(*httpConnectionPtr)+" for localIpAddress = "+localIpAddress+", requestHostPort = "+toString(requestHostPort));
+          std::string host, port;
+          if (requestBaseUrl.empty()) {
+            host = this->hostRest;
+            port = this->portRest;
+          } else {
+            host = request.getHost();
+            port = request.getPort();
+          }
+          std::shared_ptr<HttpConnection> httpConnectionPtr(new HttpConnection(host, port, streamPtr));
+          CCAPI_LOGGER_WARN("about to perform request with new httpConnectionPtr " + toString(*httpConnectionPtr)+" for localIpAddress = "+localIpAddress+", requestBaseUrl = "+toString(requestBaseUrl));
           this->performRequestWithNewHttpConnection(httpConnectionPtr, request, req, retry, eventQueuePtr);
         } else {
-          std::shared_ptr<HttpConnection> httpConnectionPtr=this->httpConnectionPool[localIpAddress][requestHostPort].back();
-          this->httpConnectionPool[localIpAddress][requestHostPort].pop_back();
-          CCAPI_LOGGER_TRACE("about to perform request with existing httpConnectionPtr " + toString(*httpConnectionPtr)+" for localIpAddress = "+localIpAddress+", requestHostPort = "+toString(requestHostPort));
+          std::shared_ptr<HttpConnection> httpConnectionPtr=this->httpConnectionPool[localIpAddress][requestBaseUrl].back();
+          this->httpConnectionPool[localIpAddress][requestBaseUrl].pop_back();
+          CCAPI_LOGGER_TRACE("about to perform request with existing httpConnectionPtr " + toString(*httpConnectionPtr)+" for localIpAddress = "+localIpAddress+", requestBaseUrl = "+toString(requestBaseUrl));
           this->startWrite_2(httpConnectionPtr, request, req, retry, eventQueuePtr);
         }
       } catch (const std::exception& e) {
@@ -855,7 +871,7 @@ class Service : public std::enable_shared_from_this<Service> {
     } else {
       req.keep_alive(true);
     }
-    req.set(http::field::host, this->hostRest);
+    req.set(http::field::host, request.getBaseUrl().empty() ? this->hostRest : request.getHost());
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
     this->convertRequestForRest(req, request, now, symbolId, credential);
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -1801,7 +1817,7 @@ class Service : public std::enable_shared_from_this<Service> {
   std::string hostWs;
   std::string portWs;
   // tcp::resolver::results_type tcpResolverResultsRest, tcpResolverResultsWs;
-  std::map<std::string, std::map<std::pair<std::string,std::string>, std::deque<std::shared_ptr<HttpConnection>>>> httpConnectionPool;
+  std::map<std::string, std::map<std::string, std::deque<std::shared_ptr<HttpConnection>>>> httpConnectionPool;
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP

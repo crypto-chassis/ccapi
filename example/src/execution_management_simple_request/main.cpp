@@ -99,18 +99,26 @@ int main(int argc, char** argv) {
     //   return EXIT_FAILURE;
     // }
     std::string localIpAddress = argv[3];
+    std::string baseUrl = argv[6];
     {
       Request request(Request::Operation::GET_OPEN_ORDERS, "binance-usds-futures", argv[2]);
       request.setLocalIpAddress(localIpAddress);
+      request.setBaseUrl(baseUrl);
       session.sendRequest(request);
     }
-    // std::this_thread::sleep_for(std::chrono::seconds(1));
-    // {
-    //   Request request(Request::Operation::GET_OPEN_ORDERS, "binance-usds-futures", argv[2]);
-    //   request.setLocalIpAddress(localIpAddress);
-    //   session.sendRequest(request);
-    // }
-
+    int numRequests = std::stoi(argv[4]);
+    if (numRequests == 2) {
+      int sleepSeconds = std::stoi(argv[5]);
+      if (sleepSeconds > 0) {
+        std::this_thread::sleep_for(std::chrono::seconds(sleepSeconds));
+      }
+      {
+        Request request(Request::Operation::GET_OPEN_ORDERS, "binance-usds-futures", argv[2]);
+        request.setLocalIpAddress(localIpAddress);
+        request.setBaseUrl(baseUrl);
+        session.sendRequest(request);
+      }
+    }
   } else if (mode == "cancel_open_orders") {
     if (argc != 3) {
       std::cerr << "Usage: " << argv[0] << " cancel_open_orders <symbol>\n"

@@ -148,7 +148,7 @@ class Request CCAPI_FINAL {
         ", correlationId = " + correlationId + ", secondaryCorrelationId = " + secondaryCorrelationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
-        ", timeSent = " + UtilTime::getISOTimestamp(timeSent)+", index = " + ccapi::toString(index)+", localIpAddress = " + localIpAddress+", hostPort = " + ccapi::toString(hostPort) + "]";
+        ", timeSent = " + UtilTime::getISOTimestamp(timeSent)+", index = " + ccapi::toString(index)+", localIpAddress = " + localIpAddress+", baseUrl = " + baseUrl + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -182,14 +182,32 @@ class Request CCAPI_FINAL {
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
   int getIndex() const { return index; }
   const std::string& getLocalIpAddress() const { return localIpAddress; }
-  const std::pair<std::string, std::string>& getHostPort()const{return hostPort;}
+  const std::string& getBaseUrl() const { return baseUrl; }
+  const std::string& getHost() const { return host; }
+  const std::string& getPort() const { return port; }
   void setIndex(int index) { this->index = index; }
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
   void setCorrelationId(const std::string& correlationId) { this->correlationId = correlationId; }
   void setSecondaryCorrelationId(const std::string& secondaryCorrelationId) { this->secondaryCorrelationId = secondaryCorrelationId; }
   void setMarginType(const std::string& marginType) { this->marginType = marginType; }
   void setLocalIpAddress(const std::string& localIpAddress){this->localIpAddress=localIpAddress;}
-  void setHostPort(const std::pair<std::string, std::string>& hostPort){this->hostPort=hostPort;}
+  void setBaseUrl(const std::string& baseUrl){this->baseUrl=baseUrl;this->setBaseUrlParts();}
+  void setBaseUrlParts() {
+    auto splitted1 = UtilString::split(this->baseUrl, "://");
+    if (splitted1.size() >= 2) {
+      auto splitted2 = UtilString::split(UtilString::split(splitted1.at(1), "/").at(0), ":");
+      this->host = splitted2.at(0);
+      if (splitted2.size() == 2) {
+        this->port = splitted2.at(1);
+      } else {
+        if (splitted1.at(0) == "https" || splitted1.at(0) == "wss") {
+          this->port = CCAPI_HTTPS_PORT_DEFAULT;
+        } else {
+          this->port = CCAPI_HTTP_PORT_DEFAULT;
+        }
+      }
+    }
+  }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -206,8 +224,10 @@ class Request CCAPI_FINAL {
   std::vector<std::vector<std::pair<int, std::string> > > paramListFix;
   TimePoint timeSent{std::chrono::seconds{0}};
   int index{};
-  std::string localIpAddress{CCAPI_LOCAL_IP_ADDRESS_DEFAULT};
-  std::pair<std::string, std::string> hostPort{CCAPI_HOST_DEFAULT,CCAPI_PORT_DEFAULT};
+  std::string localIpAddress;
+  std::string baseUrl;
+  std::string host;
+  std::string port;
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
