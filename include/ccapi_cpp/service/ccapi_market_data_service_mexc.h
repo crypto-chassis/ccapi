@@ -14,19 +14,19 @@ class MarketDataServiceMexc : public MarketDataService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-//     try {
-//       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-//     } catch (const std::exception& e) {
-//       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-//     }
-// #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-// #else
-//     try {
-//       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-//     } catch (const std::exception& e) {
-//       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-//     }
-// #endif
+    //     try {
+    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
+    // #else
+    //     try {
+    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #endif
     this->getRecentTradesTarget = "/api/v3/trades";
     this->getRecentAggTradesTarget = "/api/v3/aggTrades";
     this->getInstrumentsTarget = "/api/v3/exchangeInfo";

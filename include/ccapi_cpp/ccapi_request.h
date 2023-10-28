@@ -148,7 +148,8 @@ class Request CCAPI_FINAL {
         ", correlationId = " + correlationId + ", secondaryCorrelationId = " + secondaryCorrelationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
         ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
-        ", timeSent = " + UtilTime::getISOTimestamp(timeSent)+", index = " + ccapi::toString(index)+", localIpAddress = " + localIpAddress+", baseUrl = " + baseUrl + "]";
+        ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + ", index = " + ccapi::toString(index) + ", localIpAddress = " + localIpAddress +
+        ", baseUrl = " + baseUrl + "]";
     return output;
   }
   const std::string& getCorrelationId() const { return correlationId; }
@@ -190,8 +191,11 @@ class Request CCAPI_FINAL {
   void setCorrelationId(const std::string& correlationId) { this->correlationId = correlationId; }
   void setSecondaryCorrelationId(const std::string& secondaryCorrelationId) { this->secondaryCorrelationId = secondaryCorrelationId; }
   void setMarginType(const std::string& marginType) { this->marginType = marginType; }
-  void setLocalIpAddress(const std::string& localIpAddress){this->localIpAddress=localIpAddress;}
-  void setBaseUrl(const std::string& baseUrl){this->baseUrl=baseUrl;this->setBaseUrlParts();}
+  void setLocalIpAddress(const std::string& localIpAddress) { this->localIpAddress = localIpAddress; }
+  void setBaseUrl(const std::string& baseUrl) {
+    this->baseUrl = baseUrl;
+    this->setBaseUrlParts();
+  }
   void setBaseUrlParts() {
     auto splitted1 = UtilString::split(this->baseUrl, "://");
     if (splitted1.size() >= 2) {

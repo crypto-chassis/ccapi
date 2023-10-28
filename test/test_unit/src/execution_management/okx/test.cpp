@@ -10,8 +10,7 @@ class ExecutionManagementServiceOkxTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<ExecutionManagementServiceOkx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),  &this->serviceContext);
+    this->service = std::make_shared<ExecutionManagementServiceOkx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
     this->credential = {
         {CCAPI_OKX_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
         {CCAPI_OKX_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
@@ -21,7 +20,8 @@ class ExecutionManagementServiceOkxTest : public ::testing::Test {
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
     this->timestampStr = "2017-07-12T02:41:59.000Z";
   }
-  ServiceContext serviceContext;std::shared_ptr<ExecutionManagementServiceOkx> service{nullptr};
+  ServiceContext serviceContext;
+  std::shared_ptr<ExecutionManagementServiceOkx> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};
   TimePoint now{};

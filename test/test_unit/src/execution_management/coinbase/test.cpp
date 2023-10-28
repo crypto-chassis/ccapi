@@ -10,8 +10,8 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceCoinbase>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                          &this->serviceContext);
+    this->service =
+        std::make_shared<ExecutionManagementServiceCoinbase>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
     this->credential = {
         {CCAPI_COINBASE_API_KEY, "a53c4a1d047bddd07e6d4b5783ae18b0"},
         {CCAPI_COINBASE_API_SECRET, "+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ=="},
@@ -20,7 +20,8 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
-  ServiceContext serviceContext;std::shared_ptr<ExecutionManagementServiceCoinbase> service{nullptr};
+  ServiceContext serviceContext;
+  std::shared_ptr<ExecutionManagementServiceCoinbase> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};
   TimePoint now{};

@@ -10,10 +10,10 @@ class MarketDataServiceTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service =
-        std::make_shared<MarketDataServiceGeneric>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),  &this->serviceContext);
+    this->service = std::make_shared<MarketDataServiceGeneric>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
   }
-  ServiceContext serviceContext;std::shared_ptr<MarketDataServiceGeneric> service{nullptr};
+  ServiceContext serviceContext;
+  std::shared_ptr<MarketDataServiceGeneric> service{nullptr};
 };
 
 TEST_F(MarketDataServiceTest, updateOrderBookInsert) {

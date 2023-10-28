@@ -50,8 +50,9 @@ class SessionOptions CCAPI_FINAL {
   int httpMaxNumRedirect{1};
   long httpRequestTimeoutMilliseconds{10000};
   int httpConnectionPoolMaxSize{1};  // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
-  long httpConnectionKeepAliveTimeoutSeconds{10};  // used to remove a http connection from the http connection pool if it has stayed idle for at least this amount of time
-  bool enableOneHttpConnectionPerRequest{};           // create a new http connection for each request
+  long httpConnectionKeepAliveTimeoutSeconds{
+      10};  // used to remove a http connection from the http connection pool if it has stayed idle for at least this amount of time
+  bool enableOneHttpConnectionPerRequest{};  // create a new http connection for each request
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
   long websocketConnectTimeoutMilliseconds{10000};

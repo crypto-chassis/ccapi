@@ -14,19 +14,19 @@ class MarketDataServiceBitget : public MarketDataServiceBitgetBase {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-//     try {
-//       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-//     } catch (const std::exception& e) {
-//       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-//     }
-// #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-// #else
-//     try {
-//       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-//     } catch (const std::exception& e) {
-//       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-//     }
-// #endif
+    //     try {
+    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
+    // #else
+    //     try {
+    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #endif
     this->getRecentTradesTarget = "/api/spot/v1/market/fills";
     this->getInstrumentTarget = "/api/spot/v1/public/product";
     this->getInstrumentsTarget = "/api/spot/v1/public/products";

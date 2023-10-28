@@ -15,7 +15,8 @@ class HttpConnection CCAPI_FINAL {
   std::string toString() const {
     std::ostringstream oss;
     oss << streamPtr;
-    std::string output = "HttpConnection [host = " + host + ", port = " + port + ", streamPtr = " + oss.str() +", lastReceiveDataTp = "+UtilTime::getISOTimestamp(lastReceiveDataTp)+ "]";
+    std::string output = "HttpConnection [host = " + host + ", port = " + port + ", streamPtr = " + oss.str() +
+                         ", lastReceiveDataTp = " + UtilTime::getISOTimestamp(lastReceiveDataTp) + "]";
     return output;
   }
   std::string host;
