@@ -495,7 +495,7 @@ class Service : public std::enable_shared_from_this<Service> {
     responseHandler(*resPtr);
   }
   template <class T>
-  std::shared_ptr<T> createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host) {
+  std::shared_ptr<T> createStream(net::io_context* iocPtr, net::ssl::context* ctxPtr, const std::string& host) {
     std::shared_ptr<T> streamPtr(new T(*iocPtr, *ctxPtr));
     // Set SNI Hostname (many hosts need this to handshake successfully)
     if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
@@ -507,14 +507,13 @@ class Service : public std::enable_shared_from_this<Service> {
   }
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
 #else
-  std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> createWsStream(std::shared_ptr<net::io_context> iocPtr,
-                                                                                                 std::shared_ptr<net::ssl::context> ctxPtr) {
+  std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> createWsStream(net::io_context* iocPtr, net::ssl::context* ctxPtr) {
     std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(
         new beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>(*iocPtr, *ctxPtr));
     return streamPtr;
   }
 #endif
-  // std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStream(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr,
+  // std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> createStream(net::io_context* iocPtr, net::ssl::context* ctxPtr,
   //                                                                    const std::string& host) {
   //   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
   //   // Set SNI Hostname (many hosts need this to handshake successfully)
