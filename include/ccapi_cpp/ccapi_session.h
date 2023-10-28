@@ -641,19 +641,19 @@ class Session {
         return;
       }
       if (serviceName == CCAPI_MARKET_DATA) {
-        std::set<std::string> correlationIdSet;
-        std::set<std::string> duplicateCorrelationIdSet;
+        // std::set<std::string> correlationIdSet;
+        // std::set<std::string> duplicateCorrelationIdSet;
         std::unordered_set<std::string> unsupportedExchangeFieldSet;
         std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
         auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
         CCAPI_LOGGER_DEBUG("exchangeFieldMap = " + toString(exchangeFieldMap));
         for (const auto& subscription : subscriptionList) {
-          auto correlationId = subscription.getCorrelationId();
-          if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
-            duplicateCorrelationIdSet.insert(correlationId);
-          } else {
-            correlationIdSet.insert(correlationId);
-          }
+          // auto correlationId = subscription.getCorrelationId();
+          // if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
+          //   duplicateCorrelationIdSet.insert(correlationId);
+          // } else {
+          //   correlationIdSet.insert(correlationId);
+          // }
           auto exchange = subscription.getExchange();
           CCAPI_LOGGER_DEBUG("exchange = " + exchange);
           auto field = subscription.getField();
@@ -667,11 +667,11 @@ class Session {
           }
           subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
-        if (!duplicateCorrelationIdSet.empty()) {
-          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
-                        "duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
-          return;
-        }
+        // if (!duplicateCorrelationIdSet.empty()) {
+        //   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
+        //                 "duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
+        //   return;
+        // }
         if (!unsupportedExchangeFieldSet.empty()) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
                         "unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));

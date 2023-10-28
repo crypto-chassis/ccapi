@@ -175,7 +175,12 @@ class MarketDataService : public Service {
     return groups;
   }
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
-    return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getSerializedCredential();
+    const auto& field = subscription.getField();
+    if (field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
+      return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getCorrelationId() + "|" + subscription.getSerializedCredential();
+    } else {
+      return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getSerializedCredential();
+    }
   }
   void prepareSubscription(const WsConnection& wsConnection, const Subscription& subscription) {
     auto instrument = subscription.getInstrument();
@@ -706,10 +711,10 @@ class MarketDataService : public Service {
     for (const auto& subscription : wsConnection.subscriptionList) {
       auto instrument = subscription.getInstrument();
       this->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup][instrument] = Subscription::Status::SUBSCRIBING;
-      if (subscription.getRawOptions().empty()) {
-        this->prepareSubscription(wsConnection, subscription);
-      } else {
+      if (subscription.getField() == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
         this->correlationIdByConnectionIdMap.insert({wsConnection.id, subscription.getCorrelationId()});
+      } else {
+        this->prepareSubscription(wsConnection, subscription);
       }
     }
     CCAPI_LOGGER_INFO("about to subscribe to exchange");
