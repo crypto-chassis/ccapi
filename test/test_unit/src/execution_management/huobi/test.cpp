@@ -11,7 +11,7 @@ class ExecutionManagementServiceHuobiTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceHuobi>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), std::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceHuobi>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),  &this->serviceContext);
     this->credential = {
         {CCAPI_HUOBI_API_KEY, "7f72bbdb-d3fa3d40-uymylwhfeg-17388"},
         {CCAPI_HUOBI_API_SECRET, "3e02e507-e8f8f2ae-a543363d-d2037"},
@@ -19,7 +19,7 @@ class ExecutionManagementServiceHuobiTest : public ::testing::Test {
     this->timestamp = "2017-05-11T15:19:30";
     this->now = UtilTime::parse(this->timestamp + "Z");
   }
-  std::shared_ptr<ExecutionManagementServiceHuobi> service{nullptr};
+  ServiceContext serviceContext;std::shared_ptr<ExecutionManagementServiceHuobi> service{nullptr};
   std::map<std::string, std::string> credential;
   std::string timestamp;
   TimePoint now{};

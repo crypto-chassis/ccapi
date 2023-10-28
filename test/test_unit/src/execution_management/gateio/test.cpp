@@ -11,7 +11,7 @@ class ExecutionManagementServiceGateioTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceGateio>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                       std::make_shared<ServiceContext>());
+                                                                        &this->serviceContext);
     this->credential = {
         {CCAPI_GATEIO_API_KEY, "f897ef1d2bbdca43de0c624d6b4fee7f"},
         {CCAPI_GATEIO_API_SECRET, "55de8bdbfca4f783979559baaa079f1cde28795e1b8b4527e7c22c8978c3f44c"},
@@ -19,7 +19,7 @@ class ExecutionManagementServiceGateioTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
-  std::shared_ptr<ExecutionManagementServiceGateio> service{nullptr};
+  ServiceContext serviceContext;std::shared_ptr<ExecutionManagementServiceGateio> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};
   TimePoint now{};

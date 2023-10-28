@@ -11,7 +11,7 @@ class ExecutionManagementServiceErisxTest : public ::testing::Test {
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
     this->service =
-        std::make_shared<ExecutionManagementServiceErisx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), std::make_shared<ServiceContext>());
+        std::make_shared<ExecutionManagementServiceErisx>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),  &this->serviceContext);
     this->credential = {
         {CCAPI_ERISX_API_KEY, "6e010dda31cc2f301c82de1eb82d0998gbbec9fe6f9438d788416d23fc56b14d4"},
         {CCAPI_ERISX_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},
@@ -19,7 +19,7 @@ class ExecutionManagementServiceErisxTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
-  std::shared_ptr<ExecutionManagementServiceErisx> service{nullptr};
+  ServiceContext serviceContext;std::shared_ptr<ExecutionManagementServiceErisx> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};
   TimePoint now{};
