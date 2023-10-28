@@ -105,7 +105,7 @@ class FixService : public Service {
     });
     this->connectRetryOnFailTimerByConnectionIdMap[fixConnectionPtr->id] = timerPtr;
   }
-  std::shared_ptr<T> createStreamFix(std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host);
+  std::shared_ptr<T> createStreamFix(net::io_context* iocPtr, net::ssl::context* ctxPtr, const std::string& host);
   void connect(Subscription& subscription) {
     std::string aHostFix = this->hostFix;
     std::string aPortFix = this->portFix;
@@ -558,8 +558,9 @@ class FixService : public Service {
   std::string targetCompID;
 };
 template <>
-inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::ssl_stream<beast::tcp_stream>>::createStreamFix(
-    std::shared_ptr<net::io_context> iocPtr, std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host) {
+inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::ssl_stream<beast::tcp_stream>>::createStreamFix(net::io_context* iocPtr,
+                                                                                                                               net::ssl::context* ctxPtr,
+                                                                                                                               const std::string& host) {
   std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr(new beast::ssl_stream<beast::tcp_stream>(*iocPtr, *ctxPtr));
   // Set SNI Hostname (many hosts need this to handshake successfully)
   if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
@@ -570,8 +571,8 @@ inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::s
   return streamPtr;
 }
 template <>
-inline std::shared_ptr<beast::tcp_stream> FixService<beast::tcp_stream>::createStreamFix(std::shared_ptr<net::io_context> iocPtr,
-                                                                                         std::shared_ptr<net::ssl::context> ctxPtr, const std::string& host) {
+inline std::shared_ptr<beast::tcp_stream> FixService<beast::tcp_stream>::createStreamFix(net::io_context* iocPtr, net::ssl::context* ctxPtr,
+                                                                                         const std::string& host) {
   std::shared_ptr<beast::tcp_stream> streamPtr(new beast::tcp_stream(*iocPtr));
   return streamPtr;
 }

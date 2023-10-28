@@ -98,7 +98,7 @@ class Subscription CCAPI_FINAL {
     }
     return output;
   }
-  const std::string getSerializedCredential() const { return ::ccapi::toString(this->credential); }
+  const std::string getSerializedCredential() const { return ccapi::toString(this->credential); }
   // 'getTimeSent' only works in C++. For other languages, please use 'getTimeSentISO'.
   TimePoint getTimeSent() const { return timeSent; }
   std::string getTimeSentISO() const { return UtilTime::getISOTimestamp(timeSent); }

@@ -259,15 +259,27 @@ class Session {
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
   Session(const SessionOptions& sessionOptions = SessionOptions(), const SessionConfigs& sessionConfigs = SessionConfigs(),
-          EventHandler* eventHandler = nullptr, EventDispatcher* eventDispatcher = nullptr)
+          EventHandler* eventHandler = nullptr, EventDispatcher* eventDispatcher = nullptr
+#ifndef SWIG
+          ,
+          ServiceContext* serviceContextPtr = nullptr
+#endif
+          )
       : sessionOptions(sessionOptions),
         sessionConfigs(sessionConfigs),
         eventHandler(eventHandler),
 #ifndef CCAPI_USE_SINGLE_THREAD
         eventDispatcher(eventDispatcher),
 #endif
-        eventQueue(sessionOptions.maxEventQueueSize),
-        serviceContextPtr(new ServiceContext()) {
+        eventQueue(sessionOptions.maxEventQueueSize)
+#ifndef SWIG
+        ,
+        serviceContextPtr(serviceContextPtr)
+#endif
+  {
+    if (!this->serviceContextPtr) {
+      this->serviceContextPtr = new ServiceContext();
+    }
     CCAPI_LOGGER_FUNCTION_ENTER;
 #ifndef CCAPI_USE_SINGLE_THREAD
     if (this->eventHandler) {
@@ -291,6 +303,7 @@ class Session {
       delete this->eventDispatcher;
     }
 #endif
+    delete this->serviceContextPtr;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
   virtual void start() {
@@ -637,19 +650,19 @@ class Session {
         return;
       }
       if (serviceName == CCAPI_MARKET_DATA) {
-        std::set<std::string> correlationIdSet;
-        std::set<std::string> duplicateCorrelationIdSet;
+        // std::set<std::string> correlationIdSet;
+        // std::set<std::string> duplicateCorrelationIdSet;
         std::unordered_set<std::string> unsupportedExchangeFieldSet;
         std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
         auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
         CCAPI_LOGGER_DEBUG("exchangeFieldMap = " + toString(exchangeFieldMap));
         for (const auto& subscription : subscriptionList) {
-          auto correlationId = subscription.getCorrelationId();
-          if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
-            duplicateCorrelationIdSet.insert(correlationId);
-          } else {
-            correlationIdSet.insert(correlationId);
-          }
+          // auto correlationId = subscription.getCorrelationId();
+          // if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
+          //   duplicateCorrelationIdSet.insert(correlationId);
+          // } else {
+          //   correlationIdSet.insert(correlationId);
+          // }
           auto exchange = subscription.getExchange();
           CCAPI_LOGGER_DEBUG("exchange = " + exchange);
           auto field = subscription.getField();
@@ -663,11 +676,11 @@ class Session {
           }
           subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
-        if (!duplicateCorrelationIdSet.empty()) {
-          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
-                        "duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
-          return;
-        }
+        // if (!duplicateCorrelationIdSet.empty()) {
+        //   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
+        //                 "duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
+        //   return;
+        // }
         if (!unsupportedExchangeFieldSet.empty()) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
                         "unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
@@ -902,7 +915,8 @@ class Session {
   virtual void setTimer(const std::string& id, long delayMilliseconds, std::function<void(const boost::system::error_code&)> errorHandler,
                         std::function<void()> successHandler) {
     boost::asio::post(*this->serviceContextPtr->ioContextPtr, [this, id, delayMilliseconds, errorHandler, successHandler]() {
-      std::shared_ptr<steady_timer> timerPtr(new steady_timer(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliseconds)));
+      std::shared_ptr<boost::asio::steady_timer> timerPtr(
+          new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, boost::asio::chrono::milliseconds(delayMilliseconds)));
       timerPtr->async_wait([this, id, errorHandler, successHandler](const boost::system::error_code& ec) {
         if (this->eventHandler) {
 #ifdef CCAPI_USE_SINGLE_THREAD
@@ -963,12 +977,12 @@ class Session {
 #endif
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
-  EventHandler* eventHandler;
+  EventHandler* eventHandler{nullptr};
 #ifndef CCAPI_USE_SINGLE_THREAD
-  EventDispatcher* eventDispatcher;
+  EventDispatcher* eventDispatcher{nullptr};
   bool useInternalEventDispatcher{};
 #endif
-  std::shared_ptr<ServiceContext> serviceContextPtr;
+  ServiceContext* serviceContextPtr{nullptr};
   std::map<std::string, std::map<std::string, std::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
   std::thread t;
   Queue<Event> eventQueue;

@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceBase {
  public:
   MarketDataServiceBinanceDerivativesBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                          std::shared_ptr<ServiceContext> serviceContextPtr)
+                                          ServiceContext* serviceContextPtr)
       : MarketDataServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }
@@ -46,6 +46,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+    element.insert(CCAPI_INSTRUMENT_STATUS, x["status"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseAsset"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quoteAsset"].GetString());
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());

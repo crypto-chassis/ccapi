@@ -12,11 +12,11 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementServiceKucoin
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    try {
-      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
+    // try {
+    //   this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    // } catch (const std::exception& e) {
+    //   CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    // }
     // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
     // #else
     //     try {
