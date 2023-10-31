@@ -10,8 +10,7 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceGemini>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                       std::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceGemini>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
     this->credential = {
         {CCAPI_GEMINI_API_KEY, "account-DgM6GKGlzWtjOrdWiUyh"},
         {CCAPI_GEMINI_API_SECRET, "3zMnjHV5B1nxsfh6b8Jx7AdHZHiw"},
@@ -19,6 +18,7 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
+  ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceGemini> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};

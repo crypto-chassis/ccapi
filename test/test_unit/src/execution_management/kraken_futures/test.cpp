@@ -10,8 +10,8 @@ class ExecutionManagementServiceKrakenFuturesTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceKrakenFutures>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                              std::make_shared<ServiceContext>());
+    this->service =
+        std::make_shared<ExecutionManagementServiceKrakenFutures>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
     this->credential = {
         {CCAPI_KRAKEN_FUTURES_API_KEY, "Bx0+DtmSNWLNXQVaJ6dcvaWwEKitPU4MadMhEltVe9aSY/nfhkab46IJ"},
         {CCAPI_KRAKEN_FUTURES_API_SECRET, "oMpjprZZIUvn8+0B55zgO3ncp448AI+a7KFwo5lHSmf650mawBQ7ez5pNvDkhRlsHDZuPM+gvPs6dDB8k+Skr9gw"},
@@ -19,6 +19,7 @@ class ExecutionManagementServiceKrakenFuturesTest : public ::testing::Test {
     this->timestamp = 1499827319000;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp);
   }
+  ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceKrakenFutures> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};

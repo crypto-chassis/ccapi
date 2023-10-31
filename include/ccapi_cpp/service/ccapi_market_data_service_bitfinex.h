@@ -7,26 +7,26 @@ namespace ccapi {
 class MarketDataServiceBitfinex : public MarketDataService {
  public:
   MarketDataServiceBitfinex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                            std::shared_ptr<ServiceContext> serviceContextPtr)
+                            ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITFINEX;
     this->baseUrlWs = std::string(CCAPI_BITFINEX_PUBLIC_URL_WS_BASE) + "/ws/2";
     this->baseUrlRest = CCAPI_BITFINEX_PUBLIC_URL_REST_BASE;
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    try {
-      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
-    try {
-      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-#endif
+    //     try {
+    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
+    // #else
+    //     try {
+    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #endif
     this->getRecentTradesTarget = "/v2/trades/{Symbol}/hist";
     this->getInstrumentsTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
     this->getInstrumentTarget = CCAPI_BITFINEX_GET_INSTRUMENTS_PATH;
