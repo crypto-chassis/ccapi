@@ -10,8 +10,7 @@ class ExecutionManagementServiceBitmexTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
   void SetUp() override {
-    this->service = std::make_shared<ExecutionManagementServiceBitmex>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(),
-                                                                       std::make_shared<ServiceContext>());
+    this->service = std::make_shared<ExecutionManagementServiceBitmex>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
     this->credential = {
         {CCAPI_BITMEX_API_KEY, "LAqUlngMIQkIUjXMUreyu3qn"},
         {CCAPI_BITMEX_API_SECRET, "chNOOS4KvNXR_Xq4k4c9qsfoKWvnDecLATCRlcBwyKDYnWgO"},
@@ -19,6 +18,7 @@ class ExecutionManagementServiceBitmexTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
+  ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceBitmex> service{nullptr};
   std::map<std::string, std::string> credential;
   long long timestamp{};

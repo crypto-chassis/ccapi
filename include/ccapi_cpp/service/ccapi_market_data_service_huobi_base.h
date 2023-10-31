@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceHuobiBase : public MarketDataService {
  public:
   MarketDataServiceHuobiBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                             std::shared_ptr<ServiceContext> serviceContextPtr)
+                             ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->needDecompressWebsocketMessage = true;
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP

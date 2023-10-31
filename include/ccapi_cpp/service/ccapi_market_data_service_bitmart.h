@@ -7,26 +7,26 @@ namespace ccapi {
 class MarketDataServiceBitmart : public MarketDataService {
  public:
   MarketDataServiceBitmart(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                           std::shared_ptr<ServiceContext> serviceContextPtr)
+                           ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITMART;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/api?protocol=1.1";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    try {
-      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
-    try {
-      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-#endif
+    //     try {
+    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
+    // #else
+    //     try {
+    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #endif
     this->apiKeyName = CCAPI_BITMART_API_KEY;
     this->apiSecretName = CCAPI_BITMART_API_SECRET;
     this->apiMemo = CCAPI_BITMART_API_MEMO;

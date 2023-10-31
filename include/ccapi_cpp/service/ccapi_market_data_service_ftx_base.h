@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceFtxBase : public MarketDataService {
  public:
   MarketDataServiceFtxBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                           std::shared_ptr<ServiceContext> serviceContextPtr)
+                           ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->shouldAlignSnapshot = true;
     this->getRecentTradesTarget = "/api/markets/{market_name}/trades";

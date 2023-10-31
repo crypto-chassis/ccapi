@@ -14,19 +14,19 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     this->baseUrlRest = CCAPI_BITFINEX_PRIVATE_URL_REST_BASE;
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    try {
-      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
-    try {
-      this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
-#endif
+    //     try {
+    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
+    // #else
+    //     try {
+    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
+    //     } catch (const std::exception& e) {
+    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    //     }
+    // #endif
     this->apiKeyName = CCAPI_BITFINEX_API_KEY;
     this->apiSecretName = CCAPI_BITFINEX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});

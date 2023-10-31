@@ -7,18 +7,18 @@ namespace ccapi {
 class MarketDataServiceKucoinFutures : public MarketDataServiceKucoinBase {
  public:
   MarketDataServiceKucoinFutures(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                 std::shared_ptr<ServiceContext> serviceContextPtr)
+                                 ServiceContext* serviceContextPtr)
       : MarketDataServiceKucoinBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KUCOIN_FUTURES;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     // this->setHostWsFromUrlWs(this->baseUrlWs);
-    try {
-      this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    } catch (const std::exception& e) {
-      CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    }
+    // try {
+    //   this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
+    // } catch (const std::exception& e) {
+    //   CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
+    // }
     // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
     // #else
     //     try {

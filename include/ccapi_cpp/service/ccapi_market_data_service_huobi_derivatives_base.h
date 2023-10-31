@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase {
  public:
   MarketDataServiceHuobiDerivativesBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                                        std::shared_ptr<ServiceContext> serviceContextPtr)
+                                        ServiceContext* serviceContextPtr)
       : MarketDataServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }

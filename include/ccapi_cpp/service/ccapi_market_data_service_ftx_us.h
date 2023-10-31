@@ -7,7 +7,7 @@ namespace ccapi {
 class MarketDataServiceFtxUs : public MarketDataServiceFtxBase {
  public:
   MarketDataServiceFtxUs(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
-                         std::shared_ptr<ServiceContext> serviceContextPtr)
+                         ServiceContext* serviceContextPtr)
       : MarketDataServiceFtxBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_FTX_US;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
