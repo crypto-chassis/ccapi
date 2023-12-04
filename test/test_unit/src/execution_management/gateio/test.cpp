@@ -265,7 +265,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertTextMessageToMessageRestGetO
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "5.00032");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "0.5");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "2.50016");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "2.50016");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "cancelled");
 }
 
