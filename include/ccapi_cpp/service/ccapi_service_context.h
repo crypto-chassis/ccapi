@@ -99,7 +99,7 @@ class ServiceContext CCAPI_FINAL {
     this->sslContextPtr->set_verify_mode(boost::asio::ssl::verify_none);
   }
   ServiceContext(SslContextPtr sslContextPtr) {
-    this->ioContextPtr = new boost::asio::io_context();
+    this->ioContextPtr = new IoContext();
     this->executorWorkGuardPtr = new ExecutorWorkGuard(this->ioContextPtr->get_executor());
     this->sslContextPtr = sslContextPtr;
     this->sslContextPtr->set_verify_mode(boost::asio::ssl::verify_none);
@@ -119,9 +119,9 @@ class ServiceContext CCAPI_FINAL {
     delete this->sslContextPtr;
   }
   void start() {
-    CCAPI_LOGGER_INFO("about to start client asio io_context run loop");
+    CCAPI_LOGGER_INFO("about to start asio io_context run loop");
     this->ioContextPtr->run();
-    CCAPI_LOGGER_INFO("just exited client asio io_context run loop");
+    CCAPI_LOGGER_INFO("just exited asio io_context run loop");
   }
   void stop() {
     this->executorWorkGuardPtr->reset();

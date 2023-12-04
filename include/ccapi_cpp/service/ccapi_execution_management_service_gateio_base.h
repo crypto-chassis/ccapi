@@ -284,7 +284,7 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
   }
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("text", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -430,15 +430,16 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
               message.setTimeReceived(timeReceived);
               message.setCorrelationIdList({subscription.getCorrelationId()});
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+              const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
                   {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
                   {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("text", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_QUANTITY, std::make_pair(this->amountName, JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("left", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_total", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_STATUS, std::make_pair("event", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("filled_total", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_FINISH_AS, std::make_pair("finish_as", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair(this->symbolName, JsonDataType::STRING)},
               };
               Element info;
@@ -462,6 +463,22 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     }
     event.setMessageList(messageList);
     return event;
+  }
+  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
+    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
+    {
+      auto it1 = x.FindMember("filled_total");
+      auto it2 = x.FindMember("avg_deal_price");
+      if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
+        auto it1Str = std::string(it1->value.GetString());
+        auto it2Str = std::string(it2->value.GetString());
+        if (!it1Str.empty() && !it2Str.empty() && it2Str != "0") {
+          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY,
+                         Decimal(UtilString::printDoubleScientific(std::stod(it1Str) / std::stod(it2Str))).toString());
+        }
+      }
+    }
   }
   bool isDerivatives{};
   std::string symbolName;
