@@ -45,7 +45,11 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
           element.insert(CCAPI_EM_POSITION_QUANTITY, positionAmt);
           element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["entryPrice"].GetString());
           element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
-          element.insert(CCAPI_EM_UNREALIZED_PNL, x["unrealizedProfit"].GetString());
+          if (x.HasMember("unrealizedProfit")) {
+            element.insert(CCAPI_EM_UNREALIZED_PNL, x["unrealizedProfit"].GetString());
+          } else {
+            element.insert(CCAPI_EM_UNREALIZED_PNL, x["unRealizedProfit"].GetString());
+          }
           element.insert(CCAPI_LAST_UPDATED_TIME_SECONDS, UtilTime::convertMillisecondsStrToSecondsStr(x["updateTime"].GetString()));
           elementList.emplace_back(std::move(element));
         }
