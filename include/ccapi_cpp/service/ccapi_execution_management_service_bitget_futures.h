@@ -241,12 +241,11 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         for (const auto& x : document["data"].GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_ASSET, x["coinName"].GetString());
-          std::string available = x["available"].GetString();
+          element.insert(CCAPI_EM_ASSET, x["marginCoin"].GetString());
+          std::string available = x["crossMaxAvailable"].GetString();
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
-          std::string frozen = x["frozen"].GetString();
-          std::string lock = x["lock"].GetString();
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, (Decimal(available).add(Decimal(frozen)).add(Decimal(lock))).toString());
+          std::string locked = x["locked"].GetString();
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, (Decimal(available).add(Decimal(locked))).toString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -331,6 +330,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         rj::Value args(rj::kArrayType);
         const auto& fieldSet = subscription.getFieldSet();
         const auto& instrumentSet = subscription.getInstrumentSet();
+        const auto& instrumentType = subscription.getInstrumentType();
         for (const auto& field : fieldSet) {
           std::string channel;
           if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
@@ -340,7 +340,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
             rj::Value arg(rj::kObjectType);
             arg.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
             arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
-            arg.AddMember("instType", rj::Value("spbl").Move(), allocator);
+            arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
             args.PushBack(arg, allocator);
           }
         }
