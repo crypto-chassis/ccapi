@@ -305,7 +305,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
           element.insert(CCAPI_EM_ASSET, x["ccy"].GetString());
           std::string availEq = x["availEq"].GetString();
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, availEq.empty() ? x["availBal"].GetString() : availEq);
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["eq"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["cashBal"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
