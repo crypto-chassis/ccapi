@@ -1,7 +1,3 @@
-# Notifications:
-* New features: added REST endpoints for fetching historical public trades, historical/recent candlesticks, and market depth (i.e. order book snapshot).
-* Small breaking change to correct an English typo: In `SessionOptions`, the substring "MilliSeconds" has been renamed to "Milliseconds".
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
