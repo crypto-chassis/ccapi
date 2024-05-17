@@ -27,18 +27,29 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
     //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     //     }
     // #endif
-    this->getRecentTradesTarget = "/spot/v3/public/quote/trades";
-    this->getHistoricalTradesTarget = "/spot/v3/public/quote/trades";
-    this->getRecentCandlesticksTarget = "/spot/v3/public/quote/kline";
-    this->getHistoricalCandlesticksTarget = "/spot/v3/public/quote/kline";
-    this->getMarketDepthTarget = "/spot/v3/public/quote/depth";
-    this->getInstrumentsTarget = "/spot/v3/public/symbols";
+    this->getRecentTradesTarget = "/v5/market/recent-trade";
+    // this->getHistoricalTradesTarget = "/spot/v3/public/quote/trades";
+    this->getRecentCandlesticksTarget = "/v5/market/kline";
+    // this->getHistoricalCandlesticksTarget = "/spot/v3/public/quote/kline";
+    this->getMarketDepthTarget = "/v5/market/orderbook";
+    this->getInstrumentsTarget = "/v5/market/instruments-info";
   }
   virtual ~MarketDataServiceBybit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
+  std::string convertCandlestickIntervalSecondsToInterval(int intervalSeconds) {
+    std::string interval;
+    if (intervalSeconds < 86400) {
+      interval = std::to_string(intervalSeconds / 60);
+    } else if (intervalSeconds == 86400) {
+      interval = "D";
+    } else {
+      interval = "W";
+    }
+    return interval;
+  }
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -49,8 +60,8 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
         channelId = CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH;
       }
     } else if (field == CCAPI_CANDLESTICK) {
-      std::string interval =
-          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), "s", "m", "h", "d", "w");
+      int intervalSeconds = std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS));
+      std::string interval = this->convertCandlestickIntervalSecondsToInterval(intervalSeconds);
       std::string toReplace = "{interval}";
       channelId.replace(channelId.find(toReplace), toReplace.length(), interval);
     }
@@ -245,6 +256,7 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
         this->appendParam(queryString, param,
                           {
                               {CCAPI_LIMIT, "limit"},
+                              {CCAPI_INSTRUMENT_TYPE, "category"},
                           });
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
@@ -259,13 +271,14 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
                           {
                               {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "interval"},
                               {CCAPI_LIMIT, "limit"},
-                              {CCAPI_START_TIME_SECONDS, "startTime"},
-                              {CCAPI_END_TIME_SECONDS, "endTime"},
+                              {CCAPI_START_TIME_SECONDS, "start"},
+                              {CCAPI_END_TIME_SECONDS, "end"},
+                              {CCAPI_INSTRUMENT_TYPE, "category"},
                           },
                           {
                               {CCAPI_CANDLESTICK_INTERVAL_SECONDS,
                                [that = shared_from_base<MarketDataServiceBybit>()](const std::string& input) {
-                                 return that->convertCandlestickIntervalSecondsToInterval(std::stoi(input), "", "m", "h", "d", "w");
+                                 return that->convertCandlestickIntervalSecondsToInterval(std::stoi(input));
                                }},
                               {CCAPI_START_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBybit>()](
                                                              const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
@@ -283,32 +296,37 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
         this->appendParam(queryString, param,
                           {
                               {CCAPI_LIMIT, "limit"},
+                              {CCAPI_INSTRUMENT_TYPE, "category"},
                           });
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
-      case Request::Operation::GET_INSTRUMENT: {
-        req.method(http::verb::get);
-        auto target = this->getInstrumentsTarget;
-        req.target(target);
-      } break;
+      case Request::Operation::GET_INSTRUMENT:
       case Request::Operation::GET_INSTRUMENTS: {
         req.method(http::verb::get);
         auto target = this->getInstrumentsTarget;
-        req.target(target);
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                  {
+                      {CCAPI_LIMIT, "limit"},
+                      {CCAPI_INSTRUMENT_TYPE, "category"},
+                  });
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
-    element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseCoin"].GetString());
     element.insert(CCAPI_QUOTE_ASSET, x["quoteCoin"].GetString());
-    element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["minPricePrecision"].GetString());
-    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["basePrecision"].GetString());
-    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minTradeQty"].GetString());
-    element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["minTradeAmt"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["priceFilter"]["tickSize"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSizeFilter"]["basePrecision"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["lotSizeFilter"]["minOrderQty"].GetString());
+    element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["lotSizeFilter"]["minOrderAmt"].GetString());
   }
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
@@ -323,8 +341,9 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
           marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(x["time"].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
-          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["qty"].GetString()))});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, x["isBuyerMaker"].GetString() ? "0" : "1"});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(std::string(x["size"].GetString()))});
+          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["execId"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(x["side"].GetString()) == "buy" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
@@ -334,13 +353,14 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
         for (const auto& x : document["result"]["list"].GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
-          marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(x["t"].GetString()));
+          marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(x[0].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, x["o"].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, x["h"].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, x["l"].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, x["c"].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, x["v"].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, x[1].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, x[2].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, x[3].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, x[4].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, x[5].GetString()});        
+          dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, x[6].GetString()});    
           marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
@@ -349,14 +369,14 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
         MarketDataMessage marketDataMessage;
         marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
         const rj::Value& result = document["result"];
-        marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(result["time"].GetString()));
-        for (const auto& x : result["bids"].GetArray()) {
+        marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(result["ts"].GetString()));
+        for (const auto& x : result["b"].GetArray()) {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
           marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
         }
-        for (const auto& x : result["asks"].GetArray()) {
+        for (const auto& x : result["a"].GetArray()) {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
           dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
@@ -369,7 +389,7 @@ class MarketDataServiceBybit : public MarketDataServiceBybitBase {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["result"]["list"].GetArray()) {
-          if (std::string(x["name"].GetString()) == request.getInstrument()) {
+          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
             Element element;
             this->extractInstrumentInfo(element, x);
             message.setElementList({element});
