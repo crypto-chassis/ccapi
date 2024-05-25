@@ -732,7 +732,7 @@ int ceilSearch(const std::vector<T>& c, int low, int high, T x) {
   if (x <= c[low]) {
     return low;
   }
-  for (i = low; i < high; i++) {
+  for (i = low; i < high - 1; i++) {
     if (c[i] == x) {
       return i;
     }
