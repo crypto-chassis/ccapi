@@ -212,7 +212,7 @@
 #define CCAPI_OPEN_PRICE "OPEN_PRICE"
 #endif
 #ifndef CCAPI_HIGH_PRICE
-#define CCAPI_HIGH_PRICE "HIG_PRICEH"
+#define CCAPI_HIGH_PRICE "HIGH_PRICE"
 #endif
 #ifndef CCAPI_LOW_PRICE
 #define CCAPI_LOW_PRICE "LOW_PRICE"
@@ -354,9 +354,8 @@
 #define CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_CANDLESTICKS "futures.candlesticks"
 #define CCAPI_WEBSOCKET_CRYPTOCOM_CHANNEL_TRADE "trade.{instrument_name}"
 #define CCAPI_WEBSOCKET_CRYPTOCOM_CHANNEL_BOOK "book.{instrument_name}.{depth}"
-#define CCAPI_WEBSOCKET_BYBIT_CHANNEL_TRADE "trade.{symbol}"
-#define CCAPI_WEBSOCKET_BYBIT_CHANNEL_BOOK_TICKER "bookticker.{symbol}"
-#define CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH "orderbook.40.{symbol}"
+#define CCAPI_WEBSOCKET_BYBIT_CHANNEL_TRADE "publicTrade.{symbol}"
+#define CCAPI_WEBSOCKET_BYBIT_CHANNEL_DEPTH "orderbook.{depth}.{symbol}"
 #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_KLINE "kline.{interval}.{symbol}"
 #define CCAPI_WEBSOCKET_BYBIT_CHANNEL_KLINE_2 "kline"
 #define CCAPI_WEBSOCKET_BYBIT_DERIVATIVES_CHANNEL_TRADE "publicTrade.{symbol}"
