@@ -689,7 +689,7 @@ Received an event of type SUBSCRIPTION_DATA:
   ]
 Bye
 ```
-* Subscription fields: `ORDER_UPDATE`, `PRIVATE_TRADE`.
+* Subscription fields: `ORDER_UPDATE`, `PRIVATE_TRADE`, `BALANCE_UPDATE`, `POSITION_UPDATE`.
 
 ### Advanced Execution Management
 
