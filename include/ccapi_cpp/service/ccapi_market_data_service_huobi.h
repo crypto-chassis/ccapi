@@ -36,16 +36,11 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    CCAPI_LOGGER_TRACE("");
     if (field == CCAPI_MARKET_DEPTH) {
-      CCAPI_LOGGER_TRACE("");
       if (conflateIntervalMilliseconds < 100) {
-        CCAPI_LOGGER_TRACE("");
         if (marketDepthRequested == 1) {
-          CCAPI_LOGGER_TRACE("");
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
         } else {
-          CCAPI_LOGGER_TRACE("");
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BY_PRICE_REFRESH_UPDATE;
           int marketDepthSubscribedToExchange = 1;
           marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
