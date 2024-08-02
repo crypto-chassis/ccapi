@@ -1,3 +1,5 @@
+# Announcement: We have upgraded bybit API from v3 to v5 due to bybit will discontinue v3 on August 31, 2024. We've moved derivatives support from bybit-derivatives to bybit and updated documentions accordingly (See #specify-instrument-type section). We've also added websocket balance/position realtime update support on bybit. In addition, please use bybit's Unified Trading Account (https://www.bybit.com/en/help-center/article/Introduction-to-Bybit-Unified-Trading-Account) for best API support. Thank you.
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -35,6 +37,7 @@
       - [Override exchange urls](#override-exchange-urls)
       - [Complex request parameters](#complex-request-parameters-1)
       - [Send request by Websocket API](#send-request-by-websocket-api)
+      - [Specify instrument type](#specify-instrument-type)
     - [FIX API](#fix-api)
     - [More Advanced Topics](#more-advanced-topics)
       - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
@@ -56,8 +59,8 @@
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
 * It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
 * Supported exchanges:
-  * Market Data: ascendex, binance, binance-usds-futures, binance-coin-futures, binance-us, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, bybit-derivatives, coinbase, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, mexc-futures, okx, whitebit.
-  * Execution Management: ascendex, binance, binance-usds-futures, binance-coin-futures, binance-us, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, bybit-derivatives, coinbase, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, okx.
+  * Market Data: ascendex, binance, binance-usds-futures, binance-coin-futures, binance-us, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, coinbase, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, mexc-futures, okx, whitebit.
+  * Execution Management: ascendex, binance, binance-usds-futures, binance-coin-futures, binance-us, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, coinbase, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, okx.
   * FIX: coinbase, gemini.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
 * A single order execution application is provided as an end-to-end solution for executing large orders.
@@ -790,6 +793,14 @@ request.appendParam({
     {"QUANTITY", "0.001"},
 });
 session.sendRequestByWebsocket(request);
+```
+
+#### Specify instrument type
+Some exchanges (i.e. bybit) might need instrument type for `Subscription`. Use `Subscription`'s `setInstrumentType` method.
+```
+Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH");
+subscription.setInstrumentType("spot");
+session.subscribe(subscription);
 ```
 
 ### FIX API

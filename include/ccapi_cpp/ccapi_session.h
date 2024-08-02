@@ -79,9 +79,6 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
 #include "ccapi_cpp/service/ccapi_market_data_service_bybit.h"
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
-#include "ccapi_cpp/service/ccapi_market_data_service_bybit_derivatives.h"
-#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
 #include "ccapi_cpp/service/ccapi_market_data_service_ascendex.h"
 #endif
@@ -185,9 +182,6 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_BYBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service_bybit.h"
-#endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
-#include "ccapi_cpp/service/ccapi_execution_management_service_bybit_derivatives.h"
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
 #include "ccapi_cpp/service/ccapi_execution_management_service_ascendex.h"
@@ -412,10 +406,6 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BYBIT] =
         std::make_shared<MarketDataServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
-    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES] =
-        std::make_shared<MarketDataServiceBybitDerivatives>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_ASCENDEX] =
         std::make_shared<MarketDataServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -550,10 +540,6 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BYBIT] =
         std::make_shared<ExecutionManagementServiceBybit>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
-#ifdef CCAPI_ENABLE_EXCHANGE_BYBIT_DERIVATIVES
-    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES] =
-        std::make_shared<ExecutionManagementServiceBybitDerivatives>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
-#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_ASCENDEX] =
         std::make_shared<ExecutionManagementServiceAscendex>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
@@ -636,6 +622,22 @@ class Session {
   }
   virtual void subscribe(std::vector<Subscription>& subscriptionList) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    for (auto& subscription : subscriptionList) {
+      auto exchange = subscription.getExchange();
+      if (exchange == CCAPI_EXCHANGE_NAME_BYBIT) {
+        auto instrumentType = subscription.getInstrumentType();
+        if (instrumentType.empty()) {
+          instrumentType = "spot";
+        }
+        std::vector<std::string> instrumentTypeList = {"spot", "linear", "inverse", "option"};
+        if (std::find(instrumentTypeList.begin(), instrumentTypeList.end(), instrumentType) == instrumentTypeList.end()) {
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
+                        "unsupported exchange instrument types: " + toString(instrumentType) + ". Allowed values: " + toString(instrumentTypeList) + ".");
+          return;
+        }
+        subscription.setInstrumentType(instrumentType);
+      }
+    }
     std::map<std::string, std::vector<Subscription> > subscriptionListByServiceNameMap;
     for (const auto& subscription : subscriptionList) {
       auto serviceName = subscription.getServiceName();
@@ -650,19 +652,10 @@ class Session {
         return;
       }
       if (serviceName == CCAPI_MARKET_DATA) {
-        // std::set<std::string> correlationIdSet;
-        // std::set<std::string> duplicateCorrelationIdSet;
         std::unordered_set<std::string> unsupportedExchangeFieldSet;
-        std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
         auto exchangeFieldMap = this->sessionConfigs.getExchangeFieldMap();
         CCAPI_LOGGER_DEBUG("exchangeFieldMap = " + toString(exchangeFieldMap));
         for (const auto& subscription : subscriptionList) {
-          // auto correlationId = subscription.getCorrelationId();
-          // if (correlationIdSet.find(correlationId) != correlationIdSet.end()) {
-          //   duplicateCorrelationIdSet.insert(correlationId);
-          // } else {
-          //   correlationIdSet.insert(correlationId);
-          // }
           auto exchange = subscription.getExchange();
           CCAPI_LOGGER_DEBUG("exchange = " + exchange);
           auto field = subscription.getField();
@@ -674,29 +667,16 @@ class Session {
             CCAPI_LOGGER_DEBUG("unsupported exchange " + exchange + ", field = " + field);
             unsupportedExchangeFieldSet.insert(exchange + "|" + field);
           }
-          subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
-        // if (!duplicateCorrelationIdSet.empty()) {
-        //   this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
-        //                 "duplicated correlation ids: " + toString(duplicateCorrelationIdSet));
-        //   return;
-        // }
         if (!unsupportedExchangeFieldSet.empty()) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
                         "unsupported exchange fields: " + toString(unsupportedExchangeFieldSet));
           return;
         }
+        std::map<std::string, std::vector<Subscription> > subscriptionListByExchangeMap;
         for (const auto& subscription : subscriptionList) {
           auto exchange = subscription.getExchange();
-          if (exchange == CCAPI_EXCHANGE_NAME_BYBIT_DERIVATIVES) {
-            const auto& instrumentType = subscription.getInstrumentType();
-            std::vector<std::string> instrumentTypeList = {"usdt-contract", "usdc-contract", "usdc-options"};
-            if (std::find(instrumentTypeList.begin(), instrumentTypeList.end(), instrumentType) == instrumentTypeList.end()) {
-              this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
-                            "unsupported exchange instrument types: " + toString(instrumentType) + ". Allowed values: " + toString(instrumentTypeList) + ".");
-              return;
-            }
-          }
+          subscriptionListByExchangeMap[exchange].push_back(subscription);
         }
         CCAPI_LOGGER_TRACE("subscriptionListByExchangeMap = " + toString(subscriptionListByExchangeMap));
         for (auto& subscriptionListByExchange : subscriptionListByExchangeMap) {
