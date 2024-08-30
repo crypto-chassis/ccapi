@@ -636,6 +636,18 @@ class Session {
           return;
         }
         subscription.setInstrumentType(instrumentType);
+        } else if (exchange == CCAPI_EXCHANGE_NAME_BITGET_FUTURES) {
+        auto instrumentType = subscription.getInstrumentType();
+        if (instrumentType.empty()) {
+          instrumentType = "USDT-FUTURES";
+        }
+        std::vector<std::string> instrumentTypeList = {"USDT-FUTURES", "COIN-FUTURES", "USDC-FUTURES"};
+        if (std::find(instrumentTypeList.begin(), instrumentTypeList.end(), instrumentType) == instrumentTypeList.end()) {
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
+                        "unsupported exchange instrument types: " + toString(instrumentType) + ". Allowed values: " + toString(instrumentTypeList) + ".");
+          return;
+        }
+        subscription.setInstrumentType(instrumentType);
       }
     }
     std::map<std::string, std::vector<Subscription> > subscriptionListByServiceNameMap;

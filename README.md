@@ -1,4 +1,4 @@
-# Announcement: We have upgraded bybit API from v3 to v5 due to bybit will discontinue v3 on August 31, 2024. We've moved derivatives support from bybit-derivatives to bybit and updated documentions accordingly (See #specify-instrument-type section). We've also added websocket balance/position realtime update support on bybit. In addition, please use bybit's Unified Trading Account (https://www.bybit.com/en/help-center/article/Introduction-to-Bybit-Unified-Trading-Account) for best API support. Thank you.
+# Announcement: We have upgraded bybit API from v3 to v5 due to bybit will discontinue v3 on August 31, 2024. We've moved derivatives support from bybit-derivatives to bybit and updated documentations accordingly (See #specify-instrument-type section). We've also added websocket balance/position realtime update support on bybit. In addition, please use bybit's Unified Trading Account (https://www.bybit.com/en/help-center/article/Introduction-to-Bybit-Unified-Trading-Account) for best API support. Thank you.
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -64,8 +64,6 @@
   * FIX: coinbase, gemini.
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
 * A single order execution application is provided as an end-to-end solution for executing large orders.
-* To spur innovation and industry collaboration, this library is open for use by the public without cost.
-* We specialize in market data collection, high speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
 
 ## Branches

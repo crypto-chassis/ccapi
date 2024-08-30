@@ -10,7 +10,7 @@ class MarketDataServiceBitgetFutures : public MarketDataServiceBitgetBase {
                                  ServiceContext* serviceContextPtr)
       : MarketDataServiceBitgetBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITGET_FUTURES;
-    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/mix/v1/stream";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v2/ws/public";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
@@ -27,9 +27,12 @@ class MarketDataServiceBitgetFutures : public MarketDataServiceBitgetBase {
     //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     //     }
     // #endif
-    this->getRecentTradesTarget = "/api/mix/v1/market/fills";
-    this->getInstrumentTarget = "/api/mix/v1/market/contracts";
-    this->getInstrumentsTarget = "/api/mix/v1/market/contracts";
+    this->getRecentTradesTarget = "/api/v2/mix/market/fills";
+    this->getHistoricalTradesTarget = "/api/v2/mix/market/fills-history";
+    this->getInstrumentTarget = "/api/v2/mix/market/contracts";
+    this->getInstrumentsTarget = "/api/v2/mix/market/contracts";
+    this->getRecentCandlesticksTarget = "/api/v2/mix/market/candles";
+    this->getHistoricalCandlesticksTarget = "/api/v2/mix/market/candles";
     this->isDerivatives = true;
   }
   virtual ~MarketDataServiceBitgetFutures() {}

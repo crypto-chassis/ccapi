@@ -10,7 +10,7 @@ class MarketDataServiceBitget : public MarketDataServiceBitgetBase {
                           ServiceContext* serviceContextPtr)
       : MarketDataServiceBitgetBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITGET;
-    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/spot/v1/stream";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v2/ws/public";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
@@ -27,9 +27,12 @@ class MarketDataServiceBitget : public MarketDataServiceBitgetBase {
     //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     //     }
     // #endif
-    this->getRecentTradesTarget = "/api/spot/v1/market/fills";
-    this->getInstrumentTarget = "/api/spot/v1/public/product";
-    this->getInstrumentsTarget = "/api/spot/v1/public/products";
+    this->getRecentTradesTarget = "/api/v2/spot/market/fills";
+    this->getHistoricalTradesTarget = "/api/v2/spot/market/fills-history";
+    this->getInstrumentTarget = "/api/v2/spot/public/symbols";
+    this->getInstrumentsTarget = "/api/v2/spot/public/symbols";
+    this->getRecentCandlesticksTarget = "/api/v2/spot/market/candles";
+    this->getHistoricalCandlesticksTarget = "/api/v2/spot/market/candles";
   }
   virtual ~MarketDataServiceBitget() {}
 };
