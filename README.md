@@ -65,6 +65,7 @@
 * A spot market making application is provided as an end-to-end solution for liquidity providers.
 * A single order execution application is provided as an end-to-end solution for executing large orders.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
+* If you prefer simplicity over speed, please visit our sibling project https://github.com/crypto-chassis/crypto-chassis-trade.
 
 ## Branches
 * The `develop` branch may contain experimental features.
