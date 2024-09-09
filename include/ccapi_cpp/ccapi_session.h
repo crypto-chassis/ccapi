@@ -636,7 +636,7 @@ class Session {
           return;
         }
         subscription.setInstrumentType(instrumentType);
-        } else if (exchange == CCAPI_EXCHANGE_NAME_BITGET_FUTURES) {
+      } else if (exchange == CCAPI_EXCHANGE_NAME_BITGET_FUTURES) {
         auto instrumentType = subscription.getInstrumentType();
         if (instrumentType.empty()) {
           instrumentType = "USDT-FUTURES";
