@@ -345,27 +345,28 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         const auto& fieldSet = subscription.getFieldSet();
         const auto& instrumentSet = subscription.getInstrumentSet();
         const auto& instrumentType = subscription.getInstrumentType();
-        //this for is weird 
         for (const auto& field : fieldSet) {
-          std::string channel;
-          if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-            channel = "orders";
-          } else if (fieldSet.find(CCAPI_EM_POSITION_UPDATE) != fieldSet.end()){
-            //if channel == positions insdtId should always be default
-            channel = "positions";
-          } else if (fieldSet.find(CCAPI_EM_BALANCE_UPDATE) != fieldSet.end()){
-            //if channel == positions insdtId should always be default
-                      std::cout<<"222222222222222222222222222222"<<std::endl;
-
-             channel = "account"; 
-          }
-          for (const auto& instrument : instrumentSet) {
-            rj::Value arg(rj::kObjectType);
-            arg.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
-            arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
-            arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
-            args.PushBack(arg, allocator);
-          }
+            if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
+                for (const auto& instrument : instrumentSet) {
+                    rj::Value arg(rj::kObjectType); 
+                    arg.AddMember("channel", rj::Value("orders", allocator).Move(), allocator);
+                    arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
+                    arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
+                    args.PushBack(arg, allocator); 
+                }
+            } else if (field == CCAPI_EM_POSITION_UPDATE) {
+                rj::Value arg(rj::kObjectType); 
+                arg.AddMember("channel", rj::Value("positions", allocator).Move(), allocator);
+                arg.AddMember("instId", rj::Value("default", allocator).Move(), allocator);
+                arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
+                args.PushBack(arg, allocator);
+            } else if (field == CCAPI_EM_BALANCE_UPDATE) {
+                rj::Value arg(rj::kObjectType); 
+                arg.AddMember("channel", rj::Value("account", allocator).Move(), allocator);
+                arg.AddMember("coin", rj::Value("default", allocator).Move(), allocator);
+                arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
+                args.PushBack(arg, allocator);
+            }
         }
         document.AddMember("args", args, allocator);
         rj::StringBuffer stringBufferSubscribe;
@@ -413,8 +414,9 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       const rj::Value& arg = document["arg"];
       std::string channel = std::string(arg["channel"].GetString());
       event.setType(Event::Type::SUBSCRIPTION_DATA);
-      std::string instrument = arg["instId"].GetString();
-      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+      std::string instId = (channel == "account") ? "coin" : "instId";
+      std::string instrument = arg[instId.c_str()].GetString();
+      if (instrumentSet.empty() || instrument == "default" || instrumentSet.find(instrument) != instrumentSet.end()) {
         if (channel == "orders") {
           if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
             const rj::Value& data = document["data"];
