@@ -55,9 +55,12 @@ class UtilString CCAPI_FINAL {
       output += ".";
       output += c.substr(c.size() + exponent);
     } else {
-      output = std::string(-exponent - c.size() + 1, '0');
-      output += ".";
-      output += c;
+//      output = std::string(-exponent - c.size() + 1, '0');
+//      output += ".";
+//      output += c;  // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "000.124"
+      output = "0.";
+      output += std::string(-exponent - c.size(), '0');
+      output += c;   // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "0.00124"
     }
     return output;
   }
