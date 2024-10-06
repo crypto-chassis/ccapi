@@ -55,9 +55,12 @@ class UtilString CCAPI_FINAL {
       output += ".";
       output += c.substr(c.size() + exponent);
     } else {
-      output = std::string(-exponent - c.size() + 1, '0');
-      output += ".";
-      output += c;
+//      output = std::string(-exponent - c.size() + 1, '0');
+//      output += ".";
+//      output += c;  // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "000.124"
+      output = "0.";
+      output += std::string(-exponent - c.size(), '0');
+      output += c;   // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "0.00124"
     }
     return output;
   }
@@ -490,6 +493,8 @@ class UtilAlgorithm CCAPI_FINAL {
         EVP_DigestInit_ex(context, EVP_sha512(), NULL);
         break;
       default:
+        // Release the context, adding an extra line here to avoid potential memory leaks that may occur in computeHash
+        EVP_MD_CTX_free(context);
         throw std::invalid_argument("invalid shaVersion");
     }
     EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length());
