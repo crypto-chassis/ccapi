@@ -490,6 +490,8 @@ class UtilAlgorithm CCAPI_FINAL {
         EVP_DigestInit_ex(context, EVP_sha512(), NULL);
         break;
       default:
+        // Release the context, adding an extra line here to avoid potential memory leaks that may occur in computeHash
+        EVP_MD_CTX_free(context);
         throw std::invalid_argument("invalid shaVersion");
     }
     EVP_DigestUpdate(context, unhashed.c_str(), unhashed.length());
