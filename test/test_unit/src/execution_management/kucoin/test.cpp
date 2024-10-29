@@ -15,7 +15,7 @@ class ExecutionManagementServiceKucoinTest : public ::testing::Test {
         {CCAPI_KUCOIN_API_KEY, "60bb01032f6e210006b760a9"},
         {CCAPI_KUCOIN_API_SECRET, "2ebbd3aa-35af-4b5e-b2e5-df94bb940f83"},
         {CCAPI_KUCOIN_API_PASSPHRASE, "0x1a5y8koaa9"},
-        {CCAPI_KUCOIN_API_KEY_VERSION, "2"},
+        {CCAPI_KUCOIN_API_KEY_VERSION, "3"},
     };
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
@@ -31,7 +31,7 @@ void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::str
                      const std::string& apiKeyVersion, long long timestamp) {
   EXPECT_EQ(req.base().at("KC-API-KEY").to_string(), apiKey);
   EXPECT_EQ(req.base().at("KC-API-KEY-VERSION").to_string(), apiKeyVersion);
-  if (apiKeyVersion == "2") {
+  if (apiKeyVersion == "2" || apiKeyVersion == "3") {
     EXPECT_EQ(req.base().at("KC-API-PASSPHRASE").to_string(), UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, apiPassphrase)));
   } else {
     EXPECT_EQ(req.base().at("KC-API-PASSPHRASE").to_string(), apiPassphrase);
