@@ -146,6 +146,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
     preSignedText += req.base().at("KC-API-KEY").to_string();
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, CCAPI_KUCOIN_API_PARTNER_PRIVATE_KEY, preSignedText));
     req.set("KC-API-PARTNER-SIGN", signature);
+    req.set("KC-API-PARTNER-VERIFY", "true");
   }
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
@@ -202,7 +203,7 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
     req.set("KC-API-KEY", apiKey);
     req.set("KC-API-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
     // auto apiKeyVersion = mapGetWithDefault(credential, this->apiKeyVersionName);
-    req.set("KC-API-KEY-VERSION", "2");
+    req.set("KC-API-KEY-VERSION", "3");
     auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     this->signApiPassphrase(req, apiPassphrase, apiSecret);
