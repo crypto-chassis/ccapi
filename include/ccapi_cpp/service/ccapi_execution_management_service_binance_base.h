@@ -350,6 +350,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
             queryString += "timeInForce=GTC&";
           }
         }
+        if (param.find("newClientOrderId") == param.end() && param.find(CCAPI_EM_CLIENT_ORDER_ID) == param.end()) {
+          std::string nonce = std::to_string(this->generateNonce(now, request.getIndex()));
+          queryString += std::string("newClientOrderId=x-") + (this->isDerivatives ? CCAPI_BINANCE_USDS_FUTURES_API_LINK_ID : CCAPI_BINANCE_API_LINK_ID) + "-" +
+                         nonce + "&";
+        }
         this->signRequest(queryString, param, now, credential);
         req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
                         ? this->createOrderMarginTarget
