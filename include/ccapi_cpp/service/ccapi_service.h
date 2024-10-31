@@ -1297,8 +1297,8 @@ class Service : public std::enable_shared_from_this<Service> {
   void onResolveWs(std::shared_ptr<WsConnection> wsConnectionPtr, std::shared_ptr<tcp::resolver> newResolverPtr, beast::error_code ec,
                    tcp::resolver::results_type tcpNewResolverResultsWs) {
     if (ec) {
-      CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "dns resolve", wsConnectionPtr->correlationIdList);
+      CCAPI_LOGGER_TRACE("dns resolve fail");
+      this->onFail(wsConnectionPtr);
       return;
     }
     this->startConnectWs(wsConnectionPtr, this->sessionOptions.websocketConnectTimeoutMilliseconds, tcpNewResolverResultsWs);
@@ -1341,8 +1341,8 @@ class Service : public std::enable_shared_from_this<Service> {
   void onSslHandshakeWs(std::shared_ptr<WsConnection> wsConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("ssl async_handshake callback start");
     if (ec) {
-      CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "ssl handshake", wsConnectionPtr->correlationIdList);
+      CCAPI_LOGGER_TRACE("ssl handshake fail");
+      this->onFail(wsConnectionPtr);
       return;
     }
     CCAPI_LOGGER_TRACE("ssl handshaked");
@@ -1366,8 +1366,8 @@ class Service : public std::enable_shared_from_this<Service> {
   void onWsHandshakeWs(std::shared_ptr<WsConnection> wsConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("ws async_handshake callback start");
     if (ec) {
-      CCAPI_LOGGER_TRACE("fail");
-      this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "ws handshake", wsConnectionPtr->correlationIdList);
+      CCAPI_LOGGER_TRACE("ws handshake fail");
+      this->onFail(wsConnectionPtr);
       return;
     }
     CCAPI_LOGGER_TRACE("ws handshaked");

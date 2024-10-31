@@ -159,7 +159,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
         if (channelId == this->channelMarketTicker || channelId == this->channelMarketLevel2Depth5 || channelId == this->channelMarketLevel2Depth50) {
           this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
         }
-        if (channelId.rfind(this->channelMarketKlines, 0) == 0) {
+        if (!this->channelMarketKlines.empty() && channelId.rfind(this->channelMarketKlines, 0) == 0) {
           exchangeSubscriptionId = this->channelMarketKlines + ":" + symbolId + "_" + channelId.substr(this->channelMarketKlines.length());
         }
         symbolListByTopicMap[channelId].push_back(symbolId);
@@ -170,7 +170,7 @@ class MarketDataServiceKucoinBase : public MarketDataService {
     for (const auto& x : symbolListByTopicMap) {
       auto topic = x.first;
       auto symbolList = x.second;
-      if (topic.rfind(this->channelMarketKlines, 0) == 0) {
+      if (!this->channelMarketKlines.empty() && topic.rfind(this->channelMarketKlines, 0) == 0) {
         for (const auto& symbol : symbolList) {
           rj::Document document;
           document.SetObject();

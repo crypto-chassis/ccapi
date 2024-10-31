@@ -21,8 +21,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    if (this->isDerivatives)
-        this->instrumentType = subscription.getInstrumentType();
+    if (this->isDerivatives) this->instrumentType = subscription.getInstrumentType();
     if (field == CCAPI_MARKET_DEPTH) {
       if (conflateIntervalMilliseconds < 200 && this->isDerivatives) {
         channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS;
@@ -38,9 +37,9 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         }
       }
     } else if (field == CCAPI_CANDLESTICK) {
-        std::string interval =
-            this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), " ", "m", "H", "D", "W");
-        channelId = channelId + interval;
+      std::string interval =
+          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), " ", "m", "H", "D", "W");
+      channelId = channelId + interval;
     }
   }
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
@@ -303,23 +302,25 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         std::string weekSuffix = this->isDerivatives ? "W" : "week";
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->appendParam(queryString, param,
-                          {
-                              {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "granularity"},
-                              {CCAPI_LIMIT, "limit"},
-                              {CCAPI_START_TIME_SECONDS, "startTime"},
-                              {CCAPI_END_TIME_SECONDS, "endTime"},
-                              {CCAPI_INSTRUMENT_TYPE, "productType"},
-                          },
-                          {
-                              {CCAPI_CANDLESTICK_INTERVAL_SECONDS, [that = shared_from_base<MarketDataServiceBitgetBase>(), minuteSuffix, hourSuffix, daySuffix, weekSuffix](const std::string& input) {
-                                return that->convertCandlestickIntervalSecondsToInterval(std::stoi(input), " ", minuteSuffix, hourSuffix, daySuffix, weekSuffix);
-                              }},
-                              {CCAPI_START_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBitgetBase>()](
-                                                             const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
-                              {CCAPI_END_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBitgetBase>()](
-                                                           const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
-                          });
+        this->appendParam(
+            queryString, param,
+            {
+                {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "granularity"},
+                {CCAPI_LIMIT, "limit"},
+                {CCAPI_START_TIME_SECONDS, "startTime"},
+                {CCAPI_END_TIME_SECONDS, "endTime"},
+                {CCAPI_INSTRUMENT_TYPE, "productType"},
+            },
+            {
+                {CCAPI_CANDLESTICK_INTERVAL_SECONDS,
+                 [that = shared_from_base<MarketDataServiceBitgetBase>(), minuteSuffix, hourSuffix, daySuffix, weekSuffix](const std::string& input) {
+                   return that->convertCandlestickIntervalSecondsToInterval(std::stoi(input), " ", minuteSuffix, hourSuffix, daySuffix, weekSuffix);
+                 }},
+                {CCAPI_START_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBitgetBase>()](
+                                               const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                {CCAPI_END_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBitgetBase>()](
+                                             const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+            });
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
@@ -352,9 +353,9 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     }
   }
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
-      element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
-      element.insert(CCAPI_BASE_ASSET, x["baseCoin"].GetString());
-      element.insert(CCAPI_QUOTE_ASSET, x["quoteCoin"].GetString());
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["baseCoin"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quoteCoin"].GetString());
     if (this->isDerivatives) {
       int pricePlace = std::stoi(x["pricePlace"].GetString());
       if (pricePlace > 0) {
@@ -392,10 +393,8 @@ class MarketDataServiceBitgetBase : public MarketDataService {
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert(
-              {MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["price"].GetString())});
-          dataPoint.insert(
-              {MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["size"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["price"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["size"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString()});
           dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "Buy" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
@@ -453,7 +452,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     }
   }
   bool isDerivatives{};
-  std::string instrumentType{"SPOT"}; 
+  std::string instrumentType{"SPOT"};
 };
 } /* namespace ccapi */
 #endif
