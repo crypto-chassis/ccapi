@@ -141,6 +141,7 @@ class ExecutionManagementServiceBitmart : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
+        req.set("X-BM-BROKER-ID", CCAPI_BITMART_BROKER_ID);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
         document.SetObject();
