@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.17)
 set(NAME binding)
-set(BUILD_VERSION "1.0.0" CACHE STRING "User-specified build version")
+set(BUILD_VERSION
+    "1.0.0"
+    CACHE STRING "User-specified build version")
 message(STATUS "BUILD_VERSION: ${BUILD_VERSION}")
 project(${NAME} LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(POLICY CMP0122)
-cmake_policy(SET CMP0122 NEW)
+  cmake_policy(SET CMP0122 NEW)
 endif()
 
 # Apple: Don't modify install_name when touching RPATH.
@@ -25,8 +27,8 @@ if(POLICY CMP0076)
   cmake_policy(SET CMP0076 NEW)
 endif()
 
-# option() honors normal variables.
-# see: https://cmake.org/cmake/help/git-stage/policy/CMP0077.html
+# option() honors normal variables. see:
+# https://cmake.org/cmake/help/git-stage/policy/CMP0077.html
 if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif()
@@ -43,9 +45,12 @@ endif()
 
 # Force default build type to Release
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-    "Choose the type of build, options are: Debug, Release (default), RelWithDebInfo and MinSizeRel."
-    FORCE)
+  set(CMAKE_BUILD_TYPE
+      "Release"
+      CACHE
+        STRING
+        "Choose the type of build, options are: Debug, Release (default), RelWithDebInfo and MinSizeRel."
+        FORCE)
 endif()
 message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
@@ -54,25 +59,33 @@ include(GNUInstallDirs)
 if(UNIX)
   option(BUILD_SHARED_LIBS "Build shared libraries(.so or .dyld)." ON)
   message(STATUS "CMAKE_INSTALL_LIBDIR: ${CMAKE_INSTALL_LIBDIR}")
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+      ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+      ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_LIBDIR})
   # for multi-config build system (e.g. Xcode, ninja Multi-Config)
   foreach(OUTPUTCONFIG IN LISTS CMAKE_CONFIGURATION_TYPES)
     string(TOUPPER ${OUTPUTCONFIG_UPPER} OUTPUTCONFIG)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_LIBDIR})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_LIBDIR})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER}
+        ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_LIBDIR})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER}
+        ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_LIBDIR})
   endforeach()
 else()
   # Currently Only support static build for windows
   set(BUILD_SHARED_LIBS OFF)
   message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
-  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
+      ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY
+      ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_BINDIR})
   # for multi-config builds (e.g. msvc)
   foreach(OUTPUTCONFIG IN LISTS CMAKE_CONFIGURATION_TYPES)
     string(TOUPPER ${OUTPUTCONFIG_UPPER} OUTPUTCONFIG)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_BINDIR})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_BINDIR})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER}
+        ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_BINDIR})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER}
+        ${CMAKE_BINARY_DIR}/${OUTPUTCONFIG}/${CMAKE_INSTALL_BINDIR})
   endforeach()
 endif()
 
@@ -85,54 +98,57 @@ message(STATUS "CCAPI_PROJECT_DIR: ${CCAPI_PROJECT_DIR}")
 find_package(OpenSSL REQUIRED)
 message(STATUS "OPENSSL_INCLUDE_DIR: ${OPENSSL_INCLUDE_DIR}")
 message(STATUS "OPENSSL_CRYPTO_LIBRARY: ${OPENSSL_CRYPTO_LIBRARY}")
-get_filename_component(OPENSSL_CRYPTO_LIBRARY_DIR ${OPENSSL_CRYPTO_LIBRARY} DIRECTORY)
+get_filename_component(OPENSSL_CRYPTO_LIBRARY_DIR ${OPENSSL_CRYPTO_LIBRARY}
+                       DIRECTORY)
 message(STATUS "OPENSSL_SSL_LIBRARY: ${OPENSSL_SSL_LIBRARY}")
 get_filename_component(OPENSSL_SSL_LIBRARY_DIR ${OPENSSL_SSL_LIBRARY} DIRECTORY)
 if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   message(STATUS "use boost beast websocket")
   if(NOT BOOST_INCLUDE_DIR)
-  include(ExternalProject)
-  ExternalProject_Add(boost
-    URL    https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz
-    SOURCE_DIR        "${CMAKE_BINARY_DIR}/boost"
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ""
-    INSTALL_COMMAND   ""
-    TEST_COMMAND      ""
-  )
-  set(BOOST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/boost")
+    include(ExternalProject)
+    ExternalProject_Add(
+      boost
+      URL https://archives.boost.io/release/1.80.0/source/boost_1_80_0.tar.gz
+      SOURCE_DIR "${CMAKE_BINARY_DIR}/boost"
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
+      TEST_COMMAND "")
+    set(BOOST_INCLUDE_DIR "${CMAKE_BINARY_DIR}/boost")
   else()
-  add_library(boost INTERFACE)
+    add_library(boost INTERFACE)
   endif()
   if(NOT RAPIDJSON_INCLUDE_DIR)
-  include(ExternalProject)
-  ExternalProject_Add(rapidjson
-    URL    https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz
-    SOURCE_DIR        "${CMAKE_BINARY_DIR}/rapidjson"
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ""
-    INSTALL_COMMAND   ""
-    TEST_COMMAND      ""
-  )
-  set(RAPIDJSON_INCLUDE_DIR "${CMAKE_BINARY_DIR}/rapidjson/include")
+    include(ExternalProject)
+    ExternalProject_Add(
+      rapidjson
+      URL https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz
+      SOURCE_DIR "${CMAKE_BINARY_DIR}/rapidjson"
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
+      TEST_COMMAND "")
+    set(RAPIDJSON_INCLUDE_DIR "${CMAKE_BINARY_DIR}/rapidjson/include")
   else()
-  add_library(rapidjson INTERFACE)
+    add_library(rapidjson INTERFACE)
   endif()
   if(NOT HFFIX_INCLUDE_DIR)
-  include(ExternalProject)
-  ExternalProject_Add(hffix
-    URL    https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.3.0.tar.gz
-    SOURCE_DIR        "${CMAKE_BINARY_DIR}/hffix"
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND     ""
-    INSTALL_COMMAND   ""
-    TEST_COMMAND      ""
-  )
-  set(HFFIX_INCLUDE_DIR "${CMAKE_BINARY_DIR}/hffix/include")
+    include(ExternalProject)
+    ExternalProject_Add(
+      hffix
+      URL https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.3.0.tar.gz
+      SOURCE_DIR "${CMAKE_BINARY_DIR}/hffix"
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
+      TEST_COMMAND "")
+    set(HFFIX_INCLUDE_DIR "${CMAKE_BINARY_DIR}/hffix/include")
   else()
-  add_library(hffix INTERFACE)
+    add_library(hffix INTERFACE)
   endif()
-	include_directories(${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+  include_directories(
+    ${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR}
+    ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 else()
   message(STATUS "use websocketpp")
   add_compile_definitions(CCAPI_LEGACY_USE_WEBSOCKETPP)
@@ -140,7 +156,10 @@ else()
   set(WEBSOCKETPP_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/websocketpp)
   set(BOOST_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/boost)
   set(HFFIX_INCLUDE_DIR ${CCAPI_PROJECT_DIR}/dependency/hffix/include)
-  include_directories(${CCAPI_PROJECT_DIR}/include ${WEBSOCKETPP_INCLUDE_DIR} ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+  include_directories(
+    ${CCAPI_PROJECT_DIR}/include ${WEBSOCKETPP_INCLUDE_DIR}
+    ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR} ${HFFIX_INCLUDE_DIR}
+    ${OPENSSL_INCLUDE_DIR})
 endif()
 
 link_libraries(OpenSSL::Crypto OpenSSL::SSL)
@@ -243,18 +262,19 @@ endif()
 
 set(LANG_LIST "python" "java" "csharp" "go" "javascript")
 foreach(LANG IN LISTS LANG_LIST)
-    string(TOUPPER ${LANG} LANG_UPPER)
-    option(BUILD_${LANG_UPPER} "Build ${LANG} library" OFF)
-    message(STATUS "Build ${LANG_UPPER}: ${BUILD_${LANG_UPPER}}")
-    if(BUILD_${LANG_UPPER})
-      if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${LANG}/swig_interface_ccapi_language_specific.i")
-        file(READ ${LANG}/swig_interface_ccapi_language_specific.i SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC)
-      endif()
-      configure_file(
-        swig_interface.i.in
-        ${CMAKE_BINARY_DIR}/${LANG}/swig_interface.i
-      @ONLY)
-      set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/${LANG}/swig_interface.i)
-      add_subdirectory(${LANG})
+  string(TOUPPER ${LANG} LANG_UPPER)
+  option(BUILD_${LANG_UPPER} "Build ${LANG} library" OFF)
+  message(STATUS "Build ${LANG_UPPER}: ${BUILD_${LANG_UPPER}}")
+  if(BUILD_${LANG_UPPER})
+    if(EXISTS
+       "${CMAKE_CURRENT_SOURCE_DIR}/${LANG}/swig_interface_ccapi_language_specific.i"
+    )
+      file(READ ${LANG}/swig_interface_ccapi_language_specific.i
+           SWIG_INTERFACE_CCAPI_LANGUAGE_SPECIFIC)
     endif()
+    configure_file(swig_interface.i.in
+                   ${CMAKE_BINARY_DIR}/${LANG}/swig_interface.i @ONLY)
+    set(SWIG_INTERFACE ${CMAKE_BINARY_DIR}/${LANG}/swig_interface.i)
+    add_subdirectory(${LANG})
+  endif()
 endforeach()

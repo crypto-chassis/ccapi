@@ -36,8 +36,10 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
     this->getRecentCandlesticksTarget = "/api/v3/klines";
     this->getHistoricalCandlesticksTarget = "/api/v3/klines";
     this->getMarketDepthTarget = "/api/v3/depth";
+    this->getServerTimeTarget = "/api/v3/time";
     this->getInstrumentTarget = "/api/v3/exchangeInfo";
     this->getInstrumentsTarget = "/api/v3/exchangeInfo";
+    this->getBbosTarget = "/api/v3/ticker/bookTicker";
   }
   virtual ~MarketDataServiceBinance() {}
 };

@@ -79,7 +79,7 @@
 * Macros in the compiler command line:
   * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_COINBASE`, etc. These macros can be found at the top of [`include/ccapi_cpp/ccapi_session.h`](include/ccapi_cpp/ccapi_session.h).
 * Dependencies:
-  * boost https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.gz (notice that its include directory is boost).
+  * boost https://archives.boost.io/release/1.80.0/source/boost_1_80_0.tar.gz (notice that its include directory is boost).
   * rapidjson https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz (notice that its include directory is rapidjson/include).
   * If you use FIX API, also need hffix https://github.com/jamesdbrock/hffix/archive/refs/tags/v1.3.0.tar.gz (notice that its include directory is hffix/include).
 * Include directory for this library:
@@ -277,7 +277,7 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_RECENT_TRADES`, `GET_HISTORICAL_TRADES`, `GET_RECENT_CANDLESTICKS`, `GET_HISTORICAL_CANDLESTICKS`, `GET_RECENT_AGG_TRADES`, `GET_HISTORICAL_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list), ``.
+* Request operation types: `GET_SERVER_TIME`, `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_BBOS`, `GET_RECENT_TRADES`, `GET_HISTORICAL_TRADES`, `GET_RECENT_CANDLESTICKS`, `GET_HISTORICAL_CANDLESTICKS`, `GET_RECENT_AGG_TRADES`, `GET_HISTORICAL_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list), ``.
 * Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`, `CANDLESTICK_INTERVAL_SECONDS`, `START_TIME_SECONDS`, `END_TIME_SECONDS`, `START_TRADE_ID`, `END_TRADE_ID`, `START_AGG_TRADE_ID`, `END_AGG_TRADE_ID`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
 * Message's `time` represents the exchange's reported timestamp. Its `timeReceived` represents the library's receiving timestamp. `time` can be retrieved by `getTime` method and `timeReceived` can be retrieved by `getTimeReceived` method. (For non-C++, please use `getTimeUnix` and `getTimeReceivedUnix` methods or `getTimeISO` and `getTimeReceivedISO` methods).
 

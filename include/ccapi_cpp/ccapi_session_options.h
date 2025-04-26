@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
+#include <optional>
 #include <string>
 
 #include "ccapi_cpp/ccapi_macro.h"
@@ -57,6 +58,7 @@ class SessionOptions CCAPI_FINAL {
 #else
   long websocketConnectTimeoutMilliseconds{10000};
 #endif
+  std::optional<int> cpuCoreIdOpt;  // used to set cpu affinity
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_

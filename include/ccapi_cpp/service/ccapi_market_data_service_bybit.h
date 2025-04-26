@@ -19,8 +19,10 @@ class MarketDataServiceBybit : public MarketDataService {
     this->getRecentCandlesticksTarget = "/v5/market/kline";
     this->getHistoricalCandlesticksTarget = "/v5/market/kline";
     this->getMarketDepthTarget = "/v5/market/orderbook";
+    this->getServerTimeTarget = "/v5/market/time";
     this->getInstrumentTarget = "/v5/market/instruments-info";
     this->getInstrumentsTarget = "/v5/market/instruments-info";
+    this->getBbosTarget = "/v5/market/tickers";
   }
   virtual ~MarketDataServiceBybit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -272,6 +274,11 @@ class MarketDataServiceBybit : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_SERVER_TIME: {
+        req.method(http::verb::get);
+        auto target = this->getServerTimeTarget;
+        req.target(target);
+      } break;
       case Request::Operation::GET_INSTRUMENT: {
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
@@ -289,6 +296,17 @@ class MarketDataServiceBybit : public MarketDataService {
       case Request::Operation::GET_INSTRUMENTS: {
         req.method(http::verb::get);
         auto target = this->getInstrumentsTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT_TYPE, "category"},
+                          });
+        req.target(target + "?" + queryString);
+      } break;
+      case Request::Operation::GET_BBOS: {
+        req.method(http::verb::get);
+        auto target = this->getBbosTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param,
@@ -379,6 +397,14 @@ class MarketDataServiceBybit : public MarketDataService {
         }
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
       } break;
+      case Request::Operation::GET_SERVER_TIME: {
+        Message message;
+        message.setTime(UtilTime::makeTimePoint(UtilTime::divideNanoWhole(document["result"]["timeNano"].GetString())));
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       case Request::Operation::GET_INSTRUMENT: {
         Message message;
         message.setTimeReceived(timeReceived);
@@ -404,6 +430,24 @@ class MarketDataServiceBybit : public MarketDataService {
         for (const auto& x : document["result"]["list"].GetArray()) {
           Element element;
           this->extractInstrumentInfo(element, x, category);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_BBOS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document["result"]["list"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+          element.insert(CCAPI_BEST_BID_N_PRICE, x["bid1Price"].GetString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, x["bid1Size"].GetString());
+          element.insert(CCAPI_BEST_ASK_N_PRICE, x["ask1Price"].GetString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, x["ask1Size"].GetString());
           elementList.push_back(element);
         }
         message.setElementList(elementList);

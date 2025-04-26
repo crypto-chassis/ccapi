@@ -55,12 +55,12 @@ class UtilString CCAPI_FINAL {
       output += ".";
       output += c.substr(c.size() + exponent);
     } else {
-//      output = std::string(-exponent - c.size() + 1, '0');
-//      output += ".";
-//      output += c;  // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "000.124"
+      //      output = std::string(-exponent - c.size() + 1, '0');
+      //      output += ".";
+      //      output += c;  // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "000.124"
       output = "0.";
       output += std::string(-exponent - c.size(), '0');
-      output += c;   // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "0.00124"
+      output += c;  // use these three code, roundInputBySignificantFigure(0.00123456, 3, 1), output is  "0.00124"
     }
     return output;
   }
@@ -172,13 +172,17 @@ class UtilString CCAPI_FINAL {
       case 0:
         return "";
       case 1:
-        return strings[0];
+        return strings.at(0);
       default:
         std::ostringstream joined;
         std::copy(strings.begin(), strings.end() - 1, std::ostream_iterator<std::string>(joined, delimiter.c_str()));
         joined << *strings.rbegin();
         return joined.str();
     }
+  }
+  static std::string join(const std::set<std::string>& strings, const std::string& delimiter) {
+    std::vector<std::string> strings_vector(strings.begin(), strings.end());
+    return join(strings_vector, delimiter);
   }
   static std::string toUpper(const std::string& input) {
     std::string output(input);

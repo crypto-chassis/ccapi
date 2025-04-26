@@ -479,7 +479,7 @@ class Service : public std::enable_shared_from_this<Service> {
       errorHandler(ec);
       return;
     }
-    beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+
 #if defined(CCAPI_ENABLE_LOG_DEBUG) || defined(CCAPI_ENABLE_LOG_TRACE)
     {
       std::ostringstream oss;
@@ -1281,7 +1281,7 @@ class Service : public std::enable_shared_from_this<Service> {
     WsConnection& wsConnection = *wsConnectionPtr;
     wsConnection.status = WsConnection::Status::CONNECTING;
     CCAPI_LOGGER_DEBUG("connection initialization on id " + wsConnection.id);
-    std::string url = wsConnection.getUrl();
+    std::string url = wsConnection.url;
     CCAPI_LOGGER_DEBUG("url = " + url);
     this->startResolveWs(wsConnectionPtr);
     CCAPI_LOGGER_FUNCTION_EXIT;
@@ -1395,22 +1395,22 @@ class Service : public std::enable_shared_from_this<Service> {
     if (ec) {
       if (ec == beast::error::timeout) {
         CCAPI_LOGGER_TRACE("timeout, connection closed");
-      } else {
-        CCAPI_LOGGER_TRACE("fail");
-        Event event;
-        event.setType(Event::Type::SESSION_STATUS);
-        Message message;
-        message.setTimeReceived(now);
-        message.setType(Message::Type::SESSION_CONNECTION_DOWN);
-        message.setCorrelationIdList(wsConnectionPtr->correlationIdList);
-        Element element(true);
-        auto& connectionId = wsConnectionPtr->id;
-        element.insert(CCAPI_CONNECTION_ID, connectionId);
-        message.setElementList({element});
-        event.setMessageList({message});
-        this->eventHandler(event, nullptr);
-        this->onFail(wsConnectionPtr);
       }
+      CCAPI_LOGGER_TRACE("fail");
+      Event event;
+      event.setType(Event::Type::SESSION_STATUS);
+      Message message;
+      message.setTimeReceived(now);
+      message.setType(Message::Type::SESSION_CONNECTION_DOWN);
+      message.setCorrelationIdList(wsConnectionPtr->correlationIdList);
+      Element element;
+      auto& connectionId = wsConnectionPtr->id;
+      element.insert(CCAPI_CONNECTION_ID, connectionId);
+      element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
+      message.setElementList({element});
+      event.setMessageList({message});
+      this->eventHandler(event, nullptr);
+      this->onFail(wsConnectionPtr);
       return;
     }
     if (wsConnectionPtr->status != WsConnection::Status::OPEN) {
@@ -1431,7 +1431,7 @@ class Service : public std::enable_shared_from_this<Service> {
     WsConnection& wsConnection = *wsConnectionPtr;
     wsConnection.status = WsConnection::Status::OPEN;
     CCAPI_LOGGER_INFO("connection " + toString(wsConnection) + " established");
-    auto urlBase = UtilString::split(wsConnection.getUrl(), "?").at(0);
+    auto urlBase = UtilString::split(wsConnection.url, "?").at(0);
     this->connectNumRetryOnFailByConnectionUrlMap[urlBase] = 0;
     Event event;
     event.setType(Event::Type::SESSION_STATUS);
@@ -1443,7 +1443,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setCorrelationIdList(correlationIdList);
     Element element;
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
-    element.insert(CCAPI_CONNECTION_URL, wsConnection.getUrl());
+    element.insert(CCAPI_CONNECTION_URL, wsConnection.url);
     message.setElementList({element});
     event.setMessageList({message});
     this->eventHandler(event, nullptr);
@@ -1490,6 +1490,28 @@ class Service : public std::enable_shared_from_this<Service> {
   }
   void onWriteWs(std::shared_ptr<WsConnection> wsConnectionPtr, const ErrorCode& ec, std::size_t n) {
     CCAPI_LOGGER_FUNCTION_ENTER;
+    auto now = UtilTime::now();
+    if (ec) {
+      if (ec == beast::error::timeout) {
+        CCAPI_LOGGER_TRACE("timeout, connection closed");
+      }
+      CCAPI_LOGGER_TRACE("fail");
+      Event event;
+      event.setType(Event::Type::SESSION_STATUS);
+      Message message;
+      message.setTimeReceived(now);
+      message.setType(Message::Type::SESSION_CONNECTION_DOWN);
+      message.setCorrelationIdList(wsConnectionPtr->correlationIdList);
+      Element element;
+      auto& connectionId = wsConnectionPtr->id;
+      element.insert(CCAPI_CONNECTION_ID, connectionId);
+      element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
+      message.setElementList({element});
+      event.setMessageList({message});
+      this->eventHandler(event, nullptr);
+      this->onFail(wsConnectionPtr);
+      return;
+    }
     auto& connectionId = wsConnectionPtr->id;
     auto& writeMessageBuffer = this->writeMessageBufferByConnectionIdMap[connectionId];
     auto& writeMessageBufferWrittenLength = this->writeMessageBufferWrittenLengthByConnectionIdMap[connectionId];
@@ -1511,7 +1533,7 @@ class Service : public std::enable_shared_from_this<Service> {
     this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "connection " + toString(wsConnection) + " has failed before opening");
     WsConnection thisWsConnection = wsConnection;
     this->wsConnectionByIdMap.erase(thisWsConnection.id);
-    auto urlBase = UtilString::split(thisWsConnection.getUrl(), "?").at(0);
+    auto urlBase = UtilString::split(thisWsConnection.url, "?").at(0);
     long seconds = std::round(UtilAlgorithm::exponentialBackoff(1, 1, 2, std::min(this->connectNumRetryOnFailByConnectionUrlMap[urlBase], 6)));
     CCAPI_LOGGER_INFO("about to set timer for " + toString(seconds) + " seconds");
     if (this->connectRetryOnFailTimerByConnectionIdMap.find(thisWsConnection.id) != this->connectRetryOnFailTimerByConnectionIdMap.end()) {
@@ -1603,7 +1625,7 @@ class Service : public std::enable_shared_from_this<Service> {
     message.setType(Message::Type::SESSION_CONNECTION_DOWN);
     Element element;
     element.insert(CCAPI_CONNECTION_ID, wsConnection.id);
-    element.insert(CCAPI_CONNECTION_URL, wsConnection.getUrl());
+    element.insert(CCAPI_CONNECTION_URL, wsConnection.url);
     element.insert(CCAPI_REASON, reason);
     message.setElementList({element});
     std::vector<std::string> correlationIdList;

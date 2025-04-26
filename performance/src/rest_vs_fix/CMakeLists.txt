@@ -3,8 +3,11 @@ project(${NAME})
 add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
 add_compile_definitions(CCAPI_ENABLE_SERVICE_FIX)
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
-add_compile_definitions(CCAPI_COINBASE_URL_REST_BASE="https://api-public.sandbox.pro.coinbase.com")
-add_compile_definitions(CCAPI_COINBASE_URL_FIX_BASE="tcp+ssl://fix-public.sandbox.pro.coinbase.com:4198")
+add_compile_definitions(
+  CCAPI_COINBASE_URL_REST_BASE="https://api-public.sandbox.pro.coinbase.com")
+add_compile_definitions(
+  CCAPI_COINBASE_URL_FIX_BASE="tcp+ssl://fix-public.sandbox.pro.coinbase.com:4198"
+)
 add_executable(${NAME} main.cpp)
 if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   add_dependencies(${NAME} boost rapidjson hffix)

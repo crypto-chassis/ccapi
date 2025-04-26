@@ -28,8 +28,10 @@ class MarketDataService : public Service {
         {Request::Operation::GET_RECENT_CANDLESTICKS, Message::Type::GET_RECENT_CANDLESTICKS},
         {Request::Operation::GET_HISTORICAL_CANDLESTICKS, Message::Type::GET_HISTORICAL_CANDLESTICKS},
         {Request::Operation::GET_MARKET_DEPTH, Message::Type::GET_MARKET_DEPTH},
+        {Request::Operation::GET_SERVER_TIME, Message::Type::GET_SERVER_TIME},
         {Request::Operation::GET_INSTRUMENT, Message::Type::GET_INSTRUMENT},
         {Request::Operation::GET_INSTRUMENTS, Message::Type::GET_INSTRUMENTS},
+        {Request::Operation::GET_BBOS, Message::Type::GET_BBOS},
     };
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
@@ -2004,8 +2006,10 @@ class MarketDataService : public Service {
   std::string getRecentCandlesticksTarget;
   std::string getHistoricalCandlesticksTarget;
   std::string getMarketDepthTarget;
+  std::string getServerTimeTarget;
   std::string getInstrumentTarget;
   std::string getInstrumentsTarget;
+  std::string getBbosTarget;
   std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
   std::map<std::string, std::map<int, std::vector<std::string>>> exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap;
   // only needed for generic public subscription

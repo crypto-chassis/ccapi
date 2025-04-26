@@ -241,7 +241,7 @@ jobs:
             COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
               -DBUILD_PYTHON=ON
               -DBUILD_JAVA=ON
-              -DBUILD_CSHARP=ON
+              # -DBUILD_CSHARP=ON
               # -DBUILD_GO=ON
               # -DBUILD_JAVASCRIPT=ON
               -DBUILD_TEST=ON

@@ -361,6 +361,11 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
+      case Request::Operation::GET_SERVER_TIME: {
+        req.method(http::verb::get);
+        auto target = this->getServerTimeTarget;
+        req.target(target);
+      } break;
       case Request::Operation::GET_INSTRUMENT: {
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
@@ -371,6 +376,11 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       case Request::Operation::GET_INSTRUMENTS: {
         req.method(http::verb::get);
         auto target = this->getInstrumentTarget;
+        req.target(target);
+      } break;
+      case Request::Operation::GET_BBOS: {
+        req.method(http::verb::get);
+        auto target = this->getBbosTarget;
         req.target(target);
       } break;
       default:
@@ -463,6 +473,14 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         }
         marketDataMessageList.emplace_back(std::move(marketDataMessage));
       } break;
+      case Request::Operation::GET_SERVER_TIME: {
+        Message message;
+        message.setTime(UtilTime::makeTimePointMilli(UtilTime::divideMilli(document["serverTime"].GetString())));
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       case Request::Operation::GET_INSTRUMENT: {
         Message message;
         message.setTimeReceived(timeReceived);
@@ -486,6 +504,24 @@ class MarketDataServiceBinanceBase : public MarketDataService {
         for (const auto& x : document["symbols"].GetArray()) {
           Element element;
           this->extractInstrumentInfo(element, x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_BBOS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document.GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+          element.insert(CCAPI_BEST_BID_N_PRICE, x["bidPrice"].GetString());
+          element.insert(CCAPI_BEST_BID_N_SIZE, x["bidQty"].GetString());
+          element.insert(CCAPI_BEST_ASK_N_PRICE, x["askPrice"].GetString());
+          element.insert(CCAPI_BEST_ASK_N_SIZE, x["askQty"].GetString());
           elementList.push_back(element);
         }
         message.setElementList(elementList);

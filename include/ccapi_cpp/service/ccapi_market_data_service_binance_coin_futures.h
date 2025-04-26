@@ -36,8 +36,10 @@ class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDeriv
     this->getRecentCandlesticksTarget = "/dapi/v1/klines";
     this->getHistoricalCandlesticksTarget = "/dapi/v1/klines";
     this->getMarketDepthTarget = "/dapi/v1/depth";
+    this->getServerTimeTarget = "/dapi/v1/time";
     this->getInstrumentTarget = "/dapi/v1/exchangeInfo";
     this->getInstrumentsTarget = "/dapi/v1/exchangeInfo";
+    this->getBbosTarget = "/dapi/v1/ticker/bookTicker";
   }
   virtual ~MarketDataServiceBinanceCoinFutures() {}
 };

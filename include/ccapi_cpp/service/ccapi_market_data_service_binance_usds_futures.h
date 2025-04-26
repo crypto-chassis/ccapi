@@ -36,8 +36,10 @@ class MarketDataServiceBinanceUsdsFutures : public MarketDataServiceBinanceDeriv
     this->getRecentCandlesticksTarget = "/fapi/v1/klines";
     this->getHistoricalCandlesticksTarget = "/fapi/v1/klines";
     this->getMarketDepthTarget = "/fapi/v1/depth";
+    this->getServerTimeTarget = "/fapi/v1/time";
     this->getInstrumentTarget = "/fapi/v1/exchangeInfo";
     this->getInstrumentsTarget = "/fapi/v1/exchangeInfo";
+    this->getBbosTarget = "/fapi/v1/ticker/bookTicker";
   }
   virtual ~MarketDataServiceBinanceUsdsFutures() {}
 };

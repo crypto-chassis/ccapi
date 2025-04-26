@@ -182,6 +182,7 @@ class WsConnection CCAPI_FINAL {
     this->setUrlParts();
   }
   std::string id;
+  std::string url;
   std::string group;
   std::vector<Subscription> subscriptionList;
   std::vector<std::string> correlationIdList;
@@ -198,7 +199,6 @@ class WsConnection CCAPI_FINAL {
 #ifndef CCAPI_EXPOSE_INTERNAL
  private:
 #endif
-  std::string url;
 };
 } /* namespace ccapi */
 #endif

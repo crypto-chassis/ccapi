@@ -37,8 +37,10 @@ class Request CCAPI_FINAL {
     GET_RECENT_CANDLESTICKS,
     GET_HISTORICAL_CANDLESTICKS,
     GET_MARKET_DEPTH,
+    GET_SERVER_TIME,
     GET_INSTRUMENT,
     GET_INSTRUMENTS,
+    GET_BBOS,
     CREATE_ORDER = CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER,
     CANCEL_ORDER,
     GET_ORDER,
@@ -84,11 +86,17 @@ class Request CCAPI_FINAL {
       case Operation::GET_MARKET_DEPTH:
         output = "GET_MARKET_DEPTH";
         break;
+      case Operation::GET_SERVER_TIME:
+        output = "GET_SERVER_TIME";
+        break;
       case Operation::GET_INSTRUMENT:
         output = "GET_INSTRUMENT";
         break;
       case Operation::GET_INSTRUMENTS:
         output = "GET_INSTRUMENTS";
+        break;
+      case Operation::GET_BBOS:
+        output = "GET_BBOS";
         break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
@@ -216,6 +224,7 @@ class Request CCAPI_FINAL {
 
  private:
 #endif
+  Operation operation;
   std::string exchange;
   std::string marginType;
   std::string instrument;
@@ -224,7 +233,6 @@ class Request CCAPI_FINAL {
   std::string secondaryCorrelationId;
   std::vector<std::map<std::string, std::string> > paramList;
   std::map<std::string, std::string> credential;
-  Operation operation;
   std::vector<std::vector<std::pair<int, std::string> > > paramListFix;
   TimePoint timeSent{std::chrono::seconds{0}};
   int index{};

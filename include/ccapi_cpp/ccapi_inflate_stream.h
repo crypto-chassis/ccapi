@@ -56,7 +56,7 @@ class InflateStream CCAPI_FINAL {
       CCAPI_LOGGER_ERROR("decompress error");
       return boost::system::error_code();
     }
-    int ret;
+
     this->istate.avail_in = len;
     this->istate.next_in = const_cast<unsigned char *>(buf);
     do {

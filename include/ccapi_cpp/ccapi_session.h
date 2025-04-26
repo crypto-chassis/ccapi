@@ -302,7 +302,17 @@ class Session {
   }
   virtual void start() {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    std::thread t([this]() { this->serviceContextPtr->start(); });
+    std::thread t([this]() {
+      if (this->sessionOptions.cpuCoreIdOpt) {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(*this->sessionOptions.cpuCoreIdOpt, &cpuset);
+        if (pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset) != 0) {
+          CCAPI_LOGGER_ERROR("pthread_setaffinity_np");
+        }
+      }
+      this->serviceContextPtr->start();
+    });
     this->t = std::move(t);
     this->internalEventHandler = std::bind(&Session::onEvent, this, std::placeholders::_1, std::placeholders::_2);
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
@@ -974,10 +984,10 @@ class Session {
   EventDispatcher* eventDispatcher{nullptr};
   bool useInternalEventDispatcher{};
 #endif
-  ServiceContext* serviceContextPtr{nullptr};
   std::map<std::string, std::map<std::string, std::shared_ptr<Service> > > serviceByServiceNameExchangeMap;
   std::thread t;
   Queue<Event> eventQueue;
+  ServiceContext* serviceContextPtr{nullptr};
   std::function<void(Event& event, Queue<Event>* eventQueue)> internalEventHandler;
   std::map<std::string, std::shared_ptr<steady_timer> > delayTimerByIdMap;
 };

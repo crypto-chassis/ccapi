@@ -70,8 +70,10 @@ class Message CCAPI_FINAL {
     GET_RECENT_CANDLESTICKS,
     GET_HISTORICAL_CANDLESTICKS,
     GET_MARKET_DEPTH,
+    GET_SERVER_TIME,
     GET_INSTRUMENT,
     GET_INSTRUMENTS,
+    GET_BBOS,
     RESPONSE_ERROR,
     REQUEST_FAILURE,
     GENERIC_ERROR,
@@ -178,11 +180,17 @@ class Message CCAPI_FINAL {
       case Type::GET_MARKET_DEPTH:
         output = "GET_MARKET_DEPTH";
         break;
+      case Type::GET_SERVER_TIME:
+        output = "GET_SERVER_TIME";
+        break;
       case Type::GET_INSTRUMENT:
         output = "GET_INSTRUMENT";
         break;
       case Type::GET_INSTRUMENTS:
         output = "GET_INSTRUMENTS";
+        break;
+      case Type::GET_BBOS:
+        output = "GET_BBOS";
         break;
       case Type::RESPONSE_ERROR:
         output = "RESPONSE_ERROR";

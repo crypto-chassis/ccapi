@@ -179,6 +179,7 @@ class FixService : public Service {
       message.setCorrelationIdList({fixConnectionPtr->subscription.getCorrelationId()});
       Element element(true);
       element.insert(CCAPI_CONNECTION_ID, connectionId);
+      element.insert(CCAPI_CONNECTION_URL, fixConnectionPtr->url);
       message.setElementList({element});
       event.setMessageList({message});
       this->eventHandler(event, nullptr);
@@ -229,6 +230,7 @@ class FixService : public Service {
       Element element(true);
       auto& connectionId = fixConnectionPtr->id;
       element.insert(CCAPI_CONNECTION_ID, connectionId);
+      element.insert(CCAPI_CONNECTION_URL, fixConnectionPtr->url);
       message.setElementList({element});
       event.setMessageList({message});
       this->eventHandler(event, nullptr);

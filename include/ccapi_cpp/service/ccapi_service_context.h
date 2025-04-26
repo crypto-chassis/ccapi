@@ -6,6 +6,7 @@
 #include "websocketpp/common/connection_hdl.hpp"
 #include "websocketpp/config/asio_client.hpp"
 #include "websocketpp/config/boost_config.hpp"
+
 namespace wspp = websocketpp;
 namespace ccapi {
 /**
@@ -69,6 +70,7 @@ class ServiceContext CCAPI_FINAL {
 
 } /* namespace ccapi */
 #else
+#include "boost/asio/ssl.hpp"
 #include "ccapi_cpp/ccapi_logger.h"
 namespace ccapi {
 /**
