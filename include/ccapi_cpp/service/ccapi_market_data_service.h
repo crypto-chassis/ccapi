@@ -2009,6 +2009,7 @@ class MarketDataService : public Service {
   std::string getServerTimeTarget;
   std::string getInstrumentTarget;
   std::string getInstrumentsTarget;
+  std::string getBboTarget;
   std::string getBbosTarget;
   std::map<std::string, int> exchangeJsonPayloadIdByConnectionIdMap;
   std::map<std::string, std::map<int, std::vector<std::string>>> exchangeSubscriptionIdListByConnectionIdExchangeJsonPayloadIdMap;

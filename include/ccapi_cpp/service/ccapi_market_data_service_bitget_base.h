@@ -10,6 +10,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
                               ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->hostHttpHeaderValueIgnorePort = true;
+    this->getServerTimeTarget = "/api/v2/public/time";
   }
   virtual ~MarketDataServiceBitgetBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
@@ -264,6 +265,25 @@ class MarketDataServiceBitgetBase : public MarketDataService {
       case Request::Operation::GENERIC_PUBLIC_REQUEST: {
         MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
       } break;
+      case Request::Operation::GET_SERVER_TIME: {
+        req.method(http::verb::get);
+        auto target = this->getServerTimeTarget;
+        req.target(target);
+      } break;
+      case Request::Operation::GET_BBOS: {
+        req.method(http::verb::get);
+        auto target = (symbolId.empty()) ? this->getBboTarget : this->getBbosTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT_TYPE, "productType"},
+                          });
+        if (!symbolId.empty()) {
+          this->appendSymbolId(queryString, symbolId, "symbol");
+        }
+        req.target(target + "?" + queryString);
+      } break;
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
@@ -386,6 +406,50 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
+      case Request::Operation::GET_SERVER_TIME: {
+        Message message;
+        const rj::Value& data = document["data"];
+        message.setTime(UtilTime::makeTimePointMilli(UtilTime::divideMilli(data["serverTime"].GetString())));
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_BBOS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document["data"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+          // some fields are null ...
+          if (x["bidPr"].IsNull()) {
+            element.insert(CCAPI_BEST_BID_N_PRICE, "null");
+          } else {
+            element.insert(CCAPI_BEST_BID_N_PRICE, x["bidPr"].GetString());
+          }
+          if (x["askPr"].IsNull()) {
+            element.insert(CCAPI_BEST_ASK_N_PRICE, "null");
+          } else {
+            element.insert(CCAPI_BEST_ASK_N_PRICE, x["askPr"].GetString());
+          }
+          if (x["bidSz"].IsNull()) {
+            element.insert(CCAPI_BEST_BID_N_SIZE, "null");
+          } else {
+            element.insert(CCAPI_BEST_BID_N_SIZE, x["bidSz"].GetString());
+          }
+          if (x["askSz"].IsNull()) {
+            element.insert(CCAPI_BEST_ASK_N_SIZE, "null");
+          } else {
+            element.insert(CCAPI_BEST_ASK_N_SIZE, x["askSz"].GetString());
+          }
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
       case Request::Operation::GET_RECENT_TRADES:
       case Request::Operation::GET_HISTORICAL_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {

@@ -33,6 +33,8 @@ class MarketDataServiceBitgetFutures : public MarketDataServiceBitgetBase {
     this->getInstrumentsTarget = "/api/v2/mix/market/contracts";
     this->getRecentCandlesticksTarget = "/api/v2/mix/market/candles";
     this->getHistoricalCandlesticksTarget = "/api/v2/mix/market/candles";
+    this->getBboTarget = "/api/v2/mix/market/tickers";
+    this->getBbosTarget = "/api/v2/mix/market/ticker";
     this->isDerivatives = true;
   }
   virtual ~MarketDataServiceBitgetFutures() {}
