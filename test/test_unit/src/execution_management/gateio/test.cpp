@@ -4,11 +4,13 @@
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_gateio.h"
+
 // clang-format on
 namespace ccapi {
 class ExecutionManagementServiceGateioTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
+
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceGateio>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
     this->credential = {
@@ -18,6 +20,7 @@ class ExecutionManagementServiceGateioTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
+
   ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceGateio> service{nullptr};
   std::map<std::string, std::string> credential;
@@ -26,14 +29,14 @@ class ExecutionManagementServiceGateioTest : public ::testing::Test {
 };
 
 void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, long long timestamp) {
-  EXPECT_EQ(req.base().at("KEY").to_string(), apiKey);
-  EXPECT_EQ(req.base().at("TIMESTAMP").to_string(), std::to_string(timestamp));
+  EXPECT_EQ(std::string(req.base().at("KEY")), apiKey);
+  EXPECT_EQ(std::string(req.base().at("TIMESTAMP")), std::to_string(timestamp));
 }
 
 void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
   std::string preSignedText = UtilString::toUpper(std::string(req.method_string()));
   preSignedText += "\n";
-  auto target = req.target().to_string();
+  auto target = std::string(req.target());
   auto splitted = UtilString::split(target, "?");
   preSignedText += splitted.at(0);
   preSignedText += "\n";
@@ -43,8 +46,8 @@ void verifySignature(const http::request<http::string_body>& req, const std::str
   preSignedText += "\n";
   preSignedText += UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA512, req.body(), true);
   preSignedText += "\n";
-  preSignedText += req.base().at("TIMESTAMP").to_string();
-  auto signature = req.base().at("SIGN").to_string();
+  preSignedText += std::string(req.base().at("TIMESTAMP"));
+  auto signature = std::string(req.base().at("SIGN"));
   EXPECT_EQ(Hmac::hmac(Hmac::ShaVersion::SHA512, apiSecret, preSignedText, true), signature);
 }
 
@@ -56,7 +59,7 @@ TEST_F(ExecutionManagementServiceGateioTest, signRequest) {
   std::string queryString = "";
   std::string body(R"({"price":"20000","amount":"0.001","side":"buy","currency_pair":"BTC_USDT"})");
   this->service->signRequest(req, path, queryString, body, this->credential);
-  EXPECT_EQ(req.base().at("SIGN").to_string(),
+  EXPECT_EQ(std::string(req.base().at("SIGN")),
             "0ece8964567fd0f3ed3323c9e9ffe3332869eabb3098e5b6e5a665a85b757cf3df6c16bfb9dcae7427b8937b7a3f754140e6aab5e9c66a61292e9b361d97a3c4");
 }
 
@@ -132,7 +135,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestCancelOrderByOrderId)
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GATEIO_API_KEY), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v4/spot/orders/t-123456");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("currency_pair"), "BTC_USDT");
@@ -148,7 +151,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestCancelOrderByClientOr
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GATEIO_API_KEY), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v4/spot/orders/t-123456");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("currency_pair"), "BTC_USDT");
@@ -202,7 +205,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestGetOrderByOrderId) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GATEIO_API_KEY), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/api/v4/spot/orders/t-123456?currency_pair=BTC_USDT");
+  EXPECT_EQ(std::string(req.target()), "/api/v4/spot/orders/t-123456?currency_pair=BTC_USDT");
   verifySignature(req, this->credential.at(CCAPI_GATEIO_API_SECRET));
 }
 
@@ -215,7 +218,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestGetOrderByClientOrder
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GATEIO_API_KEY), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/api/v4/spot/orders/t-123456?currency_pair=BTC_USDT");
+  EXPECT_EQ(std::string(req.target()), "/api/v4/spot/orders/t-123456?currency_pair=BTC_USDT");
   verifySignature(req, this->credential.at(CCAPI_GATEIO_API_SECRET));
 }
 
@@ -274,7 +277,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestGetOpenOrdersOneInstr
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GATEIO_API_KEY), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v4/spot/orders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("currency_pair"), "BTC_USDT");
@@ -340,7 +343,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestCancelOpenOrders) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GATEIO_API_KEY), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v4/spot/orders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("currency_pair"), "BTC_USDT");
@@ -392,7 +395,7 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestGetAccounts) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GATEIO_API_KEY), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/api/v4/spot/accounts");
+  EXPECT_EQ(std::string(req.target()), "/api/v4/spot/accounts");
   verifySignature(req, this->credential.at(CCAPI_GATEIO_API_SECRET));
 }
 

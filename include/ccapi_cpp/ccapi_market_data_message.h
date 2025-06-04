@@ -2,9 +2,10 @@
 #define INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_MESSAGE_H_
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
+
 // #include "ccapi_message.h"
 namespace ccapi {
-class MarketDataMessage CCAPI_FINAL {
+class MarketDataMessage {
   /**
    * A handle to a single market data message. Each MarketDataMessage is associated with one 'exchangeSubscriptionId' value. The MarketDataMessage contents are
    * represented in its 'data' attribute. Each MarketDataMessage object consists of an Type attribute and a RecapType attribute. The exchange timestamp (if any)
@@ -23,6 +24,7 @@ class MarketDataMessage CCAPI_FINAL {
     NONE,       // normal data tick; not a recap
     SOLICITED,  // generated on request by subscriber
   };
+
   static std::string recapTypeToString(RecapType recapType) {
     std::string output;
     switch (recapType) {
@@ -47,6 +49,7 @@ class MarketDataMessage CCAPI_FINAL {
     AGG_TRADE = 3,
     CANDLESTICK = 4,
   };
+
   static std::string dataTypeToString(DataType dataType) {
     std::string output;
     switch (dataType) {
@@ -84,6 +87,7 @@ class MarketDataMessage CCAPI_FINAL {
     VOLUME = 10,
     QUOTE_VOLUME = 11,
   };
+
   static std::string dataFieldTypeToString(DataFieldType dataFieldType) {
     std::string output;
     switch (dataFieldType) {
@@ -128,8 +132,10 @@ class MarketDataMessage CCAPI_FINAL {
     }
     return output;
   }
+
   typedef std::map<DataFieldType, std::string> TypeForDataPoint;
-  typedef std::map<DataType, std::vector<std::map<DataFieldType, std::string> > > TypeForData;
+  typedef std::map<DataType, std::vector<std::map<DataFieldType, std::string>>> TypeForData;
+
   static std::string dataToString(const TypeForData& data) {
     std::string output1 = "{";
     auto size1 = data.size();
@@ -170,6 +176,7 @@ class MarketDataMessage CCAPI_FINAL {
     output1 += "}";
     return output1;
   }
+
   static std::string typeToString(Type type) {
     std::string output;
     switch (type) {
@@ -193,11 +200,13 @@ class MarketDataMessage CCAPI_FINAL {
     }
     return output;
   }
+
   std::string toString() const {
     std::string output = "MarketDataMessage [type = " + typeToString(type) + ", recapType = " + recapTypeToString(recapType) + ", tp = " + ccapi::toString(tp) +
                          ", exchangeSubscriptionId = " + exchangeSubscriptionId + ", data = " + dataToString(data) + "]";
     return output;
   }
+
   Type type{Type::UNKNOWN};
   RecapType recapType{RecapType::UNKNOWN};
   TimePoint tp{std::chrono::seconds{0}};

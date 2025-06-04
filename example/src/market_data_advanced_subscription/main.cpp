@@ -1,14 +1,17 @@
 #include "ccapi_cpp/ccapi_session.h"
+
 namespace ccapi {
 Logger* Logger::logger = nullptr;  // This line is needed.
+
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* session) override {
+  bool processEvent(const Event& event, Session* sessionPtr) override {
     std::cout << toString(event) + "\n" << std::endl;
     return true;
   }
 };
 } /* namespace ccapi */
+
 using ::ccapi::Event;
 using ::ccapi::EventDispatcher;
 using ::ccapi::MyEventHandler;
@@ -17,6 +20,7 @@ using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
 using ::ccapi::toString;
+
 int main(int argc, char** argv) {
   std::vector<std::string> modeList = {
       "dispatch_events_to_multiple_threads",
@@ -33,7 +37,7 @@ int main(int argc, char** argv) {
     MyEventHandler eventHandler;
     EventDispatcher eventDispatcher(2);
     Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
-    Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+    Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH");
     session.subscribe(subscription);
     std::this_thread::sleep_for(std::chrono::seconds(10));
     session.stop();
@@ -42,7 +46,7 @@ int main(int argc, char** argv) {
     SessionOptions sessionOptions;
     SessionConfigs sessionConfigs;
     Session session(sessionOptions, sessionConfigs);
-    Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+    Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH");
     session.subscribe(subscription);
     std::this_thread::sleep_for(std::chrono::seconds(10));
     std::vector<Event> eventList = session.getEventQueue().purge();

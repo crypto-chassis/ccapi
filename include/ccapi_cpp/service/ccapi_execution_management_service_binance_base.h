@@ -4,6 +4,7 @@
 #if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || \
     defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceBinanceBase : public ExecutionManagementService {
  public:
@@ -13,143 +14,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     this->enableCheckPingPongWebsocketApplicationLevel = false;
     this->pingListenKeyIntervalSeconds = 600;
   }
+
   virtual ~ExecutionManagementServiceBinanceBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void prepareConnect(WsConnection& wsConnection) override {
-    auto hostPort = this->extractHostFromUrl(this->baseUrlRest);
-    std::string host = hostPort.first;
-    std::string port = hostPort.second;
-    http::request<http::string_body> req;
-    req.set(http::field::host, host);
-    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    req.method(http::verb::post);
-    std::string target = this->listenKeyTarget;
-    const auto& marginType = wsConnection.subscriptionList.at(0).getMarginType();
-    if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
-      target = this->listenKeyCrossMarginTarget;
-    } else if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
-      target = this->listenKeyIsolatedMarginTarget;
-    }
-    if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
-      auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
-      target += "?" + symbol;
-    }
-    req.target(target);
-    auto credential = wsConnection.subscriptionList.at(0).getCredential();
-    if (credential.empty()) {
-      credential = this->credentialDefault;
-    }
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set("X-MBX-APIKEY", apiKey);
-    this->sendRequest(
-        req,
-        [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](const beast::error_code& ec) {
-          WsConnection thisWsConnection = wsConnection;
-          that->onFail_(thisWsConnection);
-        },
-        [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](const http::response<http::string_body>& res) {
-          WsConnection thisWsConnection = wsConnection;
-          int statusCode = res.result_int();
-          std::string body = res.body();
-          if (statusCode / 100 == 2) {
-            std::string urlWebsocketBase;
-            try {
-              rj::Document document;
-              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
-              std::string listenKey = document["listenKey"].GetString();
-              std::string url = that->baseUrlWs + "/" + listenKey;
-              thisWsConnection.url = url;
-              that->connect(thisWsConnection);
-              that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                  {"listenKey", listenKey},
-              });
-              return;
-            } catch (const std::runtime_error& e) {
-              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-            }
-          }
-          that->onFail_(thisWsConnection);
-        },
-        this->sessionOptions.httpRequestTimeoutMilliseconds);
-  }
-  void onOpen(wspp::connection_hdl hdl) override {
-    ExecutionManagementService::onOpen(hdl);
-    auto now = UtilTime::now();
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    Event event;
-    event.setType(Event::Type::SUBSCRIPTION_STATUS);
-    Message message;
-    message.setTimeReceived(now);
-    message.setType(Message::Type::SUBSCRIPTION_STARTED);
-    message.setCorrelationIdList({wsConnection.subscriptionList.at(0).getCorrelationId()});
-    event.setMessageList({message});
-    this->eventHandler(event, nullptr);
-    this->setPingListenKeyTimer(wsConnection);
-  }
-  void setPingListenKeyTimer(const WsConnection& wsConnection) {
-    this->pingListenKeyTimerMapByConnectionIdMap[wsConnection.id] = this->serviceContextPtr->tlsClientPtr->set_timer(
-        this->pingListenKeyIntervalSeconds * 1000, [wsConnection, that = shared_from_base<ExecutionManagementServiceBinanceBase>()](ErrorCode const& ec) {
-          if (ec) {
-            return;
-          }
-          that->setPingListenKeyTimer(wsConnection);
-          http::request<http::string_body> req;
-          req.set(http::field::host, that->hostRest);
-          req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-          req.method(http::verb::put);
-          std::string target = that->listenKeyTarget;
-          const auto& marginType = wsConnection.subscriptionList.at(0).getMarginType();
-          if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
-            target = that->listenKeyCrossMarginTarget;
-          } else if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
-            target = that->listenKeyIsolatedMarginTarget;
-          }
-          if (!that->isDerivatives) {
-            std::map<std::string, std::string> params;
-            auto listenKey = that->extraPropertyByConnectionIdMap.at(wsConnection.id).at("listenKey");
-            params.insert({"listenKey", listenKey});
-            if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
-              auto symbol = wsConnection.subscriptionList.at(0).getInstrument();
-              params.insert({"symbol", symbol});
-            }
-            target += "?";
-            for (const auto& param : params) {
-              target += param.first + "=" + Url::urlEncode(param.second);
-              target += "&";
-            }
-          }
-          req.target(target);
-          auto credential = wsConnection.subscriptionList.at(0).getCredential();
-          if (credential.empty()) {
-            credential = that->credentialDefault;
-          }
-          auto apiKey = mapGetWithDefault(credential, that->apiKeyName);
-          req.set("X-MBX-APIKEY", apiKey);
-          that->sendRequest(
-              req,
-              [wsConnection, that_2 = that->shared_from_base<ExecutionManagementServiceBinanceBase>()](const beast::error_code& ec) {
-                CCAPI_LOGGER_ERROR("ping listen key fail");
-                that_2->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "ping listen key");
-              },
-              [wsConnection, that_2 = that->shared_from_base<ExecutionManagementServiceBinanceBase>()](const http::response<http::string_body>& res) {
-                CCAPI_LOGGER_DEBUG("ping listen key success");
-              },
-              that->sessionOptions.httpRequestTimeoutMilliseconds);
-        });
-  }
-  void onClose(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    if (this->pingListenKeyTimerMapByConnectionIdMap.find(wsConnection.id) != this->pingListenKeyTimerMapByConnectionIdMap.end()) {
-      this->pingListenKeyTimerMapByConnectionIdMap.at(wsConnection.id)->cancel();
-      this->pingListenKeyTimerMapByConnectionIdMap.erase(wsConnection.id);
-    }
-    ExecutionManagementService::onClose(hdl);
-  }
-#else
+
   void prepareConnect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     auto hostPort = this->extractHostFromUrl(this->baseUrlRest);
     std::string host = hostPort.first;
@@ -203,6 +74,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         },
         this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
+
   void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     ExecutionManagementService::onOpen(wsConnectionPtr);
     auto now = UtilTime::now();
@@ -216,6 +88,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     this->eventHandler(event, nullptr);
     this->setPingListenKeyTimer(wsConnectionPtr);
   }
+
   void setPingListenKeyTimer(const std::shared_ptr<WsConnection> wsConnectionPtr) {
     TimerPtr timerPtr(
         new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(this->pingListenKeyIntervalSeconds * 1000)));
@@ -269,6 +142,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     });
     this->pingListenKeyTimerMapByConnectionIdMap[wsConnectionPtr->id] = timerPtr;
   }
+
   void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
     if (this->pingListenKeyTimerMapByConnectionIdMap.find(wsConnectionPtr->id) != this->pingListenKeyTimerMapByConnectionIdMap.end()) {
       this->pingListenKeyTimerMapByConnectionIdMap.at(wsConnectionPtr->id)->cancel();
@@ -276,7 +150,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     }
     ExecutionManagementService::onClose(wsConnectionPtr, ec);
   }
-#endif
+
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -292,6 +166,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += "&signature=";
     queryString += signature;
   }
+
   void signRequest(std::string& queryString, const std::map<std::string, std::string>& param, const TimePoint& now,
                    const std::map<std::string, std::string>& credential) {
     if (param.find("timestamp") == param.end()) {
@@ -307,6 +182,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += "&signature=";
     queryString += signature;
   }
+
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
@@ -316,15 +192,18 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       queryString += "&";
     }
   }
+
   void appendSymbolId(std::string& queryString, const std::string& symbolId) {
     queryString += "symbol=";
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
+
   void prepareReq(http::request<http::string_body>& req, const std::map<std::string, std::string>& credential) {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("X-MBX-APIKEY", apiKey);
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, credential);
@@ -349,6 +228,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           if (param.find("timeInForce") == param.end()) {
             queryString += "timeInForce=GTC&";
           }
+        }
+        if (param.find("newClientOrderId") == param.end() && param.find(CCAPI_EM_CLIENT_ORDER_ID) == param.end()) {
+          std::string nonce = std::to_string(this->generateNonce(now, request.getIndex()));
+          queryString += std::string("newClientOrderId=x-") + (this->isDerivatives ? CCAPI_BINANCE_USDS_FUTURES_API_LINK_ID : CCAPI_BINANCE_API_LINK_ID) + "-" +
+                         nonce + "&";
         }
         this->signRequest(queryString, param, now, credential);
         req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
@@ -435,9 +319,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+    std::map<std::string, std::pair<std::string, JsonDataType>> extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("origQty", JsonDataType::STRING)},
@@ -473,6 +358,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       }
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -538,18 +424,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -560,15 +435,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
+
     Event event;
     std::vector<Message> messageList;
     const auto& fieldSet = subscription.getFieldSet();
@@ -619,7 +490,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           message.setCorrelationIdList({subscription.getCorrelationId()});
           message.setTime(TimePoint(std::chrono::milliseconds(std::stoll((this->isDerivatives ? document : data)["E"].GetString()))));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-          const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+          const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("i", JsonDataType::INTEGER)},
               {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("c", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_SIDE, std::make_pair("S", JsonDataType::STRING)},
@@ -693,6 +564,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     event.setMessageList(messageList);
     return event;
   }
+
   bool isDerivatives{};
   std::string listenKeyTarget;
   int pingListenKeyIntervalSeconds;

@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_ERISX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceErisx : public MarketDataService {
  public:
@@ -13,6 +14,7 @@ class MarketDataServiceErisx : public MarketDataService {
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
+
   virtual ~MarketDataServiceErisx() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -33,6 +35,7 @@ class MarketDataServiceErisx : public MarketDataService {
       channelId += "|" + field;
     }
   }
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -68,19 +71,12 @@ class MarketDataServiceErisx : public MarketDataService {
     }
     return sendStringList;
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     std::string type = document["type"].GetString();
@@ -166,10 +162,12 @@ class MarketDataServiceErisx : public MarketDataService {
       marketDataMessageList.emplace_back(std::move(marketDataMessage));
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     // TODO(cryptochassis): implement
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     // TODO(cryptochassis): implement

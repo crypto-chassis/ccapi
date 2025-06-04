@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 #include "ccapi_cpp/service/ccapi_fix_service.h"
+
 namespace ccapi {
 class FixServiceGemini : public FixService<beast::tcp_stream> {
  public:
@@ -21,6 +22,7 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
     this->senderCompID = CCAPI_GEMINI_API_SENDER_COMP_ID;
     this->targetCompID = CCAPI_GEMINI_API_TARGET_COMP_ID;
   }
+
   virtual ~FixServiceGemini() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -34,6 +36,7 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
         {hff::tag::SendingTime, nowFixTimeStr},
     };
   }
+
   virtual std::vector<std::pair<int, std::string>> createLogonParam(const std::string& connectionId, const std::string& nowFixTimeStr,
                                                                     const std::map<int, std::string> logonOptionMap = {}) {
     std::vector<std::pair<int, std::string>> param;

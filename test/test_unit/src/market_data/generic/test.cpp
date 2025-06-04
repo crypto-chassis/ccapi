@@ -5,13 +5,16 @@
 #include "gtest/gtest.h"
 using ::testing::ElementsAre;
 using ::testing::Pair;
+
 namespace ccapi {
 class MarketDataServiceTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
+
   void SetUp() override {
     this->service = std::make_shared<MarketDataServiceGeneric>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
   }
+
   ServiceContext serviceContext;
   std::shared_ptr<MarketDataServiceGeneric> service{nullptr};
 };
@@ -25,6 +28,7 @@ TEST_F(MarketDataServiceTest, updateOrderBookInsert) {
   this->service->updateOrderBook(snapshot, p, s);
   EXPECT_THAT(snapshot, ElementsAre(Pair(pc, sc)));
 }
+
 TEST_F(MarketDataServiceTest, updateOrderBookUpdate) {
   std::map<Decimal, std::string> snapshot{
       {Decimal("1"), std::string("2")},
@@ -36,6 +40,7 @@ TEST_F(MarketDataServiceTest, updateOrderBookUpdate) {
   this->service->updateOrderBook(snapshot, p, s);
   EXPECT_THAT(snapshot, ElementsAre(Pair(pc, sc)));
 }
+
 TEST_F(MarketDataServiceTest, updateOrderBookDelete) {
   std::map<Decimal, std::string> snapshot{
       {Decimal("1"), std::string("2")},
@@ -45,6 +50,7 @@ TEST_F(MarketDataServiceTest, updateOrderBookDelete) {
   this->service->updateOrderBook(snapshot, price, size);
   EXPECT_TRUE(snapshot.empty());
 }
+
 TEST_F(MarketDataServiceTest, updateOrderBookNoInsert) {
   std::map<Decimal, std::string> snapshot;
   Decimal price("1");

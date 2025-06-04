@@ -1,0 +1,6 @@
+# CMake format settings
+indent_width: 2         # Number of spaces for indentation
+continuation_indent_width: 4  # Indentation for continued lines
+line_width: 160          # Maximum line width
+tab_size: 2             # Tab size (number of spaces per tab)
+use_tabs: false         # Whether to use tabs instead of spaces

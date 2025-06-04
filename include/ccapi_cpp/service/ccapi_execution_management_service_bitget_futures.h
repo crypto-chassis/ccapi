@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitget_base.h"
+
 namespace ccapi {
 class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServiceBitgetBase {
  public:
@@ -10,37 +11,25 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
                                           ServiceContextPtr serviceContextPtr)
       : ExecutionManagementServiceBitgetBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITGET_FUTURES;
-    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/mix/v1/stream";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v2/ws/private";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_BITGET_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_BITGET_FUTURES_API_SECRET;
     this->apiPassphraseName = CCAPI_BITGET_FUTURES_API_PASSPHRASE;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
-    this->createOrderTarget = "/api/mix/v1/order/placeOrder";
-    this->cancelOrderTarget = "/api/mix/v1/order/cancel-order";
-    this->getOrderTarget = "/api/mix/v1/order/detail";
-    this->getOpenOrdersTarget = "/api/mix/v1/order/current";
-    this->getAllOpenOrdersTarget = "/api/mix/v1/order/marginCoinCurrent";
-    this->cancelOpenOrdersTarget = "/api/mix/v1/order/cancel-all-orders";
-    this->getAccountBalancesTarget = "/api/mix/v1/account/accounts";
-    this->getAccountPositionsTarget = "/api/mix/v1/position/singlePosition";
-    this->getAccountAllPositionsTarget = "/api/mix/v1/position/allPosition";
+    this->createOrderTarget = "/api/v2/mix/order/place-order";
+    this->cancelOrderTarget = "/api/v2/mix/order/cancel-order";
+    this->getOrderTarget = "/api/v2/mix/order/detail";
+    this->getOpenOrdersTarget = "/api/v2/mix/order/orders-pending";
+    this->getAllOpenOrdersTarget = "/api/v2/mix/order/orders-pending";
+    this->cancelOpenOrdersTarget = "/api/v2/mix/order/cancel-all-orders";
+    this->getAccountBalancesTarget = "/api/v2/mix/account/accounts";
+    this->getAccountPositionsTarget = "/api/v2/mix/position/single-position";
+    this->getAccountAllPositionsTarget = "/api/v2/mix/position/all-position";
   }
+
   virtual ~ExecutionManagementServiceBitgetFutures() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -49,6 +38,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
   void appendParam(Request::Operation operation, rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_MARGIN_ASSET, "marginCoin"},
+                       {CCAPI_MARGIN_MODE, "marginMode"},
                        {CCAPI_EM_ORDER_SIDE, "side"},
                        {CCAPI_EM_ORDER_QUANTITY, "size"},
                        {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
@@ -63,10 +53,12 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
+
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
+                       {CCAPI_MARGIN_ASSET, "marginCoin"},
                        {CCAPI_EM_ORDER_ID, "orderId"},
-                       {CCAPI_EM_CLIENT_ORDER_ID, "clientOrderId"},
+                       {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
                        {CCAPI_SYMBOL_ID, "symbol"},
                        {CCAPI_INSTRUMENT_TYPE, "productType"},
                    }) {
@@ -77,6 +69,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       queryString += "&";
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, request, now, symbolId, credential);
@@ -96,9 +89,6 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         this->appendParam(operation, document, allocator, param);
         if (param.find("orderType") == param.end()) {
           document.AddMember("orderType", rj::Value("limit").Move(), allocator);
-        }
-        if (param.find("timeInForceValue") == param.end()) {
-          document.AddMember("timeInForceValue", rj::Value("normal").Move(), allocator);
         }
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
@@ -211,6 +201,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
@@ -219,22 +210,37 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filledQty", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("baseVolume", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
-    const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::GET_ORDER) {
+      const rj::Value& data = document["data"];
       Element element;
       this->extractOrderInfo(element, data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
+      const rj::Value& data = document["data"]["entrustedList"];
       for (const auto& x : data.GetArray()) {
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
+      }
+    } else if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
+      const rj::Value& successList = document["data"]["successList"];
+      for (const auto& x : successList.GetArray()) {
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
+      }
+      const rj::Value& failureList = document["data"]["failureList"];
+      for (const auto& x : failureList.GetArray()) {
         Element element;
         this->extractOrderInfo(element, x, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       }
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -242,7 +248,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         for (const auto& x : document["data"].GetArray()) {
           Element element;
           element.insert(CCAPI_EM_ASSET, x["marginCoin"].GetString());
-          std::string available = x["crossMaxAvailable"].GetString();
+          std::string available = x["crossedMaxAvailable"].GetString();
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
           std::string locked = x["locked"].GetString();
           element.insert(CCAPI_EM_QUANTITY_TOTAL, (Decimal(available).add(Decimal(locked))).toString());
@@ -256,8 +262,9 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
           element.insert(CCAPI_MARGIN_ASSET, x["marginCoin"].GetString());
           element.insert(CCAPI_EM_POSITION_SIDE, x["holdSide"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["total"].GetString());
-          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["averageOpenPrice"].GetString());
+          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["openPriceAvg"].GetString());
           element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
+          element.insert(CCAPI_EM_UNREALIZED_PNL, x["unrealizedPL"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -265,12 +272,13 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
                         const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
-      auto it1 = x.FindMember("accFillSz");
-      auto it2 = x.FindMember("avgPx");
+      auto it1 = x.FindMember("accBaseVolume");
+      auto it2 = x.FindMember("priceAvg");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
         auto it1Str = std::string(it1->value.GetString());
         auto it2Str = std::string(it2->value.GetString());
@@ -281,6 +289,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       }
     }
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
@@ -309,14 +318,11 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
-                     const TimePoint& timeReceived) override {
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
-#endif
+
     if (textMessage != "pong") {
       rj::Document document;
       document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
@@ -332,14 +338,24 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         const auto& instrumentSet = subscription.getInstrumentSet();
         const auto& instrumentType = subscription.getInstrumentType();
         for (const auto& field : fieldSet) {
-          std::string channel;
-          if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-            channel = "orders";
-          }
-          for (const auto& instrument : instrumentSet) {
+          if (field == CCAPI_EM_ORDER_UPDATE || field == CCAPI_EM_PRIVATE_TRADE) {
+            for (const auto& instrument : instrumentSet) {
+              rj::Value arg(rj::kObjectType);
+              arg.AddMember("channel", rj::Value("orders", allocator).Move(), allocator);
+              arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
+              arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
+              args.PushBack(arg, allocator);
+            }
+          } else if (field == CCAPI_EM_POSITION_UPDATE) {
             rj::Value arg(rj::kObjectType);
-            arg.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
-            arg.AddMember("instId", rj::Value(instrument.c_str(), allocator).Move(), allocator);
+            arg.AddMember("channel", rj::Value("positions", allocator).Move(), allocator);
+            arg.AddMember("instId", rj::Value("default", allocator).Move(), allocator);
+            arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
+            args.PushBack(arg, allocator);
+          } else if (field == CCAPI_EM_BALANCE_UPDATE) {
+            rj::Value arg(rj::kObjectType);
+            arg.AddMember("channel", rj::Value("account", allocator).Move(), allocator);
+            arg.AddMember("coin", rj::Value("default", allocator).Move(), allocator);
             arg.AddMember("instType", rj::Value(instrumentType.c_str(), allocator).Move(), allocator);
             args.PushBack(arg, allocator);
           }
@@ -350,34 +366,26 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         document.Accept(writerSubscribe);
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-        this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-#else
+
         this->send(wsConnectionPtr, sendString, ec);
-#endif
+
         if (ec) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }
       } else {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-        Event event = this->createEvent(wsConnection, wsConnection.hdl, subscription, textMessage, document, eventStr, timeReceived);
-#else
         Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, eventStr, timeReceived);
-#endif
+
         if (!event.getMessageList().empty()) {
           this->eventHandler(event, nullptr);
         }
       }
     }
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const std::string& eventStr, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const std::string& eventStr, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
+
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -390,8 +398,9 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
       const rj::Value& arg = document["arg"];
       std::string channel = std::string(arg["channel"].GetString());
       event.setType(Event::Type::SUBSCRIPTION_DATA);
-      std::string instrument = arg["instId"].GetString();
-      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+      std::string instId = (channel == "account") ? "coin" : "instId";
+      std::string instrument = arg[instId.c_str()].GetString();
+      if (instrumentSet.empty() || instrument == "default" || instrumentSet.find(instrument) != instrumentSet.end()) {
         if (channel == "orders") {
           if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
             const rj::Value& data = document["data"];
@@ -407,15 +416,19 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
                 std::vector<Element> elementList;
                 Element element;
                 element.insert(CCAPI_TRADE_ID, tradeId);
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["fillPx"].GetString()));
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["fillSz"].GetString()));
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["fillPrice"].GetString()));
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["baseVolume"].GetString()));
                 element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                element.insert(CCAPI_IS_MAKER, std::string(x["execType"].GetString()) == "M" ? "1" : "0");
-                element.insert(CCAPI_EM_ORDER_ID, std::string(x["ordId"].GetString()));
-                element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["clOrdId"].GetString()));
+                element.insert(CCAPI_IS_MAKER, std::string(x["tradeScope"].GetString()) == "M" ? "1" : "0");
+                element.insert(CCAPI_EM_ORDER_ID, std::string(x["orderId"].GetString()));
+                auto itClientOId = x.FindMember("clientOId");
+                std::string clientOId = itClientOId != x.MemberEnd() ? itClientOId->value.GetString() : "";
+                if (!clientOId.empty()) {
+                  element.insert(CCAPI_EM_CLIENT_ORDER_ID, clientOId);
+                }
                 element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
                 element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fillFee"].GetString()));
-                element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fillFeeCcy"].GetString()));
+                element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fillFeeCoin"].GetString()));
                 elementList.emplace_back(std::move(element));
                 message.setElementList(elementList);
                 messageList.emplace_back(std::move(message));
@@ -431,12 +444,12 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
               message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["uTime"].GetString()))));
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
               const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
-                  {CCAPI_EM_ORDER_ID, std::make_pair("ordId", JsonDataType::STRING)},
-                  {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdId", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
+                  {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOId", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("px", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_QUANTITY, std::make_pair("sz", JsonDataType::STRING)},
-                  {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
+                  {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accBaseVolume", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
               };
               Element info;
@@ -447,6 +460,42 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
               message.setElementList(elementList);
               messageList.emplace_back(std::move(message));
             }
+          }
+        } else if (channel == "positions") {
+          const rj::Value& data = document["data"];
+          for (const auto& x : data.GetArray()) {
+            auto time = TimePoint(std::chrono::milliseconds(std::stoll(x["uTime"].GetString())));
+            Message message;
+            message.setTimeReceived(timeReceived);
+            message.setCorrelationIdList({subscription.getCorrelationId()});
+            message.setTime(time);
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_POSITION_UPDATE);
+            std::vector<Element> elementList;
+            Element element;
+            element.insert(CCAPI_INSTRUMENT, x["instId"].GetString());
+            element.insert(CCAPI_EM_POSITION_SIDE, x["holdSide"].GetString());
+            element.insert(CCAPI_EM_POSITION_QUANTITY, x["total"].GetString());
+            element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["openPriceAvg"].GetString());
+            element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
+            elementList.emplace_back(std::move(element));
+            message.setElementList(elementList);
+            messageList.emplace_back(std::move(message));
+          }
+        } else if (channel == "account") {
+          const rj::Value& data = document["data"];
+          for (const auto& x : data.GetArray()) {
+            Message message;
+            message.setTimeReceived(timeReceived);
+            message.setCorrelationIdList({subscription.getCorrelationId()});
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_BALANCE_UPDATE);
+            std::vector<Element> elementList;
+            Element element;
+            element.insert(CCAPI_EM_ASSET, x["marginCoin"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x["equity"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
+            elementList.emplace_back(std::move(element));
+            message.setElementList(elementList);
+            messageList.emplace_back(std::move(message));
           }
         }
       }
@@ -468,6 +517,7 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
     event.setMessageList(messageList);
     return event;
   }
+
   std::string getAllOpenOrdersTarget, getAccountAllPositionsTarget;
 };
 } /* namespace ccapi */

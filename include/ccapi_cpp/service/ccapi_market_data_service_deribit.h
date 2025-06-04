@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceDeribit : public MarketDataService {
  public:
@@ -14,57 +15,18 @@ class MarketDataServiceDeribit : public MarketDataService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->restTarget = "/api/v2";
     this->getRecentTradesTarget = "/public/get_last_trades_by_instrument";
     this->getInstrumentTarget = "/public/get_instrument";
     this->getInstrumentsTarget = "/public/get_instruments";
   }
+
   virtual ~MarketDataServiceDeribit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onOpen(wspp::connection_hdl hdl) override {
-    MarketDataService::onOpen(hdl);
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    rj::Document document;
-    document.SetObject();
-    rj::Document::AllocatorType& allocator = document.GetAllocator();
-    auto now = UtilTime::now();
-    this->appendParam(document, allocator, std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count(), "public/set_heartbeat",
-                      {
-                          {"interval", "10"},
-                      });
-    rj::StringBuffer stringBuffer;
-    rj::Writer<rj::StringBuffer> writer(stringBuffer);
-    document.Accept(writer);
-    std::string msg = stringBuffer.GetString();
-    ErrorCode ec;
-    this->send(hdl, msg, wspp::frame::opcode::text, ec);
-    if (ec) {
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
-    }
-  }
-  void onClose(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-  }
-#else
+
   void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     MarketDataService::onOpen(wsConnectionPtr);
     rj::Document document;
@@ -85,11 +47,12 @@ class MarketDataServiceDeribit : public MarketDataService {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
     }
   }
+
   void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
     this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnectionPtr->id);
     MarketDataService::onClose(wsConnectionPtr, ec);
   }
-#endif
+
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -106,6 +69,7 @@ class MarketDataServiceDeribit : public MarketDataService {
       }
     }
   }
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
@@ -173,19 +137,12 @@ class MarketDataServiceDeribit : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto it = document.FindMember("result");
@@ -304,11 +261,9 @@ class MarketDataServiceDeribit : public MarketDataService {
           document.Accept(writer);
           std::string msg = stringBuffer.GetString();
           ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-          this->send(hdl, msg, wspp::frame::opcode::text, ec);
-#else
+
           this->send(wsConnectionPtr, msg, ec);
-#endif
+
           if (ec) {
             this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
           }
@@ -369,6 +324,7 @@ class MarketDataServiceDeribit : public MarketDataService {
       }
     }
   }
+
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& method,
                    const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
     document.AddMember("jsonrpc", rj::Value("2.0").Move(), allocator);
@@ -388,9 +344,11 @@ class MarketDataServiceDeribit : public MarketDataService {
     }
     document.AddMember("params", params, allocator);
   }
+
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document["params"].AddMember("instrument_name", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     int64_t requestId = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
@@ -457,6 +415,7 @@ class MarketDataServiceDeribit : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["instrument_name"].GetString());
     element.insert(CCAPI_MARGIN_ASSET, x["base_currency"].GetString());
@@ -464,6 +423,7 @@ class MarketDataServiceDeribit : public MarketDataService {
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tick_size"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["contract_size"].GetString());
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -514,6 +474,7 @@ class MarketDataServiceDeribit : public MarketDataService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   std::map<std::string, std::set<int64_t>> subscriptionJsonrpcIdSetByConnectionIdMap;
   std::string restTarget;
 };

@@ -3,6 +3,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 using ::testing::ElementsAre;
+
 namespace ccapi {
 TEST(EventTest, addMessagesZeroAddZero) {
   Event e;
@@ -10,6 +11,7 @@ TEST(EventTest, addMessagesZeroAddZero) {
   e.addMessages(ml);
   EXPECT_TRUE(e.getMessageList().empty());
 }
+
 TEST(EventTest, addMessagesZeroAddSome) {
   Event e;
   std::vector<Message> ml;
@@ -17,6 +19,7 @@ TEST(EventTest, addMessagesZeroAddSome) {
   e.addMessages(ml);
   EXPECT_EQ(e.getMessageList().size(), 1);
 }
+
 TEST(EventTest, addMessagesSomeAddZero) {
   Event e;
   e.setMessageList({Message()});
@@ -24,6 +27,7 @@ TEST(EventTest, addMessagesSomeAddZero) {
   e.addMessages(ml);
   EXPECT_EQ(e.getMessageList().size(), 1);
 }
+
 TEST(EventTest, addMessagesSomeAddSome) {
   Message m1;
   m1.setType(Message::Type::SESSION_CONNECTION_UP);

@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_KRAKEN_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceKrakenFutures : public MarketDataService {
  public:
@@ -14,24 +15,12 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     std::string prefix("/derivatives/api/v3");
     this->getRecentTradesTarget = prefix + "/history";
     this->getInstrumentTarget = prefix + "/instruments";
     this->getInstrumentsTarget = prefix + "/instruments";
   }
+
   virtual ~MarketDataServiceKrakenFutures() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -41,6 +30,7 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     symbolId = UtilString::toUpper(symbolId);
   }
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -79,19 +69,12 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
     }
     return sendStringList;
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
@@ -204,6 +187,7 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
       }
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -232,12 +216,14 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["underlying"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["contractSize"].GetString());
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;

@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BITFINEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     this->baseUrlRest = CCAPI_BITFINEX_PRIVATE_URL_REST_BASE;
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_BITFINEX_API_KEY;
     this->apiSecretName = CCAPI_BITFINEX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -37,34 +25,31 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     this->getAccountBalancesTarget = "/v2/auth/r/wallets";
     this->getAccountPositionsTarget = "/v2/auth/r/positions";
   }
+
   virtual ~ExecutionManagementServiceBitfinex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
-    auto now = UtilTime::now();
-    this->send(hdl, "{\"cid\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"event\":\"ping\"}", wspp::frame::opcode::text, ec);
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(wsConnectionPtr, "{\"cid\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"event\":\"ping\"}", ec);
   }
-#endif
+
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, request, now, credential);
     this->signRequest(req, path, body, credential);
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& path, const std::string& body,
                    const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     std::string preSignedText = "/api";
     preSignedText += path;
-    preSignedText += req.base().at("bfx-nonce").to_string();
+    preSignedText += std::string(req.base().at("bfx-nonce"));
     preSignedText += body;
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, preSignedText, true);
     req.set("bfx-signature", signature);
@@ -72,6 +57,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     req.body() = body;
     req.prepare_payload();
   }
+
   void appendParam(const Request& request, rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
@@ -92,9 +78,11 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
       }
     }
   }
+
   void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     rjValue.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void prepareReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     req.set(beast::http::field::content_type, "application/json");
     int64_t nonce = this->generateNonce(now, request.getIndex());
@@ -102,6 +90,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("bfx-apikey", apiKey);
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, request, now, credential);
@@ -205,8 +194,9 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
-                                  int wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                  unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
@@ -241,6 +231,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
         this->convertRequestForWebsocketCustom(document, allocator, wsConnection, request, wsRequestId, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     if (operation == Request::Operation::CREATE_ORDER) {
@@ -263,11 +254,13 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
       }
     }
   }
+
   void extractOrderInfoFromRequestForWebsocket(std::vector<Element>& elementList, const rj::Value& value) {
     Element element;
     this->extractOrderInfo(element, value);
     elementList.emplace_back(std::move(element));
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -298,6 +291,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_EM_ORDER_ID, x[0].GetString());
     element.insert(CCAPI_EM_CLIENT_ORDER_ID, x[2].GetString());
@@ -324,6 +318,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
                    Decimal(UtilString::printDoubleScientific(std::stod(x[17].GetString()) * (std::stod(originalAmount) - std::stod(amount)))).toString());
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
@@ -360,18 +355,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -382,120 +366,116 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived){
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
-      Event event;
-  std::vector<Message> messageList;
-  Message message;
-  message.setTimeReceived(timeReceived);
-  message.setCorrelationIdList({subscription.getCorrelationId()});
-  const auto& fieldSet = subscription.getFieldSet();
-  const auto& instrumentSet = subscription.getInstrumentSet();
-  if (document.IsArray() && document.Size() >= 3 && std::string(document[0].GetString()) == "0") {
-    std::string type = document[1].GetString();
-    if ((type == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-      event.setType(Event::Type::SUBSCRIPTION_DATA);
-      const rj::Value& data = document[2];
-      std::string instrument = data[1].GetString();
-      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-        message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[2].GetString())));
-        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-        std::vector<Element> elementList;
-        Element element;
-        if (type == "tu") {
-          element.insert(CCAPI_TRADE_ID, data[2].GetString());
-        }
-        std::string amount = data[4].GetString();
-        if (amount.at(0) == '-') {
-          amount.erase(0, 1);
-          element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_SELL);
-          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
-        } else {
-          element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY);
-          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
-        }
-        element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data[5].GetString());
-        element.insert(CCAPI_IS_MAKER, std::string(data[8].GetString()).at(0) != '-' ? "1" : "0");
-        element.insert(CCAPI_EM_ORDER_INSTRUMENT, data[1].GetString());
-        element.insert(CCAPI_EM_ORDER_ID, data[3].GetString());
-        element.insert(CCAPI_EM_CLIENT_ORDER_ID, data[11].GetString());
-        if (type == "tu") {
-          std::string fee = data[9].GetString();
-          if (fee.at(0) == '-') {
-            fee.erase(0, 1);
-          } else {
-            fee.insert(0, 1, '-');
+
+    Event event;
+    std::vector<Message> messageList;
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList({subscription.getCorrelationId()});
+    const auto& fieldSet = subscription.getFieldSet();
+    const auto& instrumentSet = subscription.getInstrumentSet();
+    if (document.IsArray() && document.Size() >= 3 && std::string(document[0].GetString()) == "0") {
+      std::string type = document[1].GetString();
+      if ((type == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+        event.setType(Event::Type::SUBSCRIPTION_DATA);
+        const rj::Value& data = document[2];
+        std::string instrument = data[1].GetString();
+        if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+          message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[2].GetString())));
+          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
+          std::vector<Element> elementList;
+          Element element;
+          if (type == "tu") {
+            element.insert(CCAPI_TRADE_ID, data[2].GetString());
           }
-          element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, fee);
-          element.insert(CCAPI_EM_ORDER_FEE_ASSET, data[10].GetString());
+          std::string amount = data[4].GetString();
+          if (amount.at(0) == '-') {
+            amount.erase(0, 1);
+            element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_SELL);
+            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
+          } else {
+            element.insert(CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY);
+            element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, amount);
+          }
+          element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data[5].GetString());
+          element.insert(CCAPI_IS_MAKER, std::string(data[8].GetString()).at(0) != '-' ? "1" : "0");
+          element.insert(CCAPI_EM_ORDER_INSTRUMENT, data[1].GetString());
+          element.insert(CCAPI_EM_ORDER_ID, data[3].GetString());
+          element.insert(CCAPI_EM_CLIENT_ORDER_ID, data[11].GetString());
+          if (type == "tu") {
+            std::string fee = data[9].GetString();
+            if (fee.at(0) == '-') {
+              fee.erase(0, 1);
+            } else {
+              fee.insert(0, 1, '-');
+            }
+            element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, fee);
+            element.insert(CCAPI_EM_ORDER_FEE_ASSET, data[10].GetString());
+          }
+          elementList.emplace_back(std::move(element));
+          message.setElementList(elementList);
+          messageList.emplace_back(std::move(message));
         }
-        elementList.emplace_back(std::move(element));
-        message.setElementList(elementList);
-        messageList.emplace_back(std::move(message));
-      }
-    } else if ((type == "on" || type == "ou" || type == "oc") && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
-      event.setType(Event::Type::SUBSCRIPTION_DATA);
-      const rj::Value& data = document[2];
-      std::string instrument = data[3].GetString();
-      if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
-        message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[5].GetString())));
-        message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-        Element info;
-        this->extractOrderInfo(info, data);
-        std::vector<Element> elementList;
-        elementList.emplace_back(std::move(info));
-        message.setElementList(elementList);
-        messageList.emplace_back(std::move(message));
-      }
-    } else if (type == "n") {
-      event.setType(Event::Type::RESPONSE);
-      const rj::Value& data = document[2];
-      std::string status = data[6].GetString();
-      if (status != "SUCCESS") {
-        message.setType(Message::Type::RESPONSE_ERROR);
-        Element element;
-        element.insert(CCAPI_ERROR_MESSAGE, textMessage);
-        message.setElementList({element});
-        messageList.emplace_back(std::move(message));
-      } else {
-        std::vector<Element> elementList;
-        std::string notificationType = data[1].GetString();
-        if (notificationType == "on-req") {
-          message.setType(Message::Type::CREATE_ORDER);
-        } else if (notificationType == "oc-req") {
-          message.setType(Message::Type::CANCEL_ORDER);
+      } else if ((type == "on" || type == "ou" || type == "oc") && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+        event.setType(Event::Type::SUBSCRIPTION_DATA);
+        const rj::Value& data = document[2];
+        std::string instrument = data[3].GetString();
+        if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
+          message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(data[5].GetString())));
+          message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
+          Element info;
+          this->extractOrderInfo(info, data);
+          std::vector<Element> elementList;
+          elementList.emplace_back(std::move(info));
+          message.setElementList(elementList);
+          messageList.emplace_back(std::move(message));
         }
-        this->extractOrderInfoFromRequestForWebsocket(elementList, data[4]);
-        message.setElementList(elementList);
-        messageList.emplace_back(std::move(message));
+      } else if (type == "n") {
+        event.setType(Event::Type::RESPONSE);
+        const rj::Value& data = document[2];
+        std::string status = data[6].GetString();
+        if (status != "SUCCESS") {
+          message.setType(Message::Type::RESPONSE_ERROR);
+          Element element;
+          element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+          message.setElementList({element});
+          messageList.emplace_back(std::move(message));
+        } else {
+          std::vector<Element> elementList;
+          std::string notificationType = data[1].GetString();
+          if (notificationType == "on-req") {
+            message.setType(Message::Type::CREATE_ORDER);
+          } else if (notificationType == "oc-req") {
+            message.setType(Message::Type::CANCEL_ORDER);
+          }
+          this->extractOrderInfoFromRequestForWebsocket(elementList, data[4]);
+          message.setElementList(elementList);
+          messageList.emplace_back(std::move(message));
+        }
+      }
+    } else if (document.IsObject()) {
+      auto it = document.FindMember("event");
+      if (it != document.MemberEnd()) {
+        std::string eventStr = it->value.GetString();
+        if (eventStr == "auth") {
+          std::string status = document["status"].GetString();
+          event.setType(Event::Type::SUBSCRIPTION_STATUS);
+          message.setType(status == "OK" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
+          Element element;
+          element.insert(status == "OK" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+          message.setElementList({element});
+          messageList.emplace_back(std::move(message));
+        }
       }
     }
-  } else if (document.IsObject()) {
-    auto it = document.FindMember("event");
-    if (it != document.MemberEnd()) {
-      std::string eventStr = it->value.GetString();
-      if (eventStr == "auth") {
-        std::string status = document["status"].GetString();
-        event.setType(Event::Type::SUBSCRIPTION_STATUS);
-        message.setType(status == "OK" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
-        Element element;
-        element.insert(status == "OK" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
-        message.setElementList({element});
-        messageList.emplace_back(std::move(message));
-      }
-    }
+    event.setMessageList(messageList);
+    return event;
   }
-  event.setMessageList(messageList);
-  return event;
-}
-};  // namespace ccapi
+};
 } /* namespace ccapi */
 #endif
 #endif

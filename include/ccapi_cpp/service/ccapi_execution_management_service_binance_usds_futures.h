@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_derivatives_base.h"
+
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsdsFutures : public ExecutionManagementServiceBinanceDerivativesBase {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceBinanceUsdsFutures : public ExecutionManagementS
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_BINANCE_USDS_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_USDS_FUTURES_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -40,6 +28,7 @@ class ExecutionManagementServiceBinanceUsdsFutures : public ExecutionManagementS
     this->getAccountBalancesTarget = "/fapi/v2/account";
     this->getAccountPositionsTarget = "/fapi/v2/positionRisk";
   }
+
   virtual ~ExecutionManagementServiceBinanceUsdsFutures() {}
 };
 } /* namespace ccapi */

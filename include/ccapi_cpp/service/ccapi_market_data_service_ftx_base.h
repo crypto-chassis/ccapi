@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #if defined(CCAPI_ENABLE_EXCHANGE_FTX) || defined(CCAPI_ENABLE_EXCHANGE_FTX_US)
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceFtxBase : public MarketDataService {
  public:
@@ -15,6 +16,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
     this->getInstrumentsTarget = "/api/markets";
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
+
   virtual ~MarketDataServiceFtxBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -32,7 +34,9 @@ class MarketDataServiceFtxBase : public MarketDataService {
       }
     }
   }
+
   void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -63,6 +67,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
     }
     return sendStringList;
   }
+
   std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
     auto i = 0;
     auto i1 = snapshotBid.rbegin();
@@ -85,19 +90,12 @@ class MarketDataServiceFtxBase : public MarketDataService {
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto type = std::string(document["type"].GetString());
@@ -266,6 +264,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
       event.setMessageList(messageList);
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -303,6 +302,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
     if (!x["baseCurrency"].IsNull()) {
@@ -324,6 +324,7 @@ class MarketDataServiceFtxBase : public MarketDataService {
       element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minProvideSize"].GetString());
     }
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;

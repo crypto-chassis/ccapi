@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
+
 namespace ccapi {
 class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagementServiceBinanceBase {
  public:
@@ -11,7 +12,9 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }
+
   virtual ~ExecutionManagementServiceBinanceDerivativesBase() {}
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -27,6 +30,7 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
         ExecutionManagementServiceBinanceBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {

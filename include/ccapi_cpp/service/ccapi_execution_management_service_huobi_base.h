@@ -3,12 +3,14 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
  public:
   ExecutionManagementServiceHuobiBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                       ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+
   virtual ~ExecutionManagementServiceHuobiBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -37,6 +39,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
     signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
   }
+
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -62,6 +65,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryString += "Signature=";
     queryString += Url::urlEncode(signature);
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& path, const std::map<std::string, std::string>& queryParamMap,
                    const std::map<std::string, std::string>& credential) {
     std::string signature;
@@ -71,6 +75,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryString += Url::urlEncode(signature);
     req.target(path + "?" + queryString);
   }
+
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
@@ -91,6 +96,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
+
   void appendParam(std::map<std::string, std::string>& queryParamMap, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
@@ -98,12 +104,15 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
                                           Url::urlEncode(kv.second)));
     }
   }
+
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId, const std::string symbolIdCalled) {
     document.AddMember(rj::Value(symbolIdCalled.c_str(), allocator).Move(), rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId, const std::string symbolIdCalled) {
     queryParamMap.insert(std::make_pair(symbolIdCalled, Url::urlEncode(symbolId)));
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
@@ -117,8 +126,10 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     queryParamMap.insert(std::make_pair("Timestamp", Url::urlEncode(timestamp)));
     this->convertReqDetail(req, request, now, symbolId, credential, queryParamMap);
   }
+
   virtual void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                                 const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) {}
+
   bool isDerivatives{};
 };
 } /* namespace ccapi */

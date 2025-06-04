@@ -4,11 +4,13 @@
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_gemini.h"
+
 // clang-format on
 namespace ccapi {
 class ExecutionManagementServiceGeminiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
+
   void SetUp() override {
     this->service = std::make_shared<ExecutionManagementServiceGemini>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
     this->credential = {
@@ -18,6 +20,7 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
+
   ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceGemini> service{nullptr};
   std::map<std::string, std::string> credential;
@@ -26,15 +29,15 @@ class ExecutionManagementServiceGeminiTest : public ::testing::Test {
 };
 
 void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey) {
-  EXPECT_EQ(req.base().at("Cache-Control").to_string(), "no-cache");
-  EXPECT_EQ(req.base().at("Content-Length").to_string(), "0");
-  EXPECT_EQ(req.base().at("Content-Type").to_string(), "text/plain");
-  EXPECT_EQ(req.base().at("X-GEMINI-APIKEY").to_string(), apiKey);
+  EXPECT_EQ(std::string(req.base().at("Cache-Control")), "no-cache");
+  EXPECT_EQ(std::string(req.base().at("Content-Length")), "0");
+  EXPECT_EQ(std::string(req.base().at("Content-Type")), "text/plain");
+  EXPECT_EQ(std::string(req.base().at("X-GEMINI-APIKEY")), apiKey);
 }
 
 void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
-  auto base64Payload = req.base().at("X-GEMINI-PAYLOAD").to_string();
-  auto signature = req.base().at("X-GEMINI-SIGNATURE").to_string();
+  auto base64Payload = std::string(req.base().at("X-GEMINI-PAYLOAD"));
+  auto signature = std::string(req.base().at("X-GEMINI-SIGNATURE"));
   EXPECT_EQ(UtilString::toLower(Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true)), signature);
 }
 
@@ -42,8 +45,8 @@ TEST_F(ExecutionManagementServiceGeminiTest, signRequest) {
   http::request<http::string_body> req;
   std::string body("{\"request\":\"/v1/order/status\",\"nonce\":123456,\"order_id\":18834}");
   this->service->signRequest(req, body, this->credential);
-  EXPECT_EQ(req.base().at("X-GEMINI-PAYLOAD").to_string(), "eyJyZXF1ZXN0IjoiL3YxL29yZGVyL3N0YXR1cyIsIm5vbmNlIjoxMjM0NTYsIm9yZGVyX2lkIjoxODgzNH0=");
-  EXPECT_EQ(UtilString::toLower(req.base().at("X-GEMINI-SIGNATURE").to_string()),
+  EXPECT_EQ(std::string(req.base().at("X-GEMINI-PAYLOAD")), "eyJyZXF1ZXN0IjoiL3YxL29yZGVyL3N0YXR1cyIsIm5vbmNlIjoxMjM0NTYsIm9yZGVyX2lkIjoxODgzNH0=");
+  EXPECT_EQ(UtilString::toLower(std::string(req.base().at("X-GEMINI-SIGNATURE"))),
             "7c3929f78a3b4cb6c14c1ca76e851fb095d2aad9a224e0b94a9bca45d0dac6b36e7923d0e4b9469706379ec589249783");
 }
 
@@ -60,7 +63,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCreateOrder) {
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
   EXPECT_EQ(req.target(), "/v1/order/new");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/new");
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   EXPECT_EQ(std::string(document["symbol"].GetString()), "btcusd");
@@ -118,7 +121,7 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOrderByOrderId)
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
   EXPECT_EQ(req.target(), "/v1/order/cancel");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   EXPECT_EQ(std::string(document["order_id"].GetString()), "19492382044");
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/cancel");
@@ -167,9 +170,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByOrderId) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/v1/order/status");
+  EXPECT_EQ(std::string(req.target()), "/v1/order/status");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   EXPECT_EQ(std::string(document["order_id"].GetString()), "19492382044");
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/status");
@@ -185,9 +188,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOrderByClientOrder
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/v1/order/status");
+  EXPECT_EQ(std::string(req.target()), "/v1/order/status");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   EXPECT_EQ(std::string(document["client_order_id"].GetString()), "20190110-4738721");
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/status");
@@ -240,9 +243,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetOpenOrdersAllInstr
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/v1/orders");
+  EXPECT_EQ(std::string(req.target()), "/v1/orders");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
 }
@@ -314,9 +317,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestCancelOpenOrders) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/v1/order/cancel/session");
+  EXPECT_EQ(std::string(req.target()), "/v1/order/cancel/session");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/order/cancel/session");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
@@ -347,9 +350,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetAccounts) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/v1/account/list");
+  EXPECT_EQ(std::string(req.target()), "/v1/account/list");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/account/list");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));
@@ -393,9 +396,9 @@ TEST_F(ExecutionManagementServiceGeminiTest, convertRequestGetAccountBalances) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_GEMINI_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/v1/balances");
+  EXPECT_EQ(std::string(req.target()), "/v1/balances");
   rj::Document document;
-  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(req.base().at("X-GEMINI-PAYLOAD").to_string()).c_str());
+  document.Parse<rj::kParseNumbersAsStringsFlag>(UtilAlgorithm::base64Decode(std::string(req.base().at("X-GEMINI-PAYLOAD"))).c_str());
   EXPECT_EQ(std::string(document["nonce"].GetString()), std::to_string(this->timestamp * 1000000LL));
   EXPECT_EQ(std::string(document["request"].GetString()), "/v1/balances");
   verifySignature(req, this->credential.at(CCAPI_GEMINI_API_SECRET));

@@ -1,14 +1,17 @@
 #include "ccapi_cpp/ccapi_session.h"
+
 namespace ccapi {
 Logger* Logger::logger = nullptr;  // This line is needed.
+
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* session) override {
+  bool processEvent(const Event& event, Session* sessionPtr) override {
     std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
     return true;
   }
 };
 } /* namespace ccapi */
+
 using ::ccapi::MyEventHandler;
 using ::ccapi::Request;
 using ::ccapi::Session;
@@ -16,13 +19,18 @@ using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::toString;
 using ::ccapi::UtilSystem;
+
 int main(int argc, char** argv) {
-  if (UtilSystem::getEnvAsString("BINANCE_API_KEY").empty()) {
-    std::cerr << "Please set environment variable BINANCE_API_KEY" << std::endl;
+  if (UtilSystem::getEnvAsString("OKX_API_KEY").empty()) {
+    std::cerr << "Please set environment variable OKX_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
-  if (UtilSystem::getEnvAsString("BINANCE_API_SECRET").empty()) {
-    std::cerr << "Please set environment variable BINANCE_API_SECRET" << std::endl;
+  if (UtilSystem::getEnvAsString("OKX_API_SECRET").empty()) {
+    std::cerr << "Please set environment variable OKX_API_SECRET" << std::endl;
+    return EXIT_FAILURE;
+  }
+  if (UtilSystem::getEnvAsString("OKX_API_PASSPHRASE").empty()) {
+    std::cerr << "Please set environment variable OKX_API_PASSPHRASE" << std::endl;
     return EXIT_FAILURE;
   }
   std::vector<std::string> modeList = {
@@ -41,11 +49,11 @@ int main(int argc, char** argv) {
     if (argc != 6) {
       std::cerr << "Usage: " << argv[0] << " create_order <symbol> <buy or sell> <order quantity> <limit price>\n"
                 << "Example:\n"
-                << "    " << argv[0] << " create_order BTCUSD buy 0.001 20000" << std::endl;
+                << "    " << argv[0] << " create_order BTC-USDT buy 0.001 20000" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CREATE_ORDER, "binance", argv[2]);
+    Request request(Request::Operation::CREATE_ORDER, "okx", argv[2]);
     request.appendParam({
         {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
         {"QUANTITY", argv[4]},
@@ -56,11 +64,11 @@ int main(int argc, char** argv) {
     if (argc != 4) {
       std::cerr << "Usage: " << argv[0] << " cancel_order <symbol> <order id>\n"
                 << "Example:\n"
-                << "    " << argv[0] << " cancel_order BTCUSD 4" << std::endl;
+                << "    " << argv[0] << " cancel_order BTC-USDT 4" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CANCEL_ORDER, "binance", argv[2]);
+    Request request(Request::Operation::CANCEL_ORDER, "okx", argv[2]);
     request.appendParam({
         {"ORDER_ID", argv[3]},
     });
@@ -69,11 +77,11 @@ int main(int argc, char** argv) {
     if (argc != 4) {
       std::cerr << "Usage: " << argv[0] << " get_order <symbol> <order id>\n"
                 << "Example:\n"
-                << "    " << argv[0] << " get_order BTCUSD 4" << std::endl;
+                << "    " << argv[0] << " get_order BTC-USDT 4" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::GET_ORDER, "binance", argv[2]);
+    Request request(Request::Operation::GET_ORDER, "okx", argv[2]);
     request.appendParam({
         {"ORDER_ID", argv[3]},
     });
@@ -82,24 +90,24 @@ int main(int argc, char** argv) {
     if (argc != 3) {
       std::cerr << "Usage: " << argv[0] << " get_open_orders <symbol>\n"
                 << "Example:\n"
-                << "    " << argv[0] << " get_open_orders BTCUSD" << std::endl;
+                << "    " << argv[0] << " get_open_orders BTC-USDT" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::GET_OPEN_ORDERS, "binance", argv[2]);
+    Request request(Request::Operation::GET_OPEN_ORDERS, "okx", argv[2]);
     session.sendRequest(request);
   } else if (mode == "cancel_open_orders") {
     if (argc != 3) {
       std::cerr << "Usage: " << argv[0] << " cancel_open_orders <symbol>\n"
                 << "Example:\n"
-                << "    " << argv[0] << " cancel_open_orders BTCUSD" << std::endl;
+                << "    " << argv[0] << " cancel_open_orders BTC-USDT" << std::endl;
       session.stop();
       return EXIT_FAILURE;
     }
-    Request request(Request::Operation::CANCEL_OPEN_ORDERS, "binance", argv[2]);
+    Request request(Request::Operation::CANCEL_OPEN_ORDERS, "okx", argv[2]);
     session.sendRequest(request);
   } else if (mode == "get_account_balances") {
-    Request request(Request::Operation::GET_ACCOUNT_BALANCES, "binance");
+    Request request(Request::Operation::GET_ACCOUNT_BALANCES, "okx");
     session.sendRequest(request);
   }
   std::this_thread::sleep_for(std::chrono::seconds(10));

@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi_derivatives_base.h"
+
 namespace ccapi {
 class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiDerivativesBase {
  public:
@@ -14,23 +15,11 @@ class MarketDataServiceHuobiUsdtSwap : public MarketDataServiceHuobiDerivativesB
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->getRecentTradesTarget = CCAPI_HUOBI_USDT_SWAP_GET_RECENT_TRADES_PATH;
     this->getInstrumentTarget = "/linear-swap-api/v1/swap_contract_info";
     this->getInstrumentsTarget = "/linear-swap-api/v1/swap_contract_info";
   }
+
   virtual ~MarketDataServiceHuobiUsdtSwap() {}
 };
 } /* namespace ccapi */

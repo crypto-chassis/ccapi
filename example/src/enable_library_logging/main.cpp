@@ -1,4 +1,5 @@
 #include "ccapi_cpp/ccapi_session.h"
+
 namespace ccapi {
 class MyLogger final : public Logger {
  public:
@@ -11,14 +12,17 @@ class MyLogger final : public Logger {
  private:
   std::mutex m;
 };
+
 MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
 } /* namespace ccapi */
+
 using ::ccapi::Session;
 using ::ccapi::Subscription;
+
 int main(int argc, char** argv) {
   Session session;
-  Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
+  Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH");
   session.subscribe(subscription);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();

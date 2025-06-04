@@ -4,11 +4,13 @@
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
+
 // clang-format on
 namespace ccapi {
 class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
+
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceCoinbase>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
@@ -20,6 +22,7 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
     this->timestamp = 1499827319;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp * 1000LL);
   }
+
   ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceCoinbase> service{nullptr};
   std::map<std::string, std::string> credential;
@@ -28,17 +31,17 @@ class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
 };
 
 void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey, const std::string& apiPassphrase, long long timestamp) {
-  EXPECT_EQ(req.base().at("CB-ACCESS-KEY").to_string(), apiKey);
-  EXPECT_EQ(req.base().at("CB-ACCESS-PASSPHRASE").to_string(), apiPassphrase);
-  EXPECT_EQ(req.base().at("CB-ACCESS-TIMESTAMP").to_string(), std::to_string(timestamp));
+  EXPECT_EQ(std::string(req.base().at("CB-ACCESS-KEY")), apiKey);
+  EXPECT_EQ(std::string(req.base().at("CB-ACCESS-PASSPHRASE")), apiPassphrase);
+  EXPECT_EQ(std::string(req.base().at("CB-ACCESS-TIMESTAMP")), std::to_string(timestamp));
 }
 
 void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
-  auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
+  auto preSignedText = std::string(req.base().at("CB-ACCESS-TIMESTAMP"));
   preSignedText += UtilString::toUpper(std::string(req.method_string()));
-  preSignedText += req.target().to_string();
+  preSignedText += std::string(req.target());
   preSignedText += req.body();
-  auto signature = req.base().at("CB-ACCESS-SIGN").to_string();
+  auto signature = std::string(req.base().at("CB-ACCESS-SIGN"));
   EXPECT_EQ(UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText)), signature);
 }
 
@@ -49,7 +52,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, signRequest) {
   req.target("/orders");
   std::string body("{\"size\": \"1.0\", \"price\": \"1.0\", \"side\": \"buy\", \"product_id\": \"BTC-USD\"}");
   this->service->signRequest(req, body, this->credential);
-  EXPECT_EQ(req.base().at("CB-ACCESS-SIGN").to_string(), "QLKK5AWZ5akrAiaH5ugZzm3uRs5XnbsChlojmAs78Wk=");
+  EXPECT_EQ(std::string(req.base().at("CB-ACCESS-SIGN")), "QLKK5AWZ5akrAiaH5ugZzm3uRs5XnbsChlojmAs78Wk=");
 }
 
 TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCreateOrder) {
@@ -115,7 +118,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByOrderI
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/orders/d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
@@ -131,7 +134,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOrderByClient
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/orders/client:d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
@@ -156,7 +159,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByOrderId) 
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/orders/d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
+  EXPECT_EQ(std::string(req.target()), "/orders/d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
@@ -169,7 +172,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOrderByClientOrd
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/orders/client:d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
+  EXPECT_EQ(std::string(req.target()), "/orders/client:d0c5340b-6d6c-49d9-b567-48c4bfca13d2");
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
@@ -218,7 +221,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOpenOrdersOneIns
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/orders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
@@ -230,7 +233,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetOpenOrdersAllIns
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/orders");
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
@@ -309,7 +312,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestCancelOpenOrders) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/orders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("product_id"), "BTC-USD");
@@ -340,7 +343,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccounts) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/accounts");
+  EXPECT_EQ(std::string(req.target()), "/accounts");
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 
@@ -391,7 +394,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertRequestGetAccountBalances)
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_COINBASE_API_KEY), this->credential.at(CCAPI_COINBASE_API_PASSPHRASE), this->timestamp);
-  EXPECT_EQ(req.target().to_string(), "/accounts/71452118-efc7-4cc4-8780-a5e22d4baa53");
+  EXPECT_EQ(std::string(req.target()), "/accounts/71452118-efc7-4cc4-8780-a5e22d4baa53");
   verifySignature(req, this->credential.at(CCAPI_COINBASE_API_SECRET));
 }
 

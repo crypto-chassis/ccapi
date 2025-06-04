@@ -4,6 +4,7 @@
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #include "ccapi_cpp/ccapi_decimal.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_base.h"
+
 namespace ccapi {
 class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagementServiceHuobiBase {
  public:
@@ -13,28 +14,30 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     this->isDerivatives = true;
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
     this->needDecompressWebsocketMessage = true;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    ErrorCode ec = this->inflater.init(false, 31);
-#else
+
     this->inflater.setWindowBitsOverride(31);
     ErrorCode ec = this->inflater.init();
-#endif
+
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
   }
+
   virtual ~ExecutionManagementServiceHuobiDerivativesBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
   bool doesHttpBodyContainError(const std::string& body) override { return body.find("err_code") != std::string::npos; }
+
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "contract_code");
   }
+
   void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(queryParamMap, symbolId, "contract_code");
   }
+
   void convertReqDetail(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                         const std::map<std::string, std::string>& credential, std::map<std::string, std::string>& queryParamMap) override {
     switch (request.getOperation()) {
@@ -140,6 +143,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
@@ -172,6 +176,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       }
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     const auto& data = document["data"];
@@ -202,6 +207,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
                         const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -216,6 +222,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       }
     }
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -247,15 +254,12 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(const WsConnection& wsConnection, const Subscription& subscription, const std::string& textMessage,
-                     const TimePoint& timeReceived) override {
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     std::string op = document["op"].GetString();
@@ -282,11 +286,9 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
             document.Accept(writerSubscribe);
             std::string sendString = stringBufferSubscribe.GetString();
             ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-            this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-#else
+
             this->send(wsConnectionPtr, sendString, ec);
-#endif
+
             if (ec) {
               this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
             }
@@ -303,11 +305,9 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       std::string toReplace("ping");
       sendString.replace(sendString.find(toReplace), toReplace.length(), "pong");
       ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-#else
+
       this->send(wsConnectionPtr, sendString, ec);
-#endif
+
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }
@@ -318,6 +318,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       }
     }
   }
+
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const std::string& op,
                     const TimePoint& timeReceived) {
     Event event;
@@ -426,6 +427,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
     event.setMessageList(messageList);
     return event;
   }
+
   std::string authenticationPath;
   std::string orderDataTopic;
   std::string matchOrderDataTopic;

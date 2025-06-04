@@ -4,6 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/service/ccapi_fix_service.h"
+
 namespace ccapi {
 class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream>> {
  public:
@@ -25,6 +26,7 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_COINBASE;
     this->targetCompID = "Coinbase";
   }
+
   virtual ~FixServiceCoinbase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -38,6 +40,7 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
         {hff::tag::SendingTime, nowFixTimeStr},
     };
   }
+
   virtual std::vector<std::pair<int, std::string>> createLogonParam(const std::string& connectionId, const std::string& nowFixTimeStr,
                                                                     const std::map<int, std::string> logonOptionMap = {}) {
     std::vector<std::pair<int, std::string>> param;
@@ -61,6 +64,7 @@ class FixServiceCoinbase : public FixService<beast::ssl_stream<beast::tcp_stream
     }
     return param;
   }
+
   std::string apiPassphraseName;
 };
 } /* namespace ccapi */

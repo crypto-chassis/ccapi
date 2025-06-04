@@ -4,11 +4,13 @@
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_usds_futures.h"
+
 // clang-format on
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
+
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceBinanceUsdsFutures>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
@@ -19,6 +21,7 @@ class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test 
     this->timestamp = 1499827319559;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp);
   }
+
   ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceBinanceUsdsFutures> service{nullptr};
   std::map<std::string, std::string> credential;
@@ -26,7 +29,7 @@ class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test 
   TimePoint now{};
 };
 
-void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(req.base().at("X-MBX-APIKEY").to_string(), apiKey); }
+void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(std::string(req.base().at("X-MBX-APIKEY")), apiKey); }
 
 void verifySignature(const std::string& paramString, const std::string& apiSecret) {
   auto pos = paramString.find_last_of("&");
@@ -314,7 +317,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/fapi/v2/account");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
@@ -412,7 +415,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/fapi/v2/positionRisk");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));

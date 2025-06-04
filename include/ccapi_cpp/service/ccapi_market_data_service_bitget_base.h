@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #if defined(CCAPI_ENABLE_EXCHANGE_BITGET) || defined(CCAPI_ENABLE_EXCHANGE_BITGET_FUTURES)
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceBitgetBase : public MarketDataService {
  public:
@@ -10,34 +11,28 @@ class MarketDataServiceBitgetBase : public MarketDataService {
                               ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->hostHttpHeaderValueIgnorePort = true;
+    this->getServerTimeTarget = "/api/v2/public/time";
   }
+
   virtual ~MarketDataServiceBitgetBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
   bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"00000\"")); }
+
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
+    if (this->isDerivatives) this->instrumentType = subscription.getInstrumentType();
     if (field == CCAPI_MARKET_DEPTH) {
-      if (this->isDerivatives) {
-        if (conflateIntervalMilliseconds < 200) {
-          channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS;
-        } else {
-          if (marketDepthRequested <= 1) {
-            channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS1;
-          } else if (marketDepthRequested <= 5) {
-            channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS5;
-          } else if (marketDepthRequested <= 15) {
-            channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS15;
-          } else {
-            channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS;
-          }
-        }
+      if (conflateIntervalMilliseconds < 200 && this->isDerivatives) {
+        channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS;
       } else {
-        if (marketDepthRequested <= 5) {
+        if (marketDepthRequested <= 1) {
+          channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS1;
+        } else if (marketDepthRequested <= 5) {
           channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS5;
         } else if (marketDepthRequested <= 15) {
           channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS15;
@@ -45,13 +40,15 @@ class MarketDataServiceBitgetBase : public MarketDataService {
           channelId = CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS;
         }
       }
+    } else if (field == CCAPI_CANDLESTICK) {
+      std::string interval =
+          this->convertCandlestickIntervalSecondsToInterval(std::stoi(optionMap.at(CCAPI_CANDLESTICK_INTERVAL_SECONDS)), " ", "m", "H", "D", "W");
+      channelId = channelId + interval;
     }
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
-#endif
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
@@ -69,7 +66,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         }
         std::string exchangeSubscriptionId = UtilString::split(channelId, "?").at(0) + ":" + symbolId;
         rj::Value arg(rj::kObjectType);
-        std::string instType = this->isDerivatives ? "mc" : "sp";
+        std::string instType = this->instrumentType;
         arg.AddMember("instType", rj::Value(instType.c_str(), allocator).Move(), allocator);
         arg.AddMember("channel", rj::Value(channelId.c_str(), allocator).Move(), allocator);
         arg.AddMember("instId", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
@@ -86,6 +83,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
+
   std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
     auto i = 0;
     auto i1 = snapshotBid.rbegin();
@@ -108,19 +106,12 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
     return intToHex(csCalc);
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     if (textMessage != "pong") {
       rj::Document document;
       document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
@@ -231,13 +222,31 @@ class MarketDataServiceBitgetBase : public MarketDataService {
             MarketDataMessage marketDataMessage;
             marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
             marketDataMessage.recapType = recapType;
+            marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
+            marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
+            MarketDataMessage::TypeForDataPoint dataPoint;
+            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["price"].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["size"].GetString())});
+            dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "Buy" ? "1" : "0"});
+            dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(datum["tradeId"].GetString())});
+            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            marketDataMessageList.emplace_back(std::move(marketDataMessage));
+          }
+        } else if (channelId.find(CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_KLINE) != std::string::npos) {
+          for (const auto& datum : document["data"].GetArray()) {
+            MarketDataMessage marketDataMessage;
+            marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
+            marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
             marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum[0].GetString())));
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             MarketDataMessage::TypeForDataPoint dataPoint;
-            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum[1].GetString())});
-            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum[2].GetString())});
-            dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum[3].GetString()) == "sell" ? "1" : "0"});
-            marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+            dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, datum[1].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, datum[2].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, datum[3].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, datum[4].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, datum[5].GetString()});
+            dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, datum[6].GetString()});
+            marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
         }
@@ -245,11 +254,31 @@ class MarketDataServiceBitgetBase : public MarketDataService {
       // }
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PUBLIC_REQUEST: {
         MarketDataService::convertRequestForRestGenericPublicRequest(req, request, now, symbolId, credential);
+      } break;
+      case Request::Operation::GET_SERVER_TIME: {
+        req.method(http::verb::get);
+        auto target = this->getServerTimeTarget;
+        req.target(target);
+      } break;
+      case Request::Operation::GET_BBOS: {
+        req.method(http::verb::get);
+        auto target = (symbolId.empty()) ? this->getBboTarget : this->getBbosTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT_TYPE, "productType"},
+                          });
+        if (!symbolId.empty()) {
+          this->appendSymbolId(queryString, symbolId, "symbol");
+        }
+        req.target(target + "?" + queryString);
       } break;
       case Request::Operation::GET_RECENT_TRADES: {
         req.method(http::verb::get);
@@ -259,26 +288,56 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         this->appendParam(queryString, param,
                           {
                               {CCAPI_LIMIT, "limit"},
+                              {CCAPI_INSTRUMENT_TYPE, "productType"},
                           });
         this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
-      case Request::Operation::GET_INSTRUMENT: {
+      case Request::Operation::GET_HISTORICAL_TRADES: {
         req.method(http::verb::get);
-        std::string target;
+        auto target = this->getHistoricalTradesTarget;
         std::string queryString;
-        if (this->isDerivatives) {
-          target = this->getInstrumentsTarget;
-          const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-          this->appendParam(queryString, param,
-                            {
-                                {CCAPI_INSTRUMENT_TYPE, "productType"},
-                            });
-        } else {
-          target = this->getInstrumentTarget;
-          const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-          this->appendSymbolId(queryString, symbolId, "symbol");
-        }
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_LIMIT, "limit"},
+                              {CCAPI_INSTRUMENT_TYPE, "productType"},
+                              {CCAPI_START_TIME_SECONDS, "startTime"},
+                              {CCAPI_END_TIME_SECONDS, "endTime"},
+                          });
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
+      } break;
+      case Request::Operation::GET_RECENT_CANDLESTICKS:
+      case Request::Operation::GET_HISTORICAL_CANDLESTICKS: {
+        req.method(http::verb::get);
+        auto target = this->getRecentCandlesticksTarget;
+        std::string minuteSuffix = this->isDerivatives ? "m" : "min";
+        std::string hourSuffix = this->isDerivatives ? "H" : "h";
+        std::string daySuffix = this->isDerivatives ? "D" : "day";
+        std::string weekSuffix = this->isDerivatives ? "W" : "week";
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(
+            queryString, param,
+            {
+                {CCAPI_CANDLESTICK_INTERVAL_SECONDS, "granularity"},
+                {CCAPI_LIMIT, "limit"},
+                {CCAPI_START_TIME_SECONDS, "startTime"},
+                {CCAPI_END_TIME_SECONDS, "endTime"},
+                {CCAPI_INSTRUMENT_TYPE, "productType"},
+            },
+            {
+                {CCAPI_CANDLESTICK_INTERVAL_SECONDS,
+                 [that = shared_from_base<MarketDataServiceBitgetBase>(), minuteSuffix, hourSuffix, daySuffix, weekSuffix](const std::string& input) {
+                   return that->convertCandlestickIntervalSecondsToInterval(std::stoi(input), " ", minuteSuffix, hourSuffix, daySuffix, weekSuffix);
+                 }},
+                {CCAPI_START_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBitgetBase>()](
+                                               const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+                {CCAPI_END_TIME_SECONDS, [that = shared_from_base<MarketDataServiceBitgetBase>()](
+                                             const std::string& input) { return that->convertParamTimeSecondsToTimeMilliseconds(input); }},
+            });
+        this->appendSymbolId(queryString, symbolId, "symbol");
         req.target(target + "?" + queryString);
       } break;
       case Request::Operation::GET_INSTRUMENTS: {
@@ -286,25 +345,35 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         auto target = this->getInstrumentsTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        if (this->isDerivatives) {
-          this->appendParam(queryString, param,
-                            {
-                                {CCAPI_INSTRUMENT_TYPE, "productType"},
-                            });
-          req.target(target + "?" + queryString);
-        } else {
-          req.target(target);
-        }
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT_TYPE, "productType"},
+                          });
+        req.target(target + "?" + queryString);
+      } break;
+      case Request::Operation::GET_INSTRUMENT: {
+        req.method(http::verb::get);
+        std::string target;
+        std::string queryString;
+        target = this->getInstrumentsTarget;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT_TYPE, "productType"},
+                          });
+        this->appendSymbolId(queryString, symbolId, "symbol");
+        req.target(target + "?" + queryString);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
+    element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["baseCoin"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["quoteCoin"].GetString());
     if (this->isDerivatives) {
-      element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
-      element.insert(CCAPI_BASE_ASSET, x["baseCoin"].GetString());
-      element.insert(CCAPI_QUOTE_ASSET, x["quoteCoin"].GetString());
       int pricePlace = std::stoi(x["pricePlace"].GetString());
       if (pricePlace > 0) {
         element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(pricePlace - 1, '0') + x["priceEndStep"].GetString());
@@ -314,16 +383,13 @@ class MarketDataServiceBitgetBase : public MarketDataService {
       element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["sizeMultiplier"].GetString());
       element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minTradeNum"].GetString());
     } else {
-      element.insert(CCAPI_INSTRUMENT, x["symbolName"].GetString());
-      element.insert(CCAPI_BASE_ASSET, x["baseCoin"].GetString());
-      element.insert(CCAPI_QUOTE_ASSET, x["quoteCoin"].GetString());
-      int priceScale = std::stoi(x["priceScale"].GetString());
+      int priceScale = std::stoi(x["pricePrecision"].GetString());
       if (priceScale > 0) {
         element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(priceScale - 1, '0') + "1");
       } else {
         element.insert(CCAPI_ORDER_PRICE_INCREMENT, "1");
       }
-      int quantityScale = std::stoi(x["quantityScale"].GetString());
+      int quantityScale = std::stoi(x["quantityPrecision"].GetString());
       if (quantityScale > 0) {
         element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "0." + std::string(quantityScale - 1, '0') + "1");
       } else {
@@ -332,24 +398,85 @@ class MarketDataServiceBitgetBase : public MarketDataService {
       element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minTradeAmount"].GetString());
     }
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     switch (request.getOperation()) {
-      case Request::Operation::GET_RECENT_TRADES: {
+      case Request::Operation::GET_SERVER_TIME: {
+        Message message;
+        const rj::Value& data = document["data"];
+        message.setTime(UtilTime::makeTimePointMilli(UtilTime::divideMilli(data["serverTime"].GetString())));
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_BBOS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document["data"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+          // some fields are null ...
+          if (x["bidPr"].IsNull()) {
+            element.insert(CCAPI_BEST_BID_N_PRICE, "null");
+          } else {
+            element.insert(CCAPI_BEST_BID_N_PRICE, x["bidPr"].GetString());
+          }
+          if (x["askPr"].IsNull()) {
+            element.insert(CCAPI_BEST_ASK_N_PRICE, "null");
+          } else {
+            element.insert(CCAPI_BEST_ASK_N_PRICE, x["askPr"].GetString());
+          }
+          if (x["bidSz"].IsNull()) {
+            element.insert(CCAPI_BEST_BID_N_SIZE, "null");
+          } else {
+            element.insert(CCAPI_BEST_BID_N_SIZE, x["bidSz"].GetString());
+          }
+          if (x["askSz"].IsNull()) {
+            element.insert(CCAPI_BEST_ASK_N_SIZE, "null");
+          } else {
+            element.insert(CCAPI_BEST_ASK_N_SIZE, x["askSz"].GetString());
+          }
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_RECENT_TRADES:
+      case Request::Operation::GET_HISTORICAL_TRADES: {
         for (const auto& datum : document["data"].GetArray()) {
           MarketDataMessage marketDataMessage;
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
-          marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum[this->isDerivatives ? "timestamp" : "fillTime"].GetString())));
+          marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert(
-              {MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum[this->isDerivatives ? "price" : "fillPrice"].GetString())});
-          dataPoint.insert(
-              {MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum[this->isDerivatives ? "size" : "fillQuantity"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["price"].GetString())});
+          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["size"].GetString())});
           dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "sell" ? "1" : "0"});
+          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "Buy" ? "1" : "0"});
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
+          marketDataMessageList.emplace_back(std::move(marketDataMessage));
+        }
+      } break;
+      case Request::Operation::GET_RECENT_CANDLESTICKS:
+      case Request::Operation::GET_HISTORICAL_CANDLESTICKS: {
+        for (const auto& datum : document["data"].GetArray()) {
+          MarketDataMessage marketDataMessage;
+          marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
+          marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(datum[0].GetString()));
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, datum[1].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, datum[2].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, datum[3].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, datum[4].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, datum[5].GetString()});
+          dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, datum[6].GetString()});
+          marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
       } break;
@@ -386,7 +513,9 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   bool isDerivatives{};
+  std::string instrumentType{"SPOT"};
 };
 } /* namespace ccapi */
 #endif

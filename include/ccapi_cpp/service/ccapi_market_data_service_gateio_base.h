@@ -3,32 +3,27 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #if defined(CCAPI_ENABLE_EXCHANGE_GATEIO) || defined(CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES)
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceGateioBase : public MarketDataService {
  public:
   MarketDataServiceGateioBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                               ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+
   virtual ~MarketDataServiceGateioBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
-    auto now = UtilTime::now();
-    this->send(hdl,
-               "{\"time\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"channel\":\"" + (this->isDerivatives ? "futures" : "spot") + ".ping\"}",
-               wspp::frame::opcode::text, ec);
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(wsConnectionPtr,
                "{\"time\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"channel\":\"" + (this->isDerivatives ? "futures" : "spot") + ".ping\"}",
                ec);
   }
-#endif
+
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -61,6 +56,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
       channelId = this->websocketChannelCandlesticks + interval;
     }
   }
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     auto now = UtilTime::now();
     std::vector<std::string> sendStringList;
@@ -151,19 +147,12 @@ class MarketDataServiceGateioBase : public MarketDataService {
     }
     return sendStringList;
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.HasMember("event") && std::string(document["event"].GetString()) == "subscribe") {
@@ -378,6 +367,7 @@ class MarketDataServiceGateioBase : public MarketDataService {
       }
     }
   }
+
   bool isDerivatives{};
   std::string symbolName;
   std::string websocketChannelTrades;

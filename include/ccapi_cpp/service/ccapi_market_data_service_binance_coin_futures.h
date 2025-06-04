@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_derivatives_base.h"
+
 namespace ccapi {
 class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDerivativesBase {
  public:
@@ -14,19 +15,6 @@ class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDeriv
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_BINANCE_COIN_FUTURES_API_KEY;
     this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/dapi/v1/trades";
@@ -36,9 +24,12 @@ class MarketDataServiceBinanceCoinFutures : public MarketDataServiceBinanceDeriv
     this->getRecentCandlesticksTarget = "/dapi/v1/klines";
     this->getHistoricalCandlesticksTarget = "/dapi/v1/klines";
     this->getMarketDepthTarget = "/dapi/v1/depth";
+    this->getServerTimeTarget = "/dapi/v1/time";
     this->getInstrumentTarget = "/dapi/v1/exchangeInfo";
     this->getInstrumentsTarget = "/dapi/v1/exchangeInfo";
+    this->getBbosTarget = "/dapi/v1/ticker/bookTicker";
   }
+
   virtual ~MarketDataServiceBinanceCoinFutures() {}
 };
 } /* namespace ccapi */

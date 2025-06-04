@@ -4,11 +4,13 @@
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_kraken_futures.h"
+
 // clang-format on
 namespace ccapi {
 class ExecutionManagementServiceKrakenFuturesTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
+
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceKrakenFutures>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
@@ -19,6 +21,7 @@ class ExecutionManagementServiceKrakenFuturesTest : public ::testing::Test {
     this->timestamp = 1499827319000;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp);
   }
+
   ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceKrakenFutures> service{nullptr};
   std::map<std::string, std::string> credential;
@@ -26,16 +29,16 @@ class ExecutionManagementServiceKrakenFuturesTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(req.base().at("APIKey").to_string(), apiKey); }
+void verifyApiKeyEtc(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(std::string(req.base().at("APIKey")), apiKey); }
 
 void verifySignature(const http::request<http::string_body>& req, const std::string& apiSecret) {
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   std::string postData = splitted.size() > 1 ? splitted.at(1) : "";
-  std::string nonce = req.base().at("Nonce").to_string();
+  std::string nonce = std::string(req.base().at("Nonce"));
   std::string path = splitted.at(0).rfind("/derivatives", 0) == 0 ? splitted.at(0).substr(std::string("/derivatives").length()) : splitted.at(0);
   std::string preSignedText = postData + nonce + path;
   std::string preSignedTextSha256 = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256, preSignedText);
-  auto signature = req.base().at("Authent").to_string();
+  auto signature = std::string(req.base().at("Authent"));
   EXPECT_EQ(UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA512, UtilAlgorithm::base64Decode(apiSecret), preSignedTextSha256)), signature);
 }
 
@@ -44,7 +47,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, signRequest) {
   req.method(http::verb::post);
   std::string nonce("1632851091927335");
   this->service->signRequest(req, "/api/v3/sendorder", "limitPrice=20000&size=1&side=buy&orderType=lmt&symbol=pi_xbtusd", this->credential, nonce);
-  EXPECT_EQ(req.base().at("Authent").to_string(), "43taMU9dlnlbsjpm86rJKM3/XmfJu5OqVHMrP36UF2weUutjStQP7ZU86WKEexigUiG4kJP59vhVKbx+y+Kvsg==");
+  EXPECT_EQ(std::string(req.base().at("Authent")), "43taMU9dlnlbsjpm86rJKM3/XmfJu5OqVHMrP36UF2weUutjStQP7ZU86WKEexigUiG4kJP59vhVKbx+y+Kvsg==");
 }
 
 TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestCreateOrder) {
@@ -58,7 +61,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestCreateOrder) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/derivatives/api/v3/sendorder");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("orderType"), "lmt");
@@ -122,7 +125,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestCancelOrderByO
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/derivatives/api/v3/cancelorder");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("order_id"), "cb4e34f6-4eb3-4d4b-9724-4c3035b99d47");
@@ -173,7 +176,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestGetOpenOrdersA
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/derivatives/api/v3/openorders");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_SECRET));
 }
@@ -223,7 +226,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestCancelOpenOrde
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/derivatives/api/v3/cancelallorders");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_SECRET));
 }
@@ -233,7 +236,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestCancelOpenOrde
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/derivatives/api/v3/cancelallorders");
   EXPECT_EQ(splitted.at(1), "symbol=pi_xbtusd");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_SECRET));
@@ -329,7 +332,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestGetAccounts) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/derivatives/api/v3/accounts");
+  EXPECT_EQ(std::string(req.target()), "/derivatives/api/v3/accounts");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_SECRET));
 }
 
@@ -368,7 +371,7 @@ TEST_F(ExecutionManagementServiceKrakenFuturesTest, convertRequestGetAccountPosi
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKeyEtc(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_KEY));
-  EXPECT_EQ(req.target().to_string(), "/derivatives/api/v3/openpositions");
+  EXPECT_EQ(std::string(req.target()), "/derivatives/api/v3/openpositions");
   verifySignature(req, this->credential.at(CCAPI_KRAKEN_FUTURES_API_SECRET));
 }
 

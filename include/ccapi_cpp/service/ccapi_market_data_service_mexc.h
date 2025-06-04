@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceMexc : public MarketDataService {
  public:
@@ -14,42 +15,23 @@ class MarketDataServiceMexc : public MarketDataService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->getRecentTradesTarget = "/api/v3/trades";
     this->getRecentAggTradesTarget = "/api/v3/aggTrades";
     this->getInstrumentsTarget = "/api/v3/exchangeInfo";
   }
+
   virtual ~MarketDataServiceMexc() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
   // bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("code":0)") == std::string::npos; }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->send(hdl, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]) + R"(,"method":"PING"})",
-               wspp::frame::opcode::text, ec);
-    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     this->send(wsConnectionPtr, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id]) + R"(,"method":"PING"})", ec);
     this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id] += 1;
   }
-#endif
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
@@ -81,15 +63,18 @@ class MarketDataServiceMexc : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
+
   void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId, const TimePoint& now,
                                       const std::map<std::string, std::string>& credential) override {
     req.set(http::field::host, this->hostRest);
     req.method(http::verb::get);
     req.target("/api/v3/depth?symbol=" + Url::urlEncode(symbolId) + "&limit=5000");
   }
+
   void extractOrderBookInitialVersionId(int64_t& versionId, const rj::Document& document) override {
     versionId = std::stoll(document["lastUpdateId"].GetString());
   }
+
   void extractOrderBookInitialData(MarketDataMessage::TypeForData& input, const rj::Document& document) override {
     for (const auto& x : document["bids"].GetArray()) {
       MarketDataMessage::TypeForDataPoint dataPoint;
@@ -104,19 +89,12 @@ class MarketDataServiceMexc : public MarketDataService {
       input[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
     }
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsObject() && document.HasMember("code") && std::string(document["code"].GetString()) == "0") {
@@ -225,6 +203,7 @@ class MarketDataServiceMexc : public MarketDataService {
       }
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -271,6 +250,7 @@ class MarketDataServiceMexc : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["baseAsset"].GetString());
@@ -285,6 +265,7 @@ class MarketDataServiceMexc : public MarketDataService {
     element.insert(CCAPI_ORDER_QUANTITY_MIN, x["baseSizePrecision"].GetString());
     element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["quoteAmountPrecision"].GetString());
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -357,6 +338,7 @@ class MarketDataServiceMexc : public MarketDataService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   std::string getRecentAggTradesTarget;
 };
 } /* namespace ccapi */

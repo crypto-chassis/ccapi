@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_COINBASE_API_KEY;
     this->apiSecretName = CCAPI_COINBASE_API_SECRET;
     this->apiPassphraseName = CCAPI_COINBASE_API_PASSPHRASE;
@@ -39,6 +27,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     this->getAccountsTarget = "/accounts";
     this->getAccountBalancesTarget = "/accounts/<account-id>";
   }
+
   virtual ~ExecutionManagementServiceCoinbase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -48,7 +37,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
+    auto preSignedText = std::string(req.base().at("CB-ACCESS-TIMESTAMP"));
     preSignedText += methodString;
     std::string target = path;
     if (!queryString.empty()) {
@@ -62,17 +51,19 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     }
     headerString += "CB-ACCESS-SIGN:" + signature;
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at("CB-ACCESS-TIMESTAMP").to_string();
+    auto preSignedText = std::string(req.base().at("CB-ACCESS-TIMESTAMP"));
     preSignedText += std::string(req.method_string());
-    preSignedText += req.target().to_string();
+    preSignedText += std::string(req.target());
     preSignedText += body;
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, UtilAlgorithm::base64Decode(apiSecret), preSignedText));
     req.set("CB-ACCESS-SIGN", signature);
     req.body() = body;
     req.prepare_payload();
   }
+
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_SIDE, "side"},
@@ -89,9 +80,11 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       document.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
+
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("product_id", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::content_type, "application/json");
@@ -183,9 +176,10 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType> >& extractionFieldNameMap = {
+    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -219,6 +213,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       }
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -241,6 +236,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -293,18 +289,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -315,15 +300,11 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
+
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -376,7 +357,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
           }
           if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-            std::map<std::string, std::pair<std::string, JsonDataType> > extractionFieldNameMap = {
+            std::map<std::string, std::pair<std::string, JsonDataType>> extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
                 {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -417,6 +398,7 @@ class ExecutionManagementServiceCoinbase : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
+
   std::string apiPassphraseName;
   std::set<std::string> websocketFullChannelTypeSet{"received", "open", "done", "match", "change", "activate"};
 };

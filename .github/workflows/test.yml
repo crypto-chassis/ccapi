@@ -25,7 +25,6 @@ jobs:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
     strategy:
-      max-parallel: 1
       fail-fast: false
       matrix:
         config:
@@ -34,11 +33,12 @@ jobs:
             os: ubuntu-latest,
             cc: "gcc", cxx: "g++"
           }
-        # - {
-        #     name: "macOS Latest Clang",
-        #     os: macos-latest,
-        #     cc: "clang", cxx: "clang++"
-        #   }
+        - {
+            name: "macOS Latest Clang",
+            os: macos-latest,
+            cc: "clang", cxx: "clang++",
+            arch: "arm64"
+          }
         # - {
         #     name: "Windows Latest MinGW",
         #     os: windows-latest,
@@ -53,7 +53,7 @@ jobs:
       #   }
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja
@@ -126,7 +126,7 @@ jobs:
         message(STATUS "Using host CMake version: ${cmake_version}")
         if ("${{ runner.os }}" STREQUAL "macOS")
           execute_process(
-            COMMAND brew reinstall openssl@1.1
+            COMMAND brew reinstall openssl@3
           )
         elseif ("${{ runner.os }}" STREQUAL "Windows")
           execute_process(
@@ -206,6 +206,7 @@ jobs:
 
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+            -DCMAKE_OSX_ARCHITECTURES=arm64
             -DBUILD_TEST_BUILD=OFF
             -DBUILD_TEST_UNIT=OFF
             -S test
@@ -223,6 +224,7 @@ jobs:
 
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+            -DCMAKE_OSX_ARCHITECTURES=arm64
             -S example
             -B example/build
             -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
@@ -239,9 +241,10 @@ jobs:
         if ("${{ runner.os }}" STREQUAL "macOS" OR "${{ runner.os }}" STREQUAL "Linux")
           execute_process(
             COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
+              -DCMAKE_OSX_ARCHITECTURES=arm64
               -DBUILD_PYTHON=ON
-              -DBUILD_JAVA=ON
-              -DBUILD_CSHARP=ON
+              # -DBUILD_JAVA=ON
+              # -DBUILD_CSHARP=ON
               # -DBUILD_GO=ON
               # -DBUILD_JAVASCRIPT=ON
               -DBUILD_TEST=ON
@@ -259,36 +262,6 @@ jobs:
           if (NOT result EQUAL 0)
             message(FATAL_ERROR "Bad exit status")
           endif()
-        endif()
-
-        execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-            -S performance
-            -B performance/build
-            -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
-            -G Ninja
-            -D CMAKE_MAKE_PROGRAM=ninja
-            # -D CMAKE_C_COMPILER_LAUNCHER=ccache
-            # -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-        execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-            -S app
-            -B app/build
-            -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
-            -G Ninja
-            -D CMAKE_MAKE_PROGRAM=ninja
-            # -D CMAKE_C_COMPILER_LAUNCHER=ccache
-            # -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
         endif()
 
     - name: Build 1
@@ -334,38 +307,6 @@ jobs:
 
         execute_process(
           COMMAND rm -rf example/build
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-        execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build performance/build -j 2
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-        execute_process(
-          COMMAND rm -rf performance/build
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-        execute_process(
-          COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake --build app/build -j 2
-          RESULT_VARIABLE result
-        )
-        if (NOT result EQUAL 0)
-          message(FATAL_ERROR "Bad exit status")
-        endif()
-
-        execute_process(
-          COMMAND rm -rf app/build
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -432,7 +373,8 @@ jobs:
 
         execute_process(
           COMMAND ${{ steps.cmake_and_ninja.outputs.cmake_dir }}/cmake
-            -DBUILD_TEST_BUILD=OFF
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+            -DBUILD_TEST_BUILD=ON
             -DBUILD_TEST_UNIT=ON
             -S test
             -B test/build

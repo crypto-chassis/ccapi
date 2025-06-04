@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi_base.h"
+
 namespace ccapi {
 class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
  public:
@@ -14,38 +15,22 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->getRecentTradesTarget = "/market/history/trade";
     this->getInstrumentTarget = "/v1/common/symbols";
     this->getInstrumentsTarget = "/v1/common/symbols";
   }
+
   virtual ~MarketDataServiceHuobi() {}
+
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
-    CCAPI_LOGGER_TRACE("");
     if (field == CCAPI_MARKET_DEPTH) {
-      CCAPI_LOGGER_TRACE("");
       if (conflateIntervalMilliseconds < 100) {
-        CCAPI_LOGGER_TRACE("");
         if (marketDepthRequested == 1) {
-          CCAPI_LOGGER_TRACE("");
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BBO;
         } else {
-          CCAPI_LOGGER_TRACE("");
           channelId = CCAPI_WEBSOCKET_HUOBI_CHANNEL_MARKET_BY_PRICE_REFRESH_UPDATE;
           int marketDepthSubscribedToExchange = 1;
           marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({5, 10, 20}));
@@ -63,7 +48,9 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
       }
     }
   }
+
   bool doesHttpBodyContainError(const std::string& body) override { return body.find("err-code") != std::string::npos; }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -81,6 +68,7 @@ class MarketDataServiceHuobi : public MarketDataServiceHuobiBase {
         MarketDataServiceHuobiBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     switch (request.getOperation()) {

@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceHuobiBase : public MarketDataService {
  public:
@@ -10,33 +11,27 @@ class MarketDataServiceHuobiBase : public MarketDataService {
                              ServiceContext* serviceContextPtr)
       : MarketDataService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->needDecompressWebsocketMessage = true;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    ErrorCode ec = this->inflater.init(false, 31);
-#else
+
     this->inflater.setWindowBitsOverride(31);
     ErrorCode ec = this->inflater.init();
-#endif
+
     if (ec) {
       CCAPI_LOGGER_FATAL(ec.message());
     }
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)\\s?(-?\\d+\\.?\\d*[eE]?-?\\d*)");
   }
+
   virtual ~MarketDataServiceHuobiBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
-    auto now = UtilTime::now();
-    this->send(hdl, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", wspp::frame::opcode::text, ec);
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     auto now = UtilTime::now();
     this->send(wsConnectionPtr, "{\"ping\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + "}", ec);
   }
-#endif
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -97,6 +92,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
     return sendStringList;
   }
+
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto url = this->baseUrlWs;
     auto field = subscription.getField();
@@ -107,19 +103,12 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     }
     return url + "|" + field + "|" + subscription.getSerializedOptions();
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     if (document.IsObject() && document.HasMember("ch") && document.HasMember("tick")) {
@@ -266,11 +255,9 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       payload += document["ping"].GetString();
       payload += "}";
       ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      this->send(hdl, payload, wspp::frame::opcode::text, ec);
-#else
+
       this->send(wsConnectionPtr, payload, ec);
-#endif
+
       if (ec) {
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }
@@ -304,6 +291,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
       event.setMessageList(messageList);
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -326,6 +314,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["base-currency"].GetString());
@@ -345,6 +334,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
     element.insert(CCAPI_ORDER_QUANTITY_MIN, x["limit-order-min-order-amt"].GetString());
     element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["min-order-value"].GetString());
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -405,6 +395,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   bool isDerivatives{};
   std::map<int, std::string> exchangeSubscriptionIdByExchangeJsonPayloadIdMap;
 };

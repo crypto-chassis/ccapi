@@ -4,11 +4,13 @@
 #include "gtest/gtest.h"
 #include "ccapi_cpp/ccapi_test_execution_management_helper.h"
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_us.h"
+
 // clang-format on
 namespace ccapi {
 class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
+
   void SetUp() override {
     this->service =
         std::make_shared<ExecutionManagementServiceBinanceUs>([](Event&, Queue<Event>*) {}, SessionOptions(), SessionConfigs(), &this->serviceContext);
@@ -19,6 +21,7 @@ class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
     this->timestamp = 1499827319559;
     this->now = UtilTime::makeTimePointFromMilliseconds(this->timestamp);
   }
+
   ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceBinanceUs> service{nullptr};
   std::map<std::string, std::string> credential;
@@ -26,7 +29,7 @@ class ExecutionManagementServiceBinanceUsTest : public ::testing::Test {
   TimePoint now{};
 };
 
-void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(req.base().at("X-MBX-APIKEY").to_string(), apiKey); }
+void verifyApiKey(const http::request<http::string_body>& req, const std::string& apiKey) { EXPECT_EQ(std::string(req.base().at("X-MBX-APIKEY")), apiKey); }
 
 void verifySignature(const std::string& paramString, const std::string& apiSecret) {
   auto pos = paramString.find_last_of("&");
@@ -58,7 +61,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCreateOrder) {
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::post);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
@@ -101,7 +104,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByOrder
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("orderId"), "28");
@@ -119,7 +122,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOrderByClien
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
@@ -146,7 +149,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByOrderId)
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("orderId"), "28");
@@ -164,7 +167,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOrderByClientOr
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/order");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("origClientOrderId"), "6gCrw2kRUAF9CvJDGP16IP");
@@ -221,7 +224,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersOneIn
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("symbol"), "BTCUSD");
@@ -234,7 +237,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetOpenOrdersAllIn
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
@@ -302,7 +305,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestCancelOpenOrders) 
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::delete_);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/openOrders");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
@@ -446,7 +449,7 @@ TEST_F(ExecutionManagementServiceBinanceUsTest, convertRequestGetAccountBalances
   auto req = this->service->convertRequest(request, this->now);
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_US_API_KEY));
-  auto splitted = UtilString::split(req.target().to_string(), "?");
+  auto splitted = UtilString::split(std::string(req.target()), "?");
   EXPECT_EQ(splitted.at(0), "/api/v3/account");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));

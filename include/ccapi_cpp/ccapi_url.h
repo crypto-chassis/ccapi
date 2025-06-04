@@ -5,11 +5,12 @@
 
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
+
 namespace ccapi {
 /**
  * This class represents a url.
  */
-class Url CCAPI_FINAL {
+class Url {
  public:
   explicit Url(std::string urlStr) {
     std::regex ex("^(.*:)//([A-Za-z0-9\\-\\.]+)(:[0-9]+)?(.*)$");
@@ -21,11 +22,14 @@ class Url CCAPI_FINAL {
       this->target = std::string(what[4].first, what[4].second);
     }
   }
+
   Url(std::string protocol, std::string host, std::string port, std::string target) : protocol(protocol), host(host), port(port), target(target) {}
+
   std::string toString() const {
     std::string output = "Url [protocol = " + protocol + ", host = " + host + ", port = " + port + ", target = " + target + "]";
     return output;
   }
+
   static std::string urlEncode(const std::string &value) {
     std::ostringstream escaped;
     escaped.fill('0');
@@ -44,6 +48,7 @@ class Url CCAPI_FINAL {
     }
     return escaped.str();
   }
+
   static std::string urlDecode(const std::string &value) {
     std::string ret;
     char ch;
@@ -60,6 +65,7 @@ class Url CCAPI_FINAL {
     }
     return (ret);
   }
+
   static std::map<std::string, std::string> convertQueryStringToMap(const std::string &input) {
     std::map<std::string, std::string> output;
     for (const auto &x : UtilString::split(input, "&")) {
@@ -68,6 +74,7 @@ class Url CCAPI_FINAL {
     }
     return output;
   }
+
   static std::string convertMapToQueryString(const std::map<std::string, std::string> &input) {
     std::string output;
     for (const auto &x : input) {
@@ -81,6 +88,7 @@ class Url CCAPI_FINAL {
     }
     return output;
   }
+
   static std::string convertMapToFormUrlEncoded(const std::map<std::string, std::string> &input) {
     std::string output;
     int i = 0;
@@ -94,6 +102,7 @@ class Url CCAPI_FINAL {
     }
     return output;
   }
+
   static std::map<std::string, std::string> convertFormUrlEncodedToMap(const std::string &input) {
     std::map<std::string, std::string> output;
     for (const auto &x : UtilString::split(input, "&")) {
@@ -102,6 +111,7 @@ class Url CCAPI_FINAL {
     }
     return output;
   }
+
   std::string protocol;
   std::string host;
   std::string port;

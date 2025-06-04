@@ -6,6 +6,7 @@
 #define CCAPI_BINANCE_CREATE_ORDER_PATH "/api/v3/order"
 #endif
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
+
 namespace ccapi {
 class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinanceBase {
  public:
@@ -17,19 +18,6 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_BINANCE_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -50,6 +38,7 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
     this->listenKeyCrossMarginTarget = CCAPI_BINANCE_LISTEN_KEY_CROSS_MARGIN_PATH;
     this->listenKeyIsolatedMarginTarget = CCAPI_BINANCE_LISTEN_KEY_ISOLATED_MARGIN_PATH;
   }
+
   virtual ~ExecutionManagementServiceBinance() {}
 };
 } /* namespace ccapi */

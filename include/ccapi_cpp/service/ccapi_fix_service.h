@@ -10,6 +10,7 @@
 #include "ccapi_cpp/service/ccapi_service.h"
 #include "hffix.hpp"
 namespace hff = hffix;
+
 namespace ccapi {
 /**
  * Defines a service which provides access to exchange API and normalizes them. This is a base class that implements generic functionalities for dealing with
@@ -21,6 +22,7 @@ class FixService : public Service {
   FixService(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
              ServiceContextPtr serviceContextPtr)
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+
   virtual ~FixService() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -31,16 +33,19 @@ class FixService : public Service {
     std::replace(output.begin(), output.end(), '\x01', '^');
     return output;
   }
+
   static std::string printableString(const std::string& s) {
     std::string output(s);
     std::replace(output.begin(), output.end(), '\x01', '^');
     return output;
   }
+
   void setHostFixFromUrlFix(std::string& aHostFix, std::string& aPortFix, const std::string& baseUrlFix) {
     auto hostPort = this->extractHostFromUrl(baseUrlFix);
     aHostFix = hostPort.first;
     aPortFix = hostPort.second;
   }
+
   void subscribeByFix(Subscription& subscription) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_DEBUG("this->baseUrlFix = " + this->baseUrlFix);
@@ -54,6 +59,7 @@ class FixService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   virtual void onFail(std::shared_ptr<FixConnection<T>> fixConnectionPtr, const std::string& errorMessage) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_ERROR("errorMessage = " + errorMessage);
@@ -61,11 +67,13 @@ class FixService : public Service {
     this->onFail_(fixConnectionPtr, errorMessage);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   virtual void onFail(std::shared_ptr<FixConnection<T>> fixConnectionPtr, const ErrorCode& ec, const std::string& what) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->onFail(fixConnectionPtr, what + ": " + ec.message() + ", category: " + ec.category().name());
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   void clearStates(std::shared_ptr<FixConnection<T>> fixConnectionPtr) {
     CCAPI_LOGGER_INFO("clear states for fixConnectionPtr " + toString(*fixConnectionPtr));
     auto& connectionId = fixConnectionPtr->id;
@@ -79,6 +87,7 @@ class FixService : public Service {
     auto urlBase = fixConnectionPtr->url;
     this->connectNumRetryOnFailByConnectionUrlMap.erase(urlBase);
   }
+
   void onFail_(std::shared_ptr<FixConnection<T>> fixConnectionPtr, const std::string& errorMessage) {
     fixConnectionPtr->status = FixConnection<T>::Status::FAILED;
     this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, errorMessage, {fixConnectionPtr->subscription.getCorrelationId()});
@@ -93,7 +102,7 @@ class FixService : public Service {
     TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(seconds * 1000)));
     timerPtr->async_wait([fixConnectionPtr, that = shared_from_base<FixService>(), urlBase](ErrorCode const& ec) {
       if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) == that->fixConnectionPtrByIdMap.end()) {
-        if (ec) {
+        if (ec && ec != boost::asio::error::operation_aborted) {
           CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", connect retry on fail timer error: " + ec.message());
           that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
         } else {
@@ -105,7 +114,9 @@ class FixService : public Service {
     });
     this->connectRetryOnFailTimerByConnectionIdMap[fixConnectionPtr->id] = timerPtr;
   }
+
   std::shared_ptr<T> createStreamFix(net::io_context* iocPtr, net::ssl::context* ctxPtr, const std::string& host);
+
   void connect(Subscription& subscription) {
     std::string aHostFix = this->hostFix;
     std::string aPortFix = this->portFix;
@@ -135,6 +146,7 @@ class FixService : public Service {
                                                   beast::bind_front_handler(&FixService::onConnect_3, shared_from_base<FixService>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_connect");
   }
+
   void onConnect_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
     // CCAPI_LOGGER_TRACE("async_connect callback start");
     // auto now = UtilTime::now();
@@ -154,6 +166,7 @@ class FixService : public Service {
     //   this->start(fixConnectionPtr);
     // }
   }
+
   void onHandshake_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, beast::error_code ec) {
     CCAPI_LOGGER_TRACE("async_handshake callback start");
     auto now = UtilTime::now();
@@ -165,6 +178,7 @@ class FixService : public Service {
     CCAPI_LOGGER_TRACE("handshaked");
     this->start(fixConnectionPtr, now);
   }
+
   void start(std::shared_ptr<FixConnection<T>> fixConnectionPtr, const TimePoint& now) {
     auto& connectionId = fixConnectionPtr->id;
     fixConnectionPtr->status = FixConnection<T>::Status::OPEN;
@@ -179,6 +193,7 @@ class FixService : public Service {
       message.setCorrelationIdList({fixConnectionPtr->subscription.getCorrelationId()});
       Element element(true);
       element.insert(CCAPI_CONNECTION_ID, connectionId);
+      element.insert(CCAPI_CONNECTION_URL, fixConnectionPtr->url);
       message.setElementList({element});
       event.setMessageList({message});
       this->eventHandler(event, nullptr);
@@ -205,6 +220,7 @@ class FixService : public Service {
     auto param = this->createLogonParam(connectionId, nowFixTimeStr, logonOptionMap);
     this->writeMessage(fixConnectionPtr, nowFixTimeStr, {param});
   }
+
   void startRead_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, void* data, size_t requestedNumBytesToRead) {
     T& stream = *fixConnectionPtr->streamPtr;
     CCAPI_LOGGER_TRACE("before async_read");
@@ -213,6 +229,7 @@ class FixService : public Service {
                            beast::bind_front_handler(&FixService::onRead_3, shared_from_base<FixService>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_read");
   }
+
   void onRead_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("n = " + toString(n));
@@ -229,6 +246,7 @@ class FixService : public Service {
       Element element(true);
       auto& connectionId = fixConnectionPtr->id;
       element.insert(CCAPI_CONNECTION_ID, connectionId);
+      element.insert(CCAPI_CONNECTION_URL, fixConnectionPtr->url);
       message.setElementList({element});
       event.setMessageList({message});
       this->eventHandler(event, nullptr);
@@ -354,6 +372,7 @@ class FixService : public Service {
     this->onPongByMethod(PingPongMethod::FIX_PROTOCOL_LEVEL, fixConnectionPtr, now);
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   void startWrite_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, void* data, size_t numBytesToWrite) {
     T& stream = *fixConnectionPtr->streamPtr;
     CCAPI_LOGGER_TRACE("before async_write");
@@ -362,6 +381,7 @@ class FixService : public Service {
                              beast::bind_front_handler(&FixService::onWrite_3, shared_from_base<FixService>(), fixConnectionPtr));
     CCAPI_LOGGER_TRACE("after async_write");
   }
+
   void onWrite_3(std::shared_ptr<FixConnection<T>> fixConnectionPtr, const boost::system::error_code& ec, std::size_t n) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     auto& connectionId = fixConnectionPtr->id;
@@ -376,6 +396,7 @@ class FixService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   void writeMessage(std::shared_ptr<FixConnection<T>> fixConnectionPtr, const std::string& nowFixTimeStr,
                     const std::vector<std::vector<std::pair<int, std::string>>>& paramList) {
     if (fixConnectionPtr->status != FixConnection<T>::Status::OPEN) {
@@ -414,11 +435,13 @@ class FixService : public Service {
     writeMessageBufferWrittenLength = n;
     CCAPI_LOGGER_TRACE("writeMessageBufferWrittenLength = " + toString(writeMessageBufferWrittenLength));
   }
+
   void onPongByMethod(PingPongMethod method, std::shared_ptr<FixConnection<T>> fixConnectionPtr, const TimePoint& timeReceived) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     this->lastPongTpByMethodByConnectionIdMap[fixConnectionPtr->id][method] = timeReceived;
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   void sendRequestByFix(Request& request, const TimePoint& now) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
     CCAPI_LOGGER_TRACE("now = " + toString(now));
@@ -450,6 +473,7 @@ class FixService : public Service {
     });
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   void setPingPongTimer(PingPongMethod method, std::shared_ptr<FixConnection<T>> fixConnectionPtr,
                         std::function<void(std::shared_ptr<FixConnection<T>>)> pingMethod, bool pingNow = false) {
     CCAPI_LOGGER_FUNCTION_ENTER;
@@ -474,7 +498,7 @@ class FixService : public Service {
           new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pingIntervalMilliseconds - pongTimeoutMilliseconds)));
       timerPtr->async_wait([fixConnectionPtr, that = shared_from_base<FixService>(), pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
         if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
-          if (ec) {
+          if (ec && ec != boost::asio::error::operation_aborted) {
             CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", ping timer error: " + ec.message());
             that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
           } else {
@@ -495,7 +519,7 @@ class FixService : public Service {
               TimerPtr timerPtr(new boost::asio::steady_timer(*that->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(pongTimeoutMilliseconds)));
               timerPtr->async_wait([fixConnectionPtr, that, pingMethod, pongTimeoutMilliseconds, method](ErrorCode const& ec) {
                 if (that->fixConnectionPtrByIdMap.find(fixConnectionPtr->id) != that->fixConnectionPtrByIdMap.end()) {
-                  if (ec) {
+                  if (ec && ec != boost::asio::error::operation_aborted) {
                     CCAPI_LOGGER_ERROR("fixConnectionPtr = " + toString(*fixConnectionPtr) + ", pong timeout timer error: " + ec.message());
                     that->onError(Event::Type::FIX_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
                   } else {
@@ -526,11 +550,14 @@ class FixService : public Service {
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
+
   virtual std::vector<std::pair<int, std::string>> createCommonParam(const std::string& connectionId, const std::string& nowFixTimeStr) { return {}; }
+
   virtual std::vector<std::pair<int, std::string>> createLogonParam(const std::string& connectionId, const std::string& nowFixTimeStr,
                                                                     const std::map<int, std::string> logonOptionMap = {}) {
     return {};
   }
+
   const size_t readMessageChunkSize = CCAPI_HFFIX_READ_MESSAGE_CHUNK_SIZE;
   std::map<std::string, std::array<char, CCAPI_FIX_READ_BUFFER_SIZE>> readMessageBufferByConnectionIdMap;
   std::map<std::string, size_t> readMessageBufferReadLengthByConnectionIdMap;
@@ -557,6 +584,7 @@ class FixService : public Service {
   std::string senderCompID;
   std::string targetCompID;
 };
+
 template <>
 inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::ssl_stream<beast::tcp_stream>>::createStreamFix(net::io_context* iocPtr,
                                                                                                                                net::ssl::context* ctxPtr,
@@ -570,12 +598,14 @@ inline std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> FixService<beast::s
   }
   return streamPtr;
 }
+
 template <>
 inline std::shared_ptr<beast::tcp_stream> FixService<beast::tcp_stream>::createStreamFix(net::io_context* iocPtr, net::ssl::context* ctxPtr,
                                                                                          const std::string& host) {
   std::shared_ptr<beast::tcp_stream> streamPtr(new beast::tcp_stream(*iocPtr));
   return streamPtr;
 }
+
 template <>
 inline void FixService<beast::ssl_stream<beast::tcp_stream>>::onConnect_3(std::shared_ptr<FixConnection<beast::ssl_stream<beast::tcp_stream>>> fixConnectionPtr,
                                                                           beast::error_code ec, tcp::resolver::results_type::endpoint_type) {
@@ -593,6 +623,7 @@ inline void FixService<beast::ssl_stream<beast::tcp_stream>>::onConnect_3(std::s
   stream.async_handshake(ssl::stream_base::client, beast::bind_front_handler(&FixService::onHandshake_3, shared_from_base<FixService>(), fixConnectionPtr));
   CCAPI_LOGGER_TRACE("after async_handshake");
 }
+
 template <>
 inline void FixService<beast::tcp_stream>::onConnect_3(std::shared_ptr<FixConnection<beast::tcp_stream>> fixConnectionPtr, beast::error_code ec,
                                                        tcp::resolver::results_type::endpoint_type) {

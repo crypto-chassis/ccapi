@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_DERIBIT
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceDeribit : public ExecutionManagementService {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->clientIdName = CCAPI_DERIBIT_CLIENT_ID;
     this->clientSecretName = CCAPI_DERIBIT_CLIENT_SECRET;
     this->setupCredential({this->clientIdName, this->clientSecretName});
@@ -40,40 +28,13 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     this->getAccountBalancesTarget = "/private/get_account_summary";
     this->getAccountPositionsTarget = "/private/get_positions";
   }
+
   virtual ~ExecutionManagementServiceDeribit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onOpen(wspp::connection_hdl hdl) override {
-    ExecutionManagementService::onOpen(hdl);
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    rj::Document document;
-    document.SetObject();
-    rj::Document::AllocatorType& allocator = document.GetAllocator();
-    auto now = UtilTime::now();
-    this->appendParam(document, allocator, std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count(), "public/set_heartbeat",
-                      {
-                          {"interval", "10"},
-                      });
-    rj::StringBuffer stringBuffer;
-    rj::Writer<rj::StringBuffer> writer(stringBuffer);
-    document.Accept(writer);
-    std::string msg = stringBuffer.GetString();
-    ErrorCode ec;
-    this->send(hdl, msg, wspp::frame::opcode::text, ec);
-    if (ec) {
-      this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
-    }
-  }
-  void onClose(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
-    this->authorizationJsonrpcIdSetByConnectionIdMap.erase(wsConnection.id);
-    ExecutionManagementService::onClose(hdl);
-  }
-#else
+
   void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     ExecutionManagementService::onOpen(wsConnectionPtr);
     rj::Document document;
@@ -94,12 +55,13 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
     }
   }
+
   void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
     this->subscriptionJsonrpcIdSetByConnectionIdMap.erase(wsConnectionPtr->id);
     this->authorizationJsonrpcIdSetByConnectionIdMap.erase(wsConnectionPtr->id);
     ExecutionManagementService::onClose(wsConnectionPtr, ec);
   }
-#endif
+
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& httpMethodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -132,6 +94,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     authorizationHeader += nonce;
     headerString += "\r\nAuthorization:" + authorizationHeader;
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& body, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     std::string authorizationHeader("deri-hmac-sha256 id=");
     authorizationHeader += mapGetWithDefault(credential, this->clientIdName);
@@ -142,7 +105,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     std::string nonce = ts;
     auto requestData = std::string(req.method_string());
     requestData += "\n";
-    requestData += req.target().to_string();
+    requestData += std::string(req.target());
     requestData += "\n";
     requestData += body;
     requestData += "\n";
@@ -158,6 +121,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     authorizationHeader += nonce;
     req.set(http::field::authorization, authorizationHeader);
   }
+
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& appMethod,
                    const std::map<std::string, std::string>& param, const std::map<std::string, std::string> standardizationMap = {}) {
     document.AddMember("jsonrpc", rj::Value("2.0").Move(), allocator);
@@ -179,9 +143,11 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     }
     document.AddMember("params", params, allocator);
   }
+
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document["params"].AddMember("instrument_name", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void prepareReq(http::request<http::string_body>& req, const std::map<std::string, std::string>& param, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential, const std::string& jsonrpcMethod,
                   const std::map<std::string, std::string> standardizationMap = {}) {
@@ -204,6 +170,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     req.target(this->restTarget);
     this->signRequest(req, body, now, credential);
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -265,6 +232,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
@@ -291,6 +259,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       }
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -315,6 +284,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
                         const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -329,6 +299,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       }
     }
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
@@ -358,18 +329,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -380,16 +340,12 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
     const WsConnection& wsConnection = *wsConnectionPtr;
-#endif
+
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -450,11 +406,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             document.Accept(writer);
             std::string sendString = stringBuffer.GetString();
             ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-            this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-#else
+
             this->send(wsConnectionPtr, sendString, ec);
-#endif
+
             if (ec) {
               this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
             }
@@ -558,11 +512,9 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
             document.Accept(writer);
             std::string msg = stringBuffer.GetString();
             ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-            this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
-#else
+
             this->send(wsConnectionPtr, msg, ec);
-#endif
+
             if (ec) {
               this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
             }
@@ -573,6 +525,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
+
   std::map<std::string, std::set<int64_t>> subscriptionJsonrpcIdSetByConnectionIdMap;
   std::map<std::string, std::set<int64_t>> authorizationJsonrpcIdSetByConnectionIdMap;
   std::string restTarget;

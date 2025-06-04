@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #if defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi_base.h"
+
 namespace ccapi {
 class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase {
  public:
@@ -11,7 +12,9 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
       : MarketDataServiceHuobiBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }
+
   virtual ~MarketDataServiceHuobiDerivativesBase() {}
+
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -28,7 +31,9 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
       }
     }
   }
+
   bool doesHttpBodyContainError(const std::string& body) override { return body.find("err_code") != std::string::npos; }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -48,11 +53,13 @@ class MarketDataServiceHuobiDerivativesBase : public MarketDataServiceHuobiBase 
         MarketDataServiceHuobiBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, UtilString::normalizeDecimalString(x["price_tick"].GetString()));
     element.insert(CCAPI_CONTRACT_SIZE, UtilString::normalizeDecimalString(x["contract_size"].GetString()));
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     switch (request.getOperation()) {

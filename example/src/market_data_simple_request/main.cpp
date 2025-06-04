@@ -1,25 +1,29 @@
 #include "ccapi_cpp/ccapi_session.h"
+
 namespace ccapi {
 Logger* Logger::logger = nullptr;  // This line is needed.
+
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* session) override {
+  bool processEvent(const Event& event, Session* sessionPtr) override {
     std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
     return true;
   }
 };
 } /* namespace ccapi */
+
 using ::ccapi::MyEventHandler;
 using ::ccapi::Request;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
+
 int main(int argc, char** argv) {
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Request request(Request::Operation::GET_RECENT_TRADES, "coinbase", "BTC-USD");
+  Request request(Request::Operation::GET_RECENT_TRADES, "okx", "BTC-USDT");
   request.appendParam({
       {"LIMIT", "1"},
   });

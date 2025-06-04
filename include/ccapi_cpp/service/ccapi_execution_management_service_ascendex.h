@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_ASCENDEX
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceAscendex : public ExecutionManagementService {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_ASCENDEX_API_KEY;
     this->apiSecretName = CCAPI_ASCENDEX_API_SECRET;
     this->apiAccountGroupName = CCAPI_ASCENDEX_API_ACCOUNT_GROUP;
@@ -38,27 +26,23 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
     this->cancelOpenOrdersTarget = "/api/pro/v1/cash/order/all";
     this->getAccountBalancesTarget = "/api/pro/v1/cash/balance";
   }
+
   virtual ~ExecutionManagementServiceAscendex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
   bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("code":0)") == std::string::npos; }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
-  void onOpen(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    wsConnection.status = WsConnection::Status::OPEN;
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, R"({"op":"ping"})", ec); }
+
   void onOpen(std::shared_ptr<WsConnection> wsConnectionPtr) override { wsConnectionPtr->status = WsConnection::Status::OPEN; }
-#endif
+
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at("x-auth-timestamp").to_string();
+    auto preSignedText = std::string(req.base().at("x-auth-timestamp"));
     preSignedText += "+";
     auto splitted = UtilString::split(path, '/');
     std::vector<std::string> subSplitted(splitted.begin() + 6, splitted.begin() + splitted.size());
@@ -70,14 +54,16 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
       req.prepare_payload();
     }
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& apiPath, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at("x-auth-timestamp").to_string();
+    auto preSignedText = std::string(req.base().at("x-auth-timestamp"));
     preSignedText += "+";
     preSignedText += apiPath;
     auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
     req.set("x-auth-signature", signature);
   }
+
   void appendParam(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_SIDE, "side"},
@@ -102,6 +88,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
       }
     }
   }
+
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
@@ -111,14 +98,17 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
       queryString += "&";
     }
   }
+
   void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     rjValue.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void appendSymbolId(std::string& queryString, const std::string& symbolId) {
     queryString += "instId=";
     queryString += Url::urlEncode(symbolId);
     queryString += "&";
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     req.set(beast::http::field::accept, "application/json");
@@ -141,7 +131,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param);
         if (param.find("time") == param.end()) {
-          document.AddMember("time", rj::Value(static_cast<int64_t>(std::stoll(req.base().at("x-auth-timestamp").to_string()))).Move(), allocator);
+          document.AddMember("time", rj::Value(static_cast<int64_t>(std::stoll(std::string(req.base().at("x-auth-timestamp"))))).Move(), allocator);
         }
         if (param.find("orderType") == param.end()) {
           document.AddMember("orderType", rj::Value("limit").Move(), allocator);
@@ -167,7 +157,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param);
         if (param.find("time") == param.end()) {
-          document.AddMember("time", rj::Value(static_cast<int64_t>(std::stoll(req.base().at("x-auth-timestamp").to_string()))).Move(), allocator);
+          document.AddMember("time", rj::Value(static_cast<int64_t>(std::stoll(std::string(req.base().at("x-auth-timestamp"))))).Move(), allocator);
         }
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
@@ -240,8 +230,9 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
-                                  int wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                  unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
     document.SetObject();
     document.AddMember("id", rj::Value(std::to_string(wsRequestId).c_str(), allocator).Move(), allocator);
@@ -283,10 +274,12 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         this->convertRequestForWebsocketCustom(document, allocator, wsConnection, request, wsRequestId, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     this->extractOrderInfoFromRequest(elementList, document);
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const rj::Value& value) {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
@@ -321,6 +314,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
       elementList.emplace_back(std::move(element));
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -337,6 +331,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
                         const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -353,6 +348,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
       }
     }
   }
+
   void subscribe(std::vector<Subscription>& subscriptionList) override {
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
@@ -364,26 +360,24 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
             credential = that->credentialDefault;
           }
           const auto& accountGroup = mapGetWithDefault(credential, that->apiAccountGroupName);
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-          WsConnection wsConnection(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential);
-          that->prepareConnect(wsConnection);
-#else
-                              std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(nullptr);
-                                try {
-                                  streamPtr = that->createWsStream(that->serviceContextPtr->ioContextPtr, that->serviceContextPtr->sslContextPtr);
-                                } catch (const beast::error_code& ec) {
-                                  CCAPI_LOGGER_TRACE("fail");
-                                  that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
-                                  return;
-                                }
-                                std::shared_ptr<WsConnection> wsConnectionPtr(new WsConnection(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential, streamPtr));
-                                CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
-                                that->prepareConnect(wsConnectionPtr);
-#endif
+
+          std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(nullptr);
+          try {
+            streamPtr = that->createWsStream(that->serviceContextPtr->ioContextPtr, that->serviceContextPtr->sslContextPtr);
+          } catch (const beast::error_code& ec) {
+            CCAPI_LOGGER_TRACE("fail");
+            that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
+            return;
+          }
+          std::shared_ptr<WsConnection> wsConnectionPtr(
+              new WsConnection(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "", {subscription}, credential, streamPtr));
+          CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
+          that->prepareConnect(wsConnectionPtr);
         });
       }
     }
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
@@ -406,18 +400,7 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -428,15 +411,11 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
+
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -523,32 +502,23 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
         document.Accept(writerSubscribe);
         std::string sendString = stringBufferSubscribe.GetString();
         ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-        this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-#else
+
         this->send(wsConnectionPtr, sendString, ec);
-#endif
-#else
-        this->send(wsConnectionPtr, sendString, ec);
-#endif
+
         if (ec) {
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }
       } else if (m == "connected") {
         std::string type = document["type"].GetString();
         if (type == "unauth") {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-          ExecutionManagementService::onOpen(hdl);
-#else
           ExecutionManagementService::onOpen(wsConnectionPtr);
-#endif
         }
       }
     }
     event.setMessageList(messageList);
     return event;
   }
+
   std::string apiAccountGroupName;
 };
 } /* namespace ccapi */

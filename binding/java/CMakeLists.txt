@@ -3,7 +3,10 @@ project(${NAME})
 set(SWIG_TARGET_NAME ccapi_${NAME})
 
 # Find Java and JNI
-find_package(Java COMPONENTS Development REQUIRED)
+find_package(
+  Java
+  COMPONENTS Development
+  REQUIRED)
 message(STATUS "Java_VERSION: ${Java_VERSION}")
 message(STATUS "Java_JAVA_EXECUTABLE: ${Java_JAVA_EXECUTABLE}")
 find_package(JNI REQUIRED)
@@ -18,61 +21,76 @@ set(JAVA_ARTIFACT "ccapi")
 set(JAVA_PACKAGE "${JAVA_GROUP}.${JAVA_ARTIFACT}")
 
 set_property(SOURCE ${SWIG_INTERFACE} PROPERTY CPLUSPLUS ON)
-set_property(SOURCE ${SWIG_INTERFACE} PROPERTY COMPILE_OPTIONS "-package;${JAVA_PACKAGE};-doxygen")
+set_property(SOURCE ${SWIG_INTERFACE}
+             PROPERTY COMPILE_OPTIONS "-package;${JAVA_PACKAGE};-doxygen")
 
-swig_add_library(${SWIG_TARGET_NAME}
-  LANGUAGE java
-  OUTPUT_DIR ${CMAKE_BINARY_DIR}/java/${SWIG_TARGET_NAME}
-SOURCES ${SWIG_INTERFACE} ${SOURCE_LOGGER})
+swig_add_library(
+  ${SWIG_TARGET_NAME}
+  LANGUAGE java OUTPUT_DIR ${CMAKE_BINARY_DIR}/java/${SWIG_TARGET_NAME}
+  SOURCES ${SWIG_INTERFACE} ${SOURCE_LOGGER})
 
 if(NOT CCAPI_LEGACY_USE_WEBSOCKETPP)
   add_dependencies(${SWIG_TARGET_NAME} boost rapidjson hffix)
 endif()
-set_property(TARGET ${SWIG_TARGET_NAME} PROPERTY SWIG_USE_TARGET_INCLUDE_DIRECTORIES ON)
-target_include_directories(${SWIG_TARGET_NAME}
-  PRIVATE
-  ${JNI_INCLUDE_DIRS}
-)
+set_property(TARGET ${SWIG_TARGET_NAME}
+             PROPERTY SWIG_USE_TARGET_INCLUDE_DIRECTORIES ON)
+target_include_directories(${SWIG_TARGET_NAME} PRIVATE ${JNI_INCLUDE_DIRS})
 
 set(PACKAGING_DIR packaging)
-set(PACKAGING_DIR_FULL ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGING_DIR}/${BUILD_VERSION})
+set(PACKAGING_DIR_FULL
+    ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGING_DIR}/${BUILD_VERSION})
 file(MAKE_DIRECTORY ${PACKAGING_DIR_FULL})
 set(JAVA_PACKAGING_TARGET_NAME java_${PACKAGING_DIR})
-add_custom_target(${JAVA_PACKAGING_TARGET_NAME} ALL
-  COMMAND ${Java_JAVAC_EXECUTABLE} -d ${PACKAGING_DIR_FULL} ${CMAKE_CURRENT_BINARY_DIR}/${SWIG_TARGET_NAME}/*.java
-  COMMAND ${Java_JAR_EXECUTABLE} cf ${JAVA_ARTIFACT}-${BUILD_VERSION}.jar ${JAVA_DOMAIN_EXTENSION}/${JAVA_DOMAIN_NAME}/${JAVA_ARTIFACT}/**
-  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SWIG_TARGET_NAME}> ${PACKAGING_DIR_FULL}
-  WORKING_DIRECTORY ${PACKAGING_DIR_FULL}
-)
+add_custom_target(
+  ${JAVA_PACKAGING_TARGET_NAME} ALL
+  COMMAND ${Java_JAVAC_EXECUTABLE} -d ${PACKAGING_DIR_FULL}
+          ${CMAKE_CURRENT_BINARY_DIR}/${SWIG_TARGET_NAME}/*.java
+  COMMAND ${Java_JAR_EXECUTABLE} cf ${JAVA_ARTIFACT}-${BUILD_VERSION}.jar
+          ${JAVA_DOMAIN_EXTENSION}/${JAVA_DOMAIN_NAME}/${JAVA_ARTIFACT}/**
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SWIG_TARGET_NAME}>
+          ${PACKAGING_DIR_FULL}
+  WORKING_DIRECTORY ${PACKAGING_DIR_FULL})
 add_dependencies(${JAVA_PACKAGING_TARGET_NAME} ${SWIG_TARGET_NAME})
 
 # Test
 if(BUILD_TEST)
   set(TEST_DIR ${CMAKE_CURRENT_BINARY_DIR}/test)
   file(COPY example DESTINATION ${TEST_DIR})
-  set(SUBDIRECTORY_LIST "enable_library_logging" "execution_management_simple_request" "execution_management_simple_subscription" "fix_simple" "handle_exception" "market_data_multiple_subscription" "market_data_simple_request" "market_data_simple_subscription")
+  set(SUBDIRECTORY_LIST
+      "enable_library_logging"
+      "execution_management_simple_request"
+      "execution_management_simple_subscription"
+      "fix_simple"
+      "handle_exception"
+      "market_data_multiple_subscription"
+      "market_data_simple_request"
+      "market_data_simple_subscription")
   foreach(SUBDIRECTORY IN LISTS SUBDIRECTORY_LIST)
     set(JAVA_TEST_TARGET_NAME java_test_${SUBDIRECTORY})
     set(JAVA_TEST_BUILD_DIRECTORY ${TEST_DIR}/example/${SUBDIRECTORY}/build)
     file(MAKE_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
-    add_custom_target(${JAVA_TEST_TARGET_NAME} ALL
+    add_custom_target(
+      ${JAVA_TEST_TARGET_NAME} ALL
       COMMAND ${CMAKE_COMMAND} -E rm -rf *
-      COMMAND ${Java_JAVAC_EXECUTABLE} -cp ${PACKAGING_DIR_FULL}/ccapi-${BUILD_VERSION}.jar -d . ../Main.java
-      WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY}
-    )
+      COMMAND ${Java_JAVAC_EXECUTABLE} -cp
+              ${PACKAGING_DIR_FULL}/ccapi-${BUILD_VERSION}.jar -d . ../Main.java
+      WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
     add_dependencies(${JAVA_TEST_TARGET_NAME} ${JAVA_PACKAGING_TARGET_NAME})
   endforeach()
   file(COPY test DESTINATION ${TEST_DIR})
   set(JAVA_TEST_TARGET_NAME java_test_test)
-    set(JAVA_TEST_BUILD_DIRECTORY ${TEST_DIR}/test/build)
-    file(MAKE_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
-    add_custom_target(${JAVA_TEST_TARGET_NAME} ALL
-      COMMAND ${CMAKE_COMMAND} -E rm -rf *
-      COMMAND ${Java_JAVAC_EXECUTABLE} -cp ${PACKAGING_DIR_FULL}/ccapi-${BUILD_VERSION}.jar -d . ../Main.java
-      WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY}
-    )
-    add_dependencies(${JAVA_TEST_TARGET_NAME} ${JAVA_PACKAGING_TARGET_NAME})
-    add_test(NAME java_test
-    COMMAND ${Java_JAVA_EXECUTABLE} -cp ".:${PACKAGING_DIR_FULL}" -Djava.library.path=${PACKAGING_DIR_FULL} Main
-  WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
+  set(JAVA_TEST_BUILD_DIRECTORY ${TEST_DIR}/test/build)
+  file(MAKE_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
+  add_custom_target(
+    ${JAVA_TEST_TARGET_NAME} ALL
+    COMMAND ${CMAKE_COMMAND} -E rm -rf *
+    COMMAND ${Java_JAVAC_EXECUTABLE} -cp
+            ${PACKAGING_DIR_FULL}/ccapi-${BUILD_VERSION}.jar -d . ../Main.java
+    WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
+  add_dependencies(${JAVA_TEST_TARGET_NAME} ${JAVA_PACKAGING_TARGET_NAME})
+  add_test(
+    NAME java_test
+    COMMAND ${Java_JAVA_EXECUTABLE} -cp ".:${PACKAGING_DIR_FULL}"
+            -Djava.library.path=${PACKAGING_DIR_FULL} Main
+    WORKING_DIRECTORY ${JAVA_TEST_BUILD_DIRECTORY})
 endif()

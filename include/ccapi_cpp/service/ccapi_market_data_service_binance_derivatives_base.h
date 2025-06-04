@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_base.h"
+
 namespace ccapi {
 class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceBase {
  public:
@@ -11,6 +12,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
       : MarketDataServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->isDerivatives = true;
   }
+
   virtual ~MarketDataServiceBinanceDerivativesBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -44,6 +46,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
       channelId = channelId + "_" + interval;
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
     element.insert(CCAPI_INSTRUMENT_STATUS, x["status"].GetString());
@@ -65,6 +68,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
       }
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, credential);
@@ -91,6 +95,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         MarketDataServiceBinanceBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     switch (request.getOperation()) {

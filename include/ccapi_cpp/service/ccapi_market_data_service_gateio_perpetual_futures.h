@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_GATEIO_PERPETUAL_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service_gateio_base.h"
+
 namespace ccapi {
 class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBase {
  public:
@@ -14,25 +15,13 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_GATEIO_PERPETUAL_FUTURES_API_KEY;
     this->setupCredential({this->apiKeyName});
     std::string prefix = "/api/v4";
     this->getRecentTradesTarget = prefix + "/futures/{settle}/trades";
     this->getInstrumentTarget = prefix + "/futures/{settle}/contracts/{contract}";
     this->getInstrumentsTarget = prefix + "/futures/{settle}/contracts";
+    this->getBbosTarget = "/api/v4/futures/{settle}/tickers";
     this->isDerivatives = true;
     this->websocketChannelTrades = CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_TRADES;
     this->websocketChannelBookTicker = CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_BOOK_TICKER;
@@ -40,7 +29,9 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     this->websocketChannelCandlesticks = CCAPI_WEBSOCKET_GATEIO_PERPETUAL_FUTURES_CHANNEL_CANDLESTICKS;
     this->symbolName = "contract";
   }
+
   virtual ~MarketDataServiceGateioPerpetualFutures() {}
+
   std::string getInstrumentGroup(const Subscription& subscription) override {
     auto instrument = subscription.getInstrument();
     std::string url(this->baseUrlWs);
@@ -51,6 +42,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     }
     return url + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
   }
+
   void substituteParamSettle(std::string& target, const std::map<std::string, std::string>& param, const std::string& symbolId) {
     this->substituteParam(target, param,
                           {
@@ -67,6 +59,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
                                       {"{settle}", settle},
                                   });
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     req.set("Accept", "application/json");
@@ -109,14 +102,33 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
                               });
         req.target(target);
       } break;
+      case Request::Operation::GET_BBOS: {
+        req.method(http::verb::get);
+        auto target = this->getBbosTarget;
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->substituteParamSettle(target, param, symbolId);
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_INSTRUMENT, "contract"},
+                          });
+        req.target(target + "?" + queryString);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
+    element.insert(CCAPI_BASE_ASSET, UtilString::split(x["name"].GetString(), '_').at(0));
+    element.insert(CCAPI_QUOTE_ASSET, UtilString::split(x["name"].GetString(), '_').at(1));
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["order_price_round"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["order_size_min"].GetString());
+    element.insert(CCAPI_ORDER_QUANTITY_MIN, x["order_size_min"].GetString());
+    element.insert(CCAPI_CONTRACT_MULTIPLIER, x["quanto_multiplier"].GetString());
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -164,6 +176,34 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
         for (const auto& x : document.GetArray()) {
           Element element;
           this->extractInstrumentInfo(element, x);
+          elementList.push_back(element);
+        }
+        message.setElementList(elementList);
+        message.setCorrelationIdList({request.getCorrelationId()});
+        event.addMessages({message});
+      } break;
+      case Request::Operation::GET_BBOS: {
+        Message message;
+        message.setTimeReceived(timeReceived);
+        message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
+        std::vector<Element> elementList;
+        for (const auto& x : document.GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x["contract"].GetString());
+          element.insert(CCAPI_BEST_BID_N_PRICE, x["highest_bid"].GetString());
+          {
+            const auto& it = x.FindMember("highest_size");
+            if (it != x.MemberEnd()) {
+              element.insert(CCAPI_BEST_BID_N_SIZE, it->value.GetString());
+            }
+          }
+          element.insert(CCAPI_BEST_ASK_N_PRICE, x["lowest_ask"].GetString());
+          {
+            const auto& it = x.FindMember("lowest_size");
+            if (it != x.MemberEnd()) {
+              element.insert(CCAPI_BEST_ASK_N_SIZE, it->value.GetString());
+            }
+          }
           elementList.push_back(element);
         }
         message.setElementList(elementList);

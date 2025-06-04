@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_CRYPTOCOM
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_CRYPTOCOM_API_KEY;
     this->apiSecretName = CCAPI_CRYPTOCOM_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -38,6 +26,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     this->cancelOpenOrdersMethod = "private/cancel-all-orders";
     this->getAccountBalancesMethod = "private/get-account-summary";
   }
+
   virtual ~ExecutionManagementServiceCryptocom() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -82,6 +71,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     document.Accept(writer);
     body = stringBuffer.GetString();
   }
+
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId,
                    const std::string& appMethod, const std::map<std::string, std::string>& param, const TimePoint& now,
                    const std::map<std::string, std::string>& credential) {
@@ -91,6 +81,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     req.prepare_payload();
     req.target(this->pathPrefix + appMethod);
   }
+
   void signRequest(std::string& body, rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& appMethod,
                    const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -115,6 +106,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     document.Accept(writer);
     body = stringBuffer.GetString();
   }
+
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, int64_t requestId, const std::string& appMethod,
                    const std::map<std::string, std::string>& param) {
     document.AddMember("id", rj::Value(requestId).Move(), allocator);
@@ -133,6 +125,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     }
     document.AddMember("params", params, allocator);
   }
+
   void prepareReq(http::request<http::string_body>& req, const std::map<std::string, std::string>& param, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential, const std::string& appMethod,
                   const std::map<std::string, std::string> standardizationMap = {}) {
@@ -159,6 +152,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     this->appendParam(document, allocator, requestId, appMethod, paramCopy);
     this->signRequest(req, document, allocator, requestId, appMethod, paramCopy, now, credential);
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -208,8 +202,9 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
-                                  int wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                  unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
@@ -262,10 +257,12 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
         this->convertRequestForWebsocketCustom(document, allocator, wsConnection, request, wsRequestId, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     this->extractOrderInfoFromRequest(elementList, operation, document);
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request::Operation operation, const rj::Document& document) {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
@@ -296,6 +293,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
       elementList.emplace_back(std::move(element));
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -315,6 +313,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
@@ -331,18 +330,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     sendStringList.push_back(body);
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -353,15 +341,11 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
+
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -486,11 +470,9 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
       std::string id = document["id"].GetString();
       std::string msg = R"({"id":)" + id + R"(,"method":"public/respond-heartbeat"})";
       ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      this->send(wsConnection.hdl, msg, wspp::frame::opcode::text, ec);
-#else
+
       this->send(wsConnectionPtr, msg, ec);
-#endif
+
       if (ec) {
         this->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, ec, "request");
       }
@@ -501,6 +483,8 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
           event.setType(Event::Type::AUTHORIZATION_STATUS);
           message.setType(Message::Type::AUTHORIZATION_FAILURE);
           Element element;
+          element.insert(CCAPI_CONNECTION_ID, wsConnectionPtr->id);
+          element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
           element.insert(CCAPI_ERROR_MESSAGE, textMessage);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
@@ -508,6 +492,8 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
           event.setType(Event::Type::AUTHORIZATION_STATUS);
           message.setType(Message::Type::AUTHORIZATION_SUCCESS);
           Element element;
+          element.insert(CCAPI_CONNECTION_ID, wsConnectionPtr->id);
+          element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
           element.insert(CCAPI_INFO_MESSAGE, textMessage);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
@@ -551,11 +537,9 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
           document.Accept(writer);
           std::string sendString = stringBuffer.GetString();
           ErrorCode ec;
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-          this->send(wsConnection.hdl, sendString, wspp::frame::opcode::text, ec);
-#else
+
           this->send(wsConnectionPtr, sendString, ec);
-#endif
+
           if (ec) {
             this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
           }
@@ -565,6 +549,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
+
   std::string pathPrefix;
   std::string createOrderMethod;
   std::string cancelOrderMethod;

@@ -1,15 +1,17 @@
 #ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
 #define INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
+#include <optional>
 #include <string>
 
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
+
 namespace ccapi {
 /**
  * This class contains the options which the user can specify when creating a session. To use non-default options on a Session, create a SessionOptions instance
  * and set the required options and then supply it when creating a Session.
  */
-class SessionOptions CCAPI_FINAL {
+class SessionOptions {
  public:
   std::string toString() const {
     std::string output = "SessionOptions [enableCheckSequence = " + ccapi::toString(enableCheckSequence) +
@@ -32,6 +34,7 @@ class SessionOptions CCAPI_FINAL {
                          ", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) + "]";
     return output;
   }
+
   // long warnLateEventMaxMilliseconds{};                      // used to print a warning log message if en event arrives late
   bool enableCheckSequence{};                               // used to check sequence number discontinuity
   bool enableCheckOrderBookChecksum{};                      // used to check order book checksum
@@ -53,10 +56,7 @@ class SessionOptions CCAPI_FINAL {
   long httpConnectionKeepAliveTimeoutSeconds{
       10};  // used to remove a http connection from the http connection pool if it has stayed idle for at least this amount of time
   bool enableOneHttpConnectionPerRequest{};  // create a new http connection for each request
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
   long websocketConnectTimeoutMilliseconds{10000};
-#endif
 };
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_

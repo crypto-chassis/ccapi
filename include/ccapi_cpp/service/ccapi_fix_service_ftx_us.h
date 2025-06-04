@@ -4,6 +4,7 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX_US
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/service/ccapi_fix_service_ftx_base.h"
+
 namespace ccapi {
 class FixServiceFtxUs : public FixServiceFtxBase {
  public:
@@ -25,6 +26,7 @@ class FixServiceFtxUs : public FixServiceFtxBase {
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_FTX_US;
     this->targetCompID = "FTXUS";
   }
+
   virtual ~FixServiceFtxUs() {}
 };
 } /* namespace ccapi */

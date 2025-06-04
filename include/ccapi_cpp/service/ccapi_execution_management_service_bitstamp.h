@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BITSTAMP
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_BITSTAMP_API_KEY;
     this->apiSecretName = CCAPI_BITSTAMP_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -39,24 +27,22 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     this->getAccountBalancesTarget = prefix + "/balance/{currency_pair}/";
     this->getWebSocketsTokenTarget = prefix + "/websockets_token/";
   }
+
   virtual ~ExecutionManagementServiceBitstamp() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
-    this->send(hdl, R"({"event": "bts:heartbeat"})", wspp::frame::opcode::text, ec);
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     this->send(wsConnectionPtr, R"({"event": "bts:heartbeat"})", ec);
   }
-#endif
+
   bool doesHttpBodyContainError(const std::string& body) override {
     return body.find(R"("status": "error")") != std::string::npos || body.find(R"("status":"error")") != std::string::npos ||
            body.find(R"("error":)") != std::string::npos;
   }
+
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
@@ -67,16 +53,16 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
       headerString += "Content-Type:application/x-www-form-urlencoded";
     }
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    std::string preSignedText = req.base().at("X-Auth").to_string();
+    std::string preSignedText = std::string(req.base().at("X-Auth"));
     preSignedText += methodString;
-    preSignedText += req.base().at(http::field::host).to_string();
-    preSignedText += req.target().to_string();
+    preSignedText += std::string(req.base().at(http::field::host));
+    preSignedText += std::string(req.target());
     if (!body.empty()) {
       preSignedText += "application/x-www-form-urlencoded";
     }
-    preSignedText += req.base().at("X-Auth-Nonce").to_string();
-    preSignedText += req.base().at("X-Auth-Timestamp").to_string();
-    preSignedText += req.base().at("X-Auth-Version").to_string();
+    preSignedText += std::string(req.base().at("X-Auth-Nonce"));
+    preSignedText += std::string(req.base().at("X-Auth-Timestamp"));
+    preSignedText += std::string(req.base().at("X-Auth-Version"));
     preSignedText += body;
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
     if (!headerString.empty()) {
@@ -84,21 +70,22 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     }
     headerString += "X-Auth-Signature:" + signature;
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     if (!body.empty()) {
       req.set(beast::http::field::content_type, "application/x-www-form-urlencoded");
     }
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    std::string preSignedText = req.base().at("X-Auth").to_string();
+    std::string preSignedText = std::string(req.base().at("X-Auth"));
     preSignedText += std::string(req.method_string());
-    preSignedText += req.base().at(http::field::host).to_string();
-    preSignedText += req.target().to_string();
+    preSignedText += std::string(req.base().at(http::field::host));
+    preSignedText += std::string(req.target());
     if (!body.empty()) {
-      preSignedText += req.base().at(beast::http::field::content_type).to_string();
+      preSignedText += std::string(req.base().at(beast::http::field::content_type));
     }
-    preSignedText += req.base().at("X-Auth-Nonce").to_string();
-    preSignedText += req.base().at("X-Auth-Timestamp").to_string();
-    preSignedText += req.base().at("X-Auth-Version").to_string();
+    preSignedText += std::string(req.base().at("X-Auth-Nonce"));
+    preSignedText += std::string(req.base().at("X-Auth-Timestamp"));
+    preSignedText += std::string(req.base().at("X-Auth-Version"));
     preSignedText += body;
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
     req.set("X-Auth-Signature", signature);
@@ -107,6 +94,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
       req.prepare_payload();
     }
   }
+
   void appendParam(std::string& body, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_QUANTITY, "amount"},
@@ -125,6 +113,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
       }
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -204,6 +193,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
                         const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -214,6 +204,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
       }
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     std::map<std::string, std::pair<std::string, JsonDataType>> extractionFieldNameMap = {
@@ -245,6 +236,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
       }
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -274,64 +266,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void prepareConnect(WsConnection& wsConnection) override {
-    auto now = UtilTime::now();
-    auto hostPort = this->extractHostFromUrl(this->baseUrlRest);
-    std::string host = hostPort.first;
-    std::string port = hostPort.second;
-    http::request<http::string_body> req;
-    req.set(http::field::host, host);
-    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    req.method(http::verb::post);
-    std::string target = this->getWebSocketsTokenTarget;
-    req.target(target);
-    auto credential = wsConnection.subscriptionList.at(0).getCredential();
-    if (credential.empty()) {
-      credential = this->credentialDefault;
-    }
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    req.set("X-Auth", "BITSTAMP " + apiKey);
-    std::string nonce = UtilString::generateUuidV4();
-    req.set("X-Auth-Nonce", nonce);
-    req.set("X-Auth-Timestamp", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
-    req.set("X-Auth-Version", "v2");
-    std::string body;
-    this->signRequest(req, "", credential);
-    this->sendRequest(
-        req,
-        [wsConnection, that = shared_from_base<ExecutionManagementServiceBitstamp>()](const beast::error_code& ec) {
-          WsConnection thisWsConnection = wsConnection;
-          that->onFail_(thisWsConnection);
-        },
-        [wsConnection, that = shared_from_base<ExecutionManagementServiceBitstamp>()](const http::response<http::string_body>& res) {
-          WsConnection thisWsConnection = wsConnection;
-          int statusCode = res.result_int();
-          std::string body = res.body();
-          if (statusCode / 100 == 2) {
-            try {
-              rj::Document document;
-              document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
-              if (document.HasMember("token") && document.HasMember("user_id")) {
-                std::string token = document["token"].GetString();
-                std::string userId = document["user_id"].GetString();
-                thisWsConnection.url = that->baseUrlWs;
-                that->connect(thisWsConnection);
-                that->extraPropertyByConnectionIdMap[thisWsConnection.id].insert({
-                    {"token", token},
-                    {"userId", userId},
-                });
-              }
-              return;
-            } catch (const std::runtime_error& e) {
-              CCAPI_LOGGER_ERROR(std::string("e.what() = ") + e.what());
-            }
-          }
-          that->onFail_(thisWsConnection);
-        },
-        this->sessionOptions.httpRequestTimeoutMilliseconds);
-  }
-#else
+
   void prepareConnect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     auto now = UtilTime::now();
     auto hostPort = this->extractHostFromUrl(this->baseUrlRest);
@@ -383,7 +318,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         },
         this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
-#endif
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     const auto& fieldSet = subscription.getFieldSet();
@@ -416,18 +351,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     }
     return sendStringList;
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -438,15 +362,11 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
+
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -527,6 +447,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
+
   std::string getWebSocketsTokenTarget;
 };
 } /* namespace ccapi */

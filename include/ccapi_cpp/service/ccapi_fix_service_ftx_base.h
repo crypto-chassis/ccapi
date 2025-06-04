@@ -4,12 +4,14 @@
 #if defined(CCAPI_ENABLE_EXCHANGE_FTX) || defined(CCAPI_ENABLE_EXCHANGE_FTX_US)
 #include "ccapi_cpp/ccapi_hmac.h"
 #include "ccapi_cpp/service/ccapi_fix_service.h"
+
 namespace ccapi {
 class FixServiceFtxBase : public FixService<beast::ssl_stream<beast::tcp_stream>> {
  public:
   FixServiceFtxBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                     ServiceContextPtr serviceContextPtr)
       : FixService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {}
+
   virtual ~FixServiceFtxBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -23,6 +25,7 @@ class FixServiceFtxBase : public FixService<beast::ssl_stream<beast::tcp_stream>
         {hff::tag::SendingTime, nowFixTimeStr},
     };
   }
+
   virtual std::vector<std::pair<int, std::string>> createLogonParam(const std::string& connectionId, const std::string& nowFixTimeStr,
                                                                     const std::map<int, std::string> logonOptionMap = {}) {
     std::vector<std::pair<int, std::string>> param;
@@ -48,6 +51,7 @@ class FixServiceFtxBase : public FixService<beast::ssl_stream<beast::tcp_stream>
     }
     return param;
   }
+
   std::string apiSubaccountName;
 };
 } /* namespace ccapi */

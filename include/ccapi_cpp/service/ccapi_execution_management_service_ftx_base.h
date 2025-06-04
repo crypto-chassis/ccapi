@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #if defined(CCAPI_ENABLE_EXCHANGE_FTX) || defined(CCAPI_ENABLE_EXCHANGE_FTX_US)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
  public:
@@ -17,21 +18,20 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     this->getAccountsTarget = "/api/subaccounts";
     this->getAccountBalancesTarget = "/api/wallet/balances";
   }
+
   virtual ~ExecutionManagementServiceFtxBase() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, R"({"op":"ping"})", wspp::frame::opcode::text, ec); }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, R"({"op":"ping"})", ec); }
-#endif
+
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
                                                const std::map<std::string, std::string>& credential) override {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at(this->ftx + "-TS").to_string();
+    auto preSignedText = std::string(req.base().at(this->ftx + "-TS"));
     preSignedText += methodString;
     std::string target = path;
     if (!queryString.empty()) {
@@ -45,17 +45,19 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     }
     headerString += this->ftx + "-SIGN:" + signature;
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto preSignedText = req.base().at(this->ftx + "-TS").to_string();
+    auto preSignedText = std::string(req.base().at(this->ftx + "-TS"));
     preSignedText += std::string(req.method_string());
-    preSignedText += req.target().to_string();
+    preSignedText += std::string(req.target());
     preSignedText += body;
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText, true);
     req.set(this->ftx + "-SIGN", signature);
     req.body() = body;
     req.prepare_payload();
   }
+
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {
                        {CCAPI_EM_ORDER_SIDE, "side"},
@@ -82,6 +84,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       }
     }
   }
+
   void appendParam_2(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                      const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
@@ -96,9 +99,11 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       }
     }
   }
+
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("market", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -109,6 +114,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       req.set(this->ftx + "-SUBACCOUNT", Url::urlEncode(apiSubaccountName));
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, now, credential);
@@ -211,6 +217,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
@@ -236,6 +243,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       elementList.emplace_back(std::move(element));
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -259,6 +267,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
                         const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -271,6 +280,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       }
     }
   }
+
   std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
                                                                 const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
@@ -322,13 +332,12 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     }
     return sendStringList;
   }
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     Event event = this->createEvent(subscription, textMessage, document, timeReceived);
@@ -336,6 +345,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
+
   Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
@@ -421,6 +431,7 @@ class ExecutionManagementServiceFtxBase : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
+
   std::string apiSubaccountName;
   std::string ftx;
 };

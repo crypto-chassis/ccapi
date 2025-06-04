@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_WHITEBIT
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceWhitebit : public MarketDataService {
  public:
@@ -14,19 +15,6 @@ class MarketDataServiceWhitebit : public MarketDataService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->getRecentTradesTarget = "/api/v4/public/trades/{market}";
     this->getInstrumentsTarget = "/api/v4/public/markets";
     this->methodDepthSubscribe = std::string(CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_DEPTH) + "_subscribe";
@@ -35,25 +23,19 @@ class MarketDataServiceWhitebit : public MarketDataService {
     this->methodTradesUpdate = std::string(CCAPI_WEBSOCKET_WHITEBIT_CHANNEL_MARKET_TRADES) + "_update";
     this->shouldAlignSnapshot = true;
   }
+
   virtual ~MarketDataServiceWhitebit() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->send(hdl, R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id]) + R"(,"method":"ping","params":[]})",
-               wspp::frame::opcode::text, ec);
-    this->exchangeJsonPayloadIdByConnectionIdMap[wsConnection.id] += 1;
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     this->send(wsConnectionPtr,
                R"({"id":)" + std::to_string(this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id]) + R"(,"method":"ping","params":[]})", ec);
     this->exchangeJsonPayloadIdByConnectionIdMap[wsConnectionPtr->id] += 1;
   }
-#endif
+
   void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
@@ -63,6 +45,7 @@ class MarketDataServiceWhitebit : public MarketDataService {
       this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = marketDepthSubscribedToExchange;
     }
   }
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
@@ -125,19 +108,12 @@ class MarketDataServiceWhitebit : public MarketDataService {
     }
     return sendStringList;
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     rj::Document document;
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
     auto itId = document.FindMember("id");
@@ -246,6 +222,7 @@ class MarketDataServiceWhitebit : public MarketDataService {
       }
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -276,6 +253,7 @@ class MarketDataServiceWhitebit : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_INSTRUMENT, x["name"].GetString());
     element.insert(CCAPI_BASE_ASSET, x["stock"].GetString());
@@ -295,6 +273,7 @@ class MarketDataServiceWhitebit : public MarketDataService {
     element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minAmount"].GetString());
     element.insert(CCAPI_ORDER_PRICE_TIMES_QUANTITY_MIN, x["minTotal"].GetString());
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -350,6 +329,7 @@ class MarketDataServiceWhitebit : public MarketDataService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   std::string methodDepthSubscribe, methodDepthUpdate, methodTradesSubscribe, methodTradesUpdate;
 };
 } /* namespace ccapi */

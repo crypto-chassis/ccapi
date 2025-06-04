@@ -5,18 +5,20 @@
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_subscription.h"
 namespace beast = boost::beast;
+
 namespace ccapi {
 /**
  * This class represents a TCP socket connection for the FIX API.
  */
 template <class T>
-class FixConnection CCAPI_FINAL {
+class FixConnection {
  public:
   FixConnection(std::string host, std::string port, Subscription subscription, std::shared_ptr<T> streamPtr)
       : host(host), port(port), subscription(subscription), streamPtr(streamPtr) {
     this->id = subscription.getCorrelationId();
     this->url = host + ":" + port;
   }
+
   std::string toString() const {
     std::ostringstream oss;
     oss << streamPtr;
@@ -32,6 +34,7 @@ class FixConnection CCAPI_FINAL {
     CLOSING,
     CLOSED,
   };
+
   static std::string statusToString(Status status) {
     std::string output;
     switch (status) {
@@ -58,6 +61,7 @@ class FixConnection CCAPI_FINAL {
     }
     return output;
   }
+
   std::string id;
   std::string host;
   std::string port;

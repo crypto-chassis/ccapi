@@ -4,14 +4,16 @@
 
 #include "ccapi_cpp/ccapi_logger.h"
 #include "ccapi_cpp/ccapi_util_private.h"
+
 namespace ccapi {
 /**
  * This class provides a numeric type for representing an arbitrary precision decimal number. It is minimalistic for the purpose of high performance.
  * Furthermore, unlike double, it is suitable for being used as the key of a map.
  */
-class Decimal CCAPI_FINAL {
+class Decimal {
  public:
   Decimal() {}
+
   explicit Decimal(const std::string& originalValue, bool keepTrailingZero = false) {
     if (originalValue.empty()) {
       CCAPI_LOGGER_FATAL("Decimal constructor input value cannot be empty");
@@ -84,6 +86,7 @@ class Decimal CCAPI_FINAL {
       }
     }
   }
+
   std::string toString() const {
     std::string stringValue;
     if (!this->sign) {
@@ -96,7 +99,9 @@ class Decimal CCAPI_FINAL {
     }
     return stringValue;
   }
+
   double toDouble() const { return std::stod(this->toString()); }
+
   friend bool operator<(const Decimal& l, const Decimal& r) {
     if (l.sign && r.sign) {
       if (l.before < r.before) {
@@ -122,11 +127,17 @@ class Decimal CCAPI_FINAL {
       return nl > nr;
     }
   }
+
   friend bool operator>(const Decimal& l, const Decimal& r) { return r < l; }
+
   friend bool operator<=(const Decimal& l, const Decimal& r) { return !(l > r); }
+
   friend bool operator>=(const Decimal& l, const Decimal& r) { return !(l < r); }
+
   friend bool operator==(const Decimal& l, const Decimal& r) { return !(l > r) && !(l < r); }
+
   friend bool operator!=(const Decimal& l, const Decimal& r) { return !(l == r); }
+
   Decimal negate() const {
     Decimal o;
     o.before = this->before;
@@ -134,6 +145,7 @@ class Decimal CCAPI_FINAL {
     o.sign = !this->sign;
     return o;
   }
+
   Decimal add(const Decimal& x) const {
     if (this->sign && x.sign) {
       Decimal o;
@@ -190,6 +202,7 @@ class Decimal CCAPI_FINAL {
       return (this->negate().add(x.negate())).negate();
     }
   }
+
   Decimal subtract(const Decimal& x) const {
     if (this->sign && x.sign) {
       if (*this >= x) {
@@ -223,6 +236,7 @@ class Decimal CCAPI_FINAL {
       return x.negate().subtract(this->negate());
     }
   }
+
   // {-}bbbb.aaaa
   unsigned long long before{};
   std::string frac;

@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_BITMEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
+
 namespace ccapi {
 class MarketDataServiceBitmex : public MarketDataService {
  public:
@@ -14,24 +15,12 @@ class MarketDataServiceBitmex : public MarketDataService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->getRecentTradesTarget = "/api/v1/trade";
     this->getInstrumentTarget = "/api/v1/instrument";
     this->getInstrumentsTarget = "/api/v1/instrument";
     // this->convertNumberToStringInJsonRegex = std::regex("(\\[|,|\":)(-?\\d+\\.?\\d*)");
   }
+
   virtual ~MarketDataServiceBitmex() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -54,20 +43,14 @@ class MarketDataServiceBitmex : public MarketDataService {
       }
     }
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void pingOnApplicationLevel(wspp::connection_hdl hdl, ErrorCode& ec) override { this->send(hdl, "ping", wspp::frame::opcode::text, ec); }
-  void onClose(wspp::connection_hdl hdl) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnection.id);
-    MarketDataService::onClose(hdl);
-  }
-#else
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
+
   void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
     this->priceByConnectionIdChannelIdSymbolIdPriceIdMap.erase(wsConnectionPtr->id);
     MarketDataService::onClose(wsConnectionPtr, ec);
   }
-#endif
+
   std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
@@ -96,19 +79,12 @@ class MarketDataServiceBitmex : public MarketDataService {
     sendStringList.push_back(sendString);
     return sendStringList;
   }
-  void processTextMessage(
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-      WsConnection& wsConnection, wspp::connection_hdl hdl, const std::string& textMessage
-#else
-      std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView
-#endif
-      ,
-      const TimePoint& timeReceived, Event& event, std::vector<MarketDataMessage>& marketDataMessageList) override {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
+  void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
+                          std::vector<MarketDataMessage>& marketDataMessageList) override {
     WsConnection& wsConnection = *wsConnectionPtr;
     std::string textMessage(textMessageView);
-#endif
+
     if (textMessage != "pong") {
       rj::Document document;
       document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
@@ -187,17 +163,10 @@ class MarketDataServiceBitmex : public MarketDataService {
             } else {
               price = this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId][priceId];
               if (price.empty()) {
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-                this->onIncorrectStatesFound(wsConnection, hdl, textMessage, timeReceived, exchangeSubscriptionId,
-                                             "bitmex update for missing item came through on wsConnection = " + toString(wsConnection) +
-                                                 ", channelId = " + channelId + ", symbolId = " + symbolId + ", priceId = " + priceId + ". Data: " +
-                                                 toString(this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId]));
-#else
                 this->onIncorrectStatesFound(wsConnectionPtr, textMessageView, timeReceived, exchangeSubscriptionId,
                                              "bitmex update for missing item came through on wsConnection = " + toString(wsConnection) +
                                                  ", channelId = " + channelId + ", symbolId = " + symbolId + ", priceId = " + priceId + ". Data: " +
                                                  toString(this->priceByConnectionIdChannelIdSymbolIdPriceIdMap[wsConnection.id][channelId][symbolId]));
-#endif
               }
               if (action == "update") {
                 size = UtilString::normalizeDecimalString(x["size"].GetString());
@@ -267,6 +236,7 @@ class MarketDataServiceBitmex : public MarketDataService {
       }
     }
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
@@ -303,12 +273,14 @@ class MarketDataServiceBitmex : public MarketDataService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
     element.insert(CCAPI_MARGIN_ASSET, x["settlCurrency"].GetString());
     element.insert(CCAPI_UNDERLYING_SYMBOL, x["referenceSymbol"].GetString());
     element.insert(CCAPI_ORDER_PRICE_INCREMENT, x["tickSize"].GetString());
     element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, x["lotSize"].GetString());
   }
+
   void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
     rj::Document document;
@@ -361,7 +333,8 @@ class MarketDataServiceBitmex : public MarketDataService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
-  std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string> > > > priceByConnectionIdChannelIdSymbolIdPriceIdMap;
+
+  std::map<std::string, std::map<std::string, std::map<std::string, std::map<std::string, std::string>>>> priceByConnectionIdChannelIdSymbolIdPriceIdMap;
 };
 } /* namespace ccapi */
 #endif

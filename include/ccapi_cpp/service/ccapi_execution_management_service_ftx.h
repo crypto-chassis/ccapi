@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_FTX
 #include "ccapi_cpp/service/ccapi_execution_management_service_ftx_base.h"
+
 namespace ccapi {
 class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
  public:
@@ -19,14 +20,13 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-#else
+
     try {
       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
     } catch (const std::exception& e) {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
-#endif
+
     this->apiKeyName = CCAPI_FTX_API_KEY;
     this->apiSecretName = CCAPI_FTX_API_SECRET;
     this->apiSubaccountName = CCAPI_FTX_API_SUBACCOUNT;
@@ -34,6 +34,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
     this->getAccountPositionsTarget = "/api/positions";
     this->ftx = "FTX";
   }
+
   virtual ~ExecutionManagementServiceFtx() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -54,6 +55,7 @@ class ExecutionManagementServiceFtx : public ExecutionManagementServiceFtxBase {
         ExecutionManagementServiceFtxBase::convertRequestForRest(req, request, now, symbolId, credential);
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {

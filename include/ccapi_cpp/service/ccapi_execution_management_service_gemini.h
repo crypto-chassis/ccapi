@@ -3,6 +3,7 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
+
 namespace ccapi {
 class ExecutionManagementServiceGemini : public ExecutionManagementService {
  public:
@@ -14,19 +15,6 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->setHostWsFromUrlWs(this->baseUrlWs);
-    //     try {
-    //       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-    // #else
-    //     try {
-    //       this->tcpResolverResultsWs = this->resolverWs.resolve(this->hostWs, this->portWs);
-    //     } catch (const std::exception& e) {
-    //       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
-    //     }
-    // #endif
     this->apiKeyName = CCAPI_GEMINI_API_KEY;
     this->apiSecretName = CCAPI_GEMINI_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -38,6 +26,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     this->getAccountsTarget = "/v1/account/list";
     this->getAccountBalancesTarget = "/v1/balances";
   }
+
   virtual ~ExecutionManagementServiceGemini() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
 
@@ -55,9 +44,10 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     }
     headerString += "X-GEMINI-SIGNATURE:" + signature;
   }
+
   void signRequest(http::request<http::string_body>& req, rj::Document& document, rj::Document::AllocatorType& allocator,
                    const std::map<std::string, std::string>& param, const TimePoint& now, const std::map<std::string, std::string>& credential, int64_t nonce) {
-    document.AddMember("request", rj::Value(req.target().to_string().c_str(), allocator).Move(), allocator);
+    document.AddMember("request", rj::Value(std::string(req.target()).c_str(), allocator).Move(), allocator);
     document.AddMember("nonce", rj::Value(nonce).Move(), allocator);
     rj::StringBuffer stringBuffer;
     rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -65,6 +55,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     auto body = stringBuffer.GetString();
     this->signRequest(req, body, credential);
   }
+
   void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
     auto base64Payload = UtilAlgorithm::base64Encode(body);
     req.set("X-GEMINI-PAYLOAD", base64Payload);
@@ -72,6 +63,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true);
     req.set("X-GEMINI-SIGNATURE", signature);
   }
+
   void appendParam(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
@@ -87,9 +79,11 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       }
     }
   }
+
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     document.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -198,6 +192,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
+
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
     const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
@@ -226,6 +221,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       }
     }
   }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -249,6 +245,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+
   void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
                         const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
@@ -273,38 +270,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       }
     }
   }
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void prepareConnect(WsConnection& wsConnection) override {
-    auto now = UtilTime::now();
-    auto subscription = wsConnection.subscriptionList.at(0);
-    const auto& fieldSet = subscription.getFieldSet();
-    const auto& instrumentSet = subscription.getInstrumentSet();
-    auto credential = wsConnection.subscriptionList.at(0).getCredential();
-    if (credential.empty()) {
-      credential = this->credentialDefault;
-    }
-    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
-    wsConnection.url += "?heartbeat=true";
-    if (fieldSet == std::set<std::string>({CCAPI_EM_PRIVATE_TRADE})) {
-      wsConnection.url += "&eventTypeFilter=fill";
-    }
-    if (!instrumentSet.empty()) {
-      for (const auto& instrument : instrumentSet) {
-        wsConnection.url += "&symbolFilter=" + instrument;
-      }
-    }
-    wsConnection.url += "&apiSessionFilter=" + apiKey;
-    wsConnection.headers.insert({"X-GEMINI-APIKEY", apiKey});
-    int64_t nonce = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    std::string payload = R"({"request":"/v1/order/events","nonce":)" + std::to_string(nonce) + "}";
-    auto base64Payload = UtilAlgorithm::base64Encode(payload);
-    wsConnection.headers.insert({"X-GEMINI-PAYLOAD", base64Payload});
-    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
-    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA384, apiSecret, base64Payload, true);
-    wsConnection.headers.insert({"X-GEMINI-SIGNATURE", signature});
-    this->connect(wsConnection);
-  }
-#else
+
   void prepareConnect(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     auto now = UtilTime::now();
     auto subscription = wsConnectionPtr->subscriptionList.at(0);
@@ -335,19 +301,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     wsConnectionPtr->headers.insert({"X-GEMINI-SIGNATURE", signature});
     this->connect(wsConnectionPtr);
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  void onTextMessage(wspp::connection_hdl hdl, const std::string& textMessage, const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = this->getWsConnectionFromConnectionPtr(this->serviceContextPtr->tlsClientPtr->get_con_from_hdl(hdl));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-    Event event = this->createEvent(wsConnection, hdl, subscription, textMessage, document, timeReceived);
-    if (!event.getMessageList().empty()) {
-      this->eventHandler(event, nullptr);
-    }
-  }
-#else
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     std::string textMessage(textMessageView);
@@ -358,15 +312,11 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
       this->eventHandler(event, nullptr);
     }
   }
-#endif
-#ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  Event createEvent(const WsConnection& wsConnection, wspp::connection_hdl hdl, const Subscription& subscription, const std::string& textMessage,
-                    const rj::Document& document, const TimePoint& timeReceived) {
-#else
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     std::string textMessage(textMessageView);
-#endif
+
     Event event;
     std::vector<Message> messageList;
     if (document.IsObject()) {
@@ -463,6 +413,7 @@ class ExecutionManagementServiceGemini : public ExecutionManagementService {
     event.setMessageList(messageList);
     return event;
   }
+
   std::set<std::string> websocketOrderUpdateTypeSet{"accepted", "rejected", "booked", "fill", "cancelled", "cancel_rejected", "closed"};
 };
 } /* namespace ccapi */
