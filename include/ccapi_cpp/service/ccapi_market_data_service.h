@@ -804,7 +804,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotBid.emplace(decimalPrice, std::string(size));
         }
         CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBid, maxMarketDepth));
@@ -812,7 +812,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotAsk.emplace(decimalPrice, std::string(size));
         }
         CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, " + toString(maxMarketDepth) + ") = " + firstNToString(snapshotAsk, maxMarketDepth));
@@ -894,14 +894,14 @@ class MarketDataService : public Service {
           for (auto& y : detail) {
             const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
             const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-            Decimal decimalPrice(price);
+            Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
             this->updateOrderBook(snapshotBid, decimalPrice, size, this->sessionOptions.enableCheckOrderBookChecksum);
           }
         } else if (type == MarketDataMessage::DataType::ASK) {
           for (auto& y : detail) {
             const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
             const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-            Decimal decimalPrice(price);
+            Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
             this->updateOrderBook(snapshotAsk, decimalPrice, size, this->sessionOptions.enableCheckOrderBookChecksum);
           }
         } else {
@@ -1098,7 +1098,7 @@ class MarketDataService : public Service {
               this->highByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId] = Decimal(price);
               this->lowByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId] = Decimal(price);
             } else {
-              Decimal decimalPrice(price);
+              Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
               if (decimalPrice > this->highByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId]) {
                 this->highByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId] = decimalPrice;
               }
@@ -1372,7 +1372,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotBid.emplace(decimalPrice, std::string(size));
         }
         CCAPI_LOGGER_TRACE("lastNToString(snapshotBid, " + toString(maxMarketDepth) + ") = " + lastNToString(snapshotBid, maxMarketDepth));
@@ -1380,7 +1380,7 @@ class MarketDataService : public Service {
         for (auto& y : detail) {
           const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
           const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-          Decimal decimalPrice(price);
+          Decimal decimalPrice(price, this->sessionOptions.enableCheckOrderBookChecksum);
           snapshotAsk.emplace(decimalPrice, std::string(size));
         }
         CCAPI_LOGGER_TRACE("firstNToString(snapshotAsk, " + toString(maxMarketDepth) + ") = " + firstNToString(snapshotAsk, maxMarketDepth));
@@ -1520,14 +1520,14 @@ class MarketDataService : public Service {
                     for (const auto& y : detail) {
                       const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
                       const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-                      Decimal decimalPrice(price);
+                      Decimal decimalPrice(price, that->sessionOptions.enableCheckOrderBookChecksum);
                       snapshotBid.emplace(decimalPrice, std::string(size));
                     }
                   } else if (type == MarketDataMessage::DataType::ASK) {
                     for (const auto& y : detail) {
                       const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
                       const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-                      Decimal decimalPrice(price);
+                      Decimal decimalPrice(price, that->sessionOptions.enableCheckOrderBookChecksum);
                       snapshotAsk.emplace(decimalPrice, std::string(size));
                     }
                   }
@@ -1548,14 +1548,14 @@ class MarketDataService : public Service {
                         for (const auto& y : detail) {
                           const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
                           const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-                          Decimal decimalPrice(price);
+                          Decimal decimalPrice(price, that->sessionOptions.enableCheckOrderBookChecksum);
                           that->updateOrderBook(snapshotBid, decimalPrice, size, that->sessionOptions.enableCheckOrderBookChecksum);
                         }
                       } else if (type == MarketDataMessage::DataType::ASK) {
                         for (const auto& y : detail) {
                           const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
                           const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-                          Decimal decimalPrice(price);
+                          Decimal decimalPrice(price, that->sessionOptions.enableCheckOrderBookChecksum);
                           that->updateOrderBook(snapshotAsk, decimalPrice, size, that->sessionOptions.enableCheckOrderBookChecksum);
                         }
                       }
@@ -1671,6 +1671,7 @@ class MarketDataService : public Service {
                                   Event& event, std::vector<MarketDataMessage>& marketDataMessageList) {}
 
   virtual std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) {
+    CCAPI_LOGGER_DEBUG("calculateOrderBookChecksum is not implemented for this exchange");
     return {};
   }
 

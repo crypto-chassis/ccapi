@@ -958,7 +958,7 @@ class Decimal {
     }
   }
 
-  explicit Decimal(std::string_view originalValue) {
+  explicit Decimal(std::string_view originalValue, bool checksumEnabled=false) {
     if (originalValue.empty()) {
       throw std::invalid_argument("Decimal constructor input value cannot be empty");
     }
@@ -972,7 +972,7 @@ class Decimal {
       }
       std::string fixedPointValue = std::string(originalValue.substr(this->sign ? 0 : 1, this->sign ? foundE : foundE - 1));
       auto foundDot = fixedPointValue.find('.');
-      if (foundDot != std::string::npos) {
+      if (foundDot != std::string::npos and not checksumEnabled) {
         fixedPointValue.erase(fixedPointValue.find_last_not_of('0') + 1);
         fixedPointValue.erase(fixedPointValue.find_last_not_of('.') + 1);
       }
@@ -1017,9 +1017,9 @@ class Decimal {
       }
       if (foundDot != std::string::npos) {
         this->frac = fixedPointValue.substr(foundDot + 1);
-        // if (!keepTrailingZero) {
-        this->frac.erase(this->frac.find_last_not_of('0') + 1);
-        // }
+        if (!checksumEnabled) {
+          this->frac.erase(this->frac.find_last_not_of('0') + 1);
+        }
       }
     } else {
       auto found = originalValue.find('.');
@@ -1033,9 +1033,9 @@ class Decimal {
       }
       if (found != std::string::npos) {
         this->frac = originalValue.substr(found + 1);
-        // if (!keepTrailingZero) {
-        this->frac.erase(this->frac.find_last_not_of('0') + 1);
-        // }
+        if (not checksumEnabled) {
+          this->frac.erase(this->frac.find_last_not_of('0') + 1);
+        }
       }
     }
 
