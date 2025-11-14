@@ -141,6 +141,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_coin_futures.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_PORTFOLIO_MARGIN
+#include "ccapi_cpp/service/ccapi_execution_management_service_binance_portfolio_margin.h"
+#endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
 #endif
@@ -481,6 +484,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES] =
         std::make_shared<ExecutionManagementServiceBinanceCoinFutures>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_BINANCE_PORTFOLIO_MARGIN
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_BINANCE_PORTFOLIO_MARGIN] =
+        std::make_shared<ExecutionManagementServiceBinancePortfolioMargin>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HUOBI
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HUOBI] =
