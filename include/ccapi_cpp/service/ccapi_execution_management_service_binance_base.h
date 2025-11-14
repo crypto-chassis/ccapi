@@ -269,10 +269,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                          nonce + "&";
         }
         this->signRequest(queryString, param, now, credential);
-        req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
-                        ? this->createOrderMarginTarget
-                        : this->createOrderTarget) +
-                   "?" + queryString);
+        // Use POST body instead of query string for parameters
+        req.target(request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                       ? this->createOrderMarginTarget
+                       : this->createOrderTarget);
+        req.set(http::field::content_type, "application/x-www-form-urlencoded");
+        req.body() = queryString;
+        req.prepare_payload();
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
