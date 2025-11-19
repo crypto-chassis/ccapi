@@ -1,6 +1,6 @@
 set(NAME fix_simple)
 project(${NAME})
 add_compile_definitions(CCAPI_ENABLE_SERVICE_FIX)
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
 add_executable(${NAME} main.cpp)
 add_dependencies(${NAME} boost rapidjson hffix)

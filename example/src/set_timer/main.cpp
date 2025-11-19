@@ -1,11 +1,12 @@
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* sessionPtr) override {
+  void processEvent(const Event& event, Session* sessionPtr) override {
     if (numEvent == 0) {
       std::cout << std::string("Timer is set at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl;
       sessionPtr->setTimer(
@@ -14,11 +15,11 @@ class MyEventHandler : public EventHandler {
           []() { std::cout << std::string("Timer is triggered at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl; });
     }
     ++numEvent;
-    return true;
   }
 
   int numEvent{};
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::MyEventHandler;

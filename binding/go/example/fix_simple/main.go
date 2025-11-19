@@ -11,7 +11,7 @@ type MyEventHandler struct {
 	ccapi.EventHandler
 }
 
-func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bool {
+func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 	if event.GetType() == ccapi.EventType_AUTHORIZATION_STATUS {
 		fmt.Printf("Received an event of type AUTHORIZATION_STATUS:\n%s\n", event.ToStringPretty(2, 2))
 		message := event.GetMessageList().Get(0)
@@ -46,8 +46,7 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bo
 	} else if event.GetType() == ccapi.EventType_FIX {
 		fmt.Printf("Received an event of type FIX:\n%s\n", event.ToStringPretty(2, 2))
 	}
-	return true
-}
+	}
 
 func main() {
 	if len(os.Getenv("COINBASE_API_KEY")) == 0 {

@@ -6,7 +6,9 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_coinbase.h"
 
 // clang-format on
+
 namespace ccapi {
+
 class ExecutionManagementServiceCoinbaseTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
@@ -212,7 +214,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, convertTextMessageToMessageRestGe
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.00000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.01291771");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "9.9750556620000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY), "9.9750556620000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "done");
 }
 
@@ -293,7 +295,7 @@ void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagemen
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "0.01000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.10000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.00000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0000000000000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY), "0.0000000000000000");
   if (!isOneInstrument) {
     EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USD");
   }
@@ -446,9 +448,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchTaker) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -490,9 +493,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventMatchMaker) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -530,9 +534,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventReceived) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -568,9 +573,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventReceivedMarketOrder) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -604,9 +610,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventOpen) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -643,9 +650,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventDoneFilled) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -682,9 +690,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventChange) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -722,9 +731,10 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventActivate) {
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -739,6 +749,7 @@ TEST_F(ExecutionManagementServiceCoinbaseTest, createEventActivate) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "activate");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "test-product");
 }
+
 } /* namespace ccapi */
 #endif
 #endif

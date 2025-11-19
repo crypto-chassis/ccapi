@@ -29,7 +29,7 @@ const intervalId = setInterval(() => {
   for (let i = 0; i < eventList.size(); i++) {
     const event = eventList.get(i)
     if (event.getType() == Event.Type_SUBSCRIPTION_STATUS) {
-      console.log(`Received an event of type SUBSCRIPTION_STATUS:\n${event.toStringPretty(2, 2)}`)
+      console.log(`Received an event of type SUBSCRIPTION_STATUS:\n${event.toPrettyString(2, 2)}`)
       const message = event.getMessageList().get(0)
       if (message.getType() == Message.Type_SUBSCRIPTION_STARTED) {
         const request = new Request(Request.Operation_CREATE_ORDER, 'okx', 'BTC-USDT')
@@ -42,7 +42,7 @@ const intervalId = setInterval(() => {
       }
     }
     else if (event.getType() == ccapi.Event.Type_SUBSCRIPTION_DATA) {
-      console.log(`Received an event of type SUBSCRIPTION_DATA:\n${event.toStringPretty(2, 2)}`)
+      console.log(`Received an event of type SUBSCRIPTION_DATA:\n${event.toPrettyString(2, 2)}`)
     }
   }
 }, 1)

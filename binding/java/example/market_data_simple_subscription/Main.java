@@ -9,9 +9,9 @@ import com.cryptochassis.ccapi.SubscriptionList;
 public class Main {
   static class MyEventHandler extends EventHandler {
     @Override
-    public boolean processEvent(Event event, Session session) {
+    public void processEvent(Event event, Session session) {
       if (event.getType() == Event.Type.SUBSCRIPTION_STATUS) {
-        System.out.println(String.format("Received an event of type SUBSCRIPTION_STATUS:\n%s", event.toStringPretty(2, 2)));
+        System.out.println(String.format("Received an event of type SUBSCRIPTION_STATUS:\n%s", event.toPrettyString(2, 2)));
       } else if (event.getType() == Event.Type.SUBSCRIPTION_DATA) {
         for (var message : event.getMessageList()) {
           System.out.println(String.format("Best bid and ask at %s are:", message.getTimeISO()));
@@ -25,8 +25,7 @@ public class Main {
           }
         }
       }
-      return true;
-    }
+          }
   }
   public static void main(String[] args) {
     System.loadLibrary("ccapi_binding_java");

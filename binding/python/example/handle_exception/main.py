@@ -8,13 +8,12 @@ class MyEventHandler(EventHandler):
     def __init__(self):
         super().__init__()
 
-    def processEvent(self, event: Event, session: Session) -> bool:
+    def processEvent(self, event: Event, session: Session) -> None:
         try:
             raise Exception("oops")
         except Exception:
             print(traceback.format_exc())
             sys.exit(1)
-        return True  # This line is needed.
 
 
 if __name__ == "__main__":

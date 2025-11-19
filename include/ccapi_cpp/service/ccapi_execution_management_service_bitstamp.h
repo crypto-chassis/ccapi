@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitstamp(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_BITSTAMP_API_KEY;
     this->apiSecretName = CCAPI_BITSTAMP_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -38,9 +39,9 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     this->send(wsConnectionPtr, R"({"event": "bts:heartbeat"})", ec);
   }
 
-  bool doesHttpBodyContainError(const std::string& body) override {
-    return body.find(R"("status": "error")") != std::string::npos || body.find(R"("status":"error")") != std::string::npos ||
-           body.find(R"("error":)") != std::string::npos;
+  bool doesHttpBodyContainError(boost::beast::string_view bodyView) override {
+    return bodyView.find(R"("status": "error")") != std::string::npos || bodyView.find(R"("status":"error")") != std::string::npos ||
+           bodyView.find(R"("error":)") != std::string::npos;
   }
 
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
@@ -194,20 +195,21 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     }
   }
 
-  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
-                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string_view, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("type");
       if (it1 != x.MemberEnd()) {
-        element.insert(CCAPI_EM_ORDER_SIDE, std::string(it1->value.GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+        element.insert(CCAPI_EM_ORDER_SIDE, std::string_view(it1->value.GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
       }
     }
   }
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    std::map<std::string, std::pair<std::string, JsonDataType>> extractionFieldNameMap = {
+    std::map<std::string_view, std::pair<std::string_view, JsonDataType>> extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::INTEGER)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::INTEGER)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
@@ -297,7 +299,8 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
           std::string body = res.body();
           if (statusCode / 100 == 2) {
             try {
-              rj::Document document;
+              that->jsonDocumentAllocator.Clear();
+              rj::Document document(&that->jsonDocumentAllocator);
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               if (document.HasMember("token") && document.HasMember("user_id")) {
                 std::string token = document["token"].GetString();
@@ -319,8 +322,8 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     const auto& fieldSet = subscription.getFieldSet();
     const auto& instrumentSet = subscription.getInstrumentSet();
     std::vector<std::string> sendStringList;
@@ -337,10 +340,11 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         document.AddMember("event", rj::Value("bts:subscribe").Move(), allocator);
         rj::Value data(rj::kObjectType);
-        data.AddMember("channel",
-                       rj::Value((name + instrument + "-" + this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("userId")).c_str(), allocator).Move(),
-                       allocator);
-        data.AddMember("auth", rj::Value(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("token").c_str(), allocator).Move(), allocator);
+        data.AddMember(
+            "channel",
+            rj::Value((name + instrument + "-" + this->extraPropertyByConnectionIdMap.at(wsConnectionPtr->id).at("userId")).c_str(), allocator).Move(),
+            allocator);
+        data.AddMember("auth", rj::Value(this->extraPropertyByConnectionIdMap.at(wsConnectionPtr->id).at("token").c_str(), allocator).Move(), allocator);
         document.AddMember("data", data, allocator);
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -354,9 +358,9 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
 
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-    std::string textMessage(textMessageView);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
@@ -365,8 +369,6 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
 
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
-    std::string textMessage(textMessageView);
-
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -387,7 +389,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-            const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+            const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::STRING)},
                 {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
@@ -395,7 +397,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
             };
             Element info;
             this->extractOrderInfo(info, data, extractionFieldNameMap);
-            info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["order_type"].GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+            info.insert(CCAPI_EM_ORDER_SIDE, std::string_view(data["order_type"].GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
             info.insert(CCAPI_EM_ORDER_STATUS, eventPayload);
             info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             std::vector<Element> elementList;
@@ -427,7 +429,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
             info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["amount"].GetString());
             info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["price"].GetString());
             info.insert(CCAPI_EM_ORDER_FEE_QUANTITY, data["fee"].GetString());
-            info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+            info.insert(CCAPI_EM_ORDER_SIDE, std::string_view(data["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
             info.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
             std::vector<Element> elementList;
             elementList.emplace_back(std::move(info));
@@ -439,7 +441,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         message.setType(Message::Type::SUBSCRIPTION_STARTED);
         Element element;
-        element.insert(CCAPI_INFO_MESSAGE, textMessage);
+        element.insert(CCAPI_INFO_MESSAGE, textMessageView);
         message.setElementList({element});
         messageList.emplace_back(std::move(message));
       }
@@ -450,6 +452,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
 
   std::string getWebSocketsTokenTarget;
 };
+
 } /* namespace ccapi */
 #endif
 #endif

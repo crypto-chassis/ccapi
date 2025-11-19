@@ -30,7 +30,7 @@ const intervalId = setInterval(() => {
   const eventList = session.getEventQueue().purge()
   for (let i = 0; i < eventList.size(); i++) {
     const event = eventList.get(i)
-    console.log(`Received an event:\n${event.toStringPretty(2, 2)}`)
+    console.log(`Received an event:\n${event.toPrettyString(2, 2)}`)
   }
 }, 1)
 setTimeout(() => {

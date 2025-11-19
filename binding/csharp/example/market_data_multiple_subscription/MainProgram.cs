@@ -1,6 +1,6 @@
 class MainProgram {
   class MyEventHandler : ccapi.EventHandler {
-    public override bool ProcessEvent(ccapi.Event event_, ccapi.Session session) {
+    public override void ProcessEvent(ccapi.Event event_, ccapi.Session session) {
       if (event_.GetType_() == ccapi.Event.Type.SUBSCRIPTION_DATA) {
         foreach (var message in event_.GetMessageList()) {
           var correlationId = message.GetCorrelationIdList()[0];
@@ -15,8 +15,7 @@ class MainProgram {
           }
         }
       }
-      return true;
-    }
+          }
   }
   static void Main(string[] args) {
     var eventHandler = new MyEventHandler();

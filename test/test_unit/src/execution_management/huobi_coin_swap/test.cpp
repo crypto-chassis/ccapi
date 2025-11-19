@@ -6,7 +6,9 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_coin_swap.h"
 
 // clang-format on
+
 namespace ccapi {
+
 class ExecutionManagementServiceHuobiCoinSwapTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
@@ -109,6 +111,7 @@ TEST_F(ExecutionManagementServiceHuobiCoinSwapTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_COST), "0.604834710743801652");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "20");
 }
+
 } /* namespace ccapi */
 #endif
 #endif

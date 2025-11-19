@@ -1,6 +1,7 @@
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
@@ -8,8 +9,8 @@ class MyEventHandler : public EventHandler {
   MyEventHandler(const std::string& websocketOrderEntrySubscriptionCorrelationId)
       : websocketOrderEntrySubscriptionCorrelationId(websocketOrderEntrySubscriptionCorrelationId) {}
 
-  bool processEvent(const Event& event, Session* sessionPtr) override {
-    std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
+  void processEvent(const Event& event, Session* sessionPtr) override {
+    std::cout << "Received an event:\n" + event.toPrettyString(2, 2) << std::endl;
     if (!willSendRequest) {
       sessionPtr->setTimer("id", 1000, nullptr, [this, sessionPtr]() {
         Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT");
@@ -17,19 +18,20 @@ class MyEventHandler : public EventHandler {
             {"SIDE", "BUY"},
             {"LIMIT_PRICE", "20000"},
             {"QUANTITY", "0.001"},
+            {"CLIENT_ORDER_ID", request.generateNextClientOrderId()},
         });
         std::cout << "About to send a request:\n" + request.toString() << std::endl;
         sessionPtr->sendRequestByWebsocket(this->websocketOrderEntrySubscriptionCorrelationId, request);
       });
       willSendRequest = true;
     }
-    return true;
   }
 
  private:
   std::string websocketOrderEntrySubscriptionCorrelationId;
   bool willSendRequest{};
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::MyEventHandler;

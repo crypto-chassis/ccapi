@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service_huobi_derivatives_base.h"
 
 namespace ccapi {
+
 class MarketDataServiceHuobiCoinSwap : public MarketDataServiceHuobiDerivativesBase {
  public:
   MarketDataServiceHuobiCoinSwap(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class MarketDataServiceHuobiCoinSwap : public MarketDataServiceHuobiDerivativesB
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/swap-ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->getRecentTradesTarget = CCAPI_HUOBI_COIN_SWAP_GET_RECENT_TRADES_PATH;
     this->getInstrumentTarget = "/swap-api/v1/swap_contract_info";
     this->getInstrumentsTarget = "/swap-api/v1/swap_contract_info";
@@ -22,6 +23,7 @@ class MarketDataServiceHuobiCoinSwap : public MarketDataServiceHuobiDerivativesB
 
   virtual ~MarketDataServiceHuobiCoinSwap() {}
 };
+
 } /* namespace ccapi */
 #endif
 #endif

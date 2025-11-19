@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_gateio_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagementServiceGateioBase {
  public:
   ExecutionManagementServiceGateioPerpetualFutures(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v4/ws/";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_GATEIO_PERPETUAL_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_GATEIO_PERPETUAL_FUTURES_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -65,8 +66,9 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
           Element element;
           element.insert(CCAPI_INSTRUMENT, x["contract"].GetString());
           element.insert(CCAPI_EM_POSITION_QUANTITY, x["size"].GetString());
-          element.insert(CCAPI_EM_POSITION_COST,
-                         Decimal(UtilString::printDoubleScientific(std::stod(x["entry_price"].GetString()) * std::stod(x["size"].GetString()))).toString());
+          element.insert(
+              CCAPI_EM_POSITION_COST,
+              ConvertDecimalToString(Decimal(UtilString::printDoubleScientific(std::stod(x["entry_price"].GetString()) * std::stod(x["size"].GetString())))));
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -80,43 +82,38 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
     CCAPI_LOGGER_DEBUG("this->baseUrlWs = " + this->baseUrlWs);
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
-        boost::asio::post(
-            *this->serviceContextPtr->ioContextPtr, [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(), subscription]() mutable {
-              auto now = UtilTime::now();
-              subscription.setTimeSent(now);
-              const auto& instrumentSet = subscription.getInstrumentSet();
-              auto it = instrumentSet.begin();
-              if (it != instrumentSet.end()) {
-                std::string settle;
-                std::string symbolId = *it;
-                if (UtilString::endsWith(symbolId, "_USD")) {
-                  settle = "btc";
-                } else if (UtilString::endsWith(symbolId, "_USDT")) {
-                  settle = "usdt";
-                }
-                auto credential = subscription.getCredential();
-                if (credential.empty()) {
-                  credential = that->credentialDefault;
-                }
+        boost::asio::post(*this->serviceContextPtr->ioContextPtr, [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(),
+                                                                   subscription]() mutable {
+          auto now = UtilTime::now();
+          subscription.setTimeSent(now);
+          const auto& instrumentSet = subscription.getInstrumentSet();
+          auto it = instrumentSet.begin();
+          if (it != instrumentSet.end()) {
+            std::string settle;
+            std::string symbolId = *it;
+            if (UtilString::endsWith(symbolId, "_USD")) {
+              settle = "btc";
+            } else if (UtilString::endsWith(symbolId, "_USDT")) {
+              settle = "usdt";
+            }
+            auto credential = subscription.getCredential();
+            if (credential.empty()) {
+              credential = that->credentialDefault;
+            }
+            const auto& proxyUrl = subscription.getProxyUrl();
 
-                std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(nullptr);
-                try {
-                  streamPtr = that->createWsStream(that->serviceContextPtr->ioContextPtr, that->serviceContextPtr->sslContextPtr);
-                } catch (const beast::error_code& ec) {
-                  CCAPI_LOGGER_TRACE("fail");
-                  that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
-                  return;
-                }
-                std::shared_ptr<WsConnection> wsConnectionPtr(new WsConnection(that->baseUrlWs + settle, "", {subscription}, credential, streamPtr));
-                CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
-                that->prepareConnect(wsConnectionPtr);
-              }
-            });
+            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWs + settle, "", std::vector<Subscription>{subscription}, credential, proxyUrl);
+            that->setWsConnectionStream(wsConnectionPtr);
+            CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
+            that->prepareConnect(wsConnectionPtr);
+          }
+        });
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

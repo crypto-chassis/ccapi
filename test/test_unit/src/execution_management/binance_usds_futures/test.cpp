@@ -6,7 +6,9 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_usds_futures.h"
 
 // clang-format on
+
 namespace ccapi {
+
 class ExecutionManagementServiceBinanceUsdsFuturesTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
@@ -74,7 +76,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   auto elementList = message.getElementList();
   EXPECT_EQ(elementList.size(), 1);
   Element element = elementList.at(0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.01");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY), "0.01");
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventExecutionTypeTrade) {
@@ -122,10 +124,12 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventExecutionTyp
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
+
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -172,7 +176,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventBalanceUpdat
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -233,7 +237,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventPositionUpda
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -291,9 +295,10 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventExecutionTyp
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
 #ifdef CCAPI_LEGACY_USE_WEBSOCKETPP
-  auto messageList = this->service->createEvent(WsConnection(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), wspp::lib::weak_ptr<void>(), subscription, textMessage, document, this->now)
+                         .getMessageList();
 #else
-  auto messageList = this->service->createEvent(std::shared_ptr<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, this->now).getMessageList();
 #endif
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
@@ -309,7 +314,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, createEventExecutionTyp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "NEW");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTCUSDT");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY)), 0);
 }
 
 TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccountBalances) {
@@ -318,7 +323,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
   auto splitted = UtilString::split(std::string(req.target()), "?");
-  EXPECT_EQ(splitted.at(0), "/fapi/v2/account");
+  EXPECT_EQ(splitted.at(0), "/fapi/v3/account");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
@@ -416,7 +421,7 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertRequestGetAccoun
   EXPECT_EQ(req.method(), http::verb::get);
   verifyApiKey(req, this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_KEY));
   auto splitted = UtilString::split(std::string(req.target()), "?");
-  EXPECT_EQ(splitted.at(0), "/fapi/v2/positionRisk");
+  EXPECT_EQ(splitted.at(0), "/fapi/v3/positionRisk");
   auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
   EXPECT_EQ(paramMap.at("timestamp"), std::to_string(this->timestamp));
   verifySignature(splitted.at(1), this->credential.at(CCAPI_BINANCE_USDS_FUTURES_API_SECRET));
@@ -434,12 +439,11 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
                 "unrealizedProfit": "0.00000000",
                 "positionInitialMargin": "0",
                 "openOrderInitialMargin": "0",
-                "leverage": "100",
                 "isolated": true,
                 "entryPrice": "0.00000",
                 "maxNotional": "250000",
                 "positionSide": "BOTH",
-                "positionAmt": "0",
+                "positionAmt": "10",
                 "updateTime": 0
             }
         ]
@@ -454,10 +458,10 @@ TEST_F(ExecutionManagementServiceBinanceUsdsFuturesTest, convertTextMessageToMes
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "BTCUSDT");
   EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "BOTH");
-  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "10");
   EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE)), 0);
-  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "100");
 }
+
 } /* namespace ccapi */
 #endif
 #endif

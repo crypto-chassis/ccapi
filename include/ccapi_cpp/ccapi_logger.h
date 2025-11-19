@@ -94,6 +94,7 @@
 #include "ccapi_cpp/ccapi_util_private.h"
 
 namespace ccapi {
+
 /**
  * This class is used for library logging.
  */
@@ -165,5 +166,6 @@ class Logger {
     this->logMessage(severity, ss.str(), UtilTime::getISOTimestamp(time), fileName, lineNumber, message);
   }
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_LOGGER_H_

@@ -6,6 +6,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceErisx : public ExecutionManagementService {
  public:
   ExecutionManagementServiceErisx(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -15,7 +16,7 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_ERISX_API_KEY;
     this->apiSecretName = CCAPI_ERISX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -32,9 +33,9 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
 
  private:
 #endif
-  bool doesHttpBodyContainError(const std::string& body) override {
-    return body.find("\"ordStatus\":\"REJECTED\"") != std::string::npos ||
-           body.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos;
+  bool doesHttpBodyContainError(boost::beast::string_view bodyView) override {
+    return bodyView.find("\"ordStatus\":\"REJECTED\"") != std::string::npos ||
+           bodyView.find("\"message\":\"Rejected with reason NO RESTING ORDERS\"") != std::string::npos;
   }
 
   void signRequest(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
@@ -188,7 +189,7 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderID", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clOrdID", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -219,19 +220,22 @@ class ExecutionManagementServiceErisx : public ExecutionManagementService {
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {}
 
-  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
-                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string_view, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("cumQty");
       auto it2 = x.FindMember("avgPrice");
       if (it1 != x.MemberEnd() && it2 != x.MemberEnd()) {
-        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                       Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
+        element.insert(
+            CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY,
+            ConvertDecimalToString(Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())))));
       }
     }
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

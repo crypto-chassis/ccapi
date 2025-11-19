@@ -7,6 +7,7 @@
 #include "ccapi_cpp/ccapi_util_private.h"
 
 namespace ccapi {
+
 /**
  * This class contains the options which the user can specify when creating a session. To use non-default options on a Session, create a SessionOptions instance
  * and set the required options and then supply it when creating a Session.
@@ -31,7 +32,9 @@ class SessionOptions {
                          ", httpRequestTimeoutMilliseconds = " + ccapi::toString(httpRequestTimeoutMilliseconds) +
                          ", httpConnectionPoolMaxSize = " + ccapi::toString(httpConnectionPoolMaxSize) +
                          ", httpConnectionKeepAliveTimeoutSeconds = " + ccapi::toString(httpConnectionKeepAliveTimeoutSeconds) +
-                         ", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) + "]";
+                         ", enableOneHttpConnectionPerRequest = " + ccapi::toString(enableOneHttpConnectionPerRequest) +
+                         ", websocketConnectTimeoutMilliseconds = " + ccapi::toString(websocketConnectTimeoutMilliseconds) +
+                         ", fixConnectTimeoutMilliseconds = " + ccapi::toString(fixConnectTimeoutMilliseconds) + "]";
     return output;
   }
 
@@ -52,11 +55,13 @@ class SessionOptions {
   int httpMaxNumRetry{1};
   int httpMaxNumRedirect{1};
   long httpRequestTimeoutMilliseconds{10000};
-  int httpConnectionPoolMaxSize{1};  // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
+  int httpConnectionPoolMaxSize{2};  // used to set the maximal number of http connections to be kept in the pool (connections in the pool are idle)
   long httpConnectionKeepAliveTimeoutSeconds{
       10};  // used to remove a http connection from the http connection pool if it has stayed idle for at least this amount of time
   bool enableOneHttpConnectionPerRequest{};  // create a new http connection for each request
   long websocketConnectTimeoutMilliseconds{10000};
+  long fixConnectTimeoutMilliseconds{10000};
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_

@@ -1,15 +1,14 @@
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* sessionPtr) override {
-    std::cout << toString(event) + "\n" << std::endl;
-    return true;
-  }
+  void processEvent(const Event& event, Session* sessionPtr) override { std::cout << toString(event) + "\n" << std::endl; }
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::Event;

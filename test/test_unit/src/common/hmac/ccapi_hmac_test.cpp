@@ -4,6 +4,7 @@
 #include "gtest/gtest.h"
 
 namespace ccapi {
+
 TEST(HmacTest, hmac256ReturnHex) {
   auto result = Hmac::hmac(Hmac::ShaVersion::SHA256, "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j",
                            "symbol=LTCBTC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=1&price=0.1&recvWindow=5000&timestamp=1499827319559", true);
@@ -16,4 +17,5 @@ TEST(HmacTest, hmac256) {
       "1610078918POST/orders{\"size\": \"0.00005\", \"price\": \"20000\", \"side\": \"buy\", \"product_id\": \"BTC-USD\"}", false));
   EXPECT_EQ(result, "oh4uOQrCJXLUV1rmcnQvL6BTdqdcE5MYu0Q7osUH3ug=");
 }
+
 } /* namespace ccapi */

@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_bitget_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitgetBase {
  public:
   ExecutionManagementServiceBitget(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v2/ws/private";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_BITGET_API_KEY;
     this->apiSecretName = CCAPI_BITGET_API_SECRET;
     this->apiPassphraseName = CCAPI_BITGET_API_PASSPHRASE;
@@ -175,14 +176,14 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("baseVolume", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("quoteVolume", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("quoteVolume", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     const rj::Value& data = document["data"];
@@ -210,7 +211,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
           element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
           std::string frozen = x["frozen"].GetString();
           std::string lock = x["locked"].GetString();
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, (Decimal(available).add(Decimal(frozen)).add(Decimal(lock))).toString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, (ConvertDecimalToString(Decimal(available) + (Decimal(frozen)) + (Decimal(lock)))));
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -219,8 +220,9 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     }
   }
 
-  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
-                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string_view, std::function<std::string(const std::string&)>> conversionMap = {}) override {
     ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
     {
       auto it1 = x.FindMember("accBaseVolume");
@@ -229,15 +231,15 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
         auto it1Str = std::string(it1->value.GetString());
         auto it2Str = std::string(it2->value.GetString());
         if (!it1Str.empty() && !it2Str.empty()) {
-          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                         Decimal(UtilString::printDoubleScientific(std::stod(it1Str) * std::stod(it2Str))).toString());
+          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY,
+                         ConvertDecimalToString(Decimal(UtilString::printDoubleScientific(std::stod(it1Str) * std::stod(it2Str)))));
         }
       }
     }
   }
 
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
@@ -267,12 +269,10 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
 
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = *wsConnectionPtr;
-    std::string textMessage(textMessageView);
-
-    if (textMessage != "pong") {
-      rj::Document document;
-      document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    if (textMessageView != "pong") {
+      this->jsonDocumentAllocator.Clear();
+      rj::Document document(&this->jsonDocumentAllocator);
+      document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
       auto it = document.FindMember("event");
       std::string eventStr = it != document.MemberEnd() ? it->value.GetString() : "";
       if (eventStr == "login") {
@@ -313,7 +313,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
           this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
         }
       } else {
-        Event event = this->createEvent(subscription, textMessage, document, eventStr, timeReceived);
+        Event event = this->createEvent(subscription, textMessageView, document, eventStr, timeReceived);
         if (!event.getMessageList().empty()) {
           this->eventHandler(event, nullptr);
         }
@@ -321,7 +321,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     }
   }  // namespace ccapi
 
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const std::string& eventStr,
+  Event createEvent(const Subscription& subscription, const std::string& textMessageView, const rj::Document& document, const std::string& eventStr,
                     const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
@@ -353,15 +353,15 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
                 std::vector<Element> elementList;
                 Element element;
                 element.insert(CCAPI_TRADE_ID, tradeId);
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["fillPrice"].GetString()));
-                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["baseVolume"].GetString()));
-                element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                element.insert(CCAPI_IS_MAKER, std::string(x["tradeScope"].GetString()) == "M" ? "1" : "0");
-                element.insert(CCAPI_EM_ORDER_ID, std::string(x["orderId"].GetString()));
-                element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["clientOid"].GetString()));
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["fillPrice"].GetString());
+                element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["baseVolume"].GetString());
+                element.insert(CCAPI_EM_ORDER_SIDE, std::string_view(x["side"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                element.insert(CCAPI_IS_MAKER, std::string_view(x["tradeScope"].GetString()) == "M" ? "1" : "0");
+                element.insert(CCAPI_EM_ORDER_ID, x["orderId"].GetString());
+                element.insert(CCAPI_EM_CLIENT_ORDER_ID, x["clientOid"].GetString());
                 element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fillFee"].GetString()));
-                element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fillFeeCoin"].GetString()));
+                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, x["fillFee"].GetString());
+                element.insert(CCAPI_EM_ORDER_FEE_ASSET, x["fillFeeCoin"].GetString());
                 elementList.emplace_back(std::move(element));
                 message.setElementList(elementList);
                 messageList.emplace_back(std::move(message));
@@ -376,7 +376,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
               message.setCorrelationIdList({subscription.getCorrelationId()});
               message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(std::string(x["uTime"].GetString()))));
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-              const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+              const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
                   {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
                   {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
                   {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -417,14 +417,14 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       message.setType(Message::Type::SUBSCRIPTION_STARTED);
       Element element;
-      element.insert(CCAPI_INFO_MESSAGE, textMessage);
+      element.insert(CCAPI_INFO_MESSAGE, textMessageView);
       message.setElementList({element});
       messageList.emplace_back(std::move(message));
     } else if (eventStr == "error") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
       message.setType(Message::Type::SUBSCRIPTION_FAILURE);
       Element element;
-      element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+      element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
       message.setElementList({element});
       messageList.emplace_back(std::move(message));
     }
@@ -432,6 +432,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     return event;
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

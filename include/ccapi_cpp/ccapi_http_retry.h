@@ -4,6 +4,7 @@
 #include <string>
 
 namespace ccapi {
+
 /**
  * This class is used for retrying http requests for the REST API.
  */
@@ -17,7 +18,7 @@ class HttpRetry {
     std::ostringstream oss;
     oss << promisePtr;
     std::string output =
-        "HttpConnection [numRetry = " + ccapi::toString(numRetry) + ", numRedirect = " + ccapi::toString(numRedirect) + ", promisePtr = " + oss.str() + "]";
+        "HttpRetry [numRetry = " + ccapi::toString(numRetry) + ", numRedirect = " + ccapi::toString(numRedirect) + ", promisePtr = " + oss.str() + "]";
     return output;
   }
 

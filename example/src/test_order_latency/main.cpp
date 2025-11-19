@@ -3,6 +3,7 @@
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
@@ -19,7 +20,7 @@ class MyEventHandler : public EventHandler {
         byWebsocket(byWebsocket),
         websocketOrderEntrySubscriptionCorrelationId(websocketOrderEntrySubscriptionCorrelationId) {}
 
-  bool processEvent(const Event& event, Session* sessionPtr) override {
+  void processEvent(const Event& event, Session* sessionPtr) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_STATUS) {
       const auto& message = event.getMessageList().at(0);
       if (message.getType() == Message::Type::SUBSCRIPTION_STARTED) {
@@ -90,7 +91,6 @@ class MyEventHandler : public EventHandler {
         }
       }
     }
-    return true;
   }
 
   std::string symbol;
@@ -112,6 +112,7 @@ class MyEventHandler : public EventHandler {
   int numCanceledOrders{};
   std::atomic<bool> done{};
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::MyEventHandler;

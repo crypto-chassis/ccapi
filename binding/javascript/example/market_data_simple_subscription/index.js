@@ -14,7 +14,7 @@ const intervalId = setInterval(() => {
   for (let i = 0; i < eventList.size(); i++) {
     const event = eventList.get(i)
     if (event.getType() == Event.Type_SUBSCRIPTION_STATUS) {
-      console.log(`Received an event of type SUBSCRIPTION_STATUS:\n${event.toStringPretty(2, 2)}`)
+      console.log(`Received an event of type SUBSCRIPTION_STATUS:\n${event.toPrettyString(2, 2)}`)
     }
     else if (event.getType() == Event.Type_SUBSCRIPTION_DATA) {
       const messageList = event.getMessageList()

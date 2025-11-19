@@ -6,6 +6,7 @@
 #include "openssl/evp.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceKrakenFutures : public ExecutionManagementService {
  public:
   ExecutionManagementServiceKrakenFutures(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -15,7 +16,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/v1";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_KRAKEN_FUTURES_API_KEY;
     this->apiSecretName = CCAPI_KRAKEN_FUTURES_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -40,7 +41,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
 
  protected:
 #endif
-  bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("result":"success")") == std::string::npos; }
+  bool doesHttpBodyContainError(boost::beast::string_view bodyView) override { return bodyView.find(R"("result":"success")") == std::string::npos; }
 
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
@@ -174,7 +175,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("cliOrdId", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
@@ -255,8 +256,8 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
     }
   }
 
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
@@ -274,9 +275,9 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
 
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-    std::string textMessage(textMessageView);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
@@ -285,8 +286,6 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
 
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
-    std::string textMessage(textMessageView);
-
     Event event;
     std::vector<Message> messageList;
     if (document.FindMember("event") == document.MemberEnd()) {
@@ -316,12 +315,12 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
                   element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["price"].GetString());
                   element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["qty"].GetString());
                   element.insert(CCAPI_EM_ORDER_SIDE, x["buy"].GetBool() ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                  element.insert(CCAPI_EM_ORDER_ID, std::string(x["order_id"].GetString()));
-                  element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(x["cli_ord_id"].GetString()));
-                  element.insert(CCAPI_IS_MAKER, std::string(x["fill_type"].GetString()) == "maker" ? "1" : "0");
+                  element.insert(CCAPI_EM_ORDER_ID, x["order_id"].GetString());
+                  element.insert(CCAPI_EM_CLIENT_ORDER_ID, x["cli_ord_id"].GetString());
+                  element.insert(CCAPI_IS_MAKER, std::string_view(x["fill_type"].GetString()) == "maker" ? "1" : "0");
                   element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-                  element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fee_paid"].GetString()));
-                  element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fee_currency"].GetString()));
+                  element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, x["fee_paid"].GetString());
+                  element.insert(CCAPI_EM_ORDER_FEE_ASSET, x["fee_currency"].GetString());
                   elementList.emplace_back(std::move(element));
                   message.setElementList(elementList);
                   messageList.emplace_back(std::move(message));
@@ -343,7 +342,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
                 element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, x["filled"].GetString());
                 element.insert(CCAPI_EM_ORDER_LIMIT_PRICE, x["limit_price"].GetString());
                 element.insert(CCAPI_EM_ORDER_ID, x["order_id"].GetString());
-                element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["direction"].GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                element.insert(CCAPI_EM_ORDER_SIDE, std::string_view(x["direction"].GetString()) == "0" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
                 element.insert("is_cancel", document["is_cancel"].GetBool() ? "1" : "0");
                 elementList.emplace_back(std::move(element));
                 message.setElementList(elementList);
@@ -417,7 +416,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
         message.setCorrelationIdList({subscription.getCorrelationId()});
         message.setType(eventType == "subscribed" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
         Element element;
-        element.insert(eventType == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+        element.insert(eventType == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessageView);
         message.setElementList({element});
         messageList.emplace_back(std::move(message));
       }
@@ -433,6 +432,7 @@ class ExecutionManagementServiceKrakenFutures : public ExecutionManagementServic
   std::string getAccountsPath;
   std::string getAccountPositionsPath;
 };
+
 } /* namespace ccapi */
 #endif
 #endif

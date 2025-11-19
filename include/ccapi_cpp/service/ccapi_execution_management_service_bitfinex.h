@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitfinex(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     this->baseUrlWs = std::string(CCAPI_BITFINEX_PRIVATE_URL_WS_BASE) + "/ws/2";
     this->baseUrlRest = CCAPI_BITFINEX_PRIVATE_URL_REST_BASE;
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_BITFINEX_API_KEY;
     this->apiSecretName = CCAPI_BITFINEX_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -195,8 +196,8 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     }
   }
 
-  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
-                                  unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
+  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
+                                  const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
@@ -228,7 +229,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
         document.PushBack(inputDetails, allocator);
       } break;
       default:
-        this->convertRequestForWebsocketCustom(document, allocator, wsConnection, request, wsRequestId, now, symbolId, credential);
+        this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
     }
   }
 
@@ -315,12 +316,13 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     element.insert(CCAPI_EM_ORDER_REMAINING_QUANTITY, x[6].GetString());
     element.insert(CCAPI_EM_ORDER_STATUS, x[13].GetString());
     element.insert(CCAPI_EM_ORDER_LIMIT_PRICE, x[16].GetString());
-    element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                   Decimal(UtilString::printDoubleScientific(std::stod(x[17].GetString()) * (std::stod(originalAmount) - std::stod(amount)))).toString());
+    element.insert(
+        CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY,
+        ConvertDecimalToString(Decimal(UtilString::printDoubleScientific(std::stod(x[17].GetString()) * (std::stod(originalAmount) - std::stod(amount))))));
   }
 
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
@@ -358,9 +360,9 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
 
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-    std::string textMessage(textMessageView);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
@@ -369,8 +371,6 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
 
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
-    std::string textMessage(textMessageView);
-
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -378,7 +378,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     message.setCorrelationIdList({subscription.getCorrelationId()});
     const auto& fieldSet = subscription.getFieldSet();
     const auto& instrumentSet = subscription.getInstrumentSet();
-    if (document.IsArray() && document.Size() >= 3 && std::string(document[0].GetString()) == "0") {
+    if (document.IsArray() && document.Size() >= 3 && std::string_view(document[0].GetString()) == "0") {
       std::string type = document[1].GetString();
       if ((type == CCAPI_BITFINEX_STREAM_TRADE_RAW_MESSAGE_TYPE) && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         event.setType(Event::Type::SUBSCRIPTION_DATA);
@@ -441,7 +441,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
         if (status != "SUCCESS") {
           message.setType(Message::Type::RESPONSE_ERROR);
           Element element;
-          element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+          element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
         } else {
@@ -466,7 +466,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
           event.setType(Event::Type::SUBSCRIPTION_STATUS);
           message.setType(status == "OK" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
           Element element;
-          element.insert(status == "OK" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+          element.insert(status == "OK" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
         }
@@ -476,6 +476,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
     return event;
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

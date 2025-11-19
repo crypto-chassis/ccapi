@@ -1,6 +1,6 @@
 class MainProgram {
   class MyEventHandler : ccapi.EventHandler {
-    public override bool ProcessEvent(ccapi.Event event_, ccapi.Session session) {
+    public override void ProcessEvent(ccapi.Event event_, ccapi.Session session) {
       if (event_.GetType_() == ccapi.Event.Type.SUBSCRIPTION_STATUS) {
         System.Console.WriteLine(string.Format("Received an event of type SUBSCRIPTION_STATUS:\n{0}", event_.ToStringPretty(2, 2)));
       } else if (event_.GetType_() == ccapi.Event.Type.SUBSCRIPTION_DATA) {
@@ -16,8 +16,7 @@ class MainProgram {
           }
         }
       }
-      return true;
-    }
+          }
   }
   static void Main(string[] args) {
     var eventHandler = new MyEventHandler();

@@ -6,7 +6,9 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi.h"
 
 // clang-format on
+
 namespace ccapi {
+
 class ExecutionManagementServiceHuobiTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
@@ -242,7 +244,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOr
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "10.1000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "100.1000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "10.1000000000");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "1011.0100000000");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY), "1011.0100000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "filled");
 }
 
@@ -297,7 +299,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, convertTextMessageToMessageRestGetOp
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1.000000000000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "0.453000000000000000");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0.0");
-  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY), "0.0");
+  EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY), "0.0");
 }
 
 TEST_F(ExecutionManagementServiceHuobiTest, convertRequestCancelOpenOrders) {
@@ -670,6 +672,7 @@ TEST_F(ExecutionManagementServiceHuobiTest, createEventOrderUpdatesCancellation)
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "2");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_REMAINING_QUANTITY), "2.000000000000000000");
 }
+
 } /* namespace ccapi */
 #endif
 #endif

@@ -6,9 +6,8 @@ class MyEventHandler(EventHandler):
     def __init__(self):
         super().__init__()
 
-    def processEvent(self, event: Event, session: Session) -> bool:
-        print(f"Received an event:\n{event.toStringPretty(2, 2)}")
-        return True  # This line is needed.
+    def processEvent(self, event: Event, session: Session) -> None:
+        print(f"Received an event:\n{event.toPrettyString(2, 2)}")
 
 
 if __name__ == "__main__":

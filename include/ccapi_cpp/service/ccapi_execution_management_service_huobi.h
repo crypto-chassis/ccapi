@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBase {
  public:
   ExecutionManagementServiceHuobi(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/v2";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_HUOBI_API_KEY;
     this->apiSecretName = CCAPI_HUOBI_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -34,7 +35,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
 
  private:
 #endif
-  bool doesHttpBodyContainError(const std::string& body) override { return body.find("err-code") != std::string::npos; }
+  bool doesHttpBodyContainError(boost::beast::string_view bodyView) override { return bodyView.find("err-code") != std::string::npos; }
 
   void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     ExecutionManagementServiceHuobiBase::appendSymbolId(document, allocator, symbolId, "symbol");
@@ -65,6 +66,10 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
                               {CCAPI_EM_ACCOUNT_ID, "account-id"},
                           });
         this->appendSymbolId(document, allocator, symbolId);
+        if (param.find("client-order-id") == param.end() && param.find(CCAPI_EM_CLIENT_ORDER_ID) == param.end()) {
+          std::string nonce = std::to_string(this->generateNonce(now, request.getIndex()));
+          document.AddMember("client-order-id", rj::Value((std::string(CCAPI_HTX_BROKER_ID) + "-" + nonce).c_str(), allocator).Move(), allocator);
+        }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
@@ -167,27 +172,27 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("id", JsonDataType::INTEGER)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client-order-id", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled-amount", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("filled-cash-amount", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("filled-cash-amount", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
     const rj::Value& data = document["data"];
     if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER) {
       Element element;
-      element.insert(CCAPI_EM_ORDER_ID, std::string(data.GetString()));
+      element.insert(CCAPI_EM_ORDER_ID, data.GetString());
       elementList.emplace_back(std::move(element));
     } else if (data.IsObject()) {
       Element element;
       this->extractOrderInfo(element, data, extractionFieldNameMap);
       if (operation == Request::Operation::GET_ORDER) {
-        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::string(data["field-amount"].GetString()));
-        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::string(data["field-cash-amount"].GetString()));
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, data["field-amount"].GetString());
+        element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, data["field-cash-amount"].GetString());
       }
       elementList.emplace_back(std::move(element));
     } else {
@@ -206,14 +211,14 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
       case Request::Operation::GET_ACCOUNTS: {
         for (const auto& x : data.GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_ACCOUNT_ID, std::string(x["id"].GetString()));
+          element.insert(CCAPI_EM_ACCOUNT_ID, x["id"].GetString());
           element.insert(CCAPI_EM_ACCOUNT_TYPE, x["type"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         for (const auto& x : data["list"].GetArray()) {
-          if (std::string(x["type"].GetString()) == "trade") {
+          if (std::string_view(x["type"].GetString()) == "trade") {
             Element element;
             element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
             element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["balance"].GetString());
@@ -227,8 +232,8 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
     }
   }
 
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     std::string timestamp = UtilTime::getISOTimestamp<std::chrono::seconds>(now);
     timestamp.pop_back();
@@ -264,11 +269,9 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
 
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-    WsConnection& wsConnection = *wsConnectionPtr;
-    std::string textMessage(textMessageView);
-
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     std::string actionStr = document["action"].GetString();
     const auto& fieldSet = subscription.getFieldSet();
     const auto& instrumentSet = subscription.getInstrumentSet();
@@ -310,7 +313,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
             }
           }
         } else {
-          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, textMessage, {subscription.getCorrelationId()});
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, textMessageView, {subscription.getCorrelationId()});
         }
       }
     } else if (actionStr == "ping") {
@@ -328,14 +331,14 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "pong");
       }
     } else {
-      Event event = this->createEvent(subscription, textMessage, document, actionStr, timeReceived);
+      Event event = this->createEvent(subscription, textMessageView, document, actionStr, timeReceived);
       if (!event.getMessageList().empty()) {
         this->eventHandler(event, nullptr);
       }
     }
   }
 
-  Event createEvent(const Subscription& subscription, const std::string& textMessage, const rj::Document& document, const std::string& actionStr,
+  Event createEvent(const Subscription& subscription, const std::string& textMessageView, const rj::Document& document, const std::string& actionStr,
                     const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
@@ -363,7 +366,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           }
           message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(it->value.GetString())));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-          const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+          const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::INTEGER)},
               {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
@@ -378,7 +381,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           this->extractOrderInfo(info, data, extractionFieldNameMap);
           std::string dataEventType = data["eventType"].GetString();
           if (dataEventType == "trigger" || dataEventType == "deletion") {
-            info.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+            info.insert(CCAPI_EM_ORDER_SIDE, std::string_view(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
           } else if (dataEventType == "trade") {
             info.insert(CCAPI_TRADE_ID, std::string(data["tradeId"].GetString()));
             info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["tradePrice"].GetString());
@@ -398,16 +401,16 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
           std::vector<Element> elementList;
           Element element;
-          element.insert(CCAPI_TRADE_ID, std::string(data["tradeId"].GetString()));
+          element.insert(CCAPI_TRADE_ID, data["tradeId"].GetString());
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, data["tradePrice"].GetString());
           element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, data["tradeVolume"].GetString());
-          element.insert(CCAPI_EM_ORDER_SIDE, std::string(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+          element.insert(CCAPI_EM_ORDER_SIDE, std::string_view(data["orderSide"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
           element.insert(CCAPI_IS_MAKER, data["aggressor"].GetBool() ? "0" : "1");
-          element.insert(CCAPI_EM_ORDER_ID, std::string(data["orderId"].GetString()));
-          element.insert(CCAPI_EM_CLIENT_ORDER_ID, std::string(data["clientOrderId"].GetString()));
+          element.insert(CCAPI_EM_ORDER_ID, data["orderId"].GetString());
+          element.insert(CCAPI_EM_CLIENT_ORDER_ID, data["clientOrderId"].GetString());
           element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-          element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(data["transactFee"].GetString()));
-          element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(data["feeCurrency"].GetString()));
+          element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, data["transactFee"].GetString());
+          element.insert(CCAPI_EM_ORDER_FEE_ASSET, data["feeCurrency"].GetString());
           elementList.emplace_back(std::move(element));
           message.setElementList(elementList);
           messageList.emplace_back(std::move(message));
@@ -419,7 +422,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
         event.setType(Event::Type::SUBSCRIPTION_STATUS);
         message.setType(Message::Type::SUBSCRIPTION_STARTED);
         Element element;
-        element.insert(CCAPI_INFO_MESSAGE, textMessage);
+        element.insert(CCAPI_INFO_MESSAGE, textMessageView);
         message.setElementList({element});
         messageList.emplace_back(std::move(message));
       }
@@ -431,6 +434,7 @@ class ExecutionManagementServiceHuobi : public ExecutionManagementServiceHuobiBa
   std::string cancelOrderByClientOrderIdTarget;
   std::string getOrderByClientOrderIdTarget;
 };
+
 } /* namespace ccapi */
 #endif
 #endif

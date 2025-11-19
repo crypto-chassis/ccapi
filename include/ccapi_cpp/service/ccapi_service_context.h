@@ -5,6 +5,7 @@
 #include "ccapi_cpp/ccapi_logger.h"
 
 namespace ccapi {
+
 /**
  * Defines the service that the service depends on.
  */

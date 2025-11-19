@@ -9,6 +9,7 @@
 #include <sstream>
 
 namespace ccapi {
+
 class Hmac {
  public:
   enum class ShaVersion {
@@ -67,5 +68,6 @@ class Hmac {
     return ss.str();
   }
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_HMAC_H_

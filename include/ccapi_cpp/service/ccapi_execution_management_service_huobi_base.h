@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
  public:
   ExecutionManagementServiceHuobiBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -105,11 +106,11 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
     }
   }
 
-  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId, const std::string symbolIdCalled) {
+  void appendSymbolId(rj::Document& document, rj::Document::AllocatorType& allocator, const std::string& symbolId, const std::string& symbolIdCalled) {
     document.AddMember(rj::Value(symbolIdCalled.c_str(), allocator).Move(), rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
 
-  void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId, const std::string symbolIdCalled) {
+  void appendSymbolId(std::map<std::string, std::string>& queryParamMap, const std::string& symbolId, const std::string& symbolIdCalled) {
     queryParamMap.insert(std::make_pair(symbolIdCalled, Url::urlEncode(symbolId)));
   }
 
@@ -132,6 +133,7 @@ class ExecutionManagementServiceHuobiBase : public ExecutionManagementService {
 
   bool isDerivatives{};
 };
+
 } /* namespace ccapi */
 #endif
 #endif

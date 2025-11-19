@@ -12,7 +12,7 @@ type MyEventHandler struct {
 	ccapi.EventHandler
 }
 
-func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bool {
+func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 	defer func() {
 		if panicInfo := recover(); panicInfo != nil {
 			fmt.Printf("%v, %s", panicInfo, string(debug.Stack()))
@@ -20,8 +20,7 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bo
 		}
 	}()
 	panic("oops")
-	return true
-}
+	}
 
 func main() {
 	option := ccapi.NewSessionOptions()

@@ -16,6 +16,7 @@
 #include "ccapi_cpp/service/ccapi_service.h"
 
 namespace ccapi {
+
 /**
  * The ExecutionManagementService class inherits from the Service class and provides implemenations more specific to execution management such as order
  * submission, order cancellation, etc..
@@ -49,7 +50,6 @@ class ExecutionManagementService : public Service {
   // each subscription creates a unique websocket connection
   void subscribe(std::vector<Subscription>& subscriptionList) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    CCAPI_LOGGER_DEBUG("this->baseUrlWs = " + this->baseUrlWs);
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
         boost::asio::post(*this->serviceContextPtr->ioContextPtr, [that = shared_from_base<ExecutionManagementService>(), subscription]() mutable {
@@ -60,21 +60,17 @@ class ExecutionManagementService : public Service {
             credential = that->credentialDefault;
           }
 
-          std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>> streamPtr(nullptr);
-          try {
-            streamPtr = that->createWsStream(that->serviceContextPtr->ioContextPtr, that->serviceContextPtr->sslContextPtr);
-          } catch (const beast::error_code& ec) {
-            CCAPI_LOGGER_TRACE("fail");
-            that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "create stream", {subscription.getCorrelationId()});
-            return;
-          }
           const auto& fieldSet = subscription.getFieldSet();
+          const auto& proxyUrl = subscription.getProxyUrl();
+
           if (fieldSet.find(CCAPI_EM_WEBSOCKET_ORDER_ENTRY) != fieldSet.end()) {
-            std::shared_ptr<WsConnection> wsConnectionPtr(new WsConnection(that->baseUrlWsOrderEntry, "", {subscription}, credential, streamPtr));
+            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWsOrderEntry, "", std::vector<Subscription>{subscription}, credential, proxyUrl);
+            that->setWsConnectionStream(wsConnectionPtr);
             CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
             that->prepareConnect(wsConnectionPtr);
           } else {
-            std::shared_ptr<WsConnection> wsConnectionPtr(new WsConnection(that->baseUrlWs, "", {subscription}, credential, streamPtr));
+            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWs, "", std::vector<Subscription>{subscription}, credential, proxyUrl);
+            that->setWsConnectionStream(wsConnectionPtr);
             CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
             that->prepareConnect(wsConnectionPtr);
           }
@@ -113,10 +109,12 @@ class ExecutionManagementService : public Service {
 
  protected:
 #endif
-  virtual std::vector<Message> convertTextMessageToMessageRest(const Request& request, const std::string& textMessage, const TimePoint& timeReceived) {
-    CCAPI_LOGGER_DEBUG("textMessage = " + textMessage);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+  virtual std::vector<Message> convertTextMessageToMessageRest(const Request& request, boost::beast::string_view textMessageView,
+                                                               const TimePoint& timeReceived) {
+    CCAPI_LOGGER_DEBUG("textMessageView = " + std::string(textMessageView));
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({request.getCorrelationId()});
@@ -137,10 +135,10 @@ class ExecutionManagementService : public Service {
     return messageList;
   }
 
-  void processSuccessfulTextMessageRest(int statusCode, const Request& request, const std::string& textMessage, const TimePoint& timeReceived,
+  void processSuccessfulTextMessageRest(int statusCode, const Request& request, boost::beast::string_view textMessageView, const TimePoint& timeReceived,
                                         Queue<Event>* eventQueuePtr) override {
     Event event;
-    if (this->doesHttpBodyContainError(textMessage)) {
+    if (this->doesHttpBodyContainError(textMessageView)) {
       event.setType(Event::Type::RESPONSE);
       Message message;
       message.setType(Message::Type::RESPONSE_ERROR);
@@ -148,7 +146,7 @@ class ExecutionManagementService : public Service {
       message.setCorrelationIdList({request.getCorrelationId()});
       Element element;
       element.insert(CCAPI_HTTP_STATUS_CODE, "200");
-      element.insert(CCAPI_ERROR_MESSAGE, UtilString::trim(textMessage));
+      element.insert(CCAPI_ERROR_MESSAGE, UtilString::trim(std::string(textMessageView)));
       message.setElementList({element});
       event.setMessageList({message});
     } else {
@@ -159,14 +157,14 @@ class ExecutionManagementService : public Service {
         message.setType(Message::Type::GENERIC_PRIVATE_REQUEST);
         Element element;
         element.insert(CCAPI_HTTP_STATUS_CODE, std::to_string(statusCode));
-        element.insert(CCAPI_HTTP_BODY, textMessage);
+        element.insert(CCAPI_HTTP_BODY, textMessageView);
         message.setElementList({element});
         const std::vector<std::string>& correlationIdList = {request.getCorrelationId()};
         CCAPI_LOGGER_TRACE("correlationIdList = " + toString(correlationIdList));
         message.setCorrelationIdList(correlationIdList);
         event.addMessages({message});
       } else {
-        const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessage, timeReceived);
+        const std::vector<Message>& messageList = this->convertTextMessageToMessageRest(request, textMessageView, timeReceived);
         event.addMessages(messageList);
       }
     }
@@ -175,10 +173,11 @@ class ExecutionManagementService : public Service {
     }
   }
 
-  virtual void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
-                                const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) {
+  virtual void extractOrderInfo(Element& element, const rj::Value& x,
+                                const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap,
+                                const std::map<std::string_view, std::function<std::string(const std::string&)>> conversionMap = {}) {
     for (const auto& y : extractionFieldNameMap) {
-      auto it = x.FindMember(y.second.first.c_str());
+      auto it = x.FindMember(rj::StringRef(y.second.first.data(), y.second.first.size()));
       if (it != x.MemberEnd() && !it->value.IsNull()) {
         std::string value = y.second.second == JsonDataType::STRING    ? it->value.GetString()
                             : y.second.second == JsonDataType::INTEGER ? std::string(it->value.GetString())
@@ -196,7 +195,7 @@ class ExecutionManagementService : public Service {
     }
   }
 
-  virtual void convertRequestForWebsocketCustom(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection,
+  virtual void convertRequestForWebsocketCustom(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
                                                 const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
                                                 const std::map<std::string, std::string>& credential) {
     auto errorMessage = "Websocket unimplemented operation " + Request::operationToString(request.getOperation()) + " for exchange " + request.getExchange();
@@ -206,10 +205,9 @@ class ExecutionManagementService : public Service {
   virtual void logonToExchange(std::shared_ptr<WsConnection> wsConnectionPtr, const TimePoint& now, const std::map<std::string, std::string>& credential) {
     CCAPI_LOGGER_INFO("about to logon to exchange");
     CCAPI_LOGGER_INFO("exchange is " + this->exchangeName);
-    WsConnection& wsConnection = *wsConnectionPtr;
-    CCAPI_LOGGER_FINE("wsConnection = " + toString(wsConnection));
-    auto subscription = wsConnection.subscriptionList.at(0);
-    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnection, subscription, now, credential);
+    CCAPI_LOGGER_FINE("wsConnection = " + toString(*wsConnectionPtr));
+    auto subscription = wsConnectionPtr->subscriptionList.at(0);
+    std::vector<std::string> sendStringList = this->createSendStringListFromSubscription(wsConnectionPtr, subscription, now, credential);
     for (const auto& sendString : sendStringList) {
       CCAPI_LOGGER_FINE("sendString = " + sendString);
       ErrorCode ec;
@@ -230,23 +228,21 @@ class ExecutionManagementService : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     Service::onOpen(wsConnectionPtr);
     auto now = UtilTime::now();
-    WsConnection& wsConnection = *wsConnectionPtr;
-    auto correlationId = wsConnection.subscriptionList.at(0).getCorrelationId();
-    this->wsConnectionByCorrelationIdMap.insert({correlationId, wsConnectionPtr});
-    this->correlationIdByConnectionIdMap.insert({wsConnection.id, correlationId});
-    auto credential = wsConnection.credential;
+    auto correlationId = wsConnectionPtr->subscriptionList.at(0).getCorrelationId();
+    this->wsConnectionPtrByCorrelationIdMap.insert({correlationId, wsConnectionPtr});
+    this->correlationIdByConnectionIdMap.insert({wsConnectionPtr->id, correlationId});
+    auto credential = wsConnectionPtr->credential;
     this->logonToExchange(wsConnectionPtr, now, credential);
   }
 
   void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
     CCAPI_LOGGER_FUNCTION_ENTER;
-    WsConnection& wsConnection = *wsConnectionPtr;
-    if (this->correlationIdByConnectionIdMap.find(wsConnection.id) != this->correlationIdByConnectionIdMap.end()) {
-      this->wsConnectionByCorrelationIdMap.erase(this->correlationIdByConnectionIdMap.at(wsConnection.id));
-      this->correlationIdByConnectionIdMap.erase(wsConnection.id);
+    if (this->correlationIdByConnectionIdMap.find(wsConnectionPtr->id) != this->correlationIdByConnectionIdMap.end()) {
+      this->wsConnectionPtrByCorrelationIdMap.erase(this->correlationIdByConnectionIdMap.at(wsConnectionPtr->id));
+      this->correlationIdByConnectionIdMap.erase(wsConnectionPtr->id);
     }
-    this->wsRequestIdByConnectionIdMap.erase(wsConnection.id);
-    this->requestCorrelationIdByWsRequestIdByConnectionIdMap.erase(wsConnection.id);
+    this->wsRequestIdByConnectionIdMap.erase(wsConnectionPtr->id);
+    this->requestCorrelationIdByWsRequestIdByConnectionIdMap.erase(wsConnectionPtr->id);
     Service::onClose(wsConnectionPtr, ec);
   }
 
@@ -301,29 +297,27 @@ class ExecutionManagementService : public Service {
                         CCAPI_LOGGER_DEBUG("request = " + toString(request));
                         CCAPI_LOGGER_TRACE("now = " + toString(now));
                         request.setTimeSent(now);
-                        auto it = that->wsConnectionByCorrelationIdMap.find(websocketOrderEntrySubscriptionCorrelationId);
-                        if (it == that->wsConnectionByCorrelationIdMap.end()) {
+                        auto it = that->wsConnectionPtrByCorrelationIdMap.find(websocketOrderEntrySubscriptionCorrelationId);
+                        if (it == that->wsConnectionPtrByCorrelationIdMap.end()) {
                           that->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, "Websocket connection was not found",
                                         {websocketOrderEntrySubscriptionCorrelationId});
                           return;
                         }
 
                         auto wsConnectionPtr = it->second;
-                        auto& wsConnection = *wsConnectionPtr;
 
-                        CCAPI_LOGGER_TRACE("wsConnection = " + toString(wsConnection));
+                        CCAPI_LOGGER_TRACE("wsConnection = " + toString(*wsConnectionPtr));
                         const auto& instrument = request.getInstrument();
                         const auto& symbolId = instrument;
                         CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
                         ErrorCode ec;
-                        rj::Document document;
-                        rj::Document::AllocatorType& allocator = document.GetAllocator();
                         auto credential = request.getCredential();
                         if (credential.empty()) {
                           credential = that->credentialDefault;
                         }
-                        that->convertRequestForWebsocket(document, allocator, wsConnection, request, ++that->wsRequestIdByConnectionIdMap[wsConnection.id], now,
-                                                         symbolId, credential);
+                        rj::Document document(&that->jsonDocumentAllocator);
+                        that->convertRequestForWebsocket(document, that->jsonDocumentAllocator, wsConnectionPtr, request,
+                                                         ++that->wsRequestIdByConnectionIdMap[wsConnectionPtr->id], now, symbolId, credential);
                         rj::StringBuffer stringBuffer;
                         rj::Writer<rj::StringBuffer> writer(stringBuffer);
                         document.Accept(writer);
@@ -342,7 +336,7 @@ class ExecutionManagementService : public Service {
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const std::string& wsRequestId, const TimePoint& now,
                                      const std::string& symbolId, const std::map<std::string, std::string>& credential) {}
 
-  virtual void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection,
+  virtual void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
                                           const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
                                           const std::map<std::string, std::string>& credential) {}
 
@@ -352,7 +346,7 @@ class ExecutionManagementService : public Service {
   virtual void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                              const rj::Document& document) {}
 
-  virtual std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription,
+  virtual std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
                                                                         const TimePoint& now, const std::map<std::string, std::string>& credential) {
     return {};
   }
@@ -371,12 +365,12 @@ class ExecutionManagementService : public Service {
   std::string getAccountPositionsTarget;
   std::map<std::string, std::string> correlationIdByConnectionIdMap;
 
-  std::map<std::string, std::shared_ptr<WsConnection>>
-      wsConnectionByCorrelationIdMap;  // TODO(cryptochassis): for consistency, to be renamed to wsConnectionPtrByCorrelationIdMap
+  std::map<std::string, std::shared_ptr<WsConnection>> wsConnectionPtrByCorrelationIdMap;
 
   std::map<std::string, unsigned int> wsRequestIdByConnectionIdMap;
   std::map<std::string, std::map<unsigned int, std::string>> requestCorrelationIdByWsRequestIdByConnectionIdMap;
 };
+
 } /* namespace ccapi */
 #endif
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_

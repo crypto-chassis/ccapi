@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinanceUs(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBin
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_BINANCE_US_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_US_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -29,6 +30,7 @@ class ExecutionManagementServiceBinanceUs : public ExecutionManagementServiceBin
 
   virtual ~ExecutionManagementServiceBinanceUs() {}
 };
+
 } /* namespace ccapi */
 #endif
 #endif

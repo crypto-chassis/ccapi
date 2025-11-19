@@ -7,6 +7,7 @@ using ::testing::ElementsAre;
 using ::testing::Pair;
 
 namespace ccapi {
+
 class MarketDataServiceTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
@@ -58,5 +59,6 @@ TEST_F(MarketDataServiceTest, updateOrderBookNoInsert) {
   this->service->updateOrderBook(snapshot, price, size);
   EXPECT_TRUE(snapshot.empty());
 }
+
 } /* namespace ccapi */
 #endif

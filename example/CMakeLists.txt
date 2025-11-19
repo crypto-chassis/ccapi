@@ -33,7 +33,7 @@ if(NOT RAPIDJSON_INCLUDE_DIR)
   include(ExternalProject)
   ExternalProject_Add(
     rapidjson
-    URL https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz
+    URL https://github.com/Tencent/rapidjson/archive/3b2441b87f99ab65f37b141a7b548ebadb607b96.tar.gz
     SOURCE_DIR "${CMAKE_BINARY_DIR}/rapidjson"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
@@ -81,6 +81,10 @@ add_subdirectory(src/execution_management_advanced_subscription)
 add_subdirectory(src/fix_simple)
 add_subdirectory(src/fix_advanced)
 add_subdirectory(src/enable_library_logging)
-add_subdirectory(src/utility_set_timer)
+add_subdirectory(src/set_timer)
+add_subdirectory(src/heartbeat)
 add_subdirectory(src/override_exchange_url_at_runtime)
 add_subdirectory(src/test_order_latency)
+add_subdirectory(src/test_cpu_usage)
+add_subdirectory(src/use_multiple_sessions)
+add_subdirectory(src/reduce_build_time)

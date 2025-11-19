@@ -1,72 +1,68 @@
-# Some breaking changes introduced
-* We made a change on how to "Send request by Websocket API".
-
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
-
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/ktechhub/doctoc)*
 
-<!---toc start-->
-
-* [Some breaking changes introduced](#some-breaking-changes-introduced)
-* [ccapi](#ccapi)
-  * [Branches](#branches)
-  * [Build](#build)
-    * [C++](#c)
-    * [non-C++](#non-c)
-  * [Constants](#constants)
-  * [Examples](#examples)
-  * [Documentations](#documentations)
-    * [Simple Market Data](#simple-market-data)
-    * [Advanced Market Data](#advanced-market-data)
-      * [Complex request parameters](#complex-request-parameters)
-      * [Specify subscription market depth](#specify-subscription-market-depth)
-      * [Specify correlation id](#specify-correlation-id)
-      * [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments)
-      * [Receive subscription events at periodic intervals](#receive-subscription-events-at-periodic-intervals)
-      * [Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed](#receive-subscription-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
-      * [Receive subscription market depth updates](#receive-subscription-market-depth-updates)
-      * [Receive subscription trade events](#receive-subscription-trade-events)
-      * [Receive subscription calculated-candlestick events at periodic intervals](#receive-subscription-calculated-candlestick-events-at-periodic-intervals)
-      * [Receive subscription exchange-provided-candlestick events at periodic intervals](#receive-subscription-exchange-provided-candlestick-events-at-periodic-intervals)
-      * [Send generic public requests](#send-generic-public-requests)
-      * [Make generic public subscriptions](#make-generic-public-subscriptions)
-      * [Send generic private requests](#send-generic-private-requests)
-    * [Simple Execution Management](#simple-execution-management)
-    * [Advanced Execution Management](#advanced-execution-management)
-      * [Specify correlation id](#specify-correlation-id-1)
-      * [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments-1)
-      * [Multiple subscription fields](#multiple-subscription-fields)
-      * [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
-      * [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
-      * [Override exchange urls](#override-exchange-urls)
-      * [Complex request parameters](#complex-request-parameters-1)
-      * [Send request by Websocket API](#send-request-by-websocket-api)
-      * [Specify instrument type](#specify-instrument-type)
-    * [FIX API](#fix-api)
-    * [More Advanced Topics](#more-advanced-topics)
-      * [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
-      * [Thread safety](#thread-safety)
-      * [Enable library logging](#enable-library-logging)
-      * [Set timer](#set-timer)
-  * [Performance Tuning](#performance-tuning)
-  * [Known Issues and Workarounds](#known-issues-and-workarounds)
-  * [Contributing](#contributing)
-
-<!---toc end-->
+- [ccapi](#ccapi)
+  - [Branches](#branches)
+  - [Build](#build)
+    - [C++](#c)
+    - [non-C++](#non-c)
+  - [Constants](#constants)
+  - [Examples](#examples)
+  - [Documentations](#documentations)
+    - [Simple Market Data](#simple-market-data)
+    - [Advanced Market Data](#advanced-market-data)
+      - [Complex request parameters](#complex-request-parameters)
+      - [Specify subscription market depth](#specify-subscription-market-depth)
+      - [Specify correlation id](#specify-correlation-id)
+      - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments)
+      - [Receive subscription events at periodic intervals](#receive-subscription-events-at-periodic-intervals)
+      - [Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed](#receive-subscription-events-at-periodic-intervals-including-when-the-market-depth-snapshot-hasnt-changed)
+      - [Receive subscription market depth updates](#receive-subscription-market-depth-updates)
+      - [Receive subscription trade events](#receive-subscription-trade-events)
+      - [Receive subscription calculated-candlestick events at periodic intervals](#receive-subscription-calculated-candlestick-events-at-periodic-intervals)
+      - [Receive subscription exchange-provided-candlestick events at periodic intervals](#receive-subscription-exchange-provided-candlestick-events-at-periodic-intervals)
+      - [Send generic public requests](#send-generic-public-requests)
+      - [Make generic public subscriptions](#make-generic-public-subscriptions)
+      - [Send generic private requests](#send-generic-private-requests)
+    - [Simple Execution Management](#simple-execution-management)
+    - [Advanced Execution Management](#advanced-execution-management)
+      - [Specify correlation id](#specify-correlation-id-1)
+      - [Multiple exchanges and/or instruments](#multiple-exchanges-andor-instruments-1)
+      - [Multiple subscription fields](#multiple-subscription-fields)
+      - [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
+      - [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
+      - [Complex request parameters](#complex-request-parameters-1)
+      - [Send request by Websocket API](#send-request-by-websocket-api)
+      - [Specify instrument type](#specify-instrument-type)
+    - [FIX API](#fix-api)
+    - [More Advanced Topics](#more-advanced-topics)
+      - [Handle events in "immediate" vs. "batching" mode](#handle-events-in-immediate-vs-batching-mode)
+      - [Thread safety](#thread-safety)
+      - [Enable library logging](#enable-library-logging)
+      - [Set timer](#set-timer)
+      - [Heartbeat](#heartbeat)
+      - [Use multiple sessions](#use-multiple-sessions)
+      - [Override exchange urls](#override-exchange-urls)
+      - [Connect to a proxy](#connect-to-a-proxy)
+      - [Reduce build time](#reduce-build-time)
+  - [Performance Tuning](#performance-tuning)
+  - [Known Issues and Workarounds](#known-issues-and-workarounds)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
 
 # ccapi
 * A header-only C++ library for streaming market data and executing trades directly from cryptocurrency exchanges (i.e. the connections are between your server and the exchange server without anything in-between).
 * Bindings for other languages such as Python, Java, C#, Go, and Javascript are provided.
 * Code closely follows Bloomberg's API: https://www.bloomberg.com/professional/support/api-library/.
-* It is ultra fast thanks to very careful optimizations: move semantics, regex optimization, locality of reference, lock contention minimization, etc.
+* It is ultra fast thanks to very careful optimizations.
 * Supported exchanges:
-  * Market Data: ascendex, binance, binanceds-futures, binance-coin-futures, binance, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, okx, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, mexc-futures, okx, whitebit.
-  * Execution Management: ascendex, binance, binanceds-futures, binance-coin-futures, binance, bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, bybit, okx, cryptocom, deribit, erisx (Cboe Digital), gateio, gateio-perpetual-futures, gemini, huobi, huobi-usdt-swap, huobi-coin-swap, kraken, kraken-futures, kucoin, kucoin-futures, mexc, okx.
-  * FIX: coinbase, gemini.
+  * Market Data: ascendex, [binance](https://accounts.maxweb.academy/register?ref=1116718520), [binance-usds-futures](https://accounts.maxweb.academy/register?ref=1116718520), [binance-coin-futures](https://accounts.maxweb.academy/register?ref=1116718520), bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, [bybit](https://www.bybit.com/invite?ref=XNYP2K), coinbase, [cryptocom](https://crypto.com/exch/tqj4b8x48w), deribit, erisx (Cboe Digital), [gateio](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), [gateio-perpetual-futures](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), gemini, [huobi](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-usdt-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-coin-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), kraken, kraken-futures, kucoin, kucoin-futures, mexc, mexc-futures, [okx](https://www.okx.com/join/47636709), whitebit.
+  * Execution Management: ascendex, [binance](https://accounts.maxweb.academy/register?ref=1116718520), [binance-usds-futures](https://accounts.maxweb.academy/register?ref=1116718520), [binance-coin-futures](https://accounts.maxweb.academy/register?ref=1116718520), bitfinex, bitget, bitget-futures, bitmart, bitmex, bitstamp, [bybit](https://www.bybit.com/invite?ref=XNYP2K), coinbase, [cryptocom](https://crypto.com/exch/tqj4b8x48w), deribit, erisx (Cboe Digital), [gateio](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), [gateio-perpetual-futures](https://www.gate.com/signup/VLUQXVFWAW?ref_type=103), gemini, [huobi](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-usdt-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), [huobi-coin-swap](https://www.htx.com/invite/en-us/1f?invite_code=rmw7d223), kraken, kraken-futures, kucoin, kucoin-futures, mexc, [okx](https://www.okx.com/join/47636709).
+  * FIX: [binance](https://accounts.maxweb.academy/register?ref=1116718520), coinbase, gemini.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
+* For any questions, email hello@cryptochassis.com.
+* We’re experts in market data collection, high-speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
 
 ## Branches
 * The `develop` branch may contain experimental features.
@@ -221,15 +217,16 @@ For a specific exchange and instrument, get recents trades.
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* sessionPtr) override {
-    std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
-    return true;
+  void processEvent(const Event& event, Session* sessionPtr) override {
+    std::cout << "Received an event:\n" + event.toPrettyString(2, 2) << std::endl;
   }
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::MyEventHandler;
@@ -298,25 +295,28 @@ For a specific exchange and instrument, whenever the best bid's or ask's price o
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* sessionPtr) override {
+  void processEvent(const Event& event, Session* sessionPtr) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_STATUS) {
-      std::cout << "Received an event of type SUBSCRIPTION_STATUS:\n" + event.toStringPretty(2, 2) << std::endl;
+      std::cout << "Received an event of type SUBSCRIPTION_STATUS:\n" + event.toPrettyString(2, 2) << std::endl;
     } else if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
       for (const auto& message : event.getMessageList()) {
         std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
         for (const auto& element : message.getElementList()) {
-          const std::map<std::string, std::string>& elementNameValueMap = element.getNameValueMap();
+          // They key std::string_view is created from a string literal and therefore is safe, because string
+          // literals have static storage duration, meaning they live for the entire duration of the program.
+          const std::map<std::string_view, std::string>& elementNameValueMap = element.getNameValueMap();
           std::cout << "  " + toString(elementNameValueMap) << std::endl;
         }
       }
     }
-    return true;
   }
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::MyEventHandler;
@@ -490,15 +490,16 @@ For a specific exchange and instrument, submit a simple limit order.
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* sessionPtr) override {
-    std::cout << "Received an event:\n" + event.toStringPretty(2, 2) << std::endl;
-    return true;
+  void processEvent(const Event& event, Session* sessionPtr) override {
+    std::cout << "Received an event:\n" + event.toPrettyString(2, 2) << std::endl;
   }
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::MyEventHandler;
@@ -588,13 +589,14 @@ For a specific exchange and instrument, receive order updates.
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
 
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* sessionPtr) override {
+  void processEvent(const Event& event, Session* sessionPtr) override {
     if (event.getType() == Event::Type::SUBSCRIPTION_STATUS) {
-      std::cout << "Received an event of type SUBSCRIPTION_STATUS:\n" + event.toStringPretty(2, 2) << std::endl;
+      std::cout << "Received an event of type SUBSCRIPTION_STATUS:\n" + event.toPrettyString(2, 2) << std::endl;
       auto message = event.getMessageList().at(0);
       if (message.getType() == Message::Type::SUBSCRIPTION_STARTED) {
         Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT");
@@ -602,16 +604,16 @@ class MyEventHandler : public EventHandler {
             {"SIDE", "BUY"},
             {"LIMIT_PRICE", "20000"},
             {"QUANTITY", "0.001"},
-            {"CLIENT_ORDER_ID", "6d4eb0fb"},
+            {"CLIENT_ORDER_ID", request.generateNextClientOrderId()},
         });
         sessionPtr->sendRequest(request);
       }
     } else if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      std::cout << "Received an event of type SUBSCRIPTION_DATA:\n" + event.toStringPretty(2, 2) << std::endl;
+      std::cout << "Received an event of type SUBSCRIPTION_DATA:\n" + event.toPrettyString(2, 2) << std::endl;
     }
-    return true;
   }
 };
+
 } /* namespace ccapi */
 
 using ::ccapi::MyEventHandler;
@@ -695,17 +697,17 @@ Received an event of type SUBSCRIPTION_DATA:
   ]
 Bye
 ```
-* Subscription fields: `ORDER_UPDATE`, `PRIVATE_TRADE`, `BALANCE_UPDATE`, `POSITION_UPDATE`.
+* Subscription fields: `ORDER_UPDATE`, `PRIVATE_TRADE`, `PRIVATE_TRADE_LITE`, `BALANCE_UPDATE`, `POSITION_UPDATE`.
 
 ### Advanced Execution Management
 
 #### Specify correlation id
 
-Instantiate `Request` with the desired correlationId. The `correlationId` should be unique.
+Instantiate `Request` with the desired `correlationId`. The `correlationId` should be unique.
 ```
 Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT", "cool correlation id");
 ```
-Instantiate `Subscription` with the desired correlationId.
+Instantiate `Subscription` with the desired `correlationId`.
 ```
 Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "cool correlation id");
 ```
@@ -746,7 +748,7 @@ std::vector<Event> eventList = eventQueue.purge();
 
 #### Provide API credentials for an exchange
 There are 3 ways to provide API credentials (listed with increasing priority).
-* Set the relevent environment variables. Some exchanges might need additional credentials other than API keys and secrets: e.g. `OKX_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`. See section "exchange API credentials" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h).
+* Set the relevent environment variables. Some exchanges might need additional credentials other than API keys and secrets: e.g. `OKX_API_PASSPHRASE`, `KUCOIN_API_PASSPHRASE`, `BINANCE_USDS_FUTURES_WEBSOCKET_ORDER_ENTRY_API_KEY`, `BINANCE_USDS_FUTURES_WEBSOCKET_ORDER_ENTRY_API_PRIVATE_KEY_PATH`, `BINANCE_COIN_FUTURES_WEBSOCKET_ORDER_ENTRY_API_KEY`, `BINANCE_COIN_FUTURES_WEBSOCKET_ORDER_ENTRY_API_PRIVATE_KEY_PATH`, `BINANCE_WEBSOCKET_ORDER_ENTRY_API_KEY`, `BINANCE_WEBSOCKET_ORDER_ENTRY_API_PRIVATE_KEY_PATH`. See section "exchange API credentials" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h).
 * Provide credentials to `SessionConfigs`.
 ```
 sessionConfigs.setCredential({
@@ -768,9 +770,6 @@ Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "", {
 });
 ```
 
-#### Override exchange urls
-You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/src/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://www.okx.com/docs-v5/en/#overview-demo-trading-services).
-
 #### Complex request parameters
 Please follow the exchange's API documentations: e.g. https://www.okx.com/docs-v5/en/#order-book-trading-trade-post-place-order.
 ```
@@ -782,7 +781,7 @@ request.appendParam({
 ```
 
 #### Send request by Websocket API
-For okx:
+For okx, cryptocom:
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
 Subscription subscription("okx", "", "ORDER_UPDATE", "", websocketOrderEntrySubscriptionCorrelationId);
@@ -796,7 +795,7 @@ request.appendParam({
 });
 session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
 ```
-For bybit:
+For bybit, binance, binance-usds-futures, binance-coin-futures:
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
 Subscription subscription_1("bybit", "", "ORDER_UPDATE");
@@ -832,60 +831,66 @@ For a specific exchange and instrument, submit a simple limit order.
 [C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs) / [Go](binding/go/example/fix_simple/main.go) / [Javascript](binding/javascript/example/fix_simple/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
+
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;  // This line is needed.
+
 class MyEventHandler : public EventHandler {
  public:
-  bool processEvent(const Event& event, Session* sessionPtr) override {
-    if (event.getType() == Event::Type::AUTHORIZATION_STATUS) {
-      std::cout << "Received an event of type AUTHORIZATION_STATUS:\n" + event.toStringPretty(2, 2) << std::endl;
-      auto message = event.getMessageList().at(0);
-      if (message.getType() == Message::Type::AUTHORIZATION_SUCCESS) {
-        Request request(Request::Operation::FIX, "okx", "", "same correlation id for subscription and request");
-        request.appendParamFix({
+  MyEventHandler(const std::string& fixSubscriptionCorrelationId) : fixSubscriptionCorrelationId(fixSubscriptionCorrelationId) {}
+
+  void processEvent(const Event& event, Session* sessionPtr) override {
+    std::cout << "Received an event:\n" + event.toPrettyString(2, 2) << std::endl;
+    if (!willSendRequest) {
+      sessionPtr->setTimer("id", 1000, nullptr, [this, sessionPtr]() {
+        Request request(Request::Operation::FIX, "binance");
+        request.appendFixParam({
             {35, "D"},
-            {11, "6d4eb0fb-2229-469f-873e-557dd78ac11e"},
-            {55, "BTC-USDT"},
+            {11, request.generateNextClientOrderId()},
+            {55, "BTCUSDT"},
             {54, "1"},
-            {44, "20000"},
-            {38, "0.001"},
+            {44, "100000"},
+            {38, "0.0001"},
             {40, "2"},
             {59, "1"},
         });
-        sessionPtr->sendRequestByFix(request);
-      }
-    } else if (event.getType() == Event::Type::FIX) {
-      std::cout << "Received an event of type FIX:\n" + event.toStringPretty(2, 2) << std::endl;
+        sessionPtr->sendRequestByFix(this->fixSubscriptionCorrelationId, request);
+      });
+      willSendRequest = true;
     }
-    return true;
   }
+
+ private:
+  std::string fixSubscriptionCorrelationId;
+  bool willSendRequest{};
 };
+
 } /* namespace ccapi */
+
 using ::ccapi::MyEventHandler;
 using ::ccapi::Session;
 using ::ccapi::SessionConfigs;
 using ::ccapi::SessionOptions;
 using ::ccapi::Subscription;
 using ::ccapi::UtilSystem;
+
 int main(int argc, char** argv) {
-  if (UtilSystem::getEnvAsString("OKX_API_KEY").empty()) {
-    std::cerr << "Please set environment variable OKX_API_KEY" << std::endl;
+  if (UtilSystem::getEnvAsString("BINANCE_FIX_API_KEY").empty()) {
+    std::cerr << "Please set environment variable BINANCE_FIX_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
-  if (UtilSystem::getEnvAsString("OKX_API_SECRET").empty()) {
-    std::cerr << "Please set environment variable OKX_API_SECRET" << std::endl;
-    return EXIT_FAILURE;
-  }
-  if (UtilSystem::getEnvAsString("OKX_API_PASSPHRASE").empty()) {
-    std::cerr << "Please set environment variable OKX_API_PASSPHRASE" << std::endl;
+  if (UtilSystem::getEnvAsString("BINANCE_FIX_API_PRIVATE_KEY_PATH").empty()) {
+    std::cerr << "Please set environment variable BINANCE_FIX_API_PRIVATE_KEY_PATH" << std::endl;
     return EXIT_FAILURE;
   }
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
-  MyEventHandler eventHandler;
+  std::string fixSubscriptionCorrelationId("any");
+  MyEventHandler eventHandler(fixSubscriptionCorrelationId);
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription("okx", "", "FIX", "", "same correlation id for subscription and request");
-  session.subscribeByFix(subscription);
+  Subscription subscription("binance", "", "FIX", "", fixSubscriptionCorrelationId);
+  session.subscribe(subscription);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();
   std::cout << "Bye" << std::endl;
@@ -894,7 +899,31 @@ int main(int argc, char** argv) {
 ```
 **Output:**
 ```console
-Received an event of type AUTHORIZATION_STATUS:
+Received an event:
+  Event [
+    type = SESSION_STATUS,
+    messageList = [
+      Message [
+        type = SESSION_CONNECTION_UP,
+        recapType = UNKNOWN,
+        time = 1970-01-01T00:00:00.000000000Z,
+        timeReceived = 2025-08-08T18:50:06.816550779Z,
+        elementList = [
+          Element [
+            tagValueList = [
+
+            ],
+            nameValueMap = {
+              CONNECTION_ID = IF8j4HbdLP0,
+              CONNECTION_URL = tcp+tls://fix-oe.binance.com:9000
+            }
+          ]
+        ],
+        correlationIdList = [ any ],
+      ]
+    ]
+  ]
+Received an event:
   Event [
     type = AUTHORIZATION_STATUS,
     messageList = [
@@ -902,22 +931,25 @@ Received an event of type AUTHORIZATION_STATUS:
         type = AUTHORIZATION_SUCCESS,
         recapType = UNKNOWN,
         time = 1970-01-01T00:00:00.000000000Z,
-        timeReceived = 2021-05-25T05:05:15.892366000Z,
+        timeReceived = 2025-08-08T18:50:06.819417404Z,
         elementList = [
           Element [
-            tagValueMap = {
-              96 = 0srtt0WetUTYHiTpvyWnC+XKKHCzQQIJ/8G9lE4KVxM=,
-              98 = 0,
-              108 = 15,
-              554 = 26abh7of52i
+            tagValueList = [
+              (35, "A"),
+              (98, "0"),
+              (108, "60"),
+              (25037, "e9ed8253-8f49-4a1b-bba9-718ff73991e5")
+            ],
+            nameValueMap = {
+
             }
           ]
         ],
-        correlationIdList = [ same correlation id for subscription and request ]
+        correlationIdList = [ any ],
       ]
     ]
   ]
-Received an event of type FIX:
+Received an event:
   Event [
     type = FIX,
     messageList = [
@@ -925,25 +957,39 @@ Received an event of type FIX:
         type = FIX,
         recapType = UNKNOWN,
         time = 1970-01-01T00:00:00.000000000Z,
-        timeReceived = 2021-05-25T05:05:15.984090000Z,
+        timeReceived = 2025-08-08T18:50:07.820112736Z,
         elementList = [
           Element [
-            tagValueMap = {
-              11 = 6d4eb0fb-2229-469f-873e-557dd78ac11e,
-              17 = b7caec79-1bc8-460e-af28-6489cf12f45e,
-              20 = 0,
-              37 = 458acfe5-bdea-46d2-aa87-933cda84163f,
-              38 = 0.001,
-              39 = 0,
-              44 = 20000,
-              54 = 1,
-              55 = BTC-USDT,
-              60 = 20210525-05:05:16.008,
-              150 = 0
+            tagValueList = [
+              (35, "8"),
+              (17, "100146443390"),
+              (11, "x-XHKUG2CH-1754679007000"),
+              (37, "47156106695"),
+              (38, "0.00010000"),
+              (40, "2"),
+              (54, "1"),
+              (55, "BTCUSDT"),
+              (44, "100000.00000000"),
+              (59, "1"),
+              (60, "20250808-18:50:07.819027"),
+              (25018, "20250808-18:50:07.819027"),
+              (25001, "3"),
+              (150, "0"),
+              (14, "0.00000000"),
+              (151, "0.00010000"),
+              (25017, "0.00000000"),
+              (1057, "Y"),
+              (32, "0.00000000"),
+              (39, "0"),
+              (636, "Y"),
+              (25023, "20250808-18:50:07.819027")
+            ],
+            nameValueMap = {
+
             }
           ]
         ],
-        correlationIdList = [ same correlation id for subscription and request ]
+        correlationIdList = [ any ],
       ]
     ]
   ]
@@ -955,21 +1001,17 @@ Bye
 #### Handle events in "immediate" vs. "batching" mode
 
 In general there are 2 ways to handle events.
-* When a `Session` is instantiated with an `eventHandler` argument, it will handle events in immediate mode. The `processEvent` method in the `eventHandler` will be invoked immediately when an `Event` is available.
-* When a `Session` is instantiated without an `eventHandler` argument, it will handle events in batching mode. The evetns will be batched into an internal `Queue<Event>` and can be retrieved by
+* When a `Session` is instantiated with an `eventHandler` argument, it will handle events in immediate mode. The `processEvent` method in the `eventHandler` will be invoked immediately when an `Event` is available, and the invocation will run on the thread where `boost::asio::io_context` runs. When a `Session` is instantiated with an `eventHandler` and an `eventDispatcher` argument, it will also handle events in immediate mode. The `processEvent` method in the `eventHandler` will also be invoked immediately when an `Event` is available, but the invocation will run in the thread(s) provided by the `eventDispatcher` therefore not blocking the thread where `boost::asio::io_context` runs. `EventHandler`s and/or `EventDispatcher`s can be shared among different sessions. Otherwise, different sessions are independent from each other.
+An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
+* When a `Session` is instantiated without an `eventHandler` argument, it will handle events in batching mode. The events will be batched into an internal `Queue<Event>` and can be retrieved by
 ```
 std::vector<Event> eventList = session.getEventQueue().purge();
 ```
 An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
 
 #### Thread safety
-* The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::subscribeByFix`, `Session::setTimer`, all public methods in `Queue`.
-* The `processEvent` method in the `eventHandler` is invoked on one of the internal threads in the `eventDispatcher`. A default `EventDispatcher` with 1 internal thread will be created if no `eventDispatcher` argument is provided in `Session` instantiation. To dispatch events to multiple threads, instantiate `EventDispatcher` with `numDispatcherThreads` set to be the desired number. `EventHandler`s and/or `EventDispatcher`s can be shared among different sessions. Otherwise, different sessions are independent from each other.
-```
-EventDispatcher eventDispatcher(2);
-Session session(sessionOptions, sessionConfigs, &eventHandler, &eventDispatcher);
-```
-An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
+* The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::setTimer`, all public methods in `Queue`.
+* If you choose to inject an external `boost::asio::io_context` to `ServiceContext`, the `boost::asio::io_context` has to run on a single thread to ensure thread safety.
 
 #### Enable library logging
 
@@ -978,6 +1020,7 @@ An example can be found [here](example/src/market_data_advanced_subscription/mai
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```
 namespace ccapi {
+
 class MyLogger final : public Logger {
  public:
   void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
@@ -992,12 +1035,13 @@ class MyLogger final : public Logger {
 
 MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
+
 } /* namespace ccapi */
 ```
 
 #### Set timer
 
-[C++](example/src/utility_set_timer/main.cpp)
+[C++](example/src/set_timer/main.cpp)
 
 To perform an asynchronous wait, use the utility method `setTimer` in class `Session`. The handlers are invoked in the same threads as the `processEvent` method in the `EventHandler` class. The `id` of the timer should be unique. `delayMilliseconds` can be 0.
 ```
@@ -1009,18 +1053,43 @@ sessionPtr->setTimer(
     []() { std::cout << std::string("Timer success handler is triggered at ") + UtilTime::getISOTimestamp(UtilTime::now()) << std::endl; });
 ```
 
+#### Heartbeat
+
+[C++](example/src/heartbeat/main.cpp)
+
+To receive heartbeat events, instantiate a `Subscription` object with field `HEARTBEAT` and subscribe it.
+```
+Subscription subscription("", "", "HEARTBEAT", "HEARTBEAT_INTERVAL_MILLISECONDS=1000");
+session.subscribe(subscription);
+```
+
+#### Use multiple sessions
+
+[C++](example/src/use_multiple_sessions/main.cpp)
+
+Multiple `session` instances, each with their own `SessionOptions` and `SessionConfigs`, can share a common `EventHandler`. If no `EventDispatcher` is provided, thread safety must be maintained by using a shared `ServiceContext`.
+```
+Subscription subscription("", "", "HEARTBEAT", "HEARTBEAT_INTERVAL_MILLISECONDS=1000");
+session.subscribe(subscription);
+```
+
+#### Override exchange urls
+You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/src/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://www.okx.com/docs-v5/en/#overview-demo-trading-services).
+
+#### Connect to a proxy
+Instantiate `Subscription` with the desired `proxyUrl`.
+```
+Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "", "", {}, "172.30.0.146:9000");
+```
+
+#### Reduce build time
+The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/src/reduce_build_time).
+
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
 * Enable link time optimization (e.g. in CMakeLists.txt `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)` before a target is created). Note that link time optimization is only applicable to static linking.
-* Shorten constant strings used as key names in the returned `Element` (e.g. in CmakeLists.txt `add_compile_definitions(CCAPI_BEST_BID_N_PRICE="b")`).
 * Only enable the services and exchanges that you need.
 * Handle events in ["batching" mode](#handle-events-in-immediate-vs-batching-mode) if your application (e.g. market data archiver) isn't latency sensitive.
-* Define macro `CCAPI_USE_SINGLE_THREAD`. It reduces locking overhead for single threaded applications.
 
 ## Known Issues and Workarounds
 * Kraken invalid nonce errors. Give the API key a nonce window (https://support.kraken.com/hc/en-us/articles/360001148023-What-is-a-nonce-window-). We use unix timestamp with microsecond resolution as nonce and therefore a nonce window of 500000 translates to a tolerance of 0.5 second.
-
-## Contributing
-* (Required) Create a new branch from the `develop` branch and submit a pull request to the `develop` branch.
-* (Optional) C++ code style: https://google.github.io/styleguide/cppguide.html. See file [.clang-format](.clang-format).
-* (Optional) Commit message format: https://conventionalcommits.org.

@@ -5,6 +5,7 @@
 using ::testing::ElementsAre;
 
 namespace ccapi {
+
 TEST(EventTest, addMessagesZeroAddZero) {
   Event e;
   std::vector<Message> ml;

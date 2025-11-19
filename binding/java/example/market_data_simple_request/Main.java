@@ -9,10 +9,9 @@ import com.cryptochassis.ccapi.SessionOptions;
 public class Main {
   static class MyEventHandler extends EventHandler {
     @Override
-    public boolean processEvent(Event event, Session session) {
-      System.out.println(String.format("Received an event:\n%s", event.toStringPretty(2, 2)));
-      return true;
-    }
+    public void processEvent(Event event, Session session) {
+      System.out.println(String.format("Received an event:\n%s", event.toPrettyString(2, 2)));
+          }
   }
   public static void main(String[] args) {
     System.loadLibrary("ccapi_binding_java");

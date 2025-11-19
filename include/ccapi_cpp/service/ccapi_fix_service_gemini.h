@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_fix_service.h"
 
 namespace ccapi {
+
 class FixServiceGemini : public FixService<beast::tcp_stream> {
  public:
   FixServiceGemini(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -19,8 +20,8 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
       CCAPI_LOGGER_FATAL(std::string("e.what() = ") + e.what());
     }
     this->protocolVersion = CCAPI_FIX_PROTOCOL_VERSION_GEMINI;
-    this->senderCompID = CCAPI_GEMINI_API_SENDER_COMP_ID;
-    this->targetCompID = CCAPI_GEMINI_API_TARGET_COMP_ID;
+    this->senderCompId = CCAPI_GEMINI_API_SENDER_COMP_ID;
+    this->targetCompId = CCAPI_GEMINI_API_TARGET_COMP_ID;
   }
 
   virtual ~FixServiceGemini() {}
@@ -32,7 +33,7 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
     return {
         {hff::tag::SenderCompID, CCAPI_GEMINI_API_SENDER_COMP_ID},
         {hff::tag::TargetCompID, CCAPI_GEMINI_API_TARGET_COMP_ID},
-        {hff::tag::MsgSeqNum, std::to_string(++this->sequenceSentByConnectionIdMap[connectionId])},
+        {hff::tag::MsgSeqNum, std::to_string(++this->fixMsgSeqNumByConnectionIdMap[connectionId])},
         {hff::tag::SendingTime, nowFixTimeStr},
     };
   }
@@ -51,6 +52,7 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
     return param;
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

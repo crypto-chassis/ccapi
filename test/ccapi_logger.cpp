@@ -3,5 +3,6 @@
 #include <iostream>
 
 namespace ccapi {
+
 Logger* Logger::logger = nullptr;
 }

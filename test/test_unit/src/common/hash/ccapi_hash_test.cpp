@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 
 namespace ccapi {
+
 TEST(HashTest, hash256ReturnHex) {
   auto result = UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA256,
                                            "1633827062021004nonce=1633827062021004&price=20000&volume=1&type=buy&ordertype=limit&pair=XXBTZUSD", true);
@@ -25,4 +26,5 @@ TEST(HashTest, hash512) {
       UtilAlgorithm::computeHash(UtilAlgorithm::ShaVersion::SHA512, R"({"price":"20000","amount":"0.001","side":"buy","currency_pair":"BTC_USDT"})", false));
   EXPECT_EQ(result, "c6fa1c13d45b685ac529fa3b629a9ba74b20512985c2e82b41a426e15c78fbcd4bb11fc3af6e1dfc3f2c2cc96bbecd2504614034089af407819da1c7e145dd59");
 }
+
 } /* namespace ccapi */

@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service_gateio_base.h"
 
 namespace ccapi {
+
 class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBase {
  public:
   MarketDataServiceGateioPerpetualFutures(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v4/ws/";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_GATEIO_PERPETUAL_FUTURES_API_KEY;
     this->setupCredential({this->apiKeyName});
     std::string prefix = "/api/v4";
@@ -40,14 +41,14 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     } else if (UtilString::endsWith(instrument, "_USDT")) {
       url += "usdt";
     }
-    return url + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
+    return url + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getProxyUrl();
   }
 
   void substituteParamSettle(std::string& target, const std::map<std::string, std::string>& param, const std::string& symbolId) {
     this->substituteParam(target, param,
                           {
                               {"settle", "{settle}"},
-                              {CCAPI_MARGIN_ASSET, "{settle}"},
+                              {CCAPI_SETTLE_ASSET, "{settle}"},
                           });
     std::string settle;
     if (UtilString::endsWith(symbolId, "_USD")) {
@@ -98,7 +99,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
         this->substituteParam(target, param,
                               {
                                   {"settle", "{settle}"},
-                                  {CCAPI_MARGIN_ASSET, "{settle}"},
+                                  {CCAPI_SETTLE_ASSET, "{settle}"},
                               });
         req.target(target);
       } break;
@@ -129,10 +130,11 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     element.insert(CCAPI_CONTRACT_MULTIPLIER, x["quanto_multiplier"].GetString());
   }
 
-  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+  void convertTextMessageToMarketDataMessage(const Request& request, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     switch (request.getOperation()) {
       case Request::Operation::GET_RECENT_TRADES: {
         for (const auto& x : document.GetArray()) {
@@ -140,8 +142,8 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = UtilTime::makeTimePointMilli(UtilTime::divideMilli(x["create_time_ms"].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
-          std::string size = x["size"].GetString();
-          std::string sizeAbs;
+          std::string_view size = x["size"].GetString();
+          std::string_view sizeAbs;
           bool isBuyerMaker;
           if (size.at(0) == '-') {
             sizeAbs = size.substr(1);
@@ -150,10 +152,10 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
             sizeAbs = size;
             isBuyerMaker = false;
           }
-          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(std::string(x["price"].GetString()))});
-          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(sizeAbs)});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(x["id"].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, isBuyerMaker ? "1" : "0"});
+          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x["price"].GetString()));
+          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(sizeAbs));
+          dataPoint.emplace(MarketDataMessage::DataFieldType::TRADE_ID, x["id"].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::IS_BUYER_MAKER, isBuyerMaker ? "1" : "0");
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
@@ -215,6 +217,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     }
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

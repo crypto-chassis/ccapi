@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_derivatives_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceHuobiCoinSwap : public ExecutionManagementServiceHuobiDerivativesBase {
  public:
   ExecutionManagementServiceHuobiCoinSwap(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceHuobiCoinSwap : public ExecutionManagementServic
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/swap-notification";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_HUOBI_COIN_SWAP_API_KEY;
     this->apiSecretName = CCAPI_HUOBI_COIN_SWAP_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -26,11 +27,11 @@ class ExecutionManagementServiceHuobiCoinSwap : public ExecutionManagementServic
     this->getAccountPositionsTarget = CCAPI_HUOBI_COIN_SWAP_GET_ACCOUNT_POSITIONS_PATH;
     this->authenticationPath = "/swap-api/v1/swap_order";
     this->orderDataTopic = CCAPI_HUOBI_COIN_SWAP_SUBSCRIBE_ORDER_DATA_TOPIC;
-    this->matchOrderDataTopic = CCAPI_HUOBI_COIN_SWAP_SUBSCRIBE_MATCH_ORDER_DATA_TOPIC;
   }
 
   virtual ~ExecutionManagementServiceHuobiCoinSwap() {}
 };
+
 } /* namespace ccapi */
 #endif
 #endif

@@ -9,15 +9,14 @@ import com.cryptochassis.ccapi.SubscriptionList;
 public class Main {
   static class MyEventHandler extends EventHandler {
     @Override
-    public boolean processEvent(Event event, Session session) {
+    public void processEvent(Event event, Session session) {
       try {
         throw new Exception("oops");
       } catch (Exception e) {
         e.printStackTrace();
         System.exit(1);
       }
-      return true;
-    }
+          }
   }
   public static void main(String[] args) {
     System.loadLibrary("ccapi_binding_java");

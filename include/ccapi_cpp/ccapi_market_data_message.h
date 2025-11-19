@@ -5,6 +5,7 @@
 
 // #include "ccapi_message.h"
 namespace ccapi {
+
 class MarketDataMessage {
   /**
    * A handle to a single market data message. Each MarketDataMessage is associated with one 'exchangeSubscriptionId' value. The MarketDataMessage contents are
@@ -133,8 +134,47 @@ class MarketDataMessage {
     return output;
   }
 
-  typedef std::map<DataFieldType, std::string> TypeForDataPoint;
-  typedef std::map<DataType, std::vector<std::map<DataFieldType, std::string>>> TypeForData;
+  typedef std::map<DataFieldType, std::string_view> TypeForDataPoint;
+  typedef std::map<DataType, std::vector<TypeForDataPoint>> TypeForData;
+
+  typedef std::map<DataFieldType, std::string> TypeForOwingDataPoint;
+  typedef std::map<DataType, std::vector<TypeForOwingDataPoint>> TypeForOwingData;
+
+  static TypeForOwingData ConvertDataToOwingData(const TypeForData& input) {
+    TypeForOwingData output;
+    for (const auto& [dataType, dataPoints] : input) {
+      for (const auto& dataPoint : dataPoints) {
+        output[dataType].push_back(ConvertDataPointToOwingDataPoint(dataPoint));
+      }
+    }
+    return output;
+  }
+
+  static TypeForData ConvertOwningDataToData(const TypeForOwingData& input) {
+    TypeForData output;
+    for (const auto& [dataType, dataPoints] : input) {
+      for (const auto& dataPoint : dataPoints) {
+        output[dataType].push_back(ConvertOwningDataPointToDataPoint(dataPoint));
+      }
+    }
+    return output;
+  }
+
+  static TypeForOwingDataPoint ConvertDataPointToOwingDataPoint(const TypeForDataPoint& input) {
+    TypeForOwingDataPoint output;
+    for (const auto& [dataFieldType, dataFieldValue] : input) {
+      output.emplace(dataFieldType, std::string(dataFieldValue));
+    }
+    return output;
+  }
+
+  static TypeForDataPoint ConvertOwningDataPointToDataPoint(const TypeForOwingDataPoint& input) {
+    TypeForDataPoint output;
+    for (const auto& [dataFieldType, dataFieldValue] : input) {
+      output.emplace(dataFieldType, std::string_view(dataFieldValue));
+    }
+    return output;
+  }
 
   static std::string dataToString(const TypeForData& data) {
     std::string output1 = "{";
@@ -213,5 +253,6 @@ class MarketDataMessage {
   std::string exchangeSubscriptionId;
   TypeForData data;
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_MARKET_DATA_MESSAGE_H_

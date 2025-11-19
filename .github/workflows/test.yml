@@ -53,7 +53,7 @@ jobs:
       #   }
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja
@@ -211,11 +211,11 @@ jobs:
             -DBUILD_TEST_UNIT=OFF
             -S test
             -B test/build
-            -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
-            -G Ninja
-            -D CMAKE_MAKE_PROGRAM=ninja
-            # -D CMAKE_C_COMPILER_LAUNCHER=ccache
-            # -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
+            # -G Ninja
+            # -DCMAKE_MAKE_PROGRAM=ninja
+            # -DCMAKE_C_COMPILER_LAUNCHER=ccache
+            # -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -227,11 +227,11 @@ jobs:
             -DCMAKE_OSX_ARCHITECTURES=arm64
             -S example
             -B example/build
-            -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
-            -G Ninja
-            -D CMAKE_MAKE_PROGRAM=ninja
-            # -D CMAKE_C_COMPILER_LAUNCHER=ccache
-            # -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
+            # -G Ninja
+            # -DCMAKE_MAKE_PROGRAM=ninja
+            # -DCMAKE_C_COMPILER_LAUNCHER=ccache
+            # -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
@@ -250,13 +250,13 @@ jobs:
               -DBUILD_TEST=ON
               -S binding
               -B binding/build
-              -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
+              -DCMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
               -D DOTNET_BUILD_CONFIGURATION=$ENV{DOTNET_BUILD_CONFIGURATION}
               -D NODE_GYP_BUILD_MODE=$ENV{NODE_GYP_BUILD_MODE}
-              -G Ninja
-              -D CMAKE_MAKE_PROGRAM=ninja
-              # -D CMAKE_C_COMPILER_LAUNCHER=ccache
-              # -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+              # -G Ninja
+              # -DCMAKE_MAKE_PROGRAM=ninja
+              # -DCMAKE_C_COMPILER_LAUNCHER=ccache
+              # -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
             RESULT_VARIABLE result
           )
           if (NOT result EQUAL 0)
@@ -378,11 +378,11 @@ jobs:
             -DBUILD_TEST_UNIT=ON
             -S test
             -B test/build
-            -D CMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
-            -G Ninja
-            -D CMAKE_MAKE_PROGRAM=ninja
-            # -D CMAKE_C_COMPILER_LAUNCHER=ccache
-            # -D CMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_BUILD_TYPE=$ENV{CMAKE_BUILD_TYPE}
+            # -G Ninja
+            # -DCMAKE_MAKE_PROGRAM=ninja
+            # -DCMAKE_C_COMPILER_LAUNCHER=ccache
+            # -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)

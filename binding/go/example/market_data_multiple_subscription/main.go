@@ -10,7 +10,7 @@ type MyEventHandler struct {
 	ccapi.EventHandler
 }
 
-func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bool {
+func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 	if event.GetType() == ccapi.EventType_SUBSCRIPTION_DATA {
 		messageList := event.GetMessageList()
 		for i := 0; i < int(messageList.Size()); i++ {
@@ -36,8 +36,7 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bo
 			}
 		}
 	}
-	return true
-}
+	}
 
 func main() {
 	option := ccapi.NewSessionOptions()

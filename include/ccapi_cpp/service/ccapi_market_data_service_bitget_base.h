@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
 
 namespace ccapi {
+
 class MarketDataServiceBitgetBase : public MarketDataService {
  public:
   MarketDataServiceBitgetBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -19,9 +20,11 @@ class MarketDataServiceBitgetBase : public MarketDataService {
 
  protected:
 #endif
-  bool doesHttpBodyContainError(const std::string& body) override { return !std::regex_search(body, std::regex("\"code\":\\s*\"00000\"")); }
+  bool doesHttpBodyContainError(boost::beast::string_view bodyView) override {
+    return !std::regex_search(bodyView.begin(), bodyView.end(), std::regex("\"code\":\\s*\"00000\""));
+  }
 
-  void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, const WsConnection& wsConnection,
+  void prepareSubscriptionDetail(std::string& channelId, std::string& symbolId, const std::string& field, std::shared_ptr<WsConnection> wsConnectionPtr,
                                  const Subscription& subscription, const std::map<std::string, std::string> optionMap) override {
     auto marketDepthRequested = std::stoi(optionMap.at(CCAPI_MARKET_DEPTH_MAX));
     auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
@@ -49,20 +52,20 @@ class MarketDataServiceBitgetBase : public MarketDataService {
 
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
 
-  std::vector<std::string> createSendStringList(const WsConnection& wsConnection) override {
+  std::vector<std::string> createSendStringList(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("op", rj::Value("subscribe").Move(), allocator);
     rj::Value args(rj::kArrayType);
-    for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id)) {
+    for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id)) {
       auto channelId = subscriptionListByChannelIdSymbolId.first;
       for (const auto& subscriptionListBySymbolId : subscriptionListByChannelIdSymbolId.second) {
         std::string symbolId = subscriptionListBySymbolId.first;
         if (channelId == CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS1 || channelId == CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS5 ||
             channelId == CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS15) {
-          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId] = true;
+          this->l2UpdateIsReplaceByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId] = true;
         }
         std::string exchangeSubscriptionId = UtilString::split(channelId, "?").at(0) + ":" + symbolId;
         rj::Value arg(rj::kObjectType);
@@ -71,8 +74,8 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         arg.AddMember("channel", rj::Value(channelId.c_str(), allocator).Move(), allocator);
         arg.AddMember("instId", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
         args.PushBack(arg, allocator);
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
-        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnection.id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_CHANNEL_ID] = channelId;
+        this->channelIdSymbolIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId][CCAPI_SYMBOL_ID] = symbolId;
       }
     }
     document.AddMember("args", args, allocator);
@@ -91,12 +94,12 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     std::vector<std::string> csData;
     while (i < 25 && (i1 != snapshotBid.rend() || i2 != snapshotAsk.end())) {
       if (i1 != snapshotBid.rend()) {
-        csData.push_back(toString(i1->first));
+        csData.push_back(ConvertDecimalToString(i1->first));
         csData.push_back(i1->second);
         ++i1;
       }
       if (i2 != snapshotAsk.end()) {
-        csData.push_back(toString(i2->first));
+        csData.push_back(ConvertDecimalToString(i2->first));
         csData.push_back(i2->second);
         ++i2;
       }
@@ -109,16 +112,14 @@ class MarketDataServiceBitgetBase : public MarketDataService {
 
   void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    WsConnection& wsConnection = *wsConnectionPtr;
-    std::string textMessage(textMessageView);
-
-    if (textMessage != "pong") {
-      rj::Document document;
-      document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    if (textMessageView != "pong") {
+      this->jsonDocumentAllocator.Clear();
+      rj::Document document(&this->jsonDocumentAllocator);
+      document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
       auto it = document.FindMember("event");
       std::string eventStr = it != document.MemberEnd() ? it->value.GetString() : "";
       // if (eventStr == "login") {
-      //   this->startSubscribe(wsConnection);
+      //   this->startSubscribe(*wsConnectionPtr);
       // } else {
       if (!eventStr.empty()) {
         if (eventStr == "subscribe") {
@@ -127,17 +128,17 @@ class MarketDataServiceBitgetBase : public MarketDataService {
           Message message;
           message.setTimeReceived(timeReceived);
           std::vector<std::string> correlationIdList;
-          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnection.id) !=
+          if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.find(wsConnectionPtr->id) !=
               this->correlationIdListByConnectionIdChannelIdSymbolIdMap.end()) {
             const rj::Value& arg = document["arg"];
             std::string channelId = arg["channel"].GetString();
             std::string symbolId = arg["instId"].GetString();
-            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).find(channelId) !=
-                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).end()) {
-              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).find(symbolId) !=
-                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).end()) {
+            if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).find(channelId) !=
+                this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).end()) {
+              if (this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).find(symbolId) !=
+                  this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).end()) {
                 std::vector<std::string> correlationIdList_2 =
-                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnection.id).at(channelId).at(symbolId);
+                    this->correlationIdListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id).at(channelId).at(symbolId);
                 correlationIdList.insert(correlationIdList.end(), correlationIdList_2.begin(), correlationIdList_2.end());
               }
             }
@@ -145,7 +146,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
           message.setCorrelationIdList(correlationIdList);
           message.setType(Message::Type::SUBSCRIPTION_STARTED);
           Element element;
-          element.insert(CCAPI_INFO_MESSAGE, textMessage);
+          element.insert(CCAPI_INFO_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
           event.setMessageList(messageList);
@@ -156,7 +157,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
           message.setTimeReceived(timeReceived);
           message.setType(Message::Type::SUBSCRIPTION_FAILURE);
           Element element;
-          element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+          element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
           event.setMessageList(messageList);
@@ -173,7 +174,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
             if (this->sessionOptions.enableCheckOrderBookChecksum) {
               auto it = datum.FindMember("checksum");
               if (it != datum.MemberEnd()) {
-                this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnection.id][symbolId] =
+                this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnectionPtr->id][symbolId] =
                     intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoi(it->value.GetString()))));
               }
             }
@@ -183,7 +184,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
             marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
             if (channelId == CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS1 || channelId == CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS5 ||
                 channelId == CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS15) {
-              if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnection.id][channelId][symbolId]) {
+              if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId]) {
                 marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
               } else {
                 marketDataMessage.recapType = MarketDataMessage::RecapType::SOLICITED;
@@ -194,22 +195,22 @@ class MarketDataServiceBitgetBase : public MarketDataService {
             for (const auto& x : datum["bids"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
-                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
-                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
+                dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+                dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
               } else {
-                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+                dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
+                dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
               }
               marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             }
             for (const auto& x : datum["asks"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
               if (this->sessionOptions.enableCheckOrderBookChecksum) {
-                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, x[0].GetString()});
-                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, x[1].GetString()});
+                dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+                dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
               } else {
-                dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(x[0].GetString())});
-                dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(x[1].GetString())});
+                dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
+                dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
               }
               marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
@@ -225,10 +226,10 @@ class MarketDataServiceBitgetBase : public MarketDataService {
             marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             MarketDataMessage::TypeForDataPoint dataPoint;
-            dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["price"].GetString())});
-            dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["size"].GetString())});
-            dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "Buy" ? "1" : "0"});
-            dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, std::string(datum["tradeId"].GetString())});
+            dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(datum["price"].GetString()));
+            dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(datum["size"].GetString()));
+            dataPoint.emplace(MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string_view(datum["side"].GetString()) == "Buy" ? "1" : "0");
+            dataPoint.emplace(MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString());
             marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
@@ -240,12 +241,12 @@ class MarketDataServiceBitgetBase : public MarketDataService {
             marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum[0].GetString())));
             marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
             MarketDataMessage::TypeForDataPoint dataPoint;
-            dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, datum[1].GetString()});
-            dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, datum[2].GetString()});
-            dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, datum[3].GetString()});
-            dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, datum[4].GetString()});
-            dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, datum[5].GetString()});
-            dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, datum[6].GetString()});
+            dataPoint.emplace(MarketDataMessage::DataFieldType::OPEN_PRICE, datum[1].GetString());
+            dataPoint.emplace(MarketDataMessage::DataFieldType::HIGH_PRICE, datum[2].GetString());
+            dataPoint.emplace(MarketDataMessage::DataFieldType::LOW_PRICE, datum[3].GetString());
+            dataPoint.emplace(MarketDataMessage::DataFieldType::CLOSE_PRICE, datum[4].GetString());
+            dataPoint.emplace(MarketDataMessage::DataFieldType::VOLUME, datum[5].GetString());
+            dataPoint.emplace(MarketDataMessage::DataFieldType::QUOTE_VOLUME, datum[6].GetString());
             marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
             marketDataMessageList.emplace_back(std::move(marketDataMessage));
           }
@@ -268,7 +269,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
       } break;
       case Request::Operation::GET_BBOS: {
         req.method(http::verb::get);
-        auto target = (symbolId.empty()) ? this->getBboTarget : this->getBbosTarget;
+        auto target = (symbolId.empty()) ? this->getBbosTarget : this->getBbosTarget;
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param,
@@ -399,10 +400,11 @@ class MarketDataServiceBitgetBase : public MarketDataService {
     }
   }
 
-  void convertTextMessageToMarketDataMessage(const Request& request, const std::string& textMessage, const TimePoint& timeReceived, Event& event,
+  void convertTextMessageToMarketDataMessage(const Request& request, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
                                              std::vector<MarketDataMessage>& marketDataMessageList) override {
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     switch (request.getOperation()) {
       case Request::Operation::GET_SERVER_TIME: {
         Message message;
@@ -455,10 +457,10 @@ class MarketDataServiceBitgetBase : public MarketDataService {
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_TRADE;
           marketDataMessage.tp = TimePoint(std::chrono::milliseconds(std::stoll(datum["ts"].GetString())));
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalString(datum["price"].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalString(datum["size"].GetString())});
-          dataPoint.insert({MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string(datum["side"].GetString()) == "Buy" ? "1" : "0"});
+          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(datum["price"].GetString()));
+          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(datum["size"].GetString()));
+          dataPoint.emplace(MarketDataMessage::DataFieldType::TRADE_ID, datum["tradeId"].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string_view(datum["side"].GetString()) == "Buy" ? "1" : "0");
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
@@ -470,12 +472,12 @@ class MarketDataServiceBitgetBase : public MarketDataService {
           marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_CANDLESTICK;
           marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(datum[0].GetString()));
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.insert({MarketDataMessage::DataFieldType::OPEN_PRICE, datum[1].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::HIGH_PRICE, datum[2].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::LOW_PRICE, datum[3].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::CLOSE_PRICE, datum[4].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::VOLUME, datum[5].GetString()});
-          dataPoint.insert({MarketDataMessage::DataFieldType::QUOTE_VOLUME, datum[6].GetString()});
+          dataPoint.emplace(MarketDataMessage::DataFieldType::OPEN_PRICE, datum[1].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::HIGH_PRICE, datum[2].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::LOW_PRICE, datum[3].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::CLOSE_PRICE, datum[4].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::VOLUME, datum[5].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::QUOTE_VOLUME, datum[6].GetString());
           marketDataMessage.data[MarketDataMessage::DataType::CANDLESTICK].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
@@ -485,7 +487,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
         message.setTimeReceived(timeReceived);
         message.setType(this->requestOperationToMessageTypeMap.at(request.getOperation()));
         for (const auto& x : document["data"].GetArray()) {
-          if (std::string(x["symbol"].GetString()) == request.getInstrument()) {
+          if (std::string_view(x["symbol"].GetString()) == request.getInstrument()) {
             Element element;
             this->extractInstrumentInfo(element, x);
             message.setElementList({element});
@@ -517,6 +519,7 @@ class MarketDataServiceBitgetBase : public MarketDataService {
   bool isDerivatives{};
   std::string instrumentType{"SPOT"};
 };
+
 } /* namespace ccapi */
 #endif
 #endif

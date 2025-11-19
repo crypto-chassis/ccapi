@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service_binance_base.h"
 
 namespace ccapi {
+
 class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
  public:
   MarketDataServiceBinance(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/stream";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_BINANCE_API_KEY;
     this->setupCredential({this->apiKeyName});
     this->getRecentTradesTarget = "/api/v3/trades";
@@ -32,6 +33,7 @@ class MarketDataServiceBinance : public MarketDataServiceBinanceBase {
 
   virtual ~MarketDataServiceBinance() {}
 };
+
 } /* namespace ccapi */
 #endif
 #endif

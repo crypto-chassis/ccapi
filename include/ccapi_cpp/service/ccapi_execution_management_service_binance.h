@@ -8,6 +8,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinance(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -15,12 +16,19 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
       : ExecutionManagementServiceBinanceBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BINANCE;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
+    this->baseUrlWsOrderEntry = sessionConfigs.getUrlWebsocketOrderEntryBase().at(this->exchangeName) + CCAPI_BINANCE_WS_ORDER_ENTRY_PATH;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWsOrderEntry(this->baseUrlWsOrderEntry);
     this->apiKeyName = CCAPI_BINANCE_API_KEY;
     this->apiSecretName = CCAPI_BINANCE_API_SECRET;
-    this->setupCredential({this->apiKeyName, this->apiSecretName});
+    this->websocketOrderEntryApiKeyName = CCAPI_BINANCE_WEBSOCKET_ORDER_ENTRY_API_KEY;
+    this->websocketOrderEntryApiPrivateKeyPathName = CCAPI_BINANCE_WEBSOCKET_ORDER_ENTRY_API_PRIVATE_KEY_PATH;
+    this->websocketOrderEntryApiPrivateKeyPasswordName = CCAPI_BINANCE_WEBSOCKET_ORDER_ENTRY_API_PRIVATE_KEY_PASSWORD;
+    this->setupCredential({this->apiKeyName, this->apiSecretName, this->websocketOrderEntryApiKeyName, this->websocketOrderEntryApiPrivateKeyPathName,
+                           this->websocketOrderEntryApiPrivateKeyPasswordName});
+    this->websocketOrderEntryHost = CCAPI_BINANCE_HOST_WS_ORDER_ENTRY;
     this->createOrderTarget = CCAPI_BINANCE_CREATE_ORDER_PATH;
     this->cancelOrderTarget = "/api/v3/order";
     this->getOrderTarget = "/api/v3/order";
@@ -41,6 +49,7 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
 
   virtual ~ExecutionManagementServiceBinance() {}
 };
+
 } /* namespace ccapi */
 #endif
 #endif

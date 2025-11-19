@@ -5,26 +5,27 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
  public:
   ExecutionManagementServiceCryptocom(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                       ServiceContextPtr serviceContextPtr)
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_CRYPTOCOM;
-    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v2/user";
+    this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/exchange/v1/user";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_CRYPTOCOM_API_KEY;
     this->apiSecretName = CCAPI_CRYPTOCOM_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
-    this->pathPrefix = "/v2/";
+    this->hostHttpHeaderValueIgnorePort = true;
+    this->pathPrefix = "/exchange/v1/";
     this->createOrderMethod = "private/create-order";
     this->cancelOrderMethod = "private/cancel-order";
     this->getOrderMethod = "private/get-order-detail";
     this->getOpenOrdersMethod = "private/get-open-orders";
     this->cancelOpenOrdersMethod = "private/cancel-all-orders";
-    this->getAccountBalancesMethod = "private/get-account-summary";
+    this->getAccountBalancesMethod = "private/user-balance";
   }
 
   virtual ~ExecutionManagementServiceCryptocom() {}
@@ -160,7 +161,8 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
       } break;
       case Request::Operation::CREATE_ORDER: {
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        param.emplace("broker_id", CCAPI_CRYPTOCOM_BROKER_CODE);
         this->prepareReq(req, param, now, symbolId, credential, this->createOrderMethod,
                          {
                              {CCAPI_EM_CLIENT_ORDER_ID, "client_oid"},
@@ -193,22 +195,20 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        this->prepareReq(req, param, now, symbolId, credential, this->getAccountBalancesMethod,
-                         {
-                             {CCAPI_EM_ASSET, "currency"},
-                         });
+        this->prepareReq(req, param, now, symbolId, credential, this->getAccountBalancesMethod);
       } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
   }
 
-  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, const WsConnection& wsConnection, const Request& request,
-                                  unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
+  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
+                                  const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
                                   const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        param.emplace("broker_id", CCAPI_CRYPTOCOM_BROKER_CODE);
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         std::map<std::string, std::string> paramCopy;
@@ -254,7 +254,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
         document.AddMember("nonce", rj::Value(nonce).Move(), allocator);
       } break;
       default:
-        this->convertRequestForWebsocketCustom(document, allocator, wsConnection, request, wsRequestId, now, symbolId, credential);
+        this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
     }
   }
 
@@ -264,31 +264,31 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
   }
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request::Operation operation, const rj::Document& document) {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("quantity", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumulative_quantity", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("cumulative_value", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("cumulative_value", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_name", JsonDataType::STRING)},
     };
-    if (operation == Request::Operation::CREATE_ORDER) {
+    if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::CANCEL_ORDER) {
       Element element;
       this->extractOrderInfo(element, document["result"], extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_ORDER) {
       Element element;
-      this->extractOrderInfo(element, document["result"]["order_info"], extractionFieldNameMap);
+      this->extractOrderInfo(element, document["result"], extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
     } else if (operation == Request::Operation::GET_OPEN_ORDERS) {
-      for (const auto& x : document["result"]["order_list"].GetArray()) {
+      for (const auto& x : document["result"]["data"].GetArray()) {
         Element element;
         this->extractOrderInfo(element, x, extractionFieldNameMap);
         elementList.emplace_back(std::move(element));
       }
-    } else if (operation == Request::Operation::CANCEL_ORDER || operation == Request::Operation::CANCEL_OPEN_ORDERS) {
+    } else if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       Element element;
       elementList.emplace_back(std::move(element));
     }
@@ -299,13 +299,14 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         Element element;
-        for (const auto& x : document["result"]["accounts"].GetArray()) {
-          if (std::string(x["balance"].GetString()) == "0") {
+        for (const auto& x : document["result"]["data"][0]["position_balances"].GetArray()) {
+          if (Decimal(x["quantity"].GetString()) == Decimal::zero) {
             continue;
           }
-          element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["balance"].GetString());
+          element.insert(CCAPI_EM_ASSET, x["instrument_name"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING,
+                         ConvertDecimalToString(Decimal(x["quantity"].GetString()) - Decimal(x["reserved_qty"].GetString())));
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["quantity"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -314,8 +315,8 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     }
   }
 
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     std::vector<std::string> sendStringList;
     rj::Document document;
     document.SetObject();
@@ -333,9 +334,9 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
 
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-    std::string textMessage(textMessageView);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
@@ -344,8 +345,6 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
 
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
-    std::string textMessage(textMessageView);
-
     Event event;
     std::vector<Message> messageList;
     Message message;
@@ -364,14 +363,14 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
             event.setType(Event::Type::SUBSCRIPTION_STATUS);
             message.setType(Message::Type::SUBSCRIPTION_FAILURE);
             Element element;
-            element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+            element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
             message.setElementList({element});
             messageList.emplace_back(std::move(message));
           } else {
             event.setType(Event::Type::SUBSCRIPTION_STATUS);
             message.setType(Message::Type::SUBSCRIPTION_STARTED);
             Element element;
-            element.insert(CCAPI_INFO_MESSAGE, textMessage);
+            element.insert(CCAPI_INFO_MESSAGE, textMessageView);
             message.setElementList({element});
             messageList.emplace_back(std::move(message));
           }
@@ -397,31 +396,32 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
               message.setTimeReceived(timeReceived);
               message.setCorrelationIdList({subscription.getCorrelationId()});
               message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
-              message.setTime(TimePoint(std::chrono::milliseconds(std::stoll(x["create_time"].GetString()))));
+              message.setTime(TimePoint(std::chrono::nanoseconds(std::stoll(x["transaction_time"].GetString()))));
               std::vector<Element> elementList;
               Element element;
-              element.insert(CCAPI_TRADE_ID, std::string(x["trade_id"].GetString()));
-              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, std::string(x["traded_price"].GetString()));
-              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, std::string(x["traded_quantity"].GetString()));
-              element.insert(CCAPI_EM_ORDER_SIDE, std::string(x["side"].GetString()) == "BUY" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-              element.insert(CCAPI_IS_MAKER, std::string(x["liquidity_indicator"].GetString()) == "MAKER" ? "1" : "0");
-              element.insert(CCAPI_EM_ORDER_ID, std::string(x["order_id"].GetString()));
-              element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(x["fee"].GetString()));
-              element.insert(CCAPI_EM_ORDER_FEE_ASSET, std::string(x["fee_currency"].GetString()));
+              element.insert(CCAPI_TRADE_ID, x["trade_id"].GetString());
+              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["traded_price"].GetString());
+              element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["traded_quantity"].GetString());
+              element.insert(CCAPI_EM_ORDER_SIDE, std::string_view(x["side"].GetString()) == "BUY" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+              element.insert(CCAPI_IS_MAKER, std::string_view(x["taker_side"].GetString()) == "MAKER" ? "1" : "0");
+              element.insert(CCAPI_EM_ORDER_ID, x["order_id"].GetString());
+              element.insert(CCAPI_EM_CLIENT_ORDER_ID, x["client_oid"].GetString());
+              element.insert(CCAPI_EM_ORDER_INSTRUMENT, x["instrument_name"].GetString());
+              element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, x["fees"].GetString());
+              element.insert(CCAPI_EM_ORDER_FEE_ASSET, x["fee_instrument_name"].GetString());
               elementList.emplace_back(std::move(element));
               message.setElementList(elementList);
               messageList.emplace_back(std::move(message));
             }
           } else if (field == CCAPI_EM_ORDER_UPDATE && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
-            const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+            const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
                 {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
                 {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_oid", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_QUANTITY, std::make_pair("quantity", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumulative_quantity", JsonDataType::STRING)},
-                {CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY, std::make_pair("cumulative_value", JsonDataType::STRING)},
+                {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("cumulative_value", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
                 {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_name", JsonDataType::STRING)},
             };
@@ -448,7 +448,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
         if (code != "0") {
           message.setType(Message::Type::RESPONSE_ERROR);
           Element element;
-          element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+          element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
         } else {
@@ -485,7 +485,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_CONNECTION_ID, wsConnectionPtr->id);
           element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
-          element.insert(CCAPI_ERROR_MESSAGE, textMessage);
+          element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
         } else {
@@ -494,7 +494,7 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
           Element element;
           element.insert(CCAPI_CONNECTION_ID, wsConnectionPtr->id);
           element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
-          element.insert(CCAPI_INFO_MESSAGE, textMessage);
+          element.insert(CCAPI_INFO_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
           rj::Document document;
@@ -508,9 +508,9 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
             for (const auto& field : fieldSet) {
               std::string exchangeSubscriptionId;
               if (field == CCAPI_EM_ORDER_UPDATE) {
-                exchangeSubscriptionId = "user.order.";
+                exchangeSubscriptionId = "user.order";
               } else if (field == CCAPI_EM_PRIVATE_TRADE) {
-                exchangeSubscriptionId = "user.trade.";
+                exchangeSubscriptionId = "user.trade";
               }
               channels.PushBack(rj::Value(exchangeSubscriptionId.c_str(), allocator).Move(), allocator);
             }
@@ -550,6 +550,26 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
     return event;
   }
 
+  void logonToExchange(std::shared_ptr<WsConnection> wsConnectionPtr, const TimePoint& now, const std::map<std::string, std::string>& credential) override {
+    TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::seconds(1)));
+    timerPtr->async_wait([wsConnectionPtr, credential, that = shared_from_base<ExecutionManagementServiceCryptocom>()](ErrorCode const& ec) {
+      if (ec) {
+        return;
+      }
+      auto now = UtilTime::now();
+      that->ExecutionManagementService::logonToExchange(wsConnectionPtr, now, credential);
+    });
+    this->firstSubscribeDelayTimerMapByConnectionIdMap[wsConnectionPtr->id] = timerPtr;
+  }
+
+  void onClose(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode ec) override {
+    if (this->firstSubscribeDelayTimerMapByConnectionIdMap.find(wsConnectionPtr->id) != this->firstSubscribeDelayTimerMapByConnectionIdMap.end()) {
+      this->firstSubscribeDelayTimerMapByConnectionIdMap.at(wsConnectionPtr->id)->cancel();
+      this->firstSubscribeDelayTimerMapByConnectionIdMap.erase(wsConnectionPtr->id);
+    }
+    ExecutionManagementService::onClose(wsConnectionPtr, ec);
+  }
+
   std::string pathPrefix;
   std::string createOrderMethod;
   std::string cancelOrderMethod;
@@ -557,7 +577,9 @@ class ExecutionManagementServiceCryptocom : public ExecutionManagementService {
   std::string getOpenOrdersMethod;
   std::string cancelOpenOrdersMethod;
   std::string getAccountBalancesMethod;
+  std::map<std::string, TimerPtr> firstSubscribeDelayTimerMapByConnectionIdMap;
 };
+
 } /* namespace ccapi */
 #endif
 #endif

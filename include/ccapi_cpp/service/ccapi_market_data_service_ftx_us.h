@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service_ftx_base.h"
 
 namespace ccapi {
+
 class MarketDataServiceFtxUs : public MarketDataServiceFtxBase {
  public:
   MarketDataServiceFtxUs(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class MarketDataServiceFtxUs : public MarketDataServiceFtxBase {
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     try {
       this->tcpResolverResultsRest = this->resolver.resolve(this->hostRest, this->portRest);
     } catch (const std::exception& e) {
@@ -30,6 +31,7 @@ class MarketDataServiceFtxUs : public MarketDataServiceFtxBase {
 
   virtual ~MarketDataServiceFtxUs() {}
 };
+
 } /* namespace ccapi */
 #endif
 #endif

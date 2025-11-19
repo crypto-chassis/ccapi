@@ -49,9 +49,15 @@ add_custom_target(
     ${PACKAGING_DIR_FULL}
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${SWIG_TARGET_NAME}>
           ${PACKAGING_DIR_FULL}
-  COMMAND ${Python_EXECUTABLE} -m pip install --upgrade setuptools wheel
-  COMMAND ${Python_EXECUTABLE} setup.py bdist_wheel
-  COMMAND ${Python_EXECUTABLE} -m pip install --upgrade .
+  # ----- modern part -----
+  # ensure the wheel-building front-end is available
+  COMMAND ${Python_EXECUTABLE} -m pip install --upgrade build
+  # build a wheel via PEP 517 backend (uses pyproject.toml if present,
+  # falls back to setup.py automatically)
+  COMMAND ${Python_EXECUTABLE} -m build --wheel
+  # install the freshly-built wheel
+  COMMAND ${Python_EXECUTABLE} -m pip install --force-reinstall dist/*.whl
+  # -----------------------
   WORKING_DIRECTORY ${PACKAGING_DIR_FULL})
 add_dependencies(${PYTHON_PACKAGING_TARGET_NAME} ${SWIG_TARGET_NAME})
 

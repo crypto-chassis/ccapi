@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_binance_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagementServiceBinanceBase {
  public:
   ExecutionManagementServiceBinanceDerivativesBase(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions,
@@ -36,9 +37,6 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_POSITIONS: {
         for (const auto& x : document.GetArray()) {
-          Element element;
-          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
-          element.insert(CCAPI_EM_POSITION_SIDE, x["positionSide"].GetString());
           std::string positionAmt;
           auto it = x.FindMember("positionAmt");
           if (it != x.MemberEnd()) {
@@ -46,16 +44,23 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
           } else {
             positionAmt = x["maxQty"].GetString();
           }
-          element.insert(CCAPI_EM_POSITION_QUANTITY, positionAmt);
-          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["entryPrice"].GetString());
-          element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
-          if (x.HasMember("unrealizedProfit")) {
-            element.insert(CCAPI_EM_UNREALIZED_PNL, x["unrealizedProfit"].GetString());
-          } else {
-            element.insert(CCAPI_EM_UNREALIZED_PNL, x["unRealizedProfit"].GetString());
+          if (!positionAmt.empty()) {
+            const auto& positionAmtDecimal = Decimal(positionAmt);
+            if (positionAmtDecimal != Decimal::zero) {
+              Element element;
+              element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+              element.insert(CCAPI_EM_POSITION_SIDE, x["positionSide"].GetString());
+              element.insert(CCAPI_EM_POSITION_QUANTITY, positionAmt);
+              element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["entryPrice"].GetString());
+              if (x.HasMember("unrealizedProfit")) {
+                element.insert(CCAPI_EM_UNREALIZED_PNL, x["unrealizedProfit"].GetString());
+              } else {
+                element.insert(CCAPI_EM_UNREALIZED_PNL, x["unRealizedProfit"].GetString());
+              }
+              element.insert(CCAPI_LAST_UPDATED_TIME_SECONDS, UtilTime::convertMillisecondsStrToSecondsStr(x["updateTime"].GetString()));
+              elementList.emplace_back(std::move(element));
+            }
           }
-          element.insert(CCAPI_LAST_UPDATED_TIME_SECONDS, UtilTime::convertMillisecondsStrToSecondsStr(x["updateTime"].GetString()));
-          elementList.emplace_back(std::move(element));
         }
       } break;
       default:
@@ -63,6 +68,7 @@ class ExecutionManagementServiceBinanceDerivativesBase : public ExecutionManagem
     }
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

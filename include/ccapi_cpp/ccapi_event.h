@@ -6,6 +6,7 @@
 #include "ccapi_cpp/ccapi_message.h"
 
 namespace ccapi {
+
 /**
 ** A single event resulting from a subscription or a request. Event objects are created by the API and passed to the application either through a registered
 *EventHandler or EventQueue. Event objects contain Message objects which can be accessed using the getMessageList() function. The Event object is a handle to an
@@ -24,6 +25,7 @@ class Event {
     AUTHORIZATION_STATUS,
     FIX,
     FIX_STATUS,
+    HEARTBEAT,
   };
 
   static std::string typeToString(Type type) {
@@ -56,6 +58,9 @@ class Event {
       case Type::FIX_STATUS:
         output = "FIX_STATUS";
         break;
+      case Type::HEARTBEAT:
+        output = "HEARTBEAT";
+        break;
       default:
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
@@ -67,11 +72,11 @@ class Event {
     return output;
   }
 
-  std::string toStringPretty(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
+  std::string toPrettyString(const int space = 2, const int leftToIndent = 0, const bool indentFirstLine = true) const {
     std::string sl(leftToIndent, ' ');
     std::string ss(leftToIndent + space, ' ');
     std::string output = (indentFirstLine ? sl : "") + "Event [\n" + ss + "type = " + typeToString(type) + ",\n" + ss +
-                         "messageList = " + ccapi::toStringPretty(messageList, space, leftToIndent + space, false) + "\n" + sl + "]";
+                         "messageList = " + ccapi::toPrettyString(messageList, space, leftToIndent + space, false) + "\n" + sl + "]";
     return output;
   }
 
@@ -108,5 +113,6 @@ class Event {
   Type type{Type::UNKNOWN};
   std::vector<Message> messageList;
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_EVENT_H_

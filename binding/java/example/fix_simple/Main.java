@@ -13,9 +13,9 @@ import com.cryptochassis.ccapi.VectorPairIntString;
 public class Main {
   static class MyEventHandler extends EventHandler {
     @Override
-    public boolean processEvent(Event event, Session session) {
+    public void processEvent(Event event, Session session) {
       if (event.getType() == Event.Type.AUTHORIZATION_STATUS) {
-        System.out.println(String.format("Received an event of type AUTHORIZATION_STATUS:\n%s", event.toStringPretty(2, 2)));
+        System.out.println(String.format("Received an event of type AUTHORIZATION_STATUS:\n%s", event.toPrettyString(2, 2)));
         var message = event.getMessageList().get(0);
         if (message.getType() == Message.Type.AUTHORIZATION_SUCCESS) {
           var request = new Request(Request.Operation.FIX, "coinbase", "", "same correlation id for subscription and request");
@@ -28,14 +28,13 @@ public class Main {
           param.add(new PairIntString(38, "0.001"));
           param.add(new PairIntString(40, "2"));
           param.add(new PairIntString(59, "1"));
-          request.appendParamFix(param);
+          request.appendFixParam(param);
           session.sendRequestByFix(request);
         }
       } else if (event.getType() == Event.Type.FIX) {
-        System.out.println(String.format("Received an event of type FIX:\n%s", event.toStringPretty(2, 2)));
+        System.out.println(String.format("Received an event of type FIX:\n%s", event.toPrettyString(2, 2)));
       }
-      return true;
-    }
+          }
   }
   public static void main(String[] args) {
     if (System.getenv("COINBASE_API_KEY") == null) {
@@ -56,7 +55,7 @@ public class Main {
     var config = new SessionConfigs();
     var session = new Session(option, config, eventHandler);
     var subscription = new Subscription("coinbase", "", "FIX", "", "same correlation id for subscription and request");
-    session.subscribeByFix(subscription);
+    session.subscribe(subscription);
     try {
       Thread.sleep(10000);
     } catch (InterruptedException e) {

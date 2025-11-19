@@ -6,7 +6,9 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_huobi_usdt_swap.h"
 
 // clang-format on
+
 namespace ccapi {
+
 class ExecutionManagementServiceHuobiUsdtSwapTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
@@ -283,8 +285,8 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "17");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "1");
-  CCAPI_LOGGER_DEBUG(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY));
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 50);
+  CCAPI_LOGGER_DEBUG(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY));
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY)), 50);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "6");
 }
 
@@ -363,7 +365,7 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertTextMessageToMessageR
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "1");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "80");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "0");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY)), 0);
 }
 
 TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, convertRequestGetAccountBalances) {
@@ -624,8 +626,9 @@ TEST_F(ExecutionManagementServiceHuobiUsdtSwapTest, createEventOrderData) {
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "8");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "6");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 400000);
+  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY)), 400000);
 }
+
 } /* namespace ccapi */
 #endif
 #endif

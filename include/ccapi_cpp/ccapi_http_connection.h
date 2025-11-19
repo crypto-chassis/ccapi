@@ -6,11 +6,15 @@
 namespace beast = boost::beast;
 
 namespace ccapi {
+
 class HttpConnection {
   /**
    * This class represents a TCP socket connection for the REST API.
    */
  public:
+  HttpConnection(const HttpConnection&) = delete;
+  HttpConnection& operator=(const HttpConnection&) = delete;
+
   HttpConnection(std::string host, std::string port, std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr)
       : host(host), port(port), streamPtr(streamPtr) {}
 
@@ -22,10 +26,15 @@ class HttpConnection {
     return output;
   }
 
+  void clearBuffer() { this->buffer.consume(this->buffer.size()); }
+
   std::string host;
   std::string port;
-  std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr;
+  std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr{nullptr};
   TimePoint lastReceiveDataTp{std::chrono::seconds{0}};
+
+  boost::beast::flat_buffer buffer;
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_HTTP_CONNECTION_H_

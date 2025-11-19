@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 
 namespace ccapi {
+
 TEST(UtilAlgorithmTest, base64) {
   std::string original("+xT7GWTDRHi09EZEhkOC8S7ktzngKtoT1ZoZ6QclGURlq3ePfUd7kLQzK4+P54685NEqYDaIerYj9cuYFILOhQ==");
   auto result = UtilAlgorithm::base64Encode(UtilAlgorithm::base64Decode(original));
@@ -128,6 +129,12 @@ TEST(UtilStringTest, normalizeDecimalString_5) {
   EXPECT_EQ(UtilString::normalizeDecimalString(original.c_str()), "1.1");
 }
 
+TEST(UtilStringTest, normalizeDecimalString_6) {
+  std::string original("1.1e10");
+  EXPECT_EQ(UtilString::normalizeDecimalString(original), "1.1e10");
+  EXPECT_EQ(UtilString::normalizeDecimalStringView(original), "1.1e10");
+}
+
 TEST(UtilStringTest, toUpper) {
   std::string original("ab");
   EXPECT_EQ(UtilString::toUpper(original), "AB");
@@ -243,4 +250,5 @@ TEST(UtilTimeTest, convertMillisecondsStrToSecondsStr) {
   EXPECT_EQ(UtilTime::convertMillisecondsStrToSecondsStr("169782573030"), "169782573.030");
   EXPECT_EQ(UtilTime::convertMillisecondsStrToSecondsStr("0"), "0");
 }
+
 } /* namespace ccapi */

@@ -11,7 +11,7 @@ type MyEventHandler struct {
 	ccapi.EventHandler
 }
 
-func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bool {
+func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 	if event.GetType() == ccapi.EventType_SUBSCRIPTION_STATUS {
 		fmt.Printf("Received an event of type SUBSCRIPTION_STATUS:\n%s\n", event.ToStringPretty(2, 2))
 		message := event.GetMessageList().Get(0)
@@ -29,8 +29,7 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session) bo
 	} else if event.GetType() == ccapi.EventType_SUBSCRIPTION_DATA {
 		fmt.Printf("Received an event of type SUBSCRIPTION_DATA:\n%s\n", event.ToStringPretty(2, 2))
 	}
-	return true
-}
+	}
 
 func main() {
 	if len(os.Getenv("OKX_API_KEY")) == 0 {

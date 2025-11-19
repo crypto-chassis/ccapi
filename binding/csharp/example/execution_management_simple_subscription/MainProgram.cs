@@ -1,6 +1,6 @@
 class MainProgram {
   class MyEventHandler : ccapi.EventHandler {
-    public override bool ProcessEvent(ccapi.Event event_, ccapi.Session session) {
+    public override void ProcessEvent(ccapi.Event event_, ccapi.Session session) {
       if (event_.GetType_() == ccapi.Event.Type.SUBSCRIPTION_STATUS) {
         System.Console.WriteLine(string.Format("Received an event of type SUBSCRIPTION_STATUS:\n{0}", event_.ToStringPretty(2, 2)));
         var message = event_.GetMessageList()[0];
@@ -16,8 +16,7 @@ class MainProgram {
       } else if (event_.GetType_() == ccapi.Event.Type.SUBSCRIPTION_DATA) {
         System.Console.WriteLine(string.Format("Received an event of type SUBSCRIPTION_DATA:\n{0}", event_.ToStringPretty(2, 2)));
       }
-      return true;
-    }
+          }
   }
   static void Main(string[] args) {
     if (System.Environment.GetEnvironmentVariable("OKX_API_KEY") is null) {

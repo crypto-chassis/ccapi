@@ -6,7 +6,9 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_okx.h"
 
 // clang-format on
+
 namespace ccapi {
+
 class ExecutionManagementServiceOkxTest : public ::testing::Test {
  public:
   typedef Service::ServiceContextPtr ServiceContextPtr;
@@ -259,7 +261,6 @@ TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestGetOrde
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_SIDE), CCAPI_EM_ORDER_SIDE_BUY);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "323");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "3");
-  EXPECT_DOUBLE_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 6);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_STATUS), "live");
 }
 
@@ -344,7 +345,6 @@ void verifyconvertTextMessageToMessageRestGetOpenOrders(const ExecutionManagemen
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_QUANTITY), "3");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE), "999");
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY), "323");
-  EXPECT_EQ(std::stod(element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY)), 0);
   if (!isOneInstrument) {
     EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_INSTRUMENT), "BTC-USDT");
   }
@@ -581,7 +581,7 @@ TEST_F(ExecutionManagementServiceOkxTest, createEventFilled) {
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(WsConnection(), subscription, textMessage, document, "", this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -658,7 +658,7 @@ TEST_F(ExecutionManagementServiceOkxTest, createEventLive) {
 )";
   rj::Document document;
   document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
-  auto messageList = this->service->createEvent(WsConnection(), subscription, textMessage, document, "", this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, subscription.getCorrelationId());
   auto message = messageList.at(0);
@@ -676,7 +676,7 @@ TEST_F(ExecutionManagementServiceOkxTest, createEventLive) {
 }
 
 TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradePlaceOrder) {
-  Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
+  Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "any");
   std::string textMessage = R"(
     {
       "id": "1512",
@@ -699,7 +699,7 @@ TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradePlaceOrder) {
   WsConnection wsConnection;
   std::string requestCorrelationId("123");
   this->service->requestCorrelationIdByWsRequestIdByConnectionIdMap[wsConnection.id][1512] = requestCorrelationId;
-  auto messageList = this->service->createEvent(wsConnection, subscription, textMessage, document, "", this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, requestCorrelationId);
   auto message = messageList.at(0);
@@ -711,7 +711,7 @@ TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradePlaceOrder) {
 }
 
 TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradeCancelOrder) {
-  Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "same correlation id for subscription and request");
+  Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "any");
   std::string textMessage = R"(
     {
       "code": "0",
@@ -733,7 +733,7 @@ TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradeCancelOrder) 
   WsConnection wsConnection;
   std::string requestCorrelationId("123");
   this->service->requestCorrelationIdByWsRequestIdByConnectionIdMap[wsConnection.id][1] = requestCorrelationId;
-  auto messageList = this->service->createEvent(wsConnection, subscription, textMessage, document, "", this->now).getMessageList();
+  auto messageList = this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document, "", this->now).getMessageList();
   EXPECT_EQ(messageList.size(), 1);
   verifyCorrelationId(messageList, requestCorrelationId);
   auto message = messageList.at(0);
@@ -743,6 +743,7 @@ TEST_F(ExecutionManagementServiceOkxTest, createEventWebsocketTradeCancelOrder) 
   Element element = elementList.at(0);
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "325631903554482176");
 }
+
 } /* namespace ccapi */
 #endif
 #endif

@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_gateio_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceGateio : public ExecutionManagementServiceGateioBase {
  public:
   ExecutionManagementServiceGateio(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -14,7 +15,7 @@ class ExecutionManagementServiceGateio : public ExecutionManagementServiceGateio
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws/v4/";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_GATEIO_API_KEY;
     this->apiSecretName = CCAPI_GATEIO_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -33,6 +34,7 @@ class ExecutionManagementServiceGateio : public ExecutionManagementServiceGateio
 
   virtual ~ExecutionManagementServiceGateio() {}
 };
+
 } /* namespace ccapi */
 #endif
 #endif

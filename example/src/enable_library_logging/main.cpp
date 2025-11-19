@@ -1,6 +1,7 @@
 #include "ccapi_cpp/ccapi_session.h"
 
 namespace ccapi {
+
 class MyLogger final : public Logger {
  public:
   void logMessage(const std::string& severity, const std::string& threadId, const std::string& timeISO, const std::string& fileName,
@@ -15,6 +16,7 @@ class MyLogger final : public Logger {
 
 MyLogger myLogger;
 Logger* Logger::logger = &myLogger;
+
 } /* namespace ccapi */
 
 using ::ccapi::Session;

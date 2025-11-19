@@ -18,15 +18,17 @@
 #define CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ACCOUNT 0x700
 
 namespace ccapi {
+
 /**
  * A single request. Request objects are created using Request constructors. They are used with Session::sendRequest() or Session::sendRequestByWebsocket() or
  * Session::sendRequestByFix(). The Request object contains the parameters for a single request. Once a Request has been created its fields can be further
- * modified using the convenience functions appendParam() or appendParamFix() or setParamList() or setParamListFix(). A correlation id can be used as the unique
+ * modified using the convenience functions appendParam() or appendFixParam() or setParamList() or setParamListFix(). A correlation id can be used as the unique
  * identifier to tag all data associated with this request.
  */
 class Request {
  public:
   enum class Operation {
+    UNKNOWN = 0,
     CUSTOM = CCAPI_REQUEST_OPERATION_TYPE_CUSTOM,
     GENERIC_PUBLIC_REQUEST = CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PUBLIC_REQUEST,
     GENERIC_PRIVATE_REQUEST = CCAPI_REQUEST_OPERATION_TYPE_GENERIC_PRIVATE_REQUEST,
@@ -42,6 +44,7 @@ class Request {
     GET_INSTRUMENT,
     GET_INSTRUMENTS,
     GET_BBOS,
+    GET_TICKERS,
     CREATE_ORDER = CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER,
     CANCEL_ORDER,
     GET_ORDER,
@@ -57,6 +60,9 @@ class Request {
     switch (operation) {
       case Operation::CUSTOM:
         output = "CUSTOM";
+        break;
+      case Operation::UNKNOWN:
+        output = "UNKNOWN";
         break;
       case Operation::GENERIC_PUBLIC_REQUEST:
         output = "GENERIC_PUBLIC_REQUEST";
@@ -100,6 +106,9 @@ class Request {
       case Operation::GET_BBOS:
         output = "GET_BBOS";
         break;
+      case Operation::GET_TICKERS:
+        output = "GET_TICKERS";
+        break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
         break;
@@ -125,15 +134,13 @@ class Request {
         output = "GET_ACCOUNT_POSITIONS";
         break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        CCAPI_LOGGER_FATAL(std::string(CCAPI_UNSUPPORTED_VALUE) + " " + std::to_string(static_cast<int>(operation)));
     }
     return output;
   }
 
-  Request() {}
-
-  Request(Operation operation, const std::string& exchange, const std::string& instrument = "", const std::string& correlationId = "",
-          const std::map<std::string, std::string>& credential = {})
+  explicit Request(Operation operation = Operation::UNKNOWN, const std::string& exchange = "", const std::string& instrument = "",
+                   const std::string& correlationId = "", const std::map<std::string, std::string>& credential = {})
       : operation(operation), exchange(exchange), instrument(instrument), correlationId(correlationId), credential(credential) {
     if (operation == Operation::CUSTOM) {
       this->serviceName = CCAPI_UNKNOWN;
@@ -157,12 +164,11 @@ class Request {
       shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
     }
     std::string output =
-        "Request [exchange = " + exchange + ", marginType = " + marginType + ", instrument = " + instrument + ", serviceName = " + serviceName +
-        ", correlationId = " + correlationId +
+        "Request [operation = " + operationToString(operation) + ", exchange = " + exchange + ", marginType = " + marginType + ", instrument = " + instrument +
+        ", serviceName = " + serviceName + ", correlationId = " + correlationId +
         (this->serviceName == CCAPI_FIX ? ", paramListFix = " + ccapi::toString(paramListFix) : ", paramList = " + ccapi::toString(paramList)) +
-        ", credential = " + ccapi::toString(shortCredential) + ", operation = " + operationToString(operation) +
-        ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + ", index = " + ccapi::toString(index) + ", localIpAddress = " + localIpAddress +
-        ", baseUrl = " + baseUrl + "]";
+        ", credential = " + ccapi::toString(shortCredential) + ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + ", index = " + ccapi::toString(index) +
+        ", localIpAddress = " + localIpAddress + ", baseUrl = " + baseUrl + "]";
     return output;
   }
 
@@ -180,7 +186,7 @@ class Request {
 
   void appendParam(const std::map<std::string, std::string>& param) { this->paramList.push_back(param); }
 
-  void appendParamFix(const std::vector<std::pair<int, std::string>>& param) { this->paramListFix.push_back(param); }
+  void appendFixParam(const std::vector<std::pair<int, std::string>>& param) { this->paramListFix.push_back(param); }
 
   void appendParamListFix(const std::vector<std::vector<std::pair<int, std::string>>>& paramList) {
     this->paramListFix.insert(std::end(this->paramListFix), std::begin(paramList), std::end(paramList));
@@ -223,6 +229,10 @@ class Request {
 
   const std::string& getPort() const { return port; }
 
+  void setExchange(const std::string& exchange) { this->exchange = exchange; }
+
+  void setInstrument(const std::string& instrument) { this->instrument = instrument; }
+
   void setIndex(int index) { this->index = index; }
 
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
@@ -254,11 +264,43 @@ class Request {
       }
     }
   }
+
+  std::string generateNextClientOrderId() {
+    static int64_t lastClientOrderIdUnixTimestampInSeconds = 0;
+    static int64_t lastClientOrderIdSequenceNumber = 0;
+
+    const auto& now = UtilTime::now();
+    const auto& unixTimestampInSeconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+
+    if (lastClientOrderIdUnixTimestampInSeconds != unixTimestampInSeconds) {
+      lastClientOrderIdUnixTimestampInSeconds = unixTimestampInSeconds;
+      lastClientOrderIdSequenceNumber = 0;
+    } else {
+      ++lastClientOrderIdSequenceNumber;
+    }
+
+    std::string nextClientOrderId;
+    if (this->exchange == CCAPI_EXCHANGE_NAME_BINANCE) {
+      nextClientOrderId += "x-";
+      nextClientOrderId += CCAPI_BINANCE_API_LINK_ID;
+      nextClientOrderId += "-";
+    } else if (this->exchange == CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES || this->exchange == CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES) {
+      nextClientOrderId += "x-";
+      nextClientOrderId += CCAPI_BINANCE_USDS_FUTURES_API_LINK_ID;
+      nextClientOrderId += "-";
+    } else if (this->exchange == CCAPI_EXCHANGE_NAME_HUOBI) {
+      nextClientOrderId += CCAPI_HTX_BROKER_ID;
+      nextClientOrderId += "-";
+    }
+    nextClientOrderId += std::to_string(lastClientOrderIdUnixTimestampInSeconds);
+    nextClientOrderId += UtilString::leftPadTo(std::to_string(lastClientOrderIdSequenceNumber), CCAPI_EM_CLIENT_ORDER_ID_SEQUENCE_NUMBER_PAD_TO_LENGTH, '0');
+    return nextClientOrderId;
+  }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
 #endif
-  Operation operation;
+  Operation operation{Operation::UNKNOWN};
   std::string exchange;
   std::string marginType;
   std::string instrument;
@@ -274,5 +316,6 @@ class Request {
   std::string host;
   std::string port;
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_

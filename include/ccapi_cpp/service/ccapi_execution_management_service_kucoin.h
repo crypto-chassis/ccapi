@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_execution_management_service_kucoin_base.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceKucoin : public ExecutionManagementServiceKucoinBase {
  public:
   ExecutionManagementServiceKucoin(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -61,6 +62,7 @@ class ExecutionManagementServiceKucoin : public ExecutionManagementServiceKucoin
     }
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

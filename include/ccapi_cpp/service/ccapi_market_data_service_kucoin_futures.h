@@ -5,6 +5,7 @@
 #include "ccapi_cpp/service/ccapi_market_data_service_kucoin_base.h"
 
 namespace ccapi {
+
 class MarketDataServiceKucoinFutures : public MarketDataServiceKucoinBase {
  public:
   MarketDataServiceKucoinFutures(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -46,6 +47,7 @@ class MarketDataServiceKucoinFutures : public MarketDataServiceKucoinBase {
     element.insert(CCAPI_CONTRACT_MULTIPLIER, x["multiplier"].GetString());
   }
 };
+
 } /* namespace ccapi */
 #endif
 #endif

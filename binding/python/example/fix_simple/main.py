@@ -5,49 +5,55 @@ from ccapi import EventHandler, SessionOptions, SessionConfigs, Session, Subscri
 
 
 class MyEventHandler(EventHandler):
-    def __init__(self):
+    def __init__(self, fixSubscriptionCorrelationId):
         super().__init__()
+        self.fixSubscriptionCorrelationId = fixSubscriptionCorrelationId
+        self.sentRequest = False
+        self.firstProcessEventTime = None
 
-    def processEvent(self, event: Event, session: Session) -> bool:
-        if event.getType() == Event.Type_AUTHORIZATION_STATUS:
-            print(f"Received an event of type AUTHORIZATION_STATUS:\n{event.toStringPretty(2, 2)}")
-            message = event.getMessageList()[0]
-            if message.getType() == Message.Type_AUTHORIZATION_SUCCESS:
-                request = Request(Request.Operation_FIX, "coinbase", "", "same correlation id for subscription and request")
-                request.appendParamFix(
-                    [
-                        (35, "D"),
-                        (11, "6d4eb0fb-2229-469f-873e-557dd78ac11e"),
-                        (55, "BTC-USD"),
-                        (54, "1"),
-                        (44, "20000"),
-                        (38, "0.001"),
-                        (40, "2"),
-                        (59, "1"),
-                    ]
-                )
-                session.sendRequestByFix(request)
-        elif event.getType() == Event.Type_FIX:
-            print(f"Received an event of type FIX:\n{event.toStringPretty(2, 2)}")
-        return True  # This line is needed.
+    def processEvent(self, event: Event, session: Session) -> None:
+        if event.getType() != Event.Type_HEARTBEAT:
+            print(f"Received an event:\n{event.toPrettyString(2, 2)}")
+        if self.firstProcessEventTime is None:
+            self.firstProcessEventTime = time.time()
+            elapsedSeconds = 0
+        else:
+            elapsedSeconds = time.time() - self.firstProcessEventTime
+
+        if elapsedSeconds >= 1 and not self.sentRequest:
+            self.sentRequest = True
+            request = Request(Request.Operation_FIX, "binance")
+            request.appendFixParam(
+                [
+                    (35, "D"),
+                    (11, request.generateNextClientOrderId()),
+                    (55, "BTCUSDT"),
+                    (54, "1"),
+                    (44, "100000"),
+                    (38, "0.0001"),
+                    (40, "2"),
+                    (59, "1"),
+                ]
+            )
+            session.sendRequestByFix(self.fixSubscriptionCorrelationId, request)
 
 
 if __name__ == "__main__":
-    if not os.environ.get("COINBASE_API_KEY"):
-        print("Please set environment variable COINBASE_API_KEY", file=sys.stderr)
+    if not os.environ.get("BINANCE_FIX_API_KEY"):
+        print("Please set environment variable BINANCE_FIX_API_KEY", file=sys.stderr)
         sys.exit(1)
-    if not os.environ.get("COINBASE_API_SECRET"):
-        print("Please set environment variable COINBASE_API_SECRET", file=sys.stderr)
+    if not os.environ.get("BINANCE_FIX_API_PRIVATE_KEY_PATH"):
+        print("Please set environment variable BINANCE_FIX_API_PRIVATE_KEY_PATH", file=sys.stderr)
         sys.exit(1)
-    if not os.environ.get("COINBASE_API_PASSPHRASE"):
-        print("Please set environment variable COINBASE_API_PASSPHRASE", file=sys.stderr)
-        sys.exit(1)
-    eventHandler = MyEventHandler()
+    fixSubscriptionCorrelationId = "any"
+    eventHandler = MyEventHandler(fixSubscriptionCorrelationId)
     option = SessionOptions()
     config = SessionConfigs()
     session = Session(option, config, eventHandler)
-    subscription = Subscription("coinbase", "", "FIX", "", "same correlation id for subscription and request")
-    session.subscribeByFix(subscription)
-    time.sleep(10)
+    subscription = Subscription("binance", "", "FIX", "", fixSubscriptionCorrelationId)
+    session.subscribe(subscription)
+    subscription = Subscription("", "", "HEARTBEAT", "HEARTBEAT_INTERVAL_MILLISECONDS=1000")
+    session.subscribe(subscription)
+    time.sleep(100)
     session.stop()
     print("Bye")

@@ -24,12 +24,12 @@ const sessionConfigs = new SessionConfigs()
 const sessionOptions = new SessionOptions()
 const session = new Session(sessionOptions, sessionConfigs)
 const subscription = new Subscription('coinbase', '', 'FIX', '', 'same correlation id for subscription and request')
-session.subscribeByFix(subscription)
+session.subscribe(subscription)
 const intervalId = setInterval(() => {
   const eventList = session.getEventQueue().purge()
   for (let i = 0; i < eventList.size(); i++) {
     const event = eventList.get(i)
-    console.log(`Received an event of type any:\n${event.toStringPretty(2, 2)}`)
+    console.log(`Received an event of type any:\n${event.toPrettyString(2, 2)}`)
     if (event.getType() == Event.Type_AUTHORIZATION_STATUS) {
       const message = event.getMessageList().get(0)
       if (message.getType() == Message.Type_AUTHORIZATION_SUCCESS) {
@@ -43,12 +43,12 @@ const intervalId = setInterval(() => {
         param.add(new PairIntString(38, '0.001'))
         param.add(new PairIntString(40, '2'))
         param.add(new PairIntString(59, '1'))
-        request.appendParamFix(param)
+        request.appendFixParam(param)
         session.sendRequestByFix(request)
       }
     }
     else if (event.getType() == ccapi.Event.Type_FIX) {
-      console.log(`Received an event of type FIX:\n${event.toStringPretty(2, 2)}`)
+      console.log(`Received an event of type FIX:\n${event.toPrettyString(2, 2)}`)
     }
   }
 }, 1)

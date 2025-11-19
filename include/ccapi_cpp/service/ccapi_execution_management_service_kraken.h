@@ -6,6 +6,7 @@
 #include "openssl/evp.h"
 
 namespace ccapi {
+
 class ExecutionManagementServiceKraken : public ExecutionManagementService {
  public:
   ExecutionManagementServiceKraken(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
@@ -15,7 +16,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     this->baseUrlWs = CCAPI_KRAKEN_URL_WS_BASE_PRIVATE;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
+    // this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiKeyName = CCAPI_KRAKEN_API_KEY;
     this->apiSecretName = CCAPI_KRAKEN_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
@@ -41,7 +42,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     this->send(wsConnectionPtr, "{\"reqid\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"event\":\"ping\"}", ec);
   }
 
-  bool doesHttpBodyContainError(const std::string& body) override { return body.find(R"("error":[])") == std::string::npos; }
+  bool doesHttpBodyContainError(boost::beast::string_view bodyView) override { return bodyView.find(R"("error":[])") == std::string::npos; }
 
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
                                                std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
@@ -195,7 +196,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("userref", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("vol", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("vol_exec", JsonDataType::STRING)},
@@ -212,7 +213,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
       for (auto itr = orders.MemberBegin(); itr != orders.MemberEnd(); ++itr) {
         Element element;
         this->extractOrderInfo(element, itr->value, extractionFieldNameMap);
-        const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionMoreFieldNameMap = {
+        const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionMoreFieldNameMap = {
             {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
             {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
             {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("pair", JsonDataType::STRING)}};
@@ -220,8 +221,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         auto it1 = itr->value.FindMember("vol_exec");
         auto it2 = itr->value.FindMember("price");
         if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
-          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                         Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
+          element.insert(
+              CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY,
+              ConvertDecimalToString(Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())))));
         }
         element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
         elementList.emplace_back(std::move(element));
@@ -252,7 +254,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
             Element element;
             element.insert(CCAPI_INSTRUMENT, itr->value["pair"].GetString());
             element.insert(CCAPI_EM_POSITION_QUANTITY,
-                           Decimal(itr->value["vol"].GetString()).subtract(Decimal(itr->value["vol_closed"].GetString())).toString());
+                           ConvertDecimalToString(Decimal(itr->value["vol"].GetString()) - (Decimal(itr->value["vol_closed"].GetString()))));
             element.insert(CCAPI_EM_POSITION_COST, itr->value["cost"].GetString());
             elementList.emplace_back(std::move(element));
           }
@@ -293,7 +295,8 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
           std::string body = res.body();
           if (statusCode / 100 == 2) {
             try {
-              rj::Document document;
+              that->jsonDocumentAllocator.Clear();
+              rj::Document document(&that->jsonDocumentAllocator);
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               if (document.HasMember("result") && document["result"].HasMember("token")) {
                 std::string token = document["result"]["token"].GetString();
@@ -313,8 +316,8 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         this->sessionOptions.httpRequestTimeoutMilliseconds);
   }
 
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     const auto& fieldSet = subscription.getFieldSet();
     std::vector<std::string> sendStringList;
     for (const auto& field : fieldSet) {
@@ -330,7 +333,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
       document.AddMember("event", rj::Value("subscribe").Move(), allocator);
       rj::Value subscription(rj::kObjectType);
       subscription.AddMember("name", rj::Value(name.c_str(), allocator).Move(), allocator);
-      subscription.AddMember("token", rj::Value(this->extraPropertyByConnectionIdMap.at(wsConnection.id).at("token").c_str(), allocator).Move(), allocator);
+      subscription.AddMember("token", rj::Value(this->extraPropertyByConnectionIdMap.at(wsConnectionPtr->id).at("token").c_str(), allocator).Move(), allocator);
       document.AddMember("subscription", subscription, allocator);
       rj::StringBuffer stringBuffer;
       rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -343,9 +346,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
 
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
-    std::string textMessage(textMessageView);
-    rj::Document document;
-    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
@@ -354,8 +357,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
 
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
-    std::string textMessage(textMessageView);
-
     Event event;
     std::vector<Message> messageList;
     if (document.IsArray() && document.Size() == 3) {
@@ -381,10 +382,11 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                 Element element;
                 element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, itr->value["price"].GetString());
                 element.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, itr->value["vol"].GetString());
-                element.insert(CCAPI_EM_ORDER_SIDE, std::string(itr->value["type"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
-                element.insert(CCAPI_EM_ORDER_ID, std::string(itr->value["ordertxid"].GetString()));
+                element.insert(CCAPI_EM_ORDER_SIDE,
+                               std::string_view(itr->value["type"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+                element.insert(CCAPI_EM_ORDER_ID, itr->value["ordertxid"].GetString());
                 element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
-                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, std::string(itr->value["fee"].GetString()));
+                element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, itr->value["fee"].GetString());
                 elementList.emplace_back(std::move(element));
                 message.setElementList(elementList);
                 messageList.emplace_back(std::move(message));
@@ -399,7 +401,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
           message.setTimeReceived(timeReceived);
           message.setCorrelationIdList({subscription.getCorrelationId()});
           std::vector<Element> elementList;
-          const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
+          const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
               {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("userref", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_QUANTITY, std::make_pair("vol", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("vol_exec", JsonDataType::STRING)},
@@ -413,7 +415,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                 if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
                   Element element;
                   this->extractOrderInfo(element, itr->value, extractionFieldNameMap);
-                  const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionMoreFieldNameMap = {
+                  const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionMoreFieldNameMap = {
                       {CCAPI_EM_ORDER_SIDE, std::make_pair("type", JsonDataType::STRING)},
                       {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
                       {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("pair", JsonDataType::STRING)}};
@@ -421,9 +423,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                   auto it1 = itr->value.FindMember("vol_exec");
                   auto it2 = itr->value.FindMember("avg_price");
                   if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
-                    element.insert(
-                        CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                        Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
+                    element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY,
+                                   ConvertDecimalToString(
+                                       Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())))));
                   }
                   element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
                   elementList.emplace_back(std::move(element));
@@ -434,8 +436,8 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
                 auto it1 = itr->value.FindMember("vol_exec");
                 auto it2 = itr->value.FindMember("avg_price");
                 if (it1 != itr->value.MemberEnd() && it2 != itr->value.MemberEnd()) {
-                  element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_PRICE_TIMES_QUANTITY,
-                                 Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString()))).toString());
+                  element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, ConvertDecimalToString(Decimal(UtilString::printDoubleScientific(
+                                                                                      std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())))));
                 }
                 element.insert(CCAPI_EM_ORDER_ID, itr->name.GetString());
                 elementList.emplace_back(std::move(element));
@@ -460,7 +462,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
           message.setCorrelationIdList({subscription.getCorrelationId()});
           message.setType(status == "subscribed" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
           Element element;
-          element.insert(status == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessage);
+          element.insert(status == "subscribed" ? CCAPI_INFO_MESSAGE : CCAPI_ERROR_MESSAGE, textMessageView);
           message.setElementList({element});
           messageList.emplace_back(std::move(message));
         }
@@ -472,6 +474,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
 
   std::string getWebSocketsTokenTarget;
 };
+
 } /* namespace ccapi */
 #endif
 #endif

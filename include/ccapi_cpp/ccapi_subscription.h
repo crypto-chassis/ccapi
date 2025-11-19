@@ -8,17 +8,16 @@
 #include "ccapi_cpp/ccapi_util_private.h"
 
 namespace ccapi {
+
 /**
- * A single subscription. A 'Subscription' is used when calling 'Session::subscribe()' or 'Session::subscribeByFix'. Subscription objects are created using
+ * A single subscription. A 'Subscription' is used when calling 'Session::subscribe()' or 'Session::subscribe'. Subscription objects are created using
  * Subscription constructors. A correlation id can be used as the unique identifier to tag all data associated with this subscription.
  */
 class Subscription {
  public:
-  Subscription() {}
-
-  Subscription(const std::string& exchange, const std::string& instrument, const std::string& field, const std::string& options = "",
-               const std::string& correlationId = "", const std::map<std::string, std::string>& credential = {})
-      : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential) {
+  explicit Subscription(const std::string& exchange = "", const std::string& instrument = "", const std::string& field = "", const std::string& options = "",
+                        const std::string& correlationId = "", const std::map<std::string, std::string>& credential = {}, const std::string& proxyUrl = "")
+      : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential), proxyUrl(proxyUrl) {
     auto originalInstrumentSet = UtilString::splitToSet(instrument, ",");
     std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()),
                  [](const std::string& value) { return !value.empty(); });
@@ -48,7 +47,7 @@ class Subscription {
                                                                      std::string(CCAPI_EM_POSITION_UPDATE),    std::string(CCAPI_EM_WEBSOCKET_ORDER_ENTRY)};
     if (field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
       this->serviceName = CCAPI_MARKET_DATA;
-    } else if (field == CCAPI_FIX || field == CCAPI_FIX_MARKET_DATA || field == CCAPI_FIX_EXECUTION_MANAGEMENT) {
+    } else if (field == CCAPI_FIX || field == CCAPI_FIX_MARKET_DATA) {
       this->serviceName = CCAPI_FIX;
     } else if (std::includes(executionManagementSubscriptionFieldSet.begin(), executionManagementSubscriptionFieldSet.end(), this->fieldSet.begin(),
                              this->fieldSet.end())) {
@@ -69,8 +68,8 @@ class Subscription {
     }
     std::string output = "Subscription [exchange = " + exchange + ", marginType = " + marginType + ", instrumentType = " + instrumentType +
                          ", instrument = " + instrument + ", field = " + field + ", optionMap = " + ccapi::toString(optionMap) +
-                         ", correlationId = " + correlationId + ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName +
-                         ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
+                         ", correlationId = " + correlationId + ", credential = " + ccapi::toString(shortCredential) + ", proxyUrl = " + proxyUrl +
+                         ", serviceName = " + serviceName + ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
 
@@ -89,6 +88,8 @@ class Subscription {
   const std::map<std::string, std::string>& getOptionMap() const { return optionMap; }
 
   const std::map<std::string, std::string>& getCredential() const { return credential; }
+
+  const std::string& getProxyUrl() const { return proxyUrl; }
 
   const std::string& getServiceName() const { return serviceName; }
 
@@ -126,11 +127,20 @@ class Subscription {
 
   const std::string& getMarginType() const { return marginType; }
 
+  void setExchange(const std::string& exchange) { this->exchange = exchange; }
+
+  void setInstrument(const std::string& instrument) { this->instrument = instrument; }
+
+  void setField(const std::string& field) { this->field = field; }
+
+  void setProxyUrl(const std::string& proxyUrl) { this->proxyUrl = proxyUrl; }
+
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
 
   void setInstrumentType(const std::string& instrumentType) { this->instrumentType = instrumentType; }
 
   void setMarginType(const std::string& marginType) { this->marginType = marginType; }
+
   enum class Status {
     UNKNOWN,
     SUBSCRIBING,
@@ -158,7 +168,7 @@ class Subscription {
         output = "UNSUBSCRIBED";
         break;
       default:
-        CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
+        CCAPI_LOGGER_FATAL(std::string(CCAPI_UNSUPPORTED_VALUE) + " " + std::to_string(static_cast<int>(status)));
     }
     return output;
   }
@@ -175,10 +185,12 @@ class Subscription {
   std::map<std::string, std::string> optionMap;
   std::string correlationId;
   std::map<std::string, std::string> credential;
+  std::string proxyUrl;
   std::string serviceName;
   std::set<std::string> instrumentSet;
   std::set<std::string> fieldSet;
   TimePoint timeSent{std::chrono::seconds{0}};
 };
+
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_
