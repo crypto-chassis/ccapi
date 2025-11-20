@@ -1,0 +1,8 @@
+set(NAME execution_management_hyperliquid_balance)
+project(${NAME})
+add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HYPERLIQUID)
+add_compile_definitions(CCAPI_ENABLE_LOG_DEBUG)
+add_executable(${NAME} main.cpp)
+add_dependencies(${NAME} boost rapidjson)
+target_link_libraries(${NAME} OpenSSL::Crypto OpenSSL::SSL ${ADDITIONAL_LINK_LIBRARIES})

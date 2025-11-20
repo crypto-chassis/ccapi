@@ -3,11 +3,13 @@
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
-#include <ethc/keccak256.h>
-#include <ethc/hex.h>
-#include <ethc/ecdsa.h>
+#include "ccapi_cpp/crypto/keccak.h"
+#include "ccapi_cpp/crypto/secp256k1_ecdsa.h"
+#include <cmath>
+#include <openssl/bn.h>
 #include <msgpack.hpp>
-#include <gmp.h>
+#include <optional>
+#include <string_view>
 namespace ccapi {
 class ExecutionManagementServiceHyperliquid : public ExecutionManagementService {
  public:
@@ -17,16 +19,19 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/ws";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->setHostWsFromUrlWs(this->baseUrlWs);
     this->apiWalletAddressName = CCAPI_HYPERLIQUID_API_WALLET_ADDRESS;
     this->apiPrivateKeyName = CCAPI_HYPERLIQUID_API_PRIVATE_KEY;
-    this->setupCredential({this->apiWalletAddressName, this->apiPrivateKeyName});
+    this->apiVaultAddressName = CCAPI_HYPERLIQUID_API_VAULT_ADDRESS;
+    this->accountAddressName = CCAPI_HYPERLIQUID_ACCOUNT_ADDRESS;
+    this->setupCredential({this->apiWalletAddressName, this->apiPrivateKeyName, this->apiVaultAddressName, this->accountAddressName});
     this->createOrderTarget = "/exchange";
     this->cancelOrderTarget = "/exchange";
     this->getOrderTarget = "/info";
     this->getOpenOrdersTarget = "/info";
     this->cancelOpenOrdersTarget = "/exchange";
     this->getAccountBalancesTarget = "/info";
+    std::string baseUrlLower = UtilString::toLower(this->baseUrlRest);
+    this->isMainnetEnvironment = baseUrlLower.find("test") == std::string::npos;
   }
 
   virtual ~ExecutionManagementServiceHyperliquid() {}
@@ -49,9 +54,8 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
   }
 #endif
 
-  bool doesHttpBodyContainError(const std::string& body) override {
-    // return !std::regex_search(body, std::regex("\"status\":\\s*\"ok\""));
-    return body.find("error") != std::string::npos;
+  bool doesHttpBodyContainError(boost::beast::string_view body) override {
+    return body.find("error") != boost::beast::string_view::npos;
   }
 
   void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
@@ -60,18 +64,22 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
     // Not implemented for Hyperliquid
   }
 
-  void signRequest(http::request<http::string_body>& req, rj::Document& document, const std::map<std::string, std::string>& credential) {
+  void signRequest(http::request<http::string_body>& req, rj::Document& document, const std::map<std::string, std::string>& credential,
+                   const std::optional<std::string>& vaultAddress, const std::optional<uint64_t>& expiresAfter) {
     auto privateKey = mapGetWithDefault(credential, this->apiPrivateKeyName);
     auto nonce = this->generateNonce(UtilTime::now());
 
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.AddMember("nonce", nonce, allocator);
 
-    if (document.HasMember("vaultAddress")) {
-      document.AddMember("vaultAddress", rj::Value(document["vaultAddress"].GetString(), allocator).Move(), allocator);
+    if (vaultAddress && !vaultAddress->empty()) {
+      document.AddMember("vaultAddress", rj::Value(vaultAddress->c_str(), allocator).Move(), allocator);
+    }
+    if (expiresAfter) {
+      document.AddMember("expiresAfter", static_cast<int64_t>(*expiresAfter), allocator);
     }
 
-    auto signatureMap = this->signMessage(privateKey, document["action"], nonce);
+    auto signatureMap = this->signMessage(privateKey, document["action"], nonce, vaultAddress, expiresAfter, this->isMainnetEnvironment);
 
     rj::Value signature(rj::kObjectType);
     signature.AddMember("r", rj::Value(signatureMap["r"].c_str(), allocator).Move(), allocator);
@@ -108,12 +116,38 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
     }
   }
 
-  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId, const std::map<std::string, std::string>& credential) override {
+  void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                             const std::map<std::string, std::string>& credential) override {
     switch (request.getOperation()) {
+      case Request::Operation::GENERIC_PRIVATE_REQUEST: {
+        req.method(http::verb::post);
+        req.target(this->createOrderTarget);
+        req.set(beast::http::field::content_type, "application/json");
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        const auto vaultAddress = this->resolveVaultAddress(param, credential);
+        const auto expiresAfter = this->resolveExpiresAfter(param);
+
+        std::string actionType = "noop";
+        auto it = param.find("action");
+        if (it != param.end() && !it->second.empty()) {
+          actionType = it->second;
+        }
+
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        rj::Value action(rj::kObjectType);
+        action.AddMember("type", rj::Value(actionType.c_str(), allocator).Move(), allocator);
+        document.AddMember("action", action, allocator);
+        this->signRequest(req, document, credential, vaultAddress, expiresAfter);
+      } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        const auto vaultAddress = this->resolveVaultAddress(param, credential);
+        const auto expiresAfter = this->resolveExpiresAfter(param);
+        const auto actionParam = this->filterActionParameters(param);
         req.set(beast::http::field::content_type, "application/json");
         
         rj::Document document;
@@ -125,7 +159,7 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         rj::Value order(rj::kObjectType);
         action.AddMember("type", rj::Value("order").Move(), allocator);
         order.AddMember("a", std::stoi(symbolId), allocator);
-        this->appendParam(order, allocator, param);
+        this->appendParam(order, allocator, actionParam);
 
         // Add the 't' field for limit orders
         rj::Value tValue(rj::kObjectType);
@@ -153,7 +187,7 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         action.AddMember("grouping", rj::Value("na").Move(), allocator);
         document.AddMember("action", action, allocator);
         
-        this->signRequest(req, document, credential);
+        this->signRequest(req, document, credential, vaultAddress, expiresAfter);
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::post);
@@ -161,6 +195,8 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         req.set(beast::http::field::content_type, "application/json");
         
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        const auto vaultAddress = this->resolveVaultAddress(param, credential);
+        const auto expiresAfter = this->resolveExpiresAfter(param);
         
         rj::Document document;
         document.SetObject();
@@ -175,13 +211,14 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         } else {
           action.AddMember("type", rj::Value("cancel").Move(), allocator);
           cancel.AddMember("a", std::stoi(symbolId), allocator);
-          cancel.AddMember("o", std::stoll(param.at(CCAPI_EM_ORDER_ID)), allocator);
+          int64_t orderId = std::stoll(param.at(CCAPI_EM_ORDER_ID));
+          cancel.AddMember("o", orderId, allocator);
         }
         cancels.PushBack(cancel, allocator);
         action.AddMember("cancels", cancels, allocator);
         document.AddMember("action", action, allocator);
         
-        this->signRequest(req, document, credential);
+        this->signRequest(req, document, credential, vaultAddress, expiresAfter);
       } break;
       case Request::Operation::GET_ORDER: {
         req.method(http::verb::post);
@@ -195,11 +232,13 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         
         document.AddMember("type", rj::Value("orderStatus").Move(), allocator);
-        document.AddMember("user", rj::Value(credential.at(this->apiWalletAddressName).c_str(), allocator).Move(), allocator);
+        auto accountAddress = this->resolveAccountAddress(param, credential);
+        document.AddMember("user", rj::Value(accountAddress.c_str(), allocator).Move(), allocator);
         if (param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end()) {
           document.AddMember("oid", rj::Value(param.at(CCAPI_EM_CLIENT_ORDER_ID).c_str(), allocator).Move(), allocator);
         } else {
-          document.AddMember("oid", std::stoll(param.at(CCAPI_EM_ORDER_ID)), allocator);
+          int64_t orderId = std::stoll(param.at(CCAPI_EM_ORDER_ID));
+          document.AddMember("oid", orderId, allocator);
         }
 
         rj::StringBuffer stringBuffer;
@@ -213,13 +252,14 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         req.method(http::verb::post);
         req.target(this->getOpenOrdersTarget);
         req.set(beast::http::field::content_type, "application/json");
-        
+        const std::map<std::string, std::string> param;  // empty param map for potential overrides
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         
         document.AddMember("type", rj::Value("openOrders").Move(), allocator);
-        document.AddMember("user", rj::Value(credential.at(this->apiWalletAddressName).c_str(), allocator).Move(), allocator);
+        auto accountAddress = this->resolveAccountAddress(param, credential);
+        document.AddMember("user", rj::Value(accountAddress.c_str(), allocator).Move(), allocator);
         
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -233,13 +273,14 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         req.method(http::verb::post);
         req.target(this->getAccountBalancesTarget);
         req.set(beast::http::field::content_type, "application/json");
-        
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         
         document.AddMember("type", rj::Value("clearinghouseState").Move(), allocator);
-        document.AddMember("user", rj::Value(credential.at(this->apiWalletAddressName).c_str(), allocator).Move(), allocator);
+        auto accountAddress = this->resolveAccountAddress(param, credential);
+        document.AddMember("user", rj::Value(accountAddress.c_str(), allocator).Move(), allocator);
         
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
@@ -260,7 +301,9 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
       case Request::Operation::CANCEL_ORDER: {
         this->extractOrderInfoFromCreateOrCancelOrderRequest(elementList, document);
       } break;
-      case Request::Operation::GET_ORDER:
+      case Request::Operation::GET_ORDER: {
+        this->extractOrderInfoFromGetOrderRequest(elementList, document);
+      } break;
       case Request::Operation::GET_OPEN_ORDERS: {
         this->extractOrderInfoFromGetOpenOrdersRequest(elementList, document);
       } break;
@@ -270,15 +313,15 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
   }
 
   void extractOrderInfoFromCreateOrCancelOrderRequest(std::vector<Element>& elementList, const rj::Document& document) {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
-        {CCAPI_EM_ORDER_ID, std::make_pair("oid", JsonDataType::INTEGER)},
-        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("cloid", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("origSz", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("limitPx", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("totalSz", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("avgPx", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("asset", JsonDataType::STRING)}};
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
+        {CCAPI_EM_ORDER_ID, std::make_pair(std::string_view("oid"), JsonDataType::INTEGER)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair(std::string_view("cloid"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_SIDE, std::make_pair(std::string_view("side"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair(std::string_view("origSz"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair(std::string_view("limitPx"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair(std::string_view("totalSz"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair(std::string_view("avgPx"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair(std::string_view("asset"), JsonDataType::STRING)}};
         // {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
     
     const rj::Value& response = document["response"];
@@ -308,15 +351,15 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
   }
 
   void extractOrderInfoFromGetOpenOrdersRequest(std::vector<Element>& elementList, const rj::Document& document) {
-    const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
-        {CCAPI_EM_ORDER_ID, std::make_pair("oid", JsonDataType::INTEGER)},
-        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("cloid", JsonDataType::STRING)},
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
+        {CCAPI_EM_ORDER_ID, std::make_pair(std::string_view("oid"), JsonDataType::INTEGER)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair(std::string_view("cloid"), JsonDataType::STRING)},
         // {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("origSz", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("limitPx", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("totalSz", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("avgPx", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("coin", JsonDataType::STRING)}};
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair(std::string_view("origSz"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair(std::string_view("limitPx"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair(std::string_view("totalSz"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair(std::string_view("avgPx"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair(std::string_view("coin"), JsonDataType::STRING)}};
 
     for (const auto& order : document.GetArray()) {
       Element element;
@@ -326,6 +369,35 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
       element.insert(CCAPI_EM_ORDER_SIDE, isBuy ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
       elementList.emplace_back(std::move(element));
     }
+  }
+
+  void extractOrderInfoFromGetOrderRequest(std::vector<Element>& elementList, const rj::Document& document) {
+    if (!document.HasMember("order") || !document["order"].IsObject()) {
+      return;
+    }
+    const auto& orderWrapper = document["order"];
+    if (!orderWrapper.HasMember("order") || !orderWrapper["order"].IsObject()) {
+      return;
+    }
+    const auto& order = orderWrapper["order"];
+    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
+        {CCAPI_EM_ORDER_ID, std::make_pair(std::string_view("oid"), JsonDataType::INTEGER)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair(std::string_view("cloid"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_QUANTITY, std::make_pair(std::string_view("origSz"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair(std::string_view("limitPx"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair(std::string_view("totalSz"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair(std::string_view("avgPx"), JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair(std::string_view("coin"), JsonDataType::STRING)}};
+    Element element;
+    this->extractOrderInfo(element, order, extractionFieldNameMap);
+    if (order.HasMember("side")) {
+      bool isBuy = std::strcmp(order["side"].GetString(), "B") == 0;
+      element.insert(CCAPI_EM_ORDER_SIDE, isBuy ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL);
+    }
+    if (orderWrapper.HasMember("status") && orderWrapper["status"].IsString()) {
+      element.insert(CCAPI_EM_ORDER_STATUS, orderWrapper["status"].GetString());
+    }
+    elementList.emplace_back(std::move(element));
   }
 
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
@@ -346,11 +418,40 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
           const rj::Value& assetPositions = document["assetPositions"];
           for (const auto& position : assetPositions.GetArray()) {
             Element element;
-            // element.insert(CCAPI_EM_SYMBOL, position["position"]["coin"].GetString() + "/USDC");
-            // element.insert(CCAPI_EM_POSITION_SIDE, position["position"]["szi"].GetDouble() > 0 ? CCAPI_EM_POSITION_SIDE_LONG : CCAPI_EM_POSITION_SIDE_SHORT);
-            element.insert(CCAPI_EM_POSITION_QUANTITY, std::to_string(std::abs(position["position"]["szi"].GetDouble())));
-            element.insert(CCAPI_EM_POSITION_COST, std::to_string(position["position"]["positionValue"].GetDouble()));
-            element.insert(CCAPI_EM_POSITION_LEVERAGE, std::to_string(position["position"]["leverage"]["value"].GetDouble()));
+            const auto& pos = position["position"];
+            if (pos.HasMember("coin")) {
+              element.insert(CCAPI_EM_POSITION_ASSET, pos["coin"].GetString());
+            }
+            if (pos.HasMember("szi")) {
+              std::string sziStr = pos["szi"].IsString() ? pos["szi"].GetString() : std::to_string(pos["szi"].GetDouble());
+              double szi = std::stod(sziStr);
+              element.insert(CCAPI_EM_POSITION_QUANTITY, UtilString::normalizeDecimalString(sziStr));
+              element.insert(CCAPI_EM_POSITION_SIDE, szi >= 0 ? "LONG" : "SHORT");
+            }
+            if (pos.HasMember("positionValue")) {
+              element.insert(CCAPI_EM_POSITION_COST, pos["positionValue"].GetString());
+            }
+            if (pos.HasMember("entryPx") && !pos["entryPx"].IsNull()) {
+              element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, pos["entryPx"].GetString());
+            }
+            if (pos.HasMember("leverage") && pos["leverage"].IsObject()) {
+              const auto& leverage = pos["leverage"];
+              if (leverage.HasMember("value")) {
+                std::string leverageValue =
+                    leverage["value"].IsString() ? leverage["value"].GetString() : std::to_string(leverage["value"].GetDouble());
+                element.insert(CCAPI_EM_POSITION_LEVERAGE, UtilString::normalizeDecimalString(leverageValue));
+              }
+              if (leverage.HasMember("type")) {
+                auto type = UtilString::toLower(leverage["type"].GetString());
+                if (type == "cross") {
+                  element.insert(CCAPI_EM_POSITION_MARGIN_TYPE, CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN);
+                } else if (type == "isolated") {
+                  element.insert(CCAPI_EM_POSITION_MARGIN_TYPE, CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
+                } else {
+                  element.insert(CCAPI_EM_POSITION_MARGIN_TYPE, leverage["type"].GetString());
+                }
+              }
+            }
             elementList.emplace_back(std::move(element));
           }
         }
@@ -360,13 +461,8 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
     }
   }
 
-  void extractOrderInfo(Element& element, const rj::Value& x, const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap,
-                        const std::map<std::string, std::function<std::string(const std::string&)>> conversionMap = {}) override {
-    ExecutionManagementService::extractOrderInfo(element, x, extractionFieldNameMap);
-  }
-
-  std::vector<std::string> createSendStringListFromSubscription(const WsConnection& wsConnection, const Subscription& subscription, const TimePoint& now,
-                                                                const std::map<std::string, std::string>& credential) override {
+  std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                                                const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     rj::Document document;
     document.SetObject();
     auto& allocator = document.GetAllocator();
@@ -381,7 +477,8 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
     } else if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
       subscribe.AddMember("type", rj::Value("userFills").Move(), allocator);
     }
-    subscribe.AddMember("user", rj::Value(credential.at(this->apiWalletAddressName).c_str(), allocator).Move(), allocator);
+    auto accountAddress = this->resolveAccountAddress({}, credential);
+    subscribe.AddMember("user", rj::Value(accountAddress.c_str(), allocator).Move(), allocator);
 
     document.AddMember("subscription", subscribe, allocator);
 
@@ -428,14 +525,14 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
         message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
         message.setCorrelationIdList({subscription.getCorrelationId()});
         std::vector<Element> elementList;
-        const std::map<std::string, std::pair<std::string, JsonDataType>>& extractionFieldNameMap = {
-            {CCAPI_EM_ORDER_ID, std::make_pair("oid", JsonDataType::INTEGER)},
-            {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("cloid", JsonDataType::STRING)},
-            {CCAPI_EM_ORDER_QUANTITY, std::make_pair("origSz", JsonDataType::STRING)},
-            {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("limitPx", JsonDataType::STRING)},
-            {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("sz", JsonDataType::STRING)},
-            {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
-            {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("coin", JsonDataType::STRING)}};
+        const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
+            {CCAPI_EM_ORDER_ID, std::make_pair(std::string_view("oid"), JsonDataType::INTEGER)},
+            {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair(std::string_view("cloid"), JsonDataType::STRING)},
+            {CCAPI_EM_ORDER_QUANTITY, std::make_pair(std::string_view("origSz"), JsonDataType::STRING)},
+            {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair(std::string_view("limitPx"), JsonDataType::STRING)},
+            {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair(std::string_view("sz"), JsonDataType::STRING)},
+            {CCAPI_EM_ORDER_STATUS, std::make_pair(std::string_view("state"), JsonDataType::STRING)},
+            {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair(std::string_view("coin"), JsonDataType::STRING)}};
         Element element;
         this->extractOrderInfo(element, order["order"], extractionFieldNameMap);
         element.insert(CCAPI_EM_ORDER_STATUS, std::string(order["status"].GetString()));
@@ -535,7 +632,8 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
       }
   }
 
-  std::vector<uint8_t> calculateConnectionId(const rj::Value& action, uint64_t nonce) {
+  std::vector<uint8_t> calculateConnectionId(const rj::Value& action, uint64_t nonce, const std::optional<std::string>& vaultAddress,
+                                             const std::optional<uint64_t>& expiresAfter) {
       msgpack::sbuffer sbuf;
       msgpack::packer<msgpack::sbuffer> packer(&sbuf);
       convertToMsgpack(action, packer);
@@ -543,9 +641,29 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
       for (int i = 7; i >= 0; --i) {
           data.push_back((nonce >> (i * 8)) & 0xFF);
       }
-      data.push_back(0x00);
+      if (vaultAddress && !vaultAddress->empty()) {
+          data.push_back(0x01);
+          std::string normalized = *vaultAddress;
+          if (normalized.rfind("0x", 0) == 0) {
+              normalized = normalized.substr(2);
+          }
+          std::string addressBytes = UtilAlgorithm::hexToString(normalized);
+          if (addressBytes.size() != 20) {
+              throw std::runtime_error("Hyperliquid vault address must represent 20 bytes");
+          }
+          data.insert(data.end(), addressBytes.begin(), addressBytes.end());
+      } else {
+          data.push_back(0x00);
+      }
+      if (expiresAfter) {
+          data.push_back(0x00);
+          for (int i = 7; i >= 0; --i) {
+              data.push_back((*expiresAfter >> (i * 8)) & 0xFF);
+          }
+      }
       std::vector<uint8_t> connection_id(32);
-      eth_keccak256(connection_id.data(), data.data(), data.size());
+      auto hash = ethash_keccak256(data.data(), data.size());
+      std::memcpy(connection_id.data(), hash.word64s, 32);
       return connection_id;
   }
 
@@ -562,7 +680,8 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
   std::vector<uint8_t> hashType(const std::string& primary_type, const std::map<std::string, std::vector<std::map<std::string, std::string>>>& types) {
       std::string encoded_type = encodeType(primary_type, types);
       std::vector<uint8_t> type_hash(32);
-      eth_keccak256(type_hash.data(), (uint8_t*)encoded_type.c_str(), encoded_type.length());
+      auto hash = ethash_keccak256((const uint8_t*)encoded_type.c_str(), encoded_type.length());
+      std::memcpy(type_hash.data(), hash.word64s, 32);
       return type_hash;
   }
 
@@ -580,14 +699,13 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
           std::vector<uint8_t> field_value(32, 0);
 
           if (type == "string") {
-              eth_keccak256(field_value.data(), (uint8_t*)value.c_str(), value.length());
+              auto hash = ethash_keccak256((const uint8_t*)value.c_str(), value.length());
+              std::memcpy(field_value.data(), hash.word64s, 32);
           } else if (type == "uint256") {
-              mpz_t mpz;
-              mpz_init(mpz);
-              mpz_set_str(mpz, value.c_str(), 10);
-              size_t count;
-              mpz_export(field_value.data() + (32 - mpz_sizeinbase(mpz, 256)), &count, 1, 1, 0, 0, mpz);
-              mpz_clear(mpz);
+              BIGNUM* bn = BN_new();
+              BN_dec2bn(&bn, value.c_str());
+              BN_bn2binpad(bn, field_value.data(), 32);
+              BN_free(bn);
           } else if (type == "address") {
               std::string address = value.substr(0, 2) == "0x" ? value.substr(2) : value;
               for (size_t i = 0; i < 20; ++i) {
@@ -603,7 +721,8 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
 
   std::vector<uint8_t> hashData(const std::vector<uint8_t>& data) {
       std::vector<uint8_t> hashed(32);
-      eth_keccak256(hashed.data(), data.data(), data.size());
+      auto hash = ethash_keccak256(data.data(), data.size());
+      std::memcpy(hashed.data(), hash.word64s, 32);
       return hashed;
   }
 
@@ -621,12 +740,14 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
       return ss.str();
   }
 
-  std::map<std::string, std::string> signMessage(const std::string& private_key_hex, const rj::Value& action, uint64_t nonce) {
+  std::map<std::string, std::string> signMessage(const std::string& private_key_hex, const rj::Value& action, uint64_t nonce,
+                                                 const std::optional<std::string>& vaultAddress, const std::optional<uint64_t>& expiresAfter,
+                                                 bool isMainnet) {
       if (private_key_hex.empty()) {
         throw std::runtime_error("Private key not exist");
       }
 
-      std::vector<uint8_t> connection_id = calculateConnectionId(action, nonce);
+      std::vector<uint8_t> connection_id = calculateConnectionId(action, nonce, vaultAddress, expiresAfter);
       std::map<std::string, std::string> domain = {
           {"name", "Exchange"},
           {"version", "1"},
@@ -648,7 +769,7 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
       };
 
       std::map<std::string, std::string> message = {
-          {"source", "a"},
+          {"source", isMainnet ? "a" : "b"},
           {"connectionId", std::string(connection_id.begin(), connection_id.end())}
       };
 
@@ -661,33 +782,106 @@ class ExecutionManagementServiceHyperliquid : public ExecutionManagementService 
       eip191_data.insert(eip191_data.end(), eip191_prefix.begin(), eip191_prefix.end());
       eip191_data.insert(eip191_data.end(), domain_separator.begin(), domain_separator.end());
       eip191_data.insert(eip191_data.end(), message_hash.begin(), message_hash.end());
-      eth_keccak256(eip191_hash.data(), eip191_data.data(), eip191_data.size());
+      auto final_hash = ethash_keccak256(eip191_data.data(), eip191_data.size());
+      std::memcpy(eip191_hash.data(), final_hash.word64s, 32);
 
-      uint8_t* private_key_bytes = nullptr;
-      int bytes_len = eth_hex_to_bytes(&private_key_bytes, private_key_hex.c_str(), -1);
-      if (bytes_len != 32) {
-          free(private_key_bytes);
-          throw std::runtime_error("Invalid private key length");
-      }
-
-      struct eth_ecdsa_signature signature;
-      int result = eth_ecdsa_sign(&signature, private_key_bytes, eip191_hash.data());
-      free(private_key_bytes);
-
-      if (result != 1) {
-          throw std::runtime_error("eth_ecdsa_sign failed");
-      }
-
+      auto secpSignature = signDigestSecp256k1(eip191_hash, private_key_hex);
       return {
-          {"r", toHex(signature.r, 32)},
-          {"s", toHex(signature.s, 32)},
-          {"v", std::to_string(signature.recid + 27)}
+          {"r", secpSignature.r},
+          {"s", secpSignature.s},
+          {"v", std::to_string(secpSignature.recoveryId)}
       };
   }
 
  private:
   std::string apiWalletAddressName;
   std::string apiPrivateKeyName;
+  std::string apiVaultAddressName;
+  std::string accountAddressName;
+  bool isMainnetEnvironment;
+
+  std::optional<std::string> resolveVaultAddress(const std::map<std::string, std::string>& param,
+                                                 const std::map<std::string, std::string>& credential) const {
+    auto paramIt = param.find(CCAPI_EM_HYPERLIQUID_VAULT_ADDRESS);
+    if (paramIt != param.end()) {
+      auto trimmed = UtilString::trim(paramIt->second);
+      if (!trimmed.empty()) {
+        return this->normalizeAddress(trimmed);
+      }
+    }
+    auto credentialIt = credential.find(this->apiVaultAddressName);
+    if (credentialIt != credential.end()) {
+      auto trimmed = UtilString::trim(credentialIt->second);
+      if (!trimmed.empty()) {
+        return this->normalizeAddress(trimmed);
+      }
+    }
+    return std::nullopt;
+  }
+
+  std::string resolveAccountAddress(const std::map<std::string, std::string>& param,
+                                    const std::map<std::string, std::string>& credential) const {
+    auto paramIt = param.find(CCAPI_EM_HYPERLIQUID_ACCOUNT_ADDRESS);
+    if (paramIt != param.end()) {
+      auto trimmed = UtilString::trim(paramIt->second);
+      if (!trimmed.empty()) {
+        return this->normalizeAddress(trimmed);
+      }
+    }
+    auto credentialIt = credential.find(this->accountAddressName);
+    if (credentialIt != credential.end()) {
+      auto trimmed = UtilString::trim(credentialIt->second);
+      if (!trimmed.empty()) {
+        return this->normalizeAddress(trimmed);
+      }
+    }
+    auto fallbackIt = credential.find(this->apiWalletAddressName);
+    if (fallbackIt != credential.end()) {
+      auto trimmed = UtilString::trim(fallbackIt->second);
+      if (!trimmed.empty()) {
+        return this->normalizeAddress(trimmed);
+      }
+    }
+    throw std::runtime_error("Hyperliquid account address is missing. Set HYPERLIQUID_ACCOUNT_ADDRESS or "
+                             "pass CCAPI_EM_HYPERLIQUID_ACCOUNT_ADDRESS.");
+  }
+
+  std::optional<uint64_t> resolveExpiresAfter(const std::map<std::string, std::string>& param) const {
+    auto it = param.find(CCAPI_EM_HYPERLIQUID_EXPIRES_AFTER);
+    if (it != param.end()) {
+      auto trimmed = UtilString::trim(it->second);
+      if (!trimmed.empty()) {
+        return std::stoull(trimmed);
+      }
+    }
+    return std::nullopt;
+  }
+
+  std::map<std::string, std::string> filterActionParameters(const std::map<std::string, std::string>& param) const {
+    std::map<std::string, std::string> filtered;
+    for (const auto& kv : param) {
+      if (kv.first == CCAPI_EM_HYPERLIQUID_VAULT_ADDRESS || kv.first == CCAPI_EM_HYPERLIQUID_EXPIRES_AFTER) {
+        continue;
+      }
+      filtered.insert(kv);
+    }
+    return filtered;
+  }
+
+  std::string normalizeAddress(const std::string& value) const {
+    auto trimmed = UtilString::trim(value);
+    if (trimmed.empty()) {
+      throw std::runtime_error("Hyperliquid address cannot be empty");
+    }
+    auto lower = UtilString::toLower(trimmed);
+    if (lower.rfind("0x", 0) == 0) {
+      lower = lower.substr(2);
+    }
+    if (lower.size() != 40) {
+      throw std::runtime_error("Hyperliquid address must have 40 hex characters");
+    }
+    return "0x" + lower;
+  }
 };
 } /* namespace ccapi */
 #endif

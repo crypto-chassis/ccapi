@@ -1,0 +1,8 @@
+set(NAME market_data_hyperliquid_tob)
+project(${NAME})
+add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HYPERLIQUID)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_OKX)
+add_compile_definitions(CCAPI_ENABLE_LOG_DEBUG)
+add_executable(${NAME} main.cpp)
+add_dependencies(${NAME} boost rapidjson)

@@ -440,7 +440,7 @@ class Session {
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HYPERLIQUID] =
-        std::make_shared<MarketDataServiceHyperliquid>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+        std::make_shared<MarketDataServiceHyperliquid>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
@@ -582,7 +582,7 @@ class Session {
 // #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HYPERLIQUID] =
-        std::make_shared<ExecutionManagementServiceHyperliquid>(this->internalEventHandler, sessionOptions, sessionConfigs, this->serviceContextPtr);
+        std::make_shared<ExecutionManagementServiceHyperliquid>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 
