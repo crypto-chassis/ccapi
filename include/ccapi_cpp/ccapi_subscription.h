@@ -16,8 +16,8 @@ namespace ccapi {
 class Subscription {
  public:
   explicit Subscription(const std::string& exchange = "", const std::string& instrument = "", const std::string& field = "", const std::string& options = "",
-                        const std::string& correlationId = "", const std::map<std::string, std::string>& credential = {})
-      : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential) {
+                        const std::string& correlationId = "", const std::map<std::string, std::string>& credential = {}, const std::string& proxyUrl = "")
+      : exchange(exchange), instrument(instrument), field(field), correlationId(correlationId), credential(credential), proxyUrl(proxyUrl) {
     auto originalInstrumentSet = UtilString::splitToSet(instrument, ",");
     std::copy_if(originalInstrumentSet.begin(), originalInstrumentSet.end(), std::inserter(this->instrumentSet, this->instrumentSet.end()),
                  [](const std::string& value) { return !value.empty(); });
@@ -68,8 +68,8 @@ class Subscription {
     }
     std::string output = "Subscription [exchange = " + exchange + ", marginType = " + marginType + ", instrumentType = " + instrumentType +
                          ", instrument = " + instrument + ", field = " + field + ", optionMap = " + ccapi::toString(optionMap) +
-                         ", correlationId = " + correlationId + ", credential = " + ccapi::toString(shortCredential) + ", serviceName = " + serviceName +
-                         ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
+                         ", correlationId = " + correlationId + ", credential = " + ccapi::toString(shortCredential) + ", proxyUrl = " + proxyUrl +
+                         ", serviceName = " + serviceName + ", timeSent = " + UtilTime::getISOTimestamp(timeSent) + "]";
     return output;
   }
 
@@ -88,6 +88,8 @@ class Subscription {
   const std::map<std::string, std::string>& getOptionMap() const { return optionMap; }
 
   const std::map<std::string, std::string>& getCredential() const { return credential; }
+
+  const std::string& getProxyUrl() const { return proxyUrl; }
 
   const std::string& getServiceName() const { return serviceName; }
 
@@ -131,11 +133,14 @@ class Subscription {
 
   void setField(const std::string& field) { this->field = field; }
 
+  void setProxyUrl(const std::string& proxyUrl) { this->proxyUrl = proxyUrl; }
+
   void setTimeSent(TimePoint timeSent) { this->timeSent = timeSent; }
 
   void setInstrumentType(const std::string& instrumentType) { this->instrumentType = instrumentType; }
 
   void setMarginType(const std::string& marginType) { this->marginType = marginType; }
+
   enum class Status {
     UNKNOWN,
     SUBSCRIBING,
@@ -180,6 +185,7 @@ class Subscription {
   std::map<std::string, std::string> optionMap;
   std::string correlationId;
   std::map<std::string, std::string> credential;
+  std::string proxyUrl;
   std::string serviceName;
   std::set<std::string> instrumentSet;
   std::set<std::string> fieldSet;

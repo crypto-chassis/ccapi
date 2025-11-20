@@ -18,8 +18,8 @@ class WsConnection {
   WsConnection& operator=(const WsConnection&) = delete;
 
   WsConnection(const std::string& url, const std::string& group, const std::vector<Subscription>& subscriptionList,
-               const std::map<std::string, std::string>& credential)
-      : url(url), group(group), subscriptionList(subscriptionList), credential(credential) {
+               const std::map<std::string, std::string>& credential, const std::string& proxyUrl = "")
+      : url(url), group(group), subscriptionList(subscriptionList), credential(credential), proxyUrl(proxyUrl) {
     std::map<std::string, std::string> shortCredential;
     for (const auto& x : credential) {
       shortCredential.insert(std::make_pair(x.first, UtilString::firstNCharacter(x.second, CCAPI_CREDENTIAL_DISPLAY_LENGTH)));
@@ -51,8 +51,9 @@ class WsConnection {
         streamPtr);
     std::string output = "WsConnection [longId = " + longId + ", id = " + id + ", url = " + url + ", group = " + group +
                          ", subscriptionList = " + ccapi::toString(subscriptionList) + ", credential = " + ccapi::toString(shortCredential) +
-                         ", status = " + statusToString(status) + ", headers = " + ccapi::toString(headers) + ", streamPtr = " + oss.str() +
-                         ", remoteCloseCode = " + std::to_string(remoteCloseCode) + ", remoteCloseReason = " + std::string(remoteCloseReason.reason.c_str()) +
+                         ", proxyUrl = " + proxyUrl + ", status = " + statusToString(status) + ", headers = " + ccapi::toString(headers) +
+                         ", streamPtr = " + oss.str() + ", remoteCloseCode = " + std::to_string(remoteCloseCode) +
+                         ", remoteCloseReason = " + std::string(remoteCloseReason.reason.c_str()) +
                          ", hostHttpHeaderValue = " + ccapi::toString(hostHttpHeaderValue) + ", path = " + ccapi::toString(path) +
                          ", host = " + ccapi::toString(host) + ", port = " + ccapi::toString(port) + ", isSecure = " + ccapi::toString(isSecure) + "]";
     return output;
@@ -145,6 +146,7 @@ class WsConnection {
   Status status{Status::UNKNOWN};
   std::map<std::string, std::string> headers;
   std::map<std::string, std::string> credential;
+  std::string proxyUrl;
   std::variant<std::shared_ptr<beast::websocket::stream<beast::ssl_stream<beast::tcp_stream>>>, std::shared_ptr<beast::websocket::stream<beast::tcp_stream>>>
       streamPtr;
   beast::websocket::close_code remoteCloseCode{};

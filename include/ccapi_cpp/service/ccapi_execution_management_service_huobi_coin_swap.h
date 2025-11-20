@@ -27,7 +27,6 @@ class ExecutionManagementServiceHuobiCoinSwap : public ExecutionManagementServic
     this->getAccountPositionsTarget = CCAPI_HUOBI_COIN_SWAP_GET_ACCOUNT_POSITIONS_PATH;
     this->authenticationPath = "/swap-api/v1/swap_order";
     this->orderDataTopic = CCAPI_HUOBI_COIN_SWAP_SUBSCRIBE_ORDER_DATA_TOPIC;
-    this->matchOrderDataTopic = CCAPI_HUOBI_COIN_SWAP_SUBSCRIBE_MATCH_ORDER_DATA_TOPIC;
   }
 
   virtual ~ExecutionManagementServiceHuobiCoinSwap() {}

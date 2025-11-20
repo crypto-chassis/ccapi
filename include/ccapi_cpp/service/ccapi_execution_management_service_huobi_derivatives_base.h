@@ -62,7 +62,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
         if (param.find("offset") == param.end()) {
           document.AddMember("offset", rj::Value("open").Move(), allocator);
         }
-        if (param.find("lever_rate") == param.end()) {
+        if (param.find("lever_rate") == param.end() && param.find(CCAPI_EM_ORDER_LEVERAGE) == param.end()) {
           document.AddMember("lever_rate", rj::Value("1").Move(), allocator);
         }
         if (param.find("order_price_type") == param.end()) {
@@ -269,17 +269,13 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       std::string errCode = document["err-code"].GetString();
       if (errCode == "0") {
         for (const auto& instrument : instrumentSet) {
-          for (const auto& field : fieldSet) {
+          if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end() || fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
             rj::Document document;
             document.SetObject();
             auto& allocator = document.GetAllocator();
             document.AddMember("op", rj::Value("sub").Move(), allocator);
             std::string topic;
-            if (field == CCAPI_EM_ORDER_UPDATE) {
-              topic = this->orderDataTopic + "." + instrument;
-            } else if (field == CCAPI_EM_PRIVATE_TRADE) {
-              topic = this->matchOrderDataTopic + "." + instrument;
-            }
+            topic = this->orderDataTopic + "." + instrument;
             document.AddMember("topic", rj::Value(topic.c_str(), allocator).Move(), allocator);
             rj::StringBuffer stringBufferSubscribe;
             rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
@@ -334,14 +330,13 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
       message.setTimeReceived(timeReceived);
       message.setCorrelationIdList({subscription.getCorrelationId()});
       std::string topic = document["topic"].GetString();
-      if (topic.rfind(this->orderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
+      if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
         std::string instrument = document["contract_code"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(document["ts"].GetString())));
           message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE);
           const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
               {CCAPI_EM_ORDER_ID, std::make_pair("order_id", JsonDataType::STRING)},
-              {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_SIDE, std::make_pair("direction", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
               {CCAPI_EM_ORDER_QUANTITY, std::make_pair("volume", JsonDataType::STRING)},
@@ -351,27 +346,17 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           };
           Element info;
           this->extractOrderInfo(info, document, extractionFieldNameMap);
-          {
-            auto it1 = document.FindMember("trade_volume");
-            auto it2 = document.FindMember("trade_avg_price");
-            if (it1 != document.MemberEnd() && it2 != document.MemberEnd()) {
-              info.insert(
-                  CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY,
-                  ConvertDecimalToString(Decimal(UtilString::printDoubleScientific(std::stod(it1->value.GetString()) * std::stod(it2->value.GetString())))));
-            }
-          }
-          for (const auto& x : document["trade"].GetArray()) {
-            info.insert(CCAPI_TRADE_ID, std::string(x["trade_id"].GetString()));
-            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_PRICE, x["trade_price"].GetString());
-            info.insert(CCAPI_EM_ORDER_LAST_EXECUTED_SIZE, x["trade_volume"].GetString());
-            info.insert(CCAPI_IS_MAKER, std::string_view(x["role"].GetString()) == "maker" ? "1" : "0");
+          auto it = document.FindMember("client_order_id");
+          if (it != document.MemberEnd() && it->value.IsString()) {
+            info.insert(CCAPI_EM_CLIENT_ORDER_ID, it->value.GetString());
           }
           std::vector<Element> elementList;
           elementList.emplace_back(std::move(info));
           message.setElementList(elementList);
           messageList.emplace_back(std::move(message));
         }
-      } else if (topic.rfind(this->matchOrderDataTopic + ".", 0) == 0 && fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
+      }
+      if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
         std::string instrument = document["contract_code"].GetString();
         if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
           std::string orderSide = std::string_view(document["direction"].GetString()) == "buy" ? CCAPI_EM_ORDER_SIDE_BUY : CCAPI_EM_ORDER_SIDE_SELL;
@@ -379,7 +364,7 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
           std::string orderId = document["order_id"].GetString();
           std::string clientOrderId;
           auto it = document.FindMember("client_order_id");
-          if (!it->value.IsNull()) {
+          if (it != document.MemberEnd() && it->value.IsString()) {
             clientOrderId = it->value.GetString();
           }
           for (const auto& x : document["trade"].GetArray()) {
@@ -431,7 +416,6 @@ class ExecutionManagementServiceHuobiDerivativesBase : public ExecutionManagemen
 
   std::string authenticationPath;
   std::string orderDataTopic;
-  std::string matchOrderDataTopic;
 };
 
 } /* namespace ccapi */

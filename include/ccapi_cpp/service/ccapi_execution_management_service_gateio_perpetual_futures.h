@@ -82,31 +82,32 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
     CCAPI_LOGGER_DEBUG("this->baseUrlWs = " + this->baseUrlWs);
     if (this->shouldContinue.load()) {
       for (auto& subscription : subscriptionList) {
-        boost::asio::post(
-            *this->serviceContextPtr->ioContextPtr, [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(), subscription]() mutable {
-              auto now = UtilTime::now();
-              subscription.setTimeSent(now);
-              const auto& instrumentSet = subscription.getInstrumentSet();
-              auto it = instrumentSet.begin();
-              if (it != instrumentSet.end()) {
-                std::string settle;
-                std::string symbolId = *it;
-                if (UtilString::endsWith(symbolId, "_USD")) {
-                  settle = "btc";
-                } else if (UtilString::endsWith(symbolId, "_USDT")) {
-                  settle = "usdt";
-                }
-                auto credential = subscription.getCredential();
-                if (credential.empty()) {
-                  credential = that->credentialDefault;
-                }
+        boost::asio::post(*this->serviceContextPtr->ioContextPtr, [that = shared_from_base<ExecutionManagementServiceGateioPerpetualFutures>(),
+                                                                   subscription]() mutable {
+          auto now = UtilTime::now();
+          subscription.setTimeSent(now);
+          const auto& instrumentSet = subscription.getInstrumentSet();
+          auto it = instrumentSet.begin();
+          if (it != instrumentSet.end()) {
+            std::string settle;
+            std::string symbolId = *it;
+            if (UtilString::endsWith(symbolId, "_USD")) {
+              settle = "btc";
+            } else if (UtilString::endsWith(symbolId, "_USDT")) {
+              settle = "usdt";
+            }
+            auto credential = subscription.getCredential();
+            if (credential.empty()) {
+              credential = that->credentialDefault;
+            }
+            const auto& proxyUrl = subscription.getProxyUrl();
 
-                auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWs + settle, "", std::vector<Subscription>{subscription}, credential);
-                that->setWsConnectionStream(wsConnectionPtr);
-                CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
-                that->prepareConnect(wsConnectionPtr);
-              }
-            });
+            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWs + settle, "", std::vector<Subscription>{subscription}, credential, proxyUrl);
+            that->setWsConnectionStream(wsConnectionPtr);
+            CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
+            that->prepareConnect(wsConnectionPtr);
+          }
+        });
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;

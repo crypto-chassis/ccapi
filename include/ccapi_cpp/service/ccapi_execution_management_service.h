@@ -61,13 +61,15 @@ class ExecutionManagementService : public Service {
           }
 
           const auto& fieldSet = subscription.getFieldSet();
+          const auto& proxyUrl = subscription.getProxyUrl();
+
           if (fieldSet.find(CCAPI_EM_WEBSOCKET_ORDER_ENTRY) != fieldSet.end()) {
-            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWsOrderEntry, "", std::vector<Subscription>{subscription}, credential);
+            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWsOrderEntry, "", std::vector<Subscription>{subscription}, credential, proxyUrl);
             that->setWsConnectionStream(wsConnectionPtr);
             CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
             that->prepareConnect(wsConnectionPtr);
           } else {
-            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWs, "", std::vector<Subscription>{subscription}, credential);
+            auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWs, "", std::vector<Subscription>{subscription}, credential, proxyUrl);
             that->setWsConnectionStream(wsConnectionPtr);
             CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
             that->prepareConnect(wsConnectionPtr);

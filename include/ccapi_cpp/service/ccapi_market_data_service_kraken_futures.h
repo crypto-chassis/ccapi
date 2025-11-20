@@ -73,7 +73,8 @@ class MarketDataServiceKrakenFutures : public MarketDataService {
 
   void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,
                           std::vector<MarketDataMessage>& marketDataMessageList) override {
-    rj::Document document;
+    this->jsonDocumentAllocator.Clear();
+    rj::Document document(&this->jsonDocumentAllocator);
     rj::Document::AllocatorType& allocator = document.GetAllocator();
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
     if (document.HasMember("event")) {

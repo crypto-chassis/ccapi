@@ -41,7 +41,7 @@ class MarketDataServiceGateioPerpetualFutures : public MarketDataServiceGateioBa
     } else if (UtilString::endsWith(instrument, "_USDT")) {
       url += "usdt";
     }
-    return url + "|" + subscription.getField() + "|" + subscription.getSerializedOptions();
+    return url + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getProxyUrl();
   }
 
   void substituteParamSettle(std::string& target, const std::map<std::string, std::string>& param, const std::string& symbolId) {

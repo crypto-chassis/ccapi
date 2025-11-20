@@ -362,9 +362,10 @@ class ExecutionManagementServiceAscendex : public ExecutionManagementService {
             credential = that->credentialDefault;
           }
           const auto& accountGroup = mapGetWithDefault(credential, that->apiAccountGroupName);
+          const auto& proxyUrl = subscription.getProxyUrl();
 
           auto wsConnectionPtr = std::make_shared<WsConnection>(that->baseUrlWs + "/" + accountGroup + "/api/pro/v1/stream", "",
-                                                                std::vector<Subscription>{subscription}, credential);
+                                                                std::vector<Subscription>{subscription}, credential, proxyUrl);
           that->setWsConnectionStream(wsConnectionPtr);
           CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
           that->prepareConnect(wsConnectionPtr);

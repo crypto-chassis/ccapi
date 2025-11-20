@@ -129,6 +129,12 @@ TEST(UtilStringTest, normalizeDecimalString_5) {
   EXPECT_EQ(UtilString::normalizeDecimalString(original.c_str()), "1.1");
 }
 
+TEST(UtilStringTest, normalizeDecimalString_6) {
+  std::string original("1.1e10");
+  EXPECT_EQ(UtilString::normalizeDecimalString(original), "1.1e10");
+  EXPECT_EQ(UtilString::normalizeDecimalStringView(original), "1.1e10");
+}
+
 TEST(UtilStringTest, toUpper) {
   std::string original("ab");
   EXPECT_EQ(UtilString::toUpper(original), "AB");

@@ -27,6 +27,12 @@
 #define CCAPI_WEBSOCKET_WRITE_BUFFER_SIZE (1 << 20)
 #endif
 
+#define CCAPI_REQUIRES_INFLATE_STREAM                                                                                                              \
+  ((defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                   \
+    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))) || \
+   (defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                          \
+    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))))
+
 #include <regex>
 
 #include "boost/asio/strand.hpp"
@@ -50,7 +56,9 @@
 #include "ccapi_cpp/ccapi_fix_connection.h"
 #include "ccapi_cpp/ccapi_http_connection.h"
 #include "ccapi_cpp/ccapi_http_retry.h"
+#if CCAPI_REQUIRES_INFLATE_STREAM
 #include "ccapi_cpp/ccapi_inflate_stream.h"
+#endif
 #include "ccapi_cpp/ccapi_queue.h"
 #include "ccapi_cpp/ccapi_request.h"
 #include "ccapi_cpp/ccapi_session_configs.h"
@@ -976,8 +984,18 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("wsConnectionPtr = " + wsConnectionPtr->toString());
     CCAPI_LOGGER_TRACE("wsConnectionPtr->host = " + wsConnectionPtr->host);
     CCAPI_LOGGER_TRACE("wsConnectionPtr->port = " + wsConnectionPtr->port);
-    newResolverPtr->async_resolve(wsConnectionPtr->host, wsConnectionPtr->port,
-                                  beast::bind_front_handler(&Service::onResolveWs, shared_from_this(), wsConnectionPtr, newResolverPtr));
+    CCAPI_LOGGER_TRACE("wsConnectionPtr->proxyUrl = " + wsConnectionPtr->proxyUrl);
+    std::string host;
+    std::string port;
+    if (wsConnectionPtr->proxyUrl.empty()) {
+      host = wsConnectionPtr->host;
+      port = wsConnectionPtr->port;
+    } else {
+      const auto& splitted = UtilString::split(wsConnectionPtr->proxyUrl, ':');
+      host = splitted.at(0);
+      port = splitted.size() > 1 ? splitted.at(1) : CCAPI_HTTP_PORT_DEFAULT;
+    }
+    newResolverPtr->async_resolve(host, port, beast::bind_front_handler(&Service::onResolveWs, shared_from_this(), wsConnectionPtr, newResolverPtr));
   }
 
   void onResolveWs(std::shared_ptr<WsConnection> wsConnectionPtr, std::shared_ptr<tcp::resolver> newResolverPtr, beast::error_code ec,
@@ -1030,8 +1048,7 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_TRACE("connected");
     CCAPI_LOGGER_TRACE("ep.port() = " + std::to_string(ep.port()));
 
-    wsConnectionPtr->hostHttpHeaderValue =
-        this->hostHttpHeaderValueIgnorePort ? wsConnectionPtr->host : wsConnectionPtr->host + ':' + std::to_string(ep.port());
+    wsConnectionPtr->hostHttpHeaderValue = this->hostHttpHeaderValueIgnorePort ? wsConnectionPtr->host : wsConnectionPtr->host + ':' + wsConnectionPtr->port;
 
     CCAPI_LOGGER_TRACE("wsConnectionPtr->hostHttpHeaderValue = " + wsConnectionPtr->hostHttpHeaderValue);
 
@@ -1139,8 +1156,14 @@ class Service : public std::enable_shared_from_this<Service> {
     auto& connectionId = wsConnectionPtr->id;
     auto& readMessageBuffer = wsConnectionPtr->readMessageBuffer;
     if (ec) {
-      if (ec == beast::error::timeout) {
+      readMessageBuffer.consume(readMessageBuffer.size());
+      if (ec == boost::asio::error::operation_aborted) {
+        return;
+      } else if (ec == beast::error::timeout) {
         CCAPI_LOGGER_TRACE("timeout, connection closed");
+      }
+      if (wsConnectionPtr->status == WsConnection::Status::CLOSING) {
+        return;
       }
       CCAPI_LOGGER_TRACE("fail");
       Event event;
@@ -1156,7 +1179,6 @@ class Service : public std::enable_shared_from_this<Service> {
       event.setMessageList({message});
       this->eventHandler(event, nullptr);
       this->onFail(wsConnectionPtr);
-      readMessageBuffer.consume(readMessageBuffer.size());
       return;
     }
     if (wsConnectionPtr->status != WsConnection::Status::OPEN) {
@@ -1423,10 +1445,7 @@ class Service : public std::enable_shared_from_this<Service> {
           } else if (stream.got_binary()) {
             CCAPI_LOGGER_DEBUG("received a binary message: " + UtilAlgorithm::stringToHex(std::string(data, dataSize)));
 
-#if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
-        (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
-    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
-        (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
+#if CCAPI_REQUIRES_INFLATE_STREAM
 
             if (this->needDecompressWebsocketMessage) {
               std::string decompressed;
@@ -1466,7 +1485,6 @@ class Service : public std::enable_shared_from_this<Service> {
     } else if (kind == boost::beast::websocket::frame_type::pong) {
       this->onPong(wsConnectionPtr, payload);
     } else if (kind == boost::beast::websocket::frame_type::close) {
-      this->onClose(wsConnectionPtr, {});
     }
   }
 
@@ -1647,13 +1665,8 @@ class Service : public std::enable_shared_from_this<Service> {
   // std::regex convertNumberToStringInJsonRegex{"(\\[|,|\":)\\s?(-?\\d+\\.?\\d*)"};
   // std::string convertNumberToStringInJsonRewrite{"$1\"$2\""};
   bool needDecompressWebsocketMessage{};
-#if defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                      \
-        (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP)) || \
-    defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                             \
-        (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))
-
+#if CCAPI_REQUIRES_INFLATE_STREAM
   InflateStream inflater;
-
 #endif
 
   std::array<char, CCAPI_JSON_PARSE_BUFFER_SIZE> jsonParseBuffer;

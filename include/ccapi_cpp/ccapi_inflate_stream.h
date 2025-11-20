@@ -58,14 +58,14 @@ class InflateStream {
     return boost::system::error_code();
   }
 
-  boost::system::error_code decompress(uint8_t const *buf, size_t len, std::string &out) {
+  boost::system::error_code decompress(uint8_t const* buf, size_t len, std::string& out) {
     if (!this->initialized) {
       CCAPI_LOGGER_ERROR("decompress error");
       return boost::system::error_code();
     }
 
     this->istate.avail_in = len;
-    this->istate.next_in = const_cast<unsigned char *>(buf);
+    this->istate.next_in = const_cast<unsigned char*>(buf);
     do {
       this->istate.avail_out = this->decompressBufferSize;
       this->istate.next_out = this->buffer.get();
@@ -74,7 +74,7 @@ class InflateStream {
         CCAPI_LOGGER_ERROR("decompress error");
         return boost::system::error_code();
       }
-      out.append(reinterpret_cast<char *>(this->buffer.get()), this->decompressBufferSize - this->istate.avail_out);
+      out.append(reinterpret_cast<char*>(this->buffer.get()), this->decompressBufferSize - this->istate.avail_out);
     } while (this->istate.avail_out == 0);
     return boost::system::error_code();
   }

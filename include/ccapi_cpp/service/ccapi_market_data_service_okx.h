@@ -45,7 +45,7 @@ class MarketDataServiceOkx : public MarketDataService {
       baseUrlWsGivenSubscription = this->sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + CCAPI_OKX_BUSINESS_WS_PATH;
     }
     return baseUrlWsGivenSubscription + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" +
-           subscription.getSerializedCredential();
+           subscription.getSerializedCredential() + "|" + subscription.getProxyUrl();
   }
 
   bool doesHttpBodyContainError(boost::beast::string_view bodyView) override {

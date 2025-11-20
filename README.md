@@ -32,7 +32,6 @@
       - [Multiple subscription fields](#multiple-subscription-fields)
       - [Make Session::sendRequest blocking](#make-sessionsendrequest-blocking)
       - [Provide API credentials for an exchange](#provide-api-credentials-for-an-exchange)
-      - [Override exchange urls](#override-exchange-urls)
       - [Complex request parameters](#complex-request-parameters-1)
       - [Send request by Websocket API](#send-request-by-websocket-api)
       - [Specify instrument type](#specify-instrument-type)
@@ -44,6 +43,9 @@
       - [Set timer](#set-timer)
       - [Heartbeat](#heartbeat)
       - [Use multiple sessions](#use-multiple-sessions)
+      - [Override exchange urls](#override-exchange-urls)
+      - [Connect to a proxy](#connect-to-a-proxy)
+      - [Reduce build time](#reduce-build-time)
   - [Performance Tuning](#performance-tuning)
   - [Known Issues and Workarounds](#known-issues-and-workarounds)
 
@@ -60,6 +62,7 @@
   * FIX: [binance](https://accounts.maxweb.academy/register?ref=1116718520), coinbase, gemini.
 * Join us on Discord https://discord.gg/b5EKcp9s8T and Medium https://cryptochassis.medium.com.
 * For any questions, email hello@cryptochassis.com.
+* We’re experts in market data collection, high-speed trading system, infrastructure optimization, and proprietary market making. Hire us as engineers, liquidity providers, traders, or asset managers.
 
 ## Branches
 * The `develop` branch may contain experimental features.
@@ -700,11 +703,11 @@ Bye
 
 #### Specify correlation id
 
-Instantiate `Request` with the desired correlationId. The `correlationId` should be unique.
+Instantiate `Request` with the desired `correlationId`. The `correlationId` should be unique.
 ```
 Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT", "cool correlation id");
 ```
-Instantiate `Subscription` with the desired correlationId.
+Instantiate `Subscription` with the desired `correlationId`.
 ```
 Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "cool correlation id");
 ```
@@ -766,9 +769,6 @@ Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "", {
   {"OKX_API_SECRET", ...}
 });
 ```
-
-#### Override exchange urls
-You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/src/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://www.okx.com/docs-v5/en/#overview-demo-trading-services) or connect to an IP address (e.g. ws://172.30.0.146:9000).
 
 #### Complex request parameters
 Please follow the exchange's API documentations: e.g. https://www.okx.com/docs-v5/en/#order-book-trading-trade-post-place-order.
@@ -1073,7 +1073,17 @@ Subscription subscription("", "", "HEARTBEAT", "HEARTBEAT_INTERVAL_MILLISECONDS=
 session.subscribe(subscription);
 ```
 
+#### Override exchange urls
+You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/src/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://www.okx.com/docs-v5/en/#overview-demo-trading-services).
 
+#### Connect to a proxy
+Instantiate `Subscription` with the desired `proxyUrl`.
+```
+Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "", "", {}, "172.30.0.146:9000");
+```
+
+#### Reduce build time
+The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/src/reduce_build_time).
 
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).

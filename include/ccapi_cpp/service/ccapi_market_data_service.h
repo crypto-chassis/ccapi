@@ -59,21 +59,21 @@ class MarketDataService : public Service {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (this->shouldContinue.load()) {
       for (auto& x : this->groupSubscriptionListByInstrumentGroup(subscriptionList)) {
-        auto instrumentGroup = x.first;
-        auto subscriptionListGivenInstrumentGroup = x.second;
+        const auto& instrumentGroup = x.first;
+        auto& subscriptionListGivenInstrumentGroup = x.second;
         boost::asio::post(*this->serviceContextPtr->ioContextPtr, [that = shared_from_base<MarketDataService>(), instrumentGroup,
                                                                    subscriptionListGivenInstrumentGroup]() mutable {
-          auto now = UtilTime::now();
+          const auto& now = UtilTime::now();
           for (auto& subscription : subscriptionListGivenInstrumentGroup) {
             subscription.setTimeSent(now);
           }
           std::map<std::string, std::vector<std::string>> wsConnectionIdListByInstrumentGroupMap = invertMapMulti(that->instrumentGroupByWsConnectionIdMap);
           if (wsConnectionIdListByInstrumentGroupMap.find(instrumentGroup) != wsConnectionIdListByInstrumentGroupMap.end() &&
               that->subscriptionStatusByInstrumentGroupInstrumentMap.find(instrumentGroup) != that->subscriptionStatusByInstrumentGroupInstrumentMap.end()) {
-            auto wsConnectionId = wsConnectionIdListByInstrumentGroupMap.at(instrumentGroup).at(0);
-            auto wsConnectionPtr = that->wsConnectionPtrByIdMap.at(wsConnectionId);
+            const auto& wsConnectionId = wsConnectionIdListByInstrumentGroupMap.at(instrumentGroup).at(0);
+            const auto& wsConnectionPtr = that->wsConnectionPtrByIdMap.at(wsConnectionId);
             for (const auto& subscription : subscriptionListGivenInstrumentGroup) {
-              auto instrument = subscription.getInstrument();
+              const auto& instrument = subscription.getInstrument();
               if (that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].find(instrument) !=
                   that->subscriptionStatusByInstrumentGroupInstrumentMap[instrumentGroup].end()) {
                 that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "already subscribed: " + toString(subscription));
@@ -86,13 +86,15 @@ class MarketDataService : public Service {
             CCAPI_LOGGER_INFO("about to subscribe to exchange");
             that->subscribeToExchange(wsConnectionPtr);
           } else {
-            auto url = UtilString::split(instrumentGroup, "|").at(0);
+            const auto& splittedInstrumentGroup = UtilString::split(instrumentGroup, "|");
+            const auto& url = splittedInstrumentGroup.at(0);
             auto credential = subscriptionListGivenInstrumentGroup.at(0).getCredential();
             if (credential.empty()) {
               credential = that->credentialDefault;
             }
+            const auto& proxyUrl = splittedInstrumentGroup.at(splittedInstrumentGroup.size() - 1);
 
-            auto wsConnectionPtr = std::make_shared<WsConnection>(url, instrumentGroup, subscriptionListGivenInstrumentGroup, credential);
+            auto wsConnectionPtr = std::make_shared<WsConnection>(url, instrumentGroup, subscriptionListGivenInstrumentGroup, credential, proxyUrl);
             that->setWsConnectionStream(wsConnectionPtr);
             CCAPI_LOGGER_WARN("about to subscribe with new wsConnectionPtr " + toString(*wsConnectionPtr));
             that->prepareConnect(wsConnectionPtr);
@@ -122,9 +124,11 @@ class MarketDataService : public Service {
   virtual std::string getInstrumentGroup(const Subscription& subscription) {
     const auto& field = subscription.getField();
     if (field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
-      return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getCorrelationId() + "|" + subscription.getSerializedCredential();
+      return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getCorrelationId() + "|" + subscription.getSerializedCredential() + "|" +
+             subscription.getProxyUrl();
     } else {
-      return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getSerializedCredential();
+      return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getSerializedCredential() + "|" +
+             subscription.getProxyUrl();
     }
   }
 

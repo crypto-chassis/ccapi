@@ -102,7 +102,7 @@ class MarketDataServiceHuobiBase : public MarketDataService {
         url += "/ws";
       }
     }
-    return url + "|" + field + "|" + subscription.getSerializedOptions();
+    return url + "|" + field + "|" + subscription.getSerializedOptions() + "|" + subscription.getProxyUrl();
   }
 
   void processTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const TimePoint& timeReceived, Event& event,

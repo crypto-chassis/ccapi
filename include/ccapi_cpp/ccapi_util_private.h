@@ -281,7 +281,7 @@ class UtilString {
   }
 
   static std::string normalizeDecimalString(const std::string& original) {
-    if (original.find('.') != std::string::npos) {
+    if (original.find('.') != std::string::npos && original.find_first_of("Ee") == std::string::npos) {
       std::string str(original);
       rtrimInPlace(str, "0");
       rtrimInPlace(str, ".");
@@ -303,7 +303,7 @@ class UtilString {
   static std::string_view normalizeDecimalStringView(std::string_view input) {
     // Quick check for dot
     size_t dotPos = input.find('.');
-    if (dotPos == std::string_view::npos) return input;
+    if (dotPos == std::string_view::npos || input.find_first_of("Ee") != std::string::npos) return input;
 
     size_t end = input.size();
 

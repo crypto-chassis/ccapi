@@ -216,7 +216,7 @@ class MarketDataServiceGemini : public MarketDataService {
       }
       url += parameter + "=true";
     }
-    return url;
+    return url + "|" + subscription.getProxyUrl();
   }
 
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
