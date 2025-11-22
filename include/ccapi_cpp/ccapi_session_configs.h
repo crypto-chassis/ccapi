@@ -204,6 +204,11 @@ class SessionConfigs {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_MARKET_TRADES},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_MARKET_DEPTH},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapEdgex = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_EDGEX_CHANNEL_TRADES},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_EDGEX_CHANNEL_DEPTH},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_EDGEX_CHANNEL_KLINE},
+    };
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapCoinbase) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_COINBASE].push_back(fieldWebsocketChannel.first);
     }
@@ -303,6 +308,9 @@ class SessionConfigs {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapHyperliquid) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_HYPERLIQUID].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapEdgex) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_EDGEX].push_back(fieldWebsocketChannel.first);
+    }
     for (auto& x : this->exchangeFieldMap) {
       x.second.push_back(CCAPI_GENERIC_PUBLIC_SUBSCRIPTION);
     }
@@ -341,6 +349,7 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, fieldWebsocketChannelMapMexcFutures},
         {CCAPI_EXCHANGE_NAME_WHITEBIT, fieldWebsocketChannelMapWhitebit},
         {CCAPI_EXCHANGE_NAME_HYPERLIQUID, fieldWebsocketChannelMapHyperliquid},
+        {CCAPI_EXCHANGE_NAME_EDGEX, fieldWebsocketChannelMapEdgex},
     };
     this->urlWebsocketBase = {
         {CCAPI_EXCHANGE_NAME_COINBASE, CCAPI_COINBASE_URL_WS_BASE},
@@ -379,6 +388,7 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_WHITEBIT, CCAPI_WHITEBIT_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_HYPERLIQUID, CCAPI_HYPERLIQUID_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_EDGEX, CCAPI_EDGEX_URL_WS_BASE},
     };
     this->urlWebsocketOrderEntryBase = {
         {CCAPI_EXCHANGE_NAME_OKX, CCAPI_OKX_URL_WS_BASE},
@@ -426,6 +436,7 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_WHITEBIT, CCAPI_WHITEBIT_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_HYPERLIQUID, CCAPI_HYPERLIQUID_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_EDGEX, CCAPI_EDGEX_URL_REST_BASE},
     };
   }
 

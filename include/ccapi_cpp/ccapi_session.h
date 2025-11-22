@@ -103,6 +103,9 @@
 #ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
 #include "ccapi_cpp/service/ccapi_market_data_service_hyperliquid.h"
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_EDGEX
+#include "ccapi_cpp/service/ccapi_market_data_service_edgex.h"
+#endif
 #endif
 // end: enable exchanges for market data
 
@@ -209,6 +212,9 @@
 #endif
 #ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
 #include "ccapi_cpp/service/ccapi_execution_management_service_hyperliquid.h"
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_EDGEX
+#include "ccapi_cpp/service/ccapi_execution_management_service_edgex.h"
 #endif
 #endif
 // end: enable exchanges for execution management
@@ -442,6 +448,10 @@ class Session {
     this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_HYPERLIQUID] =
         std::make_shared<MarketDataServiceHyperliquid>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
+#ifdef CCAPI_ENABLE_EXCHANGE_EDGEX
+    this->serviceByServiceNameExchangeMap[CCAPI_MARKET_DATA][CCAPI_EXCHANGE_NAME_EDGEX] =
+        std::make_shared<MarketDataServiceEdgex>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
 #endif
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_COINBASE
@@ -583,6 +593,10 @@ class Session {
 #ifdef CCAPI_ENABLE_EXCHANGE_HYPERLIQUID
     this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_HYPERLIQUID] =
         std::make_shared<ExecutionManagementServiceHyperliquid>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
+#endif
+#ifdef CCAPI_ENABLE_EXCHANGE_EDGEX
+    this->serviceByServiceNameExchangeMap[CCAPI_EXECUTION_MANAGEMENT][CCAPI_EXCHANGE_NAME_EDGEX] =
+        std::make_shared<ExecutionManagementServiceEdgex>(this->onEventFunc, sessionOptions, sessionConfigs, this->serviceContextPtr);
 #endif
 #endif
 

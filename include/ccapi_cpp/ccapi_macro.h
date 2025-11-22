@@ -208,6 +208,10 @@
 #define CCAPI_EXCHANGE_NAME_HYPERLIQUID "hyperliquid"
 #endif
 
+#ifndef CCAPI_EXCHANGE_NAME_EDGEX
+#define CCAPI_EXCHANGE_NAME_EDGEX "edgex"
+#endif
+
 #ifndef CCAPI_LAST_PRICE
 #define CCAPI_LAST_PRICE "LAST_PRICE"
 #endif
@@ -497,6 +501,15 @@
 #define CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_TRADES "trades"
 #define CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_CANDLE "candle"
 #define CCAPI_WEBSOCKET_HYPERLIQUID_CHANNEL_BBO "bbo"
+
+#define CCAPI_WEBSOCKET_EDGEX_CHANNEL_TICKER "ticker"
+#define CCAPI_WEBSOCKET_EDGEX_CHANNEL_TRADES "trades"
+#define CCAPI_WEBSOCKET_EDGEX_CHANNEL_DEPTH "depth"
+#define CCAPI_WEBSOCKET_EDGEX_CHANNEL_KLINE "kline"
+
+#ifndef CCAPI_EDGEX_PRICE_TYPE
+#define CCAPI_EDGEX_PRICE_TYPE "EDGEX_PRICE_TYPE"
+#endif
 
 #ifndef CCAPI_CHANNEL_ID
 #define CCAPI_CHANNEL_ID "channelId"
@@ -1072,6 +1085,10 @@
 #define CCAPI_HYPERLIQUID_URL_REST_BASE "https://api.hyperliquid.xyz"
 #endif
 
+#ifndef CCAPI_EDGEX_URL_REST_BASE
+#define CCAPI_EDGEX_URL_REST_BASE "https://pro.edgex.exchange"
+#endif
+
 // end: exchange REST urls
 
 // start: exchange WS urls
@@ -1199,6 +1216,14 @@
 #define CCAPI_OKX_BUSINESS_WS_PATH "/ws/v5/business"
 #endif
 
+#ifndef CCAPI_EDGEX_PUBLIC_WS_PATH
+#define CCAPI_EDGEX_PUBLIC_WS_PATH "/api/v1/public/ws"
+#endif
+
+#ifndef CCAPI_EDGEX_PRIVATE_WS_PATH
+#define CCAPI_EDGEX_PRIVATE_WS_PATH "/api/v1/private/ws"
+#endif
+
 #ifndef CCAPI_ERISX_URL_WS_BASE
 #define CCAPI_ERISX_URL_WS_BASE "wss://publicmd-api.erisx.com"
 #endif
@@ -1269,6 +1294,10 @@
 
 #ifndef CCAPI_HYPERLIQUID_URL_WS_BASE
 #define CCAPI_HYPERLIQUID_URL_WS_BASE "wss://api.hyperliquid.xyz"
+#endif
+
+#ifndef CCAPI_EDGEX_URL_WS_BASE
+#define CCAPI_EDGEX_URL_WS_BASE "wss://quote.edgex.exchange"
 #endif
 
 // end: exchange WS urls
@@ -1675,6 +1704,14 @@
 
 #ifndef CCAPI_HYPERLIQUID_API_VAULT_ADDRESS
 #define CCAPI_HYPERLIQUID_API_VAULT_ADDRESS "HYPERLIQUID_API_VAULT_ADDRESS"
+#endif
+
+#ifndef CCAPI_EDGEX_API_KEY
+#define CCAPI_EDGEX_API_KEY "EDGEX_API_KEY"
+#endif
+
+#ifndef CCAPI_EDGEX_API_SECRET
+#define CCAPI_EDGEX_API_SECRET "EDGEX_API_SECRET"
 #endif
 
 #ifndef CCAPI_HYPERLIQUID_ACCOUNT_ADDRESS
