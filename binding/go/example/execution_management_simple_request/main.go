@@ -12,7 +12,7 @@ type MyEventHandler struct {
 }
 
 func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
-	fmt.Printf("Received an event:\n%s\n", event.ToStringPretty(2, 2))
+	fmt.Printf("Received an event:\n%s\n", event.ToPrettyString(2, 2))
 	}
 
 func main() {

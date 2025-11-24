@@ -1,6 +1,15 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
 
+#if (defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                   \
+     (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))) || \
+    (defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                          \
+     (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART)))
+#define CCAPI_REQUIRES_INFLATE_STREAM 1
+#else
+#define CCAPI_REQUIRES_INFLATE_STREAM 0
+#endif
+
 #ifndef CCAPI_HTTP_RESPONSE_PARSER_BODY_LIMIT
 #define CCAPI_HTTP_RESPONSE_PARSER_BODY_LIMIT (8 * 1024 * 1024)
 #endif
@@ -26,12 +35,6 @@
 #ifndef CCAPI_WEBSOCKET_WRITE_BUFFER_SIZE
 #define CCAPI_WEBSOCKET_WRITE_BUFFER_SIZE (1 << 20)
 #endif
-
-#define CCAPI_REQUIRES_INFLATE_STREAM                                                                                                              \
-  ((defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                   \
-    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))) || \
-   (defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                          \
-    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))))
 
 #include <regex>
 

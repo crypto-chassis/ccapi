@@ -246,7 +246,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               } else {
                 MarketDataMessage::TypeForDataPoint dataPoint;
                 dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-                std::string_view count = std::string(x[1].GetString());
+                std::string_view count = x[1].GetString();
                 std::string_view amount = UtilString::normalizeDecimalStringView(x[2].GetString());
                 if (count != "0") {
                   if (amount.at(0) == '-') {
