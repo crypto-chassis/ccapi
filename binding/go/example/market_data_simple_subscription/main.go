@@ -12,7 +12,7 @@ type MyEventHandler struct {
 
 func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 	if event.GetType() == ccapi.EventType_SUBSCRIPTION_STATUS {
-		fmt.Printf("Received an event of type SUBSCRIPTION_STATUS:\n%s\n", event.ToStringPretty(2, 2))
+		fmt.Printf("Received an event of type SUBSCRIPTION_STATUS:\n%s\n", event.ToPrettyString(2, 2))
 	} else if event.GetType() == ccapi.EventType_SUBSCRIPTION_DATA {
 		messageList := event.GetMessageList()
 		for i := 0; i < int(messageList.Size()); i++ {
