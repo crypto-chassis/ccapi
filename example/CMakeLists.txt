@@ -15,8 +15,6 @@ message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 get_filename_component(CCAPI_PROJECT_DIR ../ ABSOLUTE)
 message(STATUS "CCAPI_PROJECT_DIR: ${CCAPI_PROJECT_DIR}")
 
-cmake_policy(SET CMP0135 NEW)
-
 if(NOT BOOST_INCLUDE_DIR)
   include(ExternalProject)
   ExternalProject_Add(
