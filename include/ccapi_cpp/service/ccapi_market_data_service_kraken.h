@@ -50,6 +50,47 @@ class MarketDataServiceKraken : public MarketDataService {
     }
   }
 
+  static void processForChecksum(std::string& str) {
+    str.erase(std::remove(str.begin(), str.end(), '.'), str.end());
+    UtilString::ltrimInPlace(str, "0");
+  }
+
+  std::vector<std::string> extractTop(const std::map<Decimal, std::string>& snapshot, bool reverse = false) {
+    std::vector<std::string> result;
+    int count = 0;
+
+    auto process_item = [&](auto it) {
+        std::string price = toString(it->first);
+        processForChecksum(price);
+        result.push_back(std::move(price));
+
+        std::string volume = it->second;
+        processForChecksum(volume);
+        result.push_back(std::move(volume));
+    };
+
+    if (reverse) {
+        for (auto it = snapshot.rbegin(); it != snapshot.rend() && count < 10; ++it, ++count) {
+            process_item(it);
+        }
+    } else {
+        for (auto it = snapshot.begin(); it != snapshot.end() && count < 10; ++it, ++count) {
+            process_item(it);
+        }
+    }
+    return result;
+  };
+
+  std::string calculateOrderBookChecksum(const std::map<Decimal, std::string>& snapshotBid, const std::map<Decimal, std::string>& snapshotAsk) override {
+    auto csAskData = extractTop(snapshotAsk);
+    auto csBidData = extractTop(snapshotBid, true);
+
+    std::string csStr = UtilString::join(csAskData, "") + UtilString::join(csBidData, "");
+    uint_fast32_t csCalc = UtilAlgorithm::crc(csStr.begin(), csStr.end());
+    CCAPI_LOGGER_DEBUG("csStr: " + csStr + ", csCalc: " + intToHex(csCalc));
+    return intToHex(csCalc);
+  }
+
   std::vector<std::string> createSendStringList(std::shared_ptr<WsConnection> wsConnectionPtr) override {
     std::vector<std::string> sendStringList;
     for (const auto& subscriptionListByChannelIdSymbolId : this->subscriptionListByConnectionIdChannelIdSymbolIdMap.at(wsConnectionPtr->id)) {
@@ -187,19 +228,26 @@ class MarketDataServiceKraken : public MarketDataService {
           marketDataMessage.exchangeSubscriptionId = exchangeSubscriptionId;
           marketDataMessage.tp = latestTp;
           marketDataMessage.recapType = MarketDataMessage::RecapType::NONE;
+          if (this->sessionOptions.enableCheckOrderBookChecksum) {
+            if (anonymous2.HasMember("c")) {
+              CCAPI_LOGGER_DEBUG("Checksum for " + symbolId + ": " + anonymous2["c"].GetString());
+              this->orderBookChecksumByConnectionIdSymbolIdMap[wsConnectionPtr->id][symbolId] =
+                                          intToHex(static_cast<uint_fast32_t>(static_cast<uint32_t>(std::stoul(anonymous2["c"].GetString()))));
+            }
+          }
           if (anonymous2.HasMember("b")) {
             for (const auto& x : anonymous2["b"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
-              dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-              dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
+              dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+              dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
               marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
             }
           }
           if (anonymous2.HasMember("a")) {
             for (const auto& x : anonymous2["a"].GetArray()) {
               MarketDataMessage::TypeForDataPoint dataPoint;
-              dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-              dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
+              dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+              dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
               marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
             }
           }
@@ -212,14 +260,14 @@ class MarketDataServiceKraken : public MarketDataService {
           marketDataMessage.tp = timeReceived;
           for (const auto& x : anonymous["bs"].GetArray()) {
             MarketDataMessage::TypeForDataPoint dataPoint;
-            dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-            dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
+            dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+            dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
             marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
           }
           for (const auto& x : anonymous["as"].GetArray()) {
             MarketDataMessage::TypeForDataPoint dataPoint;
-            dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-            dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
+            dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+            dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
             marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
           }
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
@@ -236,8 +284,8 @@ class MarketDataServiceKraken : public MarketDataService {
           tp += std::chrono::nanoseconds(timePair.second);
           marketDataMessage.tp = tp;
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
+          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
           dataPoint.emplace(MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string_view(x[3].GetString()) == "s" ? "1" : "0");
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
@@ -373,8 +421,8 @@ class MarketDataServiceKraken : public MarketDataService {
           tp += std::chrono::nanoseconds(timePair.second);
           marketDataMessage.tp = tp;
           MarketDataMessage::TypeForDataPoint dataPoint;
-          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, UtilString::normalizeDecimalStringView(x[1].GetString()));
+          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
           dataPoint.emplace(MarketDataMessage::DataFieldType::IS_BUYER_MAKER, std::string_view(x[3].GetString()) == "s" ? "1" : "0");
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
