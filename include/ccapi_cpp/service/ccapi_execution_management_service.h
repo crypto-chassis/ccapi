@@ -311,7 +311,11 @@ class ExecutionManagementService : public Service {
                         const auto& symbolId = instrument;
                         CCAPI_LOGGER_TRACE("symbolId = " + symbolId);
                         ErrorCode ec;
+                        // Get credential from request first, then from wsConnection, then from default
                         auto credential = request.getCredential();
+                        if (credential.empty()) {
+                          credential = wsConnectionPtr->credential;
+                        }
                         if (credential.empty()) {
                           credential = that->credentialDefault;
                         }

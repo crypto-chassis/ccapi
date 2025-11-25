@@ -143,7 +143,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(operation, document, allocator, param);
         if (param.find("tdMode") == param.end()) {
-          document.AddMember("tdMode", rj::Value("cash").Move(), allocator);
+          document.AddMember("tdMode", rj::Value("cross").Move(), allocator);
         }
         if (param.find("ordType") == param.end()) {
           document.AddMember("ordType", rj::Value("limit").Move(), allocator);
@@ -244,7 +244,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Value arg(rj::kObjectType);
         this->appendParam(operation, arg, allocator, param);
         if (param.find("tdMode") == param.end()) {
-          arg.AddMember("tdMode", rj::Value("cash").Move(), allocator);
+          arg.AddMember("tdMode", rj::Value("cross").Move(), allocator);
         }
         if (param.find("ordType") == param.end()) {
           arg.AddMember("ordType", rj::Value("limit").Move(), allocator);
@@ -474,7 +474,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
           }
         }
       } else {
-        Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, eventStr, timeReceived);
+        Event event = this->createEvent(wsConnectionPtr, subscription, std::string(textMessageView), document, eventStr, timeReceived);
         if (!event.getMessageList().empty()) {
           this->eventHandler(event, nullptr);
         }

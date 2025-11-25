@@ -2,7 +2,7 @@
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #if defined(CCAPI_ENABLE_EXCHANGE_BINANCE_US) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_USDS_FUTURES) || \
-    defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES)
+    defined(CCAPI_ENABLE_EXCHANGE_BINANCE_COIN_FUTURES) || defined(CCAPI_ENABLE_EXCHANGE_BINANCE_PORTFOLIO_MARGIN)
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
 
 namespace ccapi {
@@ -94,6 +94,32 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       event.setMessageList({message});
       this->eventHandler(event, nullptr);
       this->setPingListenKeyTimer(wsConnectionPtr);
+    } else {
+      // For WebSocket order entry with HMAC authentication (no session.logon),
+      // send authorization success immediately after connection opens
+      auto credential = wsConnectionPtr->subscriptionList.at(0).getCredential();
+      if (credential.empty()) {
+        credential = this->credentialDefault;
+      }
+      auto rsaKeyIt = credential.find(this->websocketOrderEntryApiPrivateKeyPathName);
+      if (rsaKeyIt == credential.end()) {
+        // HMAC authentication: no session.logon, so send authorization success now
+        auto now = UtilTime::now();
+        Event event;
+        event.setType(Event::Type::AUTHORIZATION_STATUS);
+        Message message;
+        message.setTimeReceived(now);
+        message.setType(Message::Type::AUTHORIZATION_SUCCESS);
+        Element element;
+        element.insert(CCAPI_CONNECTION_ID, wsConnectionPtr->id);
+        element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
+        element.insert(CCAPI_INFO_MESSAGE, "WebSocket connected with HMAC-SHA256 authentication");
+        message.setElementList({element});
+        message.setCorrelationIdList({wsConnectionPtr->subscriptionList.at(0).getCorrelationId()});
+        event.setMessageList({message});
+        this->eventHandler(event, nullptr);
+      }
+      // For RSA authentication, authorization success will be sent after session.logon response
     }
   }
 
@@ -243,10 +269,13 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                          nonce + "&";
         }
         this->signRequest(queryString, param, now, credential);
-        req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
-                        ? this->createOrderMarginTarget
-                        : this->createOrderTarget) +
-                   "?" + queryString);
+        // Use POST body instead of query string for parameters
+        req.target(request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
+                       ? this->createOrderMarginTarget
+                       : this->createOrderTarget);
+        req.set(http::field::content_type, "application/x-www-form-urlencoded");
+        req.body() = queryString;
+        req.prepare_payload();
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
@@ -695,6 +724,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         document.AddMember("method", rj::Value("order.place").Move(), allocator);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Value params(rj::kObjectType);
+
+        // Add apiKey first (required for HMAC authentication)
+        auto apiKey = mapGetWithDefault(credential, this->websocketOrderEntryApiKeyName);
+        params.AddMember("apiKey", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+
         this->appendParam(params, allocator, param);
         if (!symbolId.empty()) {
           ExecutionManagementService::appendSymbolId(params, allocator, symbolId, "symbol");
@@ -717,7 +751,19 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         if (param.find("timestamp") == param.end()) {
           params.AddMember("timestamp", rj::Value(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()).Move(), allocator);
         }
+        // Add recvWindow parameter (5000ms as per user's implementation)
+        if (param.find("recvWindow") == param.end()) {
+          params.AddMember("recvWindow", rj::Value("5000").Move(), allocator);
+        }
+        // Add HMAC signature for WebSocket order entry
+        this->signWebsocketRequest(params, allocator, credential);
         document.AddMember("params", params, allocator);
+
+        // Debug: print the request
+        // rj::StringBuffer debugBuffer;
+        // rj::Writer<rj::StringBuffer> debugWriter(debugBuffer);
+        // document.Accept(debugWriter);
+        // CCAPI_LOGGER_DEBUG(std::string("WebSocket CREATE_ORDER request: ") + debugBuffer.GetString());
       } break;
       case Request::Operation::CANCEL_ORDER: {
         document.AddMember("id", rj::Value((this->websocketOrderEntryCancelOrderJsonIdPrefix + std::to_string(wsRequestId)).c_str(), allocator).Move(),
@@ -725,6 +771,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         document.AddMember("method", rj::Value("order.cancel").Move(), allocator);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Value params(rj::kObjectType);
+
+        // Add apiKey first (required for HMAC authentication)
+        auto apiKey = mapGetWithDefault(credential, this->websocketOrderEntryApiKeyName);
+        params.AddMember("apiKey", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+
         this->appendParam(params, allocator, param,
                           {
                               {CCAPI_EM_ORDER_ID, "orderId"},
@@ -736,7 +787,19 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         if (param.find("timestamp") == param.end()) {
           params.AddMember("timestamp", rj::Value(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()).Move(), allocator);
         }
+        // Add recvWindow parameter (5000ms as per user's implementation)
+        if (param.find("recvWindow") == param.end()) {
+          params.AddMember("recvWindow", rj::Value("5000").Move(), allocator);
+        }
+        // Add HMAC signature for WebSocket order entry
+        this->signWebsocketRequest(params, allocator, credential);
         document.AddMember("params", params, allocator);
+
+        // Debug: print the request
+        // rj::StringBuffer debugBuffer;
+        // rj::Writer<rj::StringBuffer> debugWriter(debugBuffer);
+        // document.Accept(debugWriter);
+        // CCAPI_LOGGER_DEBUG(std::string("WebSocket CANCEL_ORDER request: ") + debugBuffer.GetString());
       } break;
       default:
         this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
@@ -761,6 +824,46 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
       }
     }
+  }
+
+  void signWebsocketRequest(rj::Value& params, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& credential) {
+    // Build query string from params for signing
+    std::string queryString;
+    std::vector<std::pair<std::string, std::string>> sortedParams;
+
+    // Extract all params into a vector for sorting
+    for (auto it = params.MemberBegin(); it != params.MemberEnd(); ++it) {
+      std::string key = it->name.GetString();
+      std::string value;
+      if (it->value.IsString()) {
+        value = it->value.GetString();
+      } else if (it->value.IsInt64()) {
+        value = std::to_string(it->value.GetInt64());
+      } else if (it->value.IsInt()) {
+        value = std::to_string(it->value.GetInt());
+      }
+      sortedParams.push_back({key, value});
+    }
+
+    // Sort params alphabetically by key (Binance requirement)
+    std::sort(sortedParams.begin(), sortedParams.end());
+
+    // Build query string WITHOUT URL encoding (Binance WebSocket API requirement)
+    // Unlike REST API, WebSocket API expects raw values in the signature string
+    for (size_t i = 0; i < sortedParams.size(); ++i) {
+      queryString += sortedParams[i].first + "=" + sortedParams[i].second;
+      if (i < sortedParams.size() - 1) {
+        queryString += "&";
+      }
+    }
+
+    // Sign with HMAC-SHA256
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto signature = Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, queryString, true);
+    params.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
+
+    // Debug: print the query string used for signing
+    // CCAPI_LOGGER_DEBUG(std::string("WebSocket signature query string: ") + queryString);
   }
 
   virtual void extractOrderInfoFromResponse(std::vector<Element>& elementList, const rj::Document& document) {
@@ -788,60 +891,47 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
                                                                 const TimePoint& now, const std::map<std::string, std::string>& credential) override {
     if (wsConnectionPtr->host == this->websocketOrderEntryHost) {
-      auto it = credential.find(this->websocketOrderEntryApiPrivateKeyPathName);
-      if (it == credential.end()) {
-        throw std::runtime_error("Missing credential: " + this->websocketOrderEntryApiPrivateKeyPathName);
-      }
-      rj::Document document;
-      document.SetObject();
-      rj::Document::AllocatorType& allocator = document.GetAllocator();
+      // For Binance WebSocket order entry with HMAC-SHA256 authentication,
+      // no session.logon is required. Each request will include its own signature.
+      // Only use session.logon if RSA private key is provided (legacy method).
+      auto rsaKeyIt = credential.find(this->websocketOrderEntryApiPrivateKeyPathName);
+      if (rsaKeyIt != credential.end()) {
+        // RSA authentication requires session.logon
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
 
-      document.AddMember("id", rj::Value(this->websocketOrderEntrySessionLogonJsonId.c_str(), allocator).Move(), allocator);
-      document.AddMember("method", "session.logon", allocator);
+        document.AddMember("id", rj::Value(this->websocketOrderEntrySessionLogonJsonId.c_str(), allocator).Move(), allocator);
+        document.AddMember("method", "session.logon", allocator);
 
-      const auto& apiKey = credential.at(this->websocketOrderEntryApiKeyName);
-      const auto& timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        const auto& apiKey = credential.at(this->websocketOrderEntryApiKeyName);
+        const auto& timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
-      std::map<std::string, std::string> paramsMap{
-          {"apiKey", apiKey},
-          {"timestamp", std::to_string(timestamp)},
-      };
+        rj::Value params(rj::kObjectType);
+        params.AddMember("apiKey", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+        params.AddMember("timestamp", rj::Value().SetInt64(timestamp), allocator);
 
-      rj::Value params(rj::kObjectType);
-      std::string payload;
-      int i = 0;
-      for (const auto& [key, value] : paramsMap) {
-        if (key == "timestamp") {
-          params.AddMember("timestamp", rj::Value().SetInt64(std::stoll(value)), allocator);
-        } else {
-          params.AddMember("apiKey", rj::Value(value.c_str(), allocator).Move(), allocator);
+        std::string payload = "apiKey=" + apiKey + "&timestamp=" + std::to_string(timestamp);
+        std::string password;
+        if (auto it = credential.find(this->websocketOrderEntryApiPrivateKeyPasswordName); it != credential.end()) {
+          password = it->second;
         }
-        payload += key;
-        payload += "=";
-        payload += value;
+        EVP_PKEY* pkey = UtilAlgorithm::loadPrivateKey(UtilAlgorithm::readFile(rsaKeyIt->second), password);
+        std::string signature = UtilAlgorithm::signPayload(pkey, payload);
+        params.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
 
-        if (i < paramsMap.size() - 1) {
-          payload += "&";
-        }
-        ++i;
+        document.AddMember("params", params, allocator);
+
+        rj::StringBuffer buffer;
+        rj::Writer<rj::StringBuffer> writer(buffer);
+        document.Accept(writer);
+
+        return {buffer.GetString()};
+      } else {
+        // HMAC-SHA256 authentication: no session.logon needed
+        // Each order.place/order.cancel request will include apiKey and signature in params
+        return {};
       }
-
-      std::string password;
-      if (auto it = credential.find(this->websocketOrderEntryApiPrivateKeyPasswordName); it != credential.end()) {
-        password = it->second;
-      }
-      EVP_PKEY* pkey = UtilAlgorithm::loadPrivateKey(UtilAlgorithm::readFile(it->second), password);
-      std::string signature = UtilAlgorithm::signPayload(pkey, payload);
-      params.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
-
-      document.AddMember("params", params, allocator);
-
-      rj::StringBuffer buffer;
-      rj::Writer<rj::StringBuffer> writer(buffer);
-      document.Accept(writer);
-
-      return {buffer.GetString()};
-
     } else {
       return {};
     }
@@ -874,3 +964,5 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
 #endif
 #endif
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BINANCE_BASE_H_
+
+
