@@ -231,6 +231,24 @@ struct UnifiedGetAccountBalancesRequest {
       : exchange(UnifiedExchange::UNKNOWN) {}
 };
 
+/**
+ * 统一的查询持仓请求参数
+ */
+struct UnifiedGetAccountPositionsRequest {
+  // 必填字段
+  UnifiedExchange exchange;           // 交易所
+
+  // 可选字段
+  std::string symbol;                 // 交易对（为空则查询所有）
+
+  // 其他参数
+  std::map<std::string, std::string> extraParams;
+
+  // 构造函数
+  UnifiedGetAccountPositionsRequest()
+      : exchange(UnifiedExchange::UNKNOWN) {}
+};
+
 // ====================================================================
 // 统一的响应结构体
 // ====================================================================
@@ -249,6 +267,26 @@ struct UnifiedBalanceInfo {
 
   // 构造函数
   UnifiedBalanceInfo() {}
+};
+
+/**
+ * 统一的持仓信息
+ */
+struct UnifiedPositionInfo {
+  std::string symbol;                     // 交易对
+  std::string positionSide;               // 持仓方向（LONG/SHORT/BOTH）
+  std::string positionAmount;             // 持仓数量
+  std::string entryPrice;                 // 开仓均价
+  // std::string markPrice;                  // 标记价格
+  std::string unrealizedProfit;           // 未实现盈亏
+  std::string leverage;                   // 杠杆倍数
+  std::string marginType;                 // 保证金模式（cross/isolated）
+
+  // 其他信息
+  std::map<std::string, std::string> extraInfo;
+
+  // 构造函数
+  UnifiedPositionInfo() {}
 };
 
 /**
@@ -315,6 +353,8 @@ enum class UnifiedMessageType {
   CANCEL_ORDER,              // 取消订单响应
   GET_ORDER,                 // 查询订单响应
   GET_OPEN_ORDERS,           // 查询开放订单响应
+  GET_ACCOUNT_BALANCES,      // 查询账户余额响应
+  GET_ACCOUNT_POSITIONS,     // 查询持仓响应
   RESPONSE_ERROR,            // 响应错误
 
   // 状态消息
@@ -358,6 +398,9 @@ struct UnifiedResponse {
 
   // 账户余额响应
   std::vector<UnifiedBalanceInfo> balances;
+
+  // 持仓响应
+  std::vector<UnifiedPositionInfo> positions;
 
   // 原始响应（用于调试）
   std::string rawResponse;

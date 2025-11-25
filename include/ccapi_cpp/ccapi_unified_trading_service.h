@@ -9,6 +9,7 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <chrono>
 
 namespace ccapi {
 
@@ -37,7 +38,8 @@ class UnifiedTradingService {
    * 构造函数
    * @param session ccapi的Session对象指针
    */
-  explicit UnifiedTradingService(Session* session) : session_(session) {
+  explicit UnifiedTradingService(Session* session)
+    : session_(session), enableLatencyStats_(false) {
     initializeDefaultCapabilities();
   }
 
@@ -61,6 +63,22 @@ class UnifiedTradingService {
   void setExchangeCapabilities(UnifiedExchange exchange, const ExchangeCapabilities& capabilities) {
     std::string exchangeStr = unifiedExchangeToString(exchange);
     exchangeCapabilities_[exchangeStr] = capabilities;
+  }
+
+  /**
+   * 启用/禁用延迟统计
+   * @param enable true表示启用，false表示禁用
+   */
+  void setEnableLatencyStats(bool enable) {
+    enableLatencyStats_ = enable;
+  }
+
+  /**
+   * 获取延迟统计状态
+   * @return true表示已启用，false表示已禁用
+   */
+  bool isLatencyStatsEnabled() const {
+    return enableLatencyStats_;
   }
 
   /**
@@ -156,6 +174,18 @@ class UnifiedTradingService {
     return executeRequestSync(ccapiRequest);
   }
 
+  /**
+   * 查询持仓（同步）
+   * @param request 统一的查询持仓请求
+   * @param credential 认证信息
+   * @return 统一的响应结果
+   */
+  UnifiedResponse getAccountPositions(const UnifiedGetAccountPositionsRequest& request,
+                                      const std::map<std::string, std::string>& credential = {}) {
+    Request ccapiRequest = convertToGetAccountPositionsRequest(request, credential);
+    return executeRequestSync(ccapiRequest);
+  }
+
   // ====================================================================
   // 异步接口 - 根据交易所能力自动选择最优协议（FIX > WebSocket > REST）
   // ====================================================================
@@ -170,28 +200,69 @@ class UnifiedTradingService {
   void createOrderAsync(const UnifiedCreateOrderRequest& request,
                        const std::map<std::string, std::string>& credential = {},
                        const std::string& correlationId = "") {
+    // 记录API调用开始时间（纳秒级）
+    auto apiCallStartTime = std::chrono::steady_clock::now();
+
+    // 零拷贝优化：直接构造最终Request，避免中间转换
     std::string exchange = unifiedExchangeToString(request.exchange);
+
+    // 检查交易所能力，选择最优快速路径
+    auto it = exchangeCapabilities_.find(exchange);
+    if (it != exchangeCapabilities_.end()) {
+      // 优先级1: FIX快速路径（最低延迟）
+      if (it->second.supportsFix) {
+        createOrderAsyncFixFastPath(request, credential, correlationId, exchange, apiCallStartTime);
+        return;
+      }
+      // 优先级2: WebSocket快速路径
+      if (it->second.supportsWebsocket) {
+        createOrderAsyncWebSocketFastPath(request, credential, correlationId, exchange, apiCallStartTime);
+        return;
+      }
+    }
+
+    // 降级到标准路径（REST或首次连接）
     Request ccapiRequest = convertToCreateOrderRequest(request, credential);
     if (!correlationId.empty()) {
       ccapiRequest.setCorrelationId(correlationId);
     }
-
-    sendRequestWithBestProtocol(exchange, ccapiRequest, credential);
+    sendRequestWithBestProtocol(exchange, ccapiRequest, credential, apiCallStartTime);
   }
 
   /**
    * 取消订单（异步）
+   * 根据交易所能力配置，按优先级选择协议：FIX > WebSocket > REST
    */
   void cancelOrderAsync(const UnifiedCancelOrderRequest& request,
                        const std::map<std::string, std::string>& credential = {},
                        const std::string& correlationId = "") {
+    // 记录API调用开始时间（纳秒级）
+    auto apiCallStartTime = std::chrono::steady_clock::now();
+
+    // 零拷贝优化：直接构造最终Request，避免中间转换
     std::string exchange = unifiedExchangeToString(request.exchange);
+
+    // 检查交易所能力，选择最优快速路径
+    auto it = exchangeCapabilities_.find(exchange);
+    if (it != exchangeCapabilities_.end()) {
+      // 优先级1: FIX快速路径（最低延迟）
+      if (it->second.supportsFix) {
+        cancelOrderAsyncFixFastPath(request, credential, correlationId, exchange, apiCallStartTime);
+        return;
+      }
+      // 优先级2: WebSocket快速路径
+      if (it->second.supportsWebsocket) {
+        cancelOrderAsyncWebSocketFastPath(request, credential, correlationId, exchange, apiCallStartTime);
+        return;
+      }
+    }
+
+    // 降级到标准路径（REST或首次连接）
     Request ccapiRequest = convertToCancelOrderRequest(request, credential);
     if (!correlationId.empty()) {
       ccapiRequest.setCorrelationId(correlationId);
     }
-
-    sendRequestWithBestProtocol(exchange, ccapiRequest, credential);
+    sendRequestWithBestProtocol(exchange, ccapiRequest, credential, apiCallStartTime);
   }
 
   /**
@@ -211,32 +282,66 @@ class UnifiedTradingService {
 
   /**
    * 查询订单（异步）
+   * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
   void getOrderAsync(const UnifiedGetOrderRequest& request,
                     const std::map<std::string, std::string>& credential = {},
                     const std::string& correlationId = "") {
-    std::string exchange = unifiedExchangeToString(request.exchange);
     Request ccapiRequest = convertToGetOrderRequest(request, credential);
     if (!correlationId.empty()) {
       ccapiRequest.setCorrelationId(correlationId);
     }
 
-    sendRequestWithBestProtocol(exchange, ccapiRequest, credential);
+    // 查询操作强制使用REST
+    session_->sendRequest(ccapiRequest);
   }
 
   /**
    * 查询开放订单（异步）
+   * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
   void getOpenOrdersAsync(const UnifiedGetOpenOrdersRequest& request,
                          const std::map<std::string, std::string>& credential = {},
                          const std::string& correlationId = "") {
-    std::string exchange = unifiedExchangeToString(request.exchange);
     Request ccapiRequest = convertToGetOpenOrdersRequest(request, credential);
     if (!correlationId.empty()) {
       ccapiRequest.setCorrelationId(correlationId);
     }
 
-    sendRequestWithBestProtocol(exchange, ccapiRequest, credential);
+    // 查询操作强制使用REST
+    session_->sendRequest(ccapiRequest);
+  }
+
+  /**
+   * 查询账户余额（异步）
+   * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
+   */
+  void getAccountBalancesAsync(const UnifiedGetAccountBalancesRequest& request,
+                               const std::map<std::string, std::string>& credential = {},
+                               const std::string& correlationId = "") {
+    Request ccapiRequest = convertToGetAccountBalancesRequest(request, credential);
+    if (!correlationId.empty()) {
+      ccapiRequest.setCorrelationId(correlationId);
+    }
+
+    // 查询操作强制使用REST
+    session_->sendRequest(ccapiRequest);
+  }
+
+  /**
+   * 查询持仓（异步）
+   * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
+   */
+  void getAccountPositionsAsync(const UnifiedGetAccountPositionsRequest& request,
+                                const std::map<std::string, std::string>& credential = {},
+                                const std::string& correlationId = "") {
+    Request ccapiRequest = convertToGetAccountPositionsRequest(request, credential);
+    if (!correlationId.empty()) {
+      ccapiRequest.setCorrelationId(correlationId);
+    }
+
+    // 查询操作强制使用REST
+    session_->sendRequest(ccapiRequest);
   }
 
   // ====================================================================
@@ -441,6 +546,12 @@ class UnifiedTradingService {
       } else if (message.getType() == Message::Type::GET_OPEN_ORDERS) {
         response.messageType = UnifiedMessageType::GET_OPEN_ORDERS;
         response.messageTypeString = "GET_OPEN_ORDERS";
+      } else if (message.getType() == Message::Type::GET_ACCOUNT_BALANCES) {
+        response.messageType = UnifiedMessageType::GET_ACCOUNT_BALANCES;
+        response.messageTypeString = "GET_ACCOUNT_BALANCES";
+      } else if (message.getType() == Message::Type::GET_ACCOUNT_POSITIONS) {
+        response.messageType = UnifiedMessageType::GET_ACCOUNT_POSITIONS;
+        response.messageTypeString = "GET_ACCOUNT_POSITIONS";
       } else if (message.getType() == Message::Type::RESPONSE_ERROR) {
         response.messageType = UnifiedMessageType::RESPONSE_ERROR;
         response.messageTypeString = "RESPONSE_ERROR";
@@ -506,6 +617,12 @@ class UnifiedTradingService {
             if (message.getType() == Message::Type::GET_ACCOUNT_BALANCES) {
               for (const auto& element : elementList) {
                 response.balances.push_back(convertElementToBalanceInfo(element));
+              }
+            }
+            // 持仓响应
+            else if (message.getType() == Message::Type::GET_ACCOUNT_POSITIONS) {
+              for (const auto& element : elementList) {
+                response.positions.push_back(convertElementToPositionInfo(element));
               }
             }
             // 订单响应
@@ -631,6 +748,352 @@ class UnifiedTradingService {
   std::map<std::string, ExchangeCapabilities> exchangeCapabilities_;
   std::map<std::string, std::string> websocketSubscriptionCorrelationIds_;  // 交易所 -> WebSocket订阅correlationId
   std::map<std::string, std::string> fixSubscriptionCorrelationIds_;        // 交易所 -> FIX订阅correlationId
+  bool enableLatencyStats_;  // 是否启用延迟统计
+
+  /**
+   * FIX快速路径 - 零拷贝优化（最低延迟）
+   * FIX协议是专为金融交易设计的二进制协议，延迟比WebSocket更低
+   * 直接构造最终的Request对象，避免convertToCreateOrderRequest的开销
+   */
+  inline void createOrderAsyncFixFastPath(const UnifiedCreateOrderRequest& request,
+                                         const std::map<std::string, std::string>& credential,
+                                         const std::string& correlationId,
+                                         const std::string& exchange,
+                                         const std::chrono::steady_clock::time_point& apiCallStartTime) {
+    // 获取FIX correlationId（已缓存，快速）
+    auto fixIt = fixSubscriptionCorrelationIds_.find(exchange);
+    if (fixIt == fixSubscriptionCorrelationIds_.end()) {
+      // 首次调用，需要建立FIX连接（降级到标准路径）
+      Request ccapiRequest = convertToCreateOrderRequest(request, credential);
+      if (!correlationId.empty()) {
+        ccapiRequest.setCorrelationId(correlationId);
+      }
+      sendRequestWithBestProtocol(exchange, ccapiRequest, credential, apiCallStartTime);
+      return;
+    }
+
+    const std::string& fixCorrelationId = fixIt->second;
+
+    // 直接构造Request - 零拷贝优化
+    Request fixRequest(Request::Operation::CREATE_ORDER, exchange, request.symbol,
+                      correlationId.empty() ? "" : correlationId,
+                      std::map<std::string, std::string>{});  // FIX不需要credential
+
+    // 直接构造参数map - 极致优化版本
+    std::map<std::string, std::string> param;
+
+    // 订单方向（必需）
+    param.emplace(CCAPI_EM_ORDER_SIDE, unifiedOrderSideToString(request.side));
+
+    // 订单类型（必需）
+    if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
+      param.emplace(CCAPI_EM_ORDER_TYPE, unifiedOrderTypeToString(request.type));
+    }
+
+    // 客户端订单ID
+    if (!request.clientOrderId.empty()) {
+      param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
+    }
+
+    // 价格
+    if (!request.price.empty()) {
+      param.emplace(CCAPI_EM_ORDER_LIMIT_PRICE, request.price);
+    }
+
+    // 数量
+    if (!request.quantity.empty()) {
+      param.emplace(CCAPI_EM_ORDER_QUANTITY, request.quantity);
+    }
+    if (!request.quoteOrderQty.empty()) {
+      param.emplace("quoteOrderQty", request.quoteOrderQty);
+    }
+
+    // 时间有效性
+    if (request.timeInForce != UnifiedTimeInForce::UNKNOWN &&
+        request.type != UnifiedOrderType::MARKET &&
+        exchange != CCAPI_EXCHANGE_NAME_OKX) {
+      param.emplace("timeInForce", unifiedTimeInForceToString(request.timeInForce));
+    }
+
+    // 高级选项
+    if (request.reduceOnly) {
+      param.emplace("reduceOnly", "true");
+    }
+    if (request.postOnly) {
+      param.emplace("postOnly", "true");
+    }
+    if (!request.leverage.empty()) {
+      param.emplace(CCAPI_EM_ORDER_LEVERAGE, request.leverage);
+    }
+    if (!request.marginMode.empty()) {
+      param.emplace(CCAPI_MARGIN_MODE, request.marginMode);
+    }
+    if (!request.positionSide.empty()) {
+      param.emplace("positionSide", request.positionSide);
+    }
+    if (!request.stopPrice.empty()) {
+      param.emplace("stopPrice", request.stopPrice);
+    }
+
+    // 额外参数
+    for (const auto& kv : request.extraParams) {
+      param.emplace(kv.first, kv.second);
+    }
+
+    // 使用move避免拷贝
+    fixRequest.appendParam(std::move(param));
+
+    // 记录延迟
+    if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
+      auto sendTime = std::chrono::steady_clock::now();
+      auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
+      std::cout << "[UnifiedTradingService] createOrderAsync to sendRequestByFix latency: "
+                << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+    }
+
+    // 直接发送
+    session_->sendRequestByFix(fixCorrelationId, fixRequest);
+  }
+
+  /**
+   * WebSocket快速路径 - 零拷贝优化
+   * 直接构造最终的Request对象，避免convertToCreateOrderRequest的开销
+   */
+  inline void createOrderAsyncWebSocketFastPath(const UnifiedCreateOrderRequest& request,
+                                               const std::map<std::string, std::string>& credential,
+                                               const std::string& correlationId,
+                                               const std::string& exchange,
+                                               const std::chrono::steady_clock::time_point& apiCallStartTime) {
+    // 获取WebSocket correlationId（已缓存，快速）
+    auto wsIt = websocketSubscriptionCorrelationIds_.find(exchange);
+    if (wsIt == websocketSubscriptionCorrelationIds_.end()) {
+      // 首次调用，需要建立连接（降级到标准路径）
+      Request ccapiRequest = convertToCreateOrderRequest(request, credential);
+      if (!correlationId.empty()) {
+        ccapiRequest.setCorrelationId(correlationId);
+      }
+      sendRequestWithBestProtocol(exchange, ccapiRequest, credential, apiCallStartTime);
+      return;
+    }
+
+    const std::string& wsCorrelationId = wsIt->second;
+
+    // 直接构造Request - 零拷贝优化
+    // 注意：WebSocket不需要credential
+    Request wsRequest(Request::Operation::CREATE_ORDER, exchange, request.symbol,
+                     correlationId.empty() ? "" : correlationId,
+                     std::map<std::string, std::string>{});  // 空credential
+
+    // 直接构造参数map - 极致优化版本
+    // 使用emplace + move语义减少拷贝
+    std::map<std::string, std::string> param;
+
+    // 订单方向（必需） - 直接emplace，避免临时对象
+    param.emplace(CCAPI_EM_ORDER_SIDE, unifiedOrderSideToString(request.side));
+
+    // 订单类型（必需，OKX除外）
+    if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
+      param.emplace(CCAPI_EM_ORDER_TYPE, unifiedOrderTypeToString(request.type));
+    }
+
+    // 客户端订单ID
+    if (!request.clientOrderId.empty()) {
+      param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
+    }
+
+    // 杠杆
+    if (!request.leverage.empty()) {
+      param.emplace(CCAPI_EM_ORDER_LEVERAGE, request.leverage);
+    }
+
+    // 保证金模式
+    if (!request.marginMode.empty()) {
+      param.emplace(CCAPI_MARGIN_MODE, request.marginMode);
+    }
+
+    // 价格
+    if (!request.price.empty()) {
+      param.emplace(CCAPI_EM_ORDER_LIMIT_PRICE, request.price);
+    }
+
+    // 持仓方向
+    if (!request.positionSide.empty()) {
+      param.emplace("positionSide", request.positionSide);
+    }
+
+    // postOnly标志
+    if (request.postOnly) {
+      param.emplace("postOnly", "true");
+    }
+
+    // 数量
+    if (!request.quantity.empty()) {
+      param.emplace(CCAPI_EM_ORDER_QUANTITY, request.quantity);
+    }
+    if (!request.quoteOrderQty.empty()) {
+      param.emplace("quoteOrderQty", request.quoteOrderQty);
+    }
+
+    // reduceOnly标志
+    if (request.reduceOnly) {
+      param.emplace("reduceOnly", "true");
+    }
+
+    // 止损价格
+    if (!request.stopPrice.empty()) {
+      param.emplace("stopPrice", request.stopPrice);
+    }
+
+    // OKX特殊处理：tdMode
+    if (exchange == CCAPI_EXCHANGE_NAME_OKX) {
+      auto tdModeIt = request.extraParams.find("tdMode");
+      if (tdModeIt == request.extraParams.end()) {
+        param.emplace("tdMode", "cross");
+      }
+    }
+
+    // 时间有效性
+    if (request.timeInForce != UnifiedTimeInForce::UNKNOWN &&
+        request.type != UnifiedOrderType::MARKET &&
+        exchange != CCAPI_EXCHANGE_NAME_OKX) {
+      param.emplace("timeInForce", unifiedTimeInForceToString(request.timeInForce));
+    }
+
+    // 额外参数
+    for (const auto& kv : request.extraParams) {
+      param.emplace(kv.first, kv.second);
+    }
+
+    // 使用move避免拷贝
+    wsRequest.appendParam(std::move(param));
+
+    // 记录延迟
+    if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
+      auto sendTime = std::chrono::steady_clock::now();
+      auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
+      std::cout << "[UnifiedTradingService] createOrderAsync to sendRequestByWebsocket latency: "
+                << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+    }
+
+    // 直接发送
+    session_->sendRequestByWebsocket(wsCorrelationId, wsRequest);
+  }
+
+  /**
+   * FIX快速路径 - 撤单零拷贝优化（最低延迟）
+   */
+  inline void cancelOrderAsyncFixFastPath(const UnifiedCancelOrderRequest& request,
+                                         const std::map<std::string, std::string>& credential,
+                                         const std::string& correlationId,
+                                         const std::string& exchange,
+                                         const std::chrono::steady_clock::time_point& apiCallStartTime) {
+    // 获取FIX correlationId（已缓存，快速）
+    auto fixIt = fixSubscriptionCorrelationIds_.find(exchange);
+    if (fixIt == fixSubscriptionCorrelationIds_.end()) {
+      // 首次调用，需要建立FIX连接（降级到标准路径）
+      Request ccapiRequest = convertToCancelOrderRequest(request, credential);
+      if (!correlationId.empty()) {
+        ccapiRequest.setCorrelationId(correlationId);
+      }
+      sendRequestWithBestProtocol(exchange, ccapiRequest, credential, apiCallStartTime);
+      return;
+    }
+
+    const std::string& fixCorrelationId = fixIt->second;
+
+    // 直接构造Request - 零拷贝优化
+    Request fixRequest(Request::Operation::CANCEL_ORDER, exchange, request.symbol,
+                      correlationId.empty() ? "" : correlationId,
+                      std::map<std::string, std::string>{});  // FIX不需要credential
+
+    // 直接构造参数map - 极致优化版本
+    std::map<std::string, std::string> param;
+
+    // 订单ID或客户端订单ID（至少需要一个）
+    if (!request.orderId.empty()) {
+      param.emplace(CCAPI_EM_ORDER_ID, request.orderId);
+    }
+    if (!request.clientOrderId.empty()) {
+      param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
+    }
+
+    // 额外参数
+    for (const auto& kv : request.extraParams) {
+      param.emplace(kv.first, kv.second);
+    }
+
+    // 使用move避免拷贝
+    fixRequest.appendParam(std::move(param));
+
+    // 记录延迟
+    if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
+      auto sendTime = std::chrono::steady_clock::now();
+      auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
+      std::cout << "[UnifiedTradingService] cancelOrderAsync to sendRequestByFix latency: "
+                << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+    }
+
+    // 直接发送
+    session_->sendRequestByFix(fixCorrelationId, fixRequest);
+  }
+
+  /**
+   * WebSocket快速路径 - 撤单零拷贝优化
+   */
+  inline void cancelOrderAsyncWebSocketFastPath(const UnifiedCancelOrderRequest& request,
+                                               const std::map<std::string, std::string>& credential,
+                                               const std::string& correlationId,
+                                               const std::string& exchange,
+                                               const std::chrono::steady_clock::time_point& apiCallStartTime) {
+    // 获取WebSocket correlationId（已缓存，快速）
+    auto wsIt = websocketSubscriptionCorrelationIds_.find(exchange);
+    if (wsIt == websocketSubscriptionCorrelationIds_.end()) {
+      // 首次调用，需要建立连接（降级到标准路径）
+      Request ccapiRequest = convertToCancelOrderRequest(request, credential);
+      if (!correlationId.empty()) {
+        ccapiRequest.setCorrelationId(correlationId);
+      }
+      sendRequestWithBestProtocol(exchange, ccapiRequest, credential, apiCallStartTime);
+      return;
+    }
+
+    const std::string& wsCorrelationId = wsIt->second;
+
+    // 直接构造Request - 零拷贝优化
+    Request wsRequest(Request::Operation::CANCEL_ORDER, exchange, request.symbol,
+                     correlationId.empty() ? "" : correlationId,
+                     std::map<std::string, std::string>{});  // 空credential
+
+    // 直接构造参数map - 极致优化版本
+    std::map<std::string, std::string> param;
+
+    // 订单ID或客户端订单ID（至少需要一个）
+    if (!request.orderId.empty()) {
+      param.emplace(CCAPI_EM_ORDER_ID, request.orderId);
+    }
+    if (!request.clientOrderId.empty()) {
+      param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
+    }
+
+    // 额外参数
+    for (const auto& kv : request.extraParams) {
+      param.emplace(kv.first, kv.second);
+    }
+
+    // 使用move避免拷贝
+    wsRequest.appendParam(std::move(param));
+
+    // 记录延迟
+    if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
+      auto sendTime = std::chrono::steady_clock::now();
+      auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
+      std::cout << "[UnifiedTradingService] cancelOrderAsync to sendRequestByWebsocket latency: "
+                << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+    }
+
+    // 直接发送
+    session_->sendRequestByWebsocket(wsCorrelationId, wsRequest);
+  }
 
   /**
    * 初始化默认的交易所能力配置
@@ -680,7 +1143,8 @@ class UnifiedTradingService {
    */
   void sendRequestWithBestProtocol(const std::string& exchange,
                                    Request& request,
-                                   const std::map<std::string, std::string>& credential) {
+                                   const std::map<std::string, std::string>& credential,
+                                   const std::chrono::steady_clock::time_point& apiCallStartTime = std::chrono::steady_clock::time_point()) {
     auto it = exchangeCapabilities_.find(exchange);
     ExchangeCapabilities caps;
     if (it != exchangeCapabilities_.end()) {
@@ -705,6 +1169,14 @@ class UnifiedTradingService {
       // 清除Request中的credential（WebSocket不需要）
       Request wsRequest = request;
       wsRequest.setCredential({});
+
+      // 记录实际发送时间并计算延迟（仅在启用延迟统计时）
+      if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
+        auto sendTime = std::chrono::steady_clock::now();
+        auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
+        std::cout << "[UnifiedTradingService] createOrderAsync to sendRequestByWebsocket latency: "
+                  << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+      }
 
       session_->sendRequestByWebsocket(correlationId, wsRequest);
       return;
@@ -1089,6 +1561,28 @@ class UnifiedTradingService {
   }
 
   /**
+   * 转换查询持仓请求
+   */
+  Request convertToGetAccountPositionsRequest(const UnifiedGetAccountPositionsRequest& request,
+                                             const std::map<std::string, std::string>& credential) {
+    std::string exchange = unifiedExchangeToString(request.exchange);
+    Request ccapiRequest(Request::Operation::GET_ACCOUNT_POSITIONS, exchange, request.symbol, "", credential);
+
+    std::map<std::string, std::string> param;
+
+    // 额外参数
+    for (const auto& kv : request.extraParams) {
+      param.insert(kv);
+    }
+
+    if (!param.empty()) {
+      ccapiRequest.appendParam(param);
+    }
+
+    return ccapiRequest;
+  }
+
+  /**
    * 执行同步请求
    */
   UnifiedResponse executeRequestSync(Request& request) {
@@ -1191,8 +1685,32 @@ class UnifiedTradingService {
 
     return balanceInfo;
   }
+
+  /**
+   * 将Element转换为UnifiedPositionInfo
+   */
+  static UnifiedPositionInfo convertElementToPositionInfo(const Element& element) {
+    UnifiedPositionInfo positionInfo;
+
+    positionInfo.symbol = element.getValue(CCAPI_INSTRUMENT);
+    positionInfo.positionSide = element.getValue(CCAPI_EM_POSITION_SIDE);
+    positionInfo.positionAmount = element.getValue(CCAPI_EM_POSITION_QUANTITY);
+    positionInfo.entryPrice = element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE);
+    positionInfo.unrealizedProfit = element.getValue(CCAPI_EM_UNREALIZED_PNL);
+    positionInfo.leverage = element.getValue(CCAPI_EM_POSITION_LEVERAGE);
+    positionInfo.marginType = element.getValue(CCAPI_EM_POSITION_MARGIN_TYPE);
+
+    // 将所有字段存入extraInfo以便调试
+    for (const auto& kv : element.getNameValueMap()) {
+      positionInfo.extraInfo.insert(kv);
+    }
+
+    return positionInfo;
+  }
 };
 
 } /* namespace ccapi */
 
 #endif  // INCLUDE_CCAPI_CPP_CCAPI_UNIFIED_TRADING_SERVICE_H_
+
+
