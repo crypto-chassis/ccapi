@@ -10,18 +10,12 @@ namespace ltp {
 
 /**
  * LTP交易接口 - 为客户提供跨交易所的统一下单和撤单接口
- *
- * 这个接口抽象了不同交易所的参数差异，客户只需要使用统一的参数结构
- * 就可以在任何支持的交易所进行交易操作
  */
 
 // ====================================================================
 // 枚举定义 - 统一的交易所、订单类型、订单方向等
 // ====================================================================
 
-/**
- * 支持的交易所枚举
- */
 enum class LTPExchange {
   BINANCE,                    // 币安现货/杠杆（经典账户）
   BINANCE_USDS_FUTURES,       // 币安U本位合约（经典账户）
@@ -39,25 +33,18 @@ enum class LTPExchange {
   DERIBIT,                    // Deribit
   GATEIO,                     // Gate.io
   KUCOIN,                     // KuCoin
-  FTX,                        // FTX (已关闭，保留用于历史数据)
   MEXC,                       // MEXC
   BITGET,                     // Bitget
   CRYPTOCOM,                  // Crypto.com
   UNKNOWN                     // 未知交易所
 };
 
-/**
- * 订单方向
- */
 enum class LTPOrderSide {
   BUY,      // 买入
   SELL,     // 卖出
   UNKNOWN
 };
 
-/**
- * 订单类型
- */
 enum class LTPOrderType {
   LIMIT,              // 限价单
   MARKET,             // 市价单
@@ -69,9 +56,6 @@ enum class LTPOrderType {
   UNKNOWN
 };
 
-/**
- * 订单状态
- */
 enum class LTPOrderStatus {
   NEW,                // 新建订单
   PARTIALLY_FILLED,   // 部分成交
@@ -83,14 +67,11 @@ enum class LTPOrderStatus {
   UNKNOWN
 };
 
-/**
- * 时间有效性类型
- */
 enum class LTPTimeInForce {
-  GTC,    // Good Till Cancel - 一直有效直到取消
-  IOC,    // Immediate or Cancel - 立即成交或取消
-  FOK,    // Fill or Kill - 全部成交或取消
-  GTX,    // Good Till Crossing - 只做Maker
+  GTC,    // Good Till Cancel
+  IOC,    // Immediate or Cancel
+  FOK,    // Fill or Kill
+  GTX,    // Good Till Crossing]
   UNKNOWN
 };
 
@@ -98,13 +79,10 @@ enum class LTPTimeInForce {
 // 统一的请求参数结构体
 // ====================================================================
 
-/**
- * 统一的下单请求参数
- */
 struct LTPCreateOrderRequest {
   // 必填字段
   LTPExchange exchange;           // 交易所
-  std::string symbol;                 // 交易对，如 "BTCUSDT"
+  std::string symbol;             // 交易对，如 "BTCUSDT"
   LTPOrderSide side;              // 订单方向
   LTPOrderType type;              // 订单类型
 
@@ -118,7 +96,7 @@ struct LTPCreateOrderRequest {
 
   // 可选字段
   std::string clientOrderId;          // 客户端订单ID（自定义）
-  LTPTimeInForce timeInForce;     // 时间有效性
+  LTPTimeInForce timeInForce;
 
   // 高级选项
   bool reduceOnly;                    // 只减仓（合约）
@@ -140,9 +118,6 @@ struct LTPCreateOrderRequest {
         postOnly(false) {}
 };
 
-/**
- * 统一的撤单请求参数
- */
 struct LTPCancelOrderRequest {
   // 必填字段
   LTPExchange exchange;           // 交易所
@@ -160,9 +135,6 @@ struct LTPCancelOrderRequest {
       : exchange(LTPExchange::UNKNOWN) {}
 };
 
-/**
- * 统一的批量撤单请求参数
- */
 struct LTPCancelAllOrdersRequest {
   // 必填字段
   LTPExchange exchange;           // 交易所
@@ -178,9 +150,6 @@ struct LTPCancelAllOrdersRequest {
       : exchange(LTPExchange::UNKNOWN) {}
 };
 
-/**
- * 统一的查询订单请求参数
- */
 struct LTPGetOrderRequest {
   // 必填字段
   LTPExchange exchange;           // 交易所
@@ -198,9 +167,6 @@ struct LTPGetOrderRequest {
       : exchange(LTPExchange::UNKNOWN) {}
 };
 
-/**
- * 统一的查询开放订单请求参数
- */
 struct LTPGetOpenOrdersRequest {
   // 必填字段
   LTPExchange exchange;           // 交易所
@@ -216,9 +182,6 @@ struct LTPGetOpenOrdersRequest {
       : exchange(LTPExchange::UNKNOWN) {}
 };
 
-/**
- * 统一的查询账户余额请求参数
- */
 struct LTPGetAccountBalancesRequest {
   // 必填字段
   LTPExchange exchange;           // 交易所
@@ -231,9 +194,6 @@ struct LTPGetAccountBalancesRequest {
       : exchange(LTPExchange::UNKNOWN) {}
 };
 
-/**
- * 统一的查询持仓请求参数
- */
 struct LTPGetAccountPositionsRequest {
   // 必填字段
   LTPExchange exchange;           // 交易所
@@ -253,9 +213,6 @@ struct LTPGetAccountPositionsRequest {
 // 统一的响应结构体
 // ====================================================================
 
-/**
- * 统一的账户余额信息
- */
 struct LTPBalanceInfo {
   std::string asset;                      // 资产名称（如BTC、USDT）
   std::string availableBalance;           // 可用余额
@@ -269,9 +226,6 @@ struct LTPBalanceInfo {
   LTPBalanceInfo() {}
 };
 
-/**
- * 统一的持仓信息
- */
 struct LTPPositionInfo {
   std::string symbol;                     // 交易对
   std::string positionSide;               // 持仓方向（LONG/SHORT/BOTH）
@@ -289,9 +243,6 @@ struct LTPPositionInfo {
   LTPPositionInfo() {}
 };
 
-/**
- * 统一的订单信息
- */
 struct LTPOrderInfo {
   std::string orderId;                    // 交易所订单ID
   std::string clientOrderId;              // 客户端订单ID
@@ -327,9 +278,6 @@ struct LTPOrderInfo {
         timeInForce(LTPTimeInForce::UNKNOWN) {}
 };
 
-/**
- * 事件类型枚举
- */
 enum class LTPEventType {
   RESPONSE,              // 交易响应（下单、撤单等）
   SUBSCRIPTION_DATA,     // 订阅数据（实时推送的订单更新、成交等）
@@ -344,9 +292,6 @@ enum class LTPEventType {
   UNKNOWN                // 未知事件
 };
 
-/**
- * 消息类型枚举
- */
 enum class LTPMessageType {
   // 交易响应
   CREATE_ORDER,              // 创建订单响应
@@ -376,9 +321,6 @@ enum class LTPMessageType {
   UNKNOWN                    // 未知消息
 };
 
-/**
- * 统一的响应结果
- */
 struct LTPResponse {
   bool success;                           // 是否成功
   std::string errorCode;                  // 错误码
@@ -416,9 +358,6 @@ struct LTPResponse {
 // 辅助函数 - 枚举与字符串转换
 // ====================================================================
 
-/**
- * 将交易所枚举转换为ccapi的交易所名称字符串
- */
 inline std::string exchangeToString(LTPExchange exchange) {
   switch (exchange) {
     case LTPExchange::BINANCE:
@@ -466,9 +405,6 @@ inline std::string exchangeToString(LTPExchange exchange) {
   }
 }
 
-/**
- * 将字符串转换为交易所枚举
- */
 inline LTPExchange stringToExchange(const std::string& exchangeStr) {
   if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE) return LTPExchange::BINANCE;
   if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES) return LTPExchange::BINANCE_USDS_FUTURES;
@@ -493,9 +429,6 @@ inline LTPExchange stringToExchange(const std::string& exchangeStr) {
   return LTPExchange::UNKNOWN;
 }
 
-/**
- * 将订单方向枚举转换为字符串
- */
 inline std::string orderSideToString(LTPOrderSide side) {
   switch (side) {
     case LTPOrderSide::BUY:
@@ -507,9 +440,6 @@ inline std::string orderSideToString(LTPOrderSide side) {
   }
 }
 
-/**
- * 将字符串转换为订单方向枚举
- */
 inline LTPOrderSide stringToOrderSide(const std::string& sideStr) {
   if (sideStr == CCAPI_EM_ORDER_SIDE_BUY || sideStr == "BUY" || sideStr == "buy") {
     return LTPOrderSide::BUY;
@@ -520,9 +450,6 @@ inline LTPOrderSide stringToOrderSide(const std::string& sideStr) {
   return LTPOrderSide::UNKNOWN;
 }
 
-/**
- * 将订单类型枚举转换为字符串
- */
 inline std::string orderTypeToString(LTPOrderType type) {
   switch (type) {
     case LTPOrderType::LIMIT:
@@ -544,9 +471,6 @@ inline std::string orderTypeToString(LTPOrderType type) {
   }
 }
 
-/**
- * 将时间有效性枚举转换为字符串
- */
 inline std::string timeInForceToString(LTPTimeInForce tif) {
   switch (tif) {
     case LTPTimeInForce::GTC:
@@ -562,9 +486,6 @@ inline std::string timeInForceToString(LTPTimeInForce tif) {
   }
 }
 
-/**
- * 将字符串转换为订单类型枚举
- */
 inline LTPOrderType stringToOrderType(const std::string& typeStr) {
   if (typeStr == "LIMIT") return LTPOrderType::LIMIT;
   if (typeStr == "MARKET") return LTPOrderType::MARKET;
@@ -577,9 +498,6 @@ inline LTPOrderType stringToOrderType(const std::string& typeStr) {
 }
 
 /**
- * 将字符串转换为订单状态枚举
- *
- * 支持的状态值：
  * - 币安: NEW, PARTIALLY_FILLED, FILLED, CANCELED, PENDING_CANCEL, REJECTED, EXPIRED
  * - OKX: live, partially_filled, filled, canceled, mmp_canceled
  */
@@ -608,9 +526,6 @@ inline LTPOrderStatus stringToOrderStatus(const std::string& statusStr) {
   return LTPOrderStatus::UNKNOWN;
 }
 
-/**
- * 将字符串转换为时间有效性枚举
- */
 inline LTPTimeInForce stringToTimeInForce(const std::string& tifStr) {
   if (tifStr == "GTC") return LTPTimeInForce::GTC;
   if (tifStr == "IOC") return LTPTimeInForce::IOC;
@@ -618,9 +533,6 @@ inline LTPTimeInForce stringToTimeInForce(const std::string& tifStr) {
   if (tifStr == "GTX") return LTPTimeInForce::GTX;
   return LTPTimeInForce::UNKNOWN;
 }
-
-// 注意：交易所能力配置已移至 LTPTradingService 类中管理
-// 请使用 LTPTradingService::getExchangeCapabilities() 方法查询交易所能力
 
 } /* namespace ltp */
 

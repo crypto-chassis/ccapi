@@ -1716,7 +1716,6 @@ class LTPTradingService {
     }
 
     return positionInfo;
-    return positionInfo;
   }
 };
 
