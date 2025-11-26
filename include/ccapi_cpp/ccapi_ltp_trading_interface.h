@@ -1,15 +1,15 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_UNIFIED_TRADING_INTERFACE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_UNIFIED_TRADING_INTERFACE_H_
+#ifndef INCLUDE_LTP_TRADING_INTERFACE_H_
+#define INCLUDE_LTP_TRADING_INTERFACE_H_
 
 #include <string>
 #include <map>
 #include <vector>
 #include "ccapi_cpp/ccapi_macro.h"
 
-namespace ccapi {
+namespace ltp {
 
 /**
- * 统一交易接口 - 为客户提供跨交易所的统一下单和撤单接口
+ * LTP交易接口 - 为客户提供跨交易所的统一下单和撤单接口
  *
  * 这个接口抽象了不同交易所的参数差异，客户只需要使用统一的参数结构
  * 就可以在任何支持的交易所进行交易操作
@@ -22,7 +22,7 @@ namespace ccapi {
 /**
  * 支持的交易所枚举
  */
-enum class UnifiedExchange {
+enum class LTPExchange {
   BINANCE,                    // 币安现货/杠杆（经典账户）
   BINANCE_USDS_FUTURES,       // 币安U本位合约（经典账户）
   BINANCE_COIN_FUTURES,       // 币安币本位合约（经典账户）
@@ -49,7 +49,7 @@ enum class UnifiedExchange {
 /**
  * 订单方向
  */
-enum class UnifiedOrderSide {
+enum class LTPOrderSide {
   BUY,      // 买入
   SELL,     // 卖出
   UNKNOWN
@@ -58,7 +58,7 @@ enum class UnifiedOrderSide {
 /**
  * 订单类型
  */
-enum class UnifiedOrderType {
+enum class LTPOrderType {
   LIMIT,              // 限价单
   MARKET,             // 市价单
   STOP_LOSS,          // 止损单
@@ -72,7 +72,7 @@ enum class UnifiedOrderType {
 /**
  * 订单状态
  */
-enum class UnifiedOrderStatus {
+enum class LTPOrderStatus {
   NEW,                // 新建订单
   PARTIALLY_FILLED,   // 部分成交
   FILLED,             // 完全成交
@@ -86,7 +86,7 @@ enum class UnifiedOrderStatus {
 /**
  * 时间有效性类型
  */
-enum class UnifiedTimeInForce {
+enum class LTPTimeInForce {
   GTC,    // Good Till Cancel - 一直有效直到取消
   IOC,    // Immediate or Cancel - 立即成交或取消
   FOK,    // Fill or Kill - 全部成交或取消
@@ -101,12 +101,12 @@ enum class UnifiedTimeInForce {
 /**
  * 统一的下单请求参数
  */
-struct UnifiedCreateOrderRequest {
+struct LTPCreateOrderRequest {
   // 必填字段
-  UnifiedExchange exchange;           // 交易所
+  LTPExchange exchange;           // 交易所
   std::string symbol;                 // 交易对，如 "BTCUSDT"
-  UnifiedOrderSide side;              // 订单方向
-  UnifiedOrderType type;              // 订单类型
+  LTPOrderSide side;              // 订单方向
+  LTPOrderType type;              // 订单类型
 
   // 数量相关（根据订单类型，quantity或quoteOrderQty至少填一个）
   std::string quantity;               // 下单数量（基础货币）
@@ -118,7 +118,7 @@ struct UnifiedCreateOrderRequest {
 
   // 可选字段
   std::string clientOrderId;          // 客户端订单ID（自定义）
-  UnifiedTimeInForce timeInForce;     // 时间有效性
+  LTPTimeInForce timeInForce;     // 时间有效性
 
   // 高级选项
   bool reduceOnly;                    // 只减仓（合约）
@@ -131,11 +131,11 @@ struct UnifiedCreateOrderRequest {
   std::map<std::string, std::string> extraParams;
 
   // 构造函数
-  UnifiedCreateOrderRequest()
-      : exchange(UnifiedExchange::UNKNOWN),
-        side(UnifiedOrderSide::UNKNOWN),
-        type(UnifiedOrderType::UNKNOWN),
-        timeInForce(UnifiedTimeInForce::GTC),
+  LTPCreateOrderRequest()
+      : exchange(LTPExchange::UNKNOWN),
+        side(LTPOrderSide::UNKNOWN),
+        type(LTPOrderType::UNKNOWN),
+        timeInForce(LTPTimeInForce::GTC),
         reduceOnly(false),
         postOnly(false) {}
 };
@@ -143,9 +143,9 @@ struct UnifiedCreateOrderRequest {
 /**
  * 统一的撤单请求参数
  */
-struct UnifiedCancelOrderRequest {
+struct LTPCancelOrderRequest {
   // 必填字段
-  UnifiedExchange exchange;           // 交易所
+  LTPExchange exchange;           // 交易所
   std::string symbol;                 // 交易对
 
   // 订单标识（orderId和clientOrderId至少填一个）
@@ -156,16 +156,16 @@ struct UnifiedCancelOrderRequest {
   std::map<std::string, std::string> extraParams;
 
   // 构造函数
-  UnifiedCancelOrderRequest()
-      : exchange(UnifiedExchange::UNKNOWN) {}
+  LTPCancelOrderRequest()
+      : exchange(LTPExchange::UNKNOWN) {}
 };
 
 /**
  * 统一的批量撤单请求参数
  */
-struct UnifiedCancelAllOrdersRequest {
+struct LTPCancelAllOrdersRequest {
   // 必填字段
-  UnifiedExchange exchange;           // 交易所
+  LTPExchange exchange;           // 交易所
 
   // 可选字段（用于过滤）
   std::string symbol;                 // 交易对（为空则撤销所有）
@@ -174,16 +174,16 @@ struct UnifiedCancelAllOrdersRequest {
   std::map<std::string, std::string> extraParams;
 
   // 构造函数
-  UnifiedCancelAllOrdersRequest()
-      : exchange(UnifiedExchange::UNKNOWN) {}
+  LTPCancelAllOrdersRequest()
+      : exchange(LTPExchange::UNKNOWN) {}
 };
 
 /**
  * 统一的查询订单请求参数
  */
-struct UnifiedGetOrderRequest {
+struct LTPGetOrderRequest {
   // 必填字段
-  UnifiedExchange exchange;           // 交易所
+  LTPExchange exchange;           // 交易所
   std::string symbol;                 // 交易对
 
   // 订单标识（orderId和clientOrderId至少填一个）
@@ -194,16 +194,16 @@ struct UnifiedGetOrderRequest {
   std::map<std::string, std::string> extraParams;
 
   // 构造函数
-  UnifiedGetOrderRequest()
-      : exchange(UnifiedExchange::UNKNOWN) {}
+  LTPGetOrderRequest()
+      : exchange(LTPExchange::UNKNOWN) {}
 };
 
 /**
  * 统一的查询开放订单请求参数
  */
-struct UnifiedGetOpenOrdersRequest {
+struct LTPGetOpenOrdersRequest {
   // 必填字段
-  UnifiedExchange exchange;           // 交易所
+  LTPExchange exchange;           // 交易所
 
   // 可选字段
   std::string symbol;                 // 交易对（为空则查询所有）
@@ -212,31 +212,31 @@ struct UnifiedGetOpenOrdersRequest {
   std::map<std::string, std::string> extraParams;
 
   // 构造函数
-  UnifiedGetOpenOrdersRequest()
-      : exchange(UnifiedExchange::UNKNOWN) {}
+  LTPGetOpenOrdersRequest()
+      : exchange(LTPExchange::UNKNOWN) {}
 };
 
 /**
  * 统一的查询账户余额请求参数
  */
-struct UnifiedGetAccountBalancesRequest {
+struct LTPGetAccountBalancesRequest {
   // 必填字段
-  UnifiedExchange exchange;           // 交易所
+  LTPExchange exchange;           // 交易所
 
   // 其他参数
   std::map<std::string, std::string> extraParams;
 
   // 构造函数
-  UnifiedGetAccountBalancesRequest()
-      : exchange(UnifiedExchange::UNKNOWN) {}
+  LTPGetAccountBalancesRequest()
+      : exchange(LTPExchange::UNKNOWN) {}
 };
 
 /**
  * 统一的查询持仓请求参数
  */
-struct UnifiedGetAccountPositionsRequest {
+struct LTPGetAccountPositionsRequest {
   // 必填字段
-  UnifiedExchange exchange;           // 交易所
+  LTPExchange exchange;           // 交易所
 
   // 可选字段
   std::string symbol;                 // 交易对（为空则查询所有）
@@ -245,8 +245,8 @@ struct UnifiedGetAccountPositionsRequest {
   std::map<std::string, std::string> extraParams;
 
   // 构造函数
-  UnifiedGetAccountPositionsRequest()
-      : exchange(UnifiedExchange::UNKNOWN) {}
+  LTPGetAccountPositionsRequest()
+      : exchange(LTPExchange::UNKNOWN) {}
 };
 
 // ====================================================================
@@ -256,7 +256,7 @@ struct UnifiedGetAccountPositionsRequest {
 /**
  * 统一的账户余额信息
  */
-struct UnifiedBalanceInfo {
+struct LTPBalanceInfo {
   std::string asset;                      // 资产名称（如BTC、USDT）
   std::string availableBalance;           // 可用余额
   std::string totalBalance;               // 总余额
@@ -266,13 +266,13 @@ struct UnifiedBalanceInfo {
   std::map<std::string, std::string> extraInfo;
 
   // 构造函数
-  UnifiedBalanceInfo() {}
+  LTPBalanceInfo() {}
 };
 
 /**
  * 统一的持仓信息
  */
-struct UnifiedPositionInfo {
+struct LTPPositionInfo {
   std::string symbol;                     // 交易对
   std::string positionSide;               // 持仓方向（LONG/SHORT/BOTH）
   std::string positionAmount;             // 持仓数量
@@ -286,19 +286,19 @@ struct UnifiedPositionInfo {
   std::map<std::string, std::string> extraInfo;
 
   // 构造函数
-  UnifiedPositionInfo() {}
+  LTPPositionInfo() {}
 };
 
 /**
  * 统一的订单信息
  */
-struct UnifiedOrderInfo {
+struct LTPOrderInfo {
   std::string orderId;                    // 交易所订单ID
   std::string clientOrderId;              // 客户端订单ID
   std::string symbol;                     // 交易对
-  UnifiedOrderSide side;                  // 订单方向
-  UnifiedOrderType type;                  // 订单类型
-  UnifiedOrderStatus status;              // 订单状态
+  LTPOrderSide side;                  // 订单方向
+  LTPOrderType type;                  // 订单类型
+  LTPOrderStatus status;              // 订单状态
 
   std::string price;                      // 委托价格
   std::string quantity;                   // 委托数量
@@ -307,7 +307,7 @@ struct UnifiedOrderInfo {
   std::string avgPrice;                   // 平均成交价格
 
   std::string stopPrice;                  // 触发价格
-  UnifiedTimeInForce timeInForce;         // 时间有效性
+  LTPTimeInForce timeInForce;         // 时间有效性
 
   std::string createTime;                 // 创建时间（毫秒时间戳）
   std::string updateTime;                 // 更新时间（毫秒时间戳）
@@ -320,17 +320,17 @@ struct UnifiedOrderInfo {
   std::map<std::string, std::string> extraInfo;
 
   // 构造函数
-  UnifiedOrderInfo()
-      : side(UnifiedOrderSide::UNKNOWN),
-        type(UnifiedOrderType::UNKNOWN),
-        status(UnifiedOrderStatus::UNKNOWN),
-        timeInForce(UnifiedTimeInForce::UNKNOWN) {}
+  LTPOrderInfo()
+      : side(LTPOrderSide::UNKNOWN),
+        type(LTPOrderType::UNKNOWN),
+        status(LTPOrderStatus::UNKNOWN),
+        timeInForce(LTPTimeInForce::UNKNOWN) {}
 };
 
 /**
  * 事件类型枚举
  */
-enum class UnifiedEventType {
+enum class LTPEventType {
   RESPONSE,              // 交易响应（下单、撤单等）
   SUBSCRIPTION_DATA,     // 订阅数据（实时推送的订单更新、成交等）
   SESSION_STATUS,        // 会话状态（连接建立、断开等）
@@ -347,7 +347,7 @@ enum class UnifiedEventType {
 /**
  * 消息类型枚举
  */
-enum class UnifiedMessageType {
+enum class LTPMessageType {
   // 交易响应
   CREATE_ORDER,              // 创建订单响应
   CANCEL_ORDER,              // 取消订单响应
@@ -379,37 +379,37 @@ enum class UnifiedMessageType {
 /**
  * 统一的响应结果
  */
-struct UnifiedResponse {
+struct LTPResponse {
   bool success;                           // 是否成功
   std::string errorCode;                  // 错误码
   std::string errorMessage;               // 错误信息
 
   // 事件信息
-  UnifiedEventType eventType;             // 事件类型
-  UnifiedMessageType messageType;         // 消息类型
+  LTPEventType eventType;             // 事件类型
+  LTPMessageType messageType;         // 消息类型
   std::string eventTypeString;            // 事件类型字符串（原始）
   std::string messageTypeString;          // 消息类型字符串（原始）
 
   // 单个订单响应
-  UnifiedOrderInfo orderInfo;
+  LTPOrderInfo orderInfo;
 
   // 多个订单响应（批量查询）
-  std::vector<UnifiedOrderInfo> orders;
+  std::vector<LTPOrderInfo> orders;
 
   // 账户余额响应
-  std::vector<UnifiedBalanceInfo> balances;
+  std::vector<LTPBalanceInfo> balances;
 
   // 持仓响应
-  std::vector<UnifiedPositionInfo> positions;
+  std::vector<LTPPositionInfo> positions;
 
   // 原始响应（用于调试）
   std::string rawResponse;
 
   // 构造函数
-  UnifiedResponse()
+  LTPResponse()
       : success(false),
-        eventType(UnifiedEventType::UNKNOWN),
-        messageType(UnifiedMessageType::UNKNOWN) {}
+        eventType(LTPEventType::UNKNOWN),
+        messageType(LTPMessageType::UNKNOWN) {}
 };
 
 // ====================================================================
@@ -417,49 +417,49 @@ struct UnifiedResponse {
 // ====================================================================
 
 /**
- * 将UnifiedExchange转换为ccapi的交易所名称
+ * 将交易所枚举转换为ccapi的交易所名称字符串
  */
-inline std::string unifiedExchangeToString(UnifiedExchange exchange) {
+inline std::string exchangeToString(LTPExchange exchange) {
   switch (exchange) {
-    case UnifiedExchange::BINANCE:
+    case LTPExchange::BINANCE:
       return CCAPI_EXCHANGE_NAME_BINANCE;
-    case UnifiedExchange::BINANCE_USDS_FUTURES:
+    case LTPExchange::BINANCE_USDS_FUTURES:
       return CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES;
-    case UnifiedExchange::BINANCE_COIN_FUTURES:
+    case LTPExchange::BINANCE_COIN_FUTURES:
       return CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES;
-    case UnifiedExchange::BINANCE_PORTFOLIO_MARGIN:
+    case LTPExchange::BINANCE_PORTFOLIO_MARGIN:
       return CCAPI_EXCHANGE_NAME_BINANCE_PORTFOLIO_MARGIN;
-    case UnifiedExchange::OKX:
+    case LTPExchange::OKX:
       return CCAPI_EXCHANGE_NAME_OKX;
-    case UnifiedExchange::BYBIT:
+    case LTPExchange::BYBIT:
       return CCAPI_EXCHANGE_NAME_BYBIT;
-    case UnifiedExchange::HUOBI:
+    case LTPExchange::HUOBI:
       return CCAPI_EXCHANGE_NAME_HUOBI;
-    case UnifiedExchange::HUOBI_USDT_SWAP:
+    case LTPExchange::HUOBI_USDT_SWAP:
       return CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP;
-    case UnifiedExchange::HUOBI_COIN_SWAP:
+    case LTPExchange::HUOBI_COIN_SWAP:
       return CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP;
-    case UnifiedExchange::COINBASE:
+    case LTPExchange::COINBASE:
       return CCAPI_EXCHANGE_NAME_COINBASE;
-    case UnifiedExchange::KRAKEN:
+    case LTPExchange::KRAKEN:
       return CCAPI_EXCHANGE_NAME_KRAKEN;
-    case UnifiedExchange::BITFINEX:
+    case LTPExchange::BITFINEX:
       return CCAPI_EXCHANGE_NAME_BITFINEX;
-    case UnifiedExchange::BITMEX:
+    case LTPExchange::BITMEX:
       return CCAPI_EXCHANGE_NAME_BITMEX;
-    case UnifiedExchange::DERIBIT:
+    case LTPExchange::DERIBIT:
       return CCAPI_EXCHANGE_NAME_DERIBIT;
-    case UnifiedExchange::GATEIO:
+    case LTPExchange::GATEIO:
       return CCAPI_EXCHANGE_NAME_GATEIO;
-    case UnifiedExchange::KUCOIN:
+    case LTPExchange::KUCOIN:
       return CCAPI_EXCHANGE_NAME_KUCOIN;
-    case UnifiedExchange::FTX:
+    case LTPExchange::FTX:
       return CCAPI_EXCHANGE_NAME_FTX;
-    case UnifiedExchange::MEXC:
+    case LTPExchange::MEXC:
       return CCAPI_EXCHANGE_NAME_MEXC;
-    case UnifiedExchange::BITGET:
+    case LTPExchange::BITGET:
       return CCAPI_EXCHANGE_NAME_BITGET;
-    case UnifiedExchange::CRYPTOCOM:
+    case LTPExchange::CRYPTOCOM:
       return CCAPI_EXCHANGE_NAME_CRYPTOCOM;
     default:
       return CCAPI_UNKNOWN;
@@ -467,40 +467,40 @@ inline std::string unifiedExchangeToString(UnifiedExchange exchange) {
 }
 
 /**
- * 将字符串转换为UnifiedExchange
+ * 将字符串转换为交易所枚举
  */
-inline UnifiedExchange stringToUnifiedExchange(const std::string& exchangeStr) {
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE) return UnifiedExchange::BINANCE;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES) return UnifiedExchange::BINANCE_USDS_FUTURES;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES) return UnifiedExchange::BINANCE_COIN_FUTURES;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE_PORTFOLIO_MARGIN) return UnifiedExchange::BINANCE_PORTFOLIO_MARGIN;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_OKX) return UnifiedExchange::OKX;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BYBIT) return UnifiedExchange::BYBIT;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_HUOBI) return UnifiedExchange::HUOBI;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP) return UnifiedExchange::HUOBI_USDT_SWAP;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP) return UnifiedExchange::HUOBI_COIN_SWAP;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_COINBASE) return UnifiedExchange::COINBASE;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_KRAKEN) return UnifiedExchange::KRAKEN;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BITFINEX) return UnifiedExchange::BITFINEX;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BITMEX) return UnifiedExchange::BITMEX;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_DERIBIT) return UnifiedExchange::DERIBIT;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_GATEIO) return UnifiedExchange::GATEIO;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_KUCOIN) return UnifiedExchange::KUCOIN;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_FTX) return UnifiedExchange::FTX;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_MEXC) return UnifiedExchange::MEXC;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_BITGET) return UnifiedExchange::BITGET;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_CRYPTOCOM) return UnifiedExchange::CRYPTOCOM;
-  return UnifiedExchange::UNKNOWN;
+inline LTPExchange stringToExchange(const std::string& exchangeStr) {
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE) return LTPExchange::BINANCE;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE_USDS_FUTURES) return LTPExchange::BINANCE_USDS_FUTURES;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE_COIN_FUTURES) return LTPExchange::BINANCE_COIN_FUTURES;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BINANCE_PORTFOLIO_MARGIN) return LTPExchange::BINANCE_PORTFOLIO_MARGIN;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_OKX) return LTPExchange::OKX;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BYBIT) return LTPExchange::BYBIT;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_HUOBI) return LTPExchange::HUOBI;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_HUOBI_USDT_SWAP) return LTPExchange::HUOBI_USDT_SWAP;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_HUOBI_COIN_SWAP) return LTPExchange::HUOBI_COIN_SWAP;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_COINBASE) return LTPExchange::COINBASE;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_KRAKEN) return LTPExchange::KRAKEN;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BITFINEX) return LTPExchange::BITFINEX;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BITMEX) return LTPExchange::BITMEX;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_DERIBIT) return LTPExchange::DERIBIT;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_GATEIO) return LTPExchange::GATEIO;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_KUCOIN) return LTPExchange::KUCOIN;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_FTX) return LTPExchange::FTX;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_MEXC) return LTPExchange::MEXC;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_BITGET) return LTPExchange::BITGET;
+  if (exchangeStr == CCAPI_EXCHANGE_NAME_CRYPTOCOM) return LTPExchange::CRYPTOCOM;
+  return LTPExchange::UNKNOWN;
 }
 
 /**
- * 将UnifiedOrderSide转换为字符串
+ * 将订单方向枚举转换为字符串
  */
-inline std::string unifiedOrderSideToString(UnifiedOrderSide side) {
+inline std::string orderSideToString(LTPOrderSide side) {
   switch (side) {
-    case UnifiedOrderSide::BUY:
+    case LTPOrderSide::BUY:
       return CCAPI_EM_ORDER_SIDE_BUY;
-    case UnifiedOrderSide::SELL:
+    case LTPOrderSide::SELL:
       return CCAPI_EM_ORDER_SIDE_SELL;
     default:
       return CCAPI_UNKNOWN;
@@ -508,36 +508,36 @@ inline std::string unifiedOrderSideToString(UnifiedOrderSide side) {
 }
 
 /**
- * 将字符串转换为UnifiedOrderSide
+ * 将字符串转换为订单方向枚举
  */
-inline UnifiedOrderSide stringToUnifiedOrderSide(const std::string& sideStr) {
+inline LTPOrderSide stringToOrderSide(const std::string& sideStr) {
   if (sideStr == CCAPI_EM_ORDER_SIDE_BUY || sideStr == "BUY" || sideStr == "buy") {
-    return UnifiedOrderSide::BUY;
+    return LTPOrderSide::BUY;
   }
   if (sideStr == CCAPI_EM_ORDER_SIDE_SELL || sideStr == "SELL" || sideStr == "sell") {
-    return UnifiedOrderSide::SELL;
+    return LTPOrderSide::SELL;
   }
-  return UnifiedOrderSide::UNKNOWN;
+  return LTPOrderSide::UNKNOWN;
 }
 
 /**
- * 将UnifiedOrderType转换为字符串
+ * 将订单类型枚举转换为字符串
  */
-inline std::string unifiedOrderTypeToString(UnifiedOrderType type) {
+inline std::string orderTypeToString(LTPOrderType type) {
   switch (type) {
-    case UnifiedOrderType::LIMIT:
+    case LTPOrderType::LIMIT:
       return "LIMIT";
-    case UnifiedOrderType::MARKET:
+    case LTPOrderType::MARKET:
       return "MARKET";
-    case UnifiedOrderType::STOP_LOSS:
+    case LTPOrderType::STOP_LOSS:
       return "STOP_LOSS";
-    case UnifiedOrderType::STOP_LOSS_LIMIT:
+    case LTPOrderType::STOP_LOSS_LIMIT:
       return "STOP_LOSS_LIMIT";
-    case UnifiedOrderType::TAKE_PROFIT:
+    case LTPOrderType::TAKE_PROFIT:
       return "TAKE_PROFIT";
-    case UnifiedOrderType::TAKE_PROFIT_LIMIT:
+    case LTPOrderType::TAKE_PROFIT_LIMIT:
       return "TAKE_PROFIT_LIMIT";
-    case UnifiedOrderType::LIMIT_MAKER:
+    case LTPOrderType::LIMIT_MAKER:
       return "LIMIT_MAKER";
     default:
       return CCAPI_UNKNOWN;
@@ -545,17 +545,17 @@ inline std::string unifiedOrderTypeToString(UnifiedOrderType type) {
 }
 
 /**
- * 将UnifiedTimeInForce转换为字符串
+ * 将时间有效性枚举转换为字符串
  */
-inline std::string unifiedTimeInForceToString(UnifiedTimeInForce tif) {
+inline std::string timeInForceToString(LTPTimeInForce tif) {
   switch (tif) {
-    case UnifiedTimeInForce::GTC:
+    case LTPTimeInForce::GTC:
       return "GTC";
-    case UnifiedTimeInForce::IOC:
+    case LTPTimeInForce::IOC:
       return "IOC";
-    case UnifiedTimeInForce::FOK:
+    case LTPTimeInForce::FOK:
       return "FOK";
-    case UnifiedTimeInForce::GTX:
+    case LTPTimeInForce::GTX:
       return "GTX";
     default:
       return "GTC";  // 默认GTC
@@ -563,66 +563,65 @@ inline std::string unifiedTimeInForceToString(UnifiedTimeInForce tif) {
 }
 
 /**
- * 将字符串转换为UnifiedOrderType
+ * 将字符串转换为订单类型枚举
  */
-inline UnifiedOrderType stringToUnifiedOrderType(const std::string& typeStr) {
-  if (typeStr == "LIMIT") return UnifiedOrderType::LIMIT;
-  if (typeStr == "MARKET") return UnifiedOrderType::MARKET;
-  if (typeStr == "STOP_LOSS" || typeStr == "STOP") return UnifiedOrderType::STOP_LOSS;
-  if (typeStr == "STOP_LOSS_LIMIT") return UnifiedOrderType::STOP_LOSS_LIMIT;
-  if (typeStr == "TAKE_PROFIT") return UnifiedOrderType::TAKE_PROFIT;
-  if (typeStr == "TAKE_PROFIT_LIMIT") return UnifiedOrderType::TAKE_PROFIT_LIMIT;
-  if (typeStr == "LIMIT_MAKER") return UnifiedOrderType::LIMIT_MAKER;
-  return UnifiedOrderType::UNKNOWN;
+inline LTPOrderType stringToOrderType(const std::string& typeStr) {
+  if (typeStr == "LIMIT") return LTPOrderType::LIMIT;
+  if (typeStr == "MARKET") return LTPOrderType::MARKET;
+  if (typeStr == "STOP_LOSS" || typeStr == "STOP") return LTPOrderType::STOP_LOSS;
+  if (typeStr == "STOP_LOSS_LIMIT") return LTPOrderType::STOP_LOSS_LIMIT;
+  if (typeStr == "TAKE_PROFIT") return LTPOrderType::TAKE_PROFIT;
+  if (typeStr == "TAKE_PROFIT_LIMIT") return LTPOrderType::TAKE_PROFIT_LIMIT;
+  if (typeStr == "LIMIT_MAKER") return LTPOrderType::LIMIT_MAKER;
+  return LTPOrderType::UNKNOWN;
 }
 
 /**
- * 将字符串转换为UnifiedOrderStatus
+ * 将字符串转换为订单状态枚举
  *
  * 支持的状态值：
  * - 币安: NEW, PARTIALLY_FILLED, FILLED, CANCELED, PENDING_CANCEL, REJECTED, EXPIRED
  * - OKX: live, partially_filled, filled, canceled, mmp_canceled
  */
-inline UnifiedOrderStatus stringToUnifiedOrderStatus(const std::string& statusStr) {
+inline LTPOrderStatus stringToOrderStatus(const std::string& statusStr) {
   // 币安状态
-  if (statusStr == "NEW" || statusStr == "PENDING") return UnifiedOrderStatus::NEW;
-  if (statusStr == "PARTIALLY_FILLED" || statusStr == "PARTIAL_FILL") return UnifiedOrderStatus::PARTIALLY_FILLED;
-  if (statusStr == "FILLED" || statusStr == "FILL") return UnifiedOrderStatus::FILLED;
-  if (statusStr == "CANCELED" || statusStr == "CANCELLED") return UnifiedOrderStatus::CANCELED;
-  if (statusStr == "PENDING_CANCEL") return UnifiedOrderStatus::PENDING_CANCEL;
-  if (statusStr == "REJECTED" || statusStr == "REJECT") return UnifiedOrderStatus::REJECTED;
-  if (statusStr == "EXPIRED" || statusStr == "EXPIRE") return UnifiedOrderStatus::EXPIRED;
+  if (statusStr == "NEW" || statusStr == "PENDING") return LTPOrderStatus::NEW;
+  if (statusStr == "PARTIALLY_FILLED" || statusStr == "PARTIAL_FILL") return LTPOrderStatus::PARTIALLY_FILLED;
+  if (statusStr == "FILLED" || statusStr == "FILL") return LTPOrderStatus::FILLED;
+  if (statusStr == "CANCELED" || statusStr == "CANCELLED") return LTPOrderStatus::CANCELED;
+  if (statusStr == "PENDING_CANCEL") return LTPOrderStatus::PENDING_CANCEL;
+  if (statusStr == "REJECTED" || statusStr == "REJECT") return LTPOrderStatus::REJECTED;
+  if (statusStr == "EXPIRED" || statusStr == "EXPIRE") return LTPOrderStatus::EXPIRED;
 
   // OKX状态
   // live: 订单已提交，等待成交
-  if (statusStr == "live") return UnifiedOrderStatus::NEW;
+  if (statusStr == "live") return LTPOrderStatus::NEW;
   // partially_filled: 部分成交
-  if (statusStr == "partially_filled") return UnifiedOrderStatus::PARTIALLY_FILLED;
+  if (statusStr == "partially_filled") return LTPOrderStatus::PARTIALLY_FILLED;
   // filled: 完全成交
-  if (statusStr == "filled") return UnifiedOrderStatus::FILLED;
+  if (statusStr == "filled") return LTPOrderStatus::FILLED;
   // canceled: 已撤销
-  if (statusStr == "canceled") return UnifiedOrderStatus::CANCELED;
+  if (statusStr == "canceled") return LTPOrderStatus::CANCELED;
   // mmp_canceled: 做市商保护撤销
-  if (statusStr == "mmp_canceled") return UnifiedOrderStatus::CANCELED;
+  if (statusStr == "mmp_canceled") return LTPOrderStatus::CANCELED;
 
-  return UnifiedOrderStatus::UNKNOWN;
+  return LTPOrderStatus::UNKNOWN;
 }
 
 /**
- * 将字符串转换为UnifiedTimeInForce
+ * 将字符串转换为时间有效性枚举
  */
-inline UnifiedTimeInForce stringToUnifiedTimeInForce(const std::string& tifStr) {
-  if (tifStr == "GTC") return UnifiedTimeInForce::GTC;
-  if (tifStr == "IOC") return UnifiedTimeInForce::IOC;
-  if (tifStr == "FOK") return UnifiedTimeInForce::FOK;
-  if (tifStr == "GTX") return UnifiedTimeInForce::GTX;
-  return UnifiedTimeInForce::UNKNOWN;
+inline LTPTimeInForce stringToTimeInForce(const std::string& tifStr) {
+  if (tifStr == "GTC") return LTPTimeInForce::GTC;
+  if (tifStr == "IOC") return LTPTimeInForce::IOC;
+  if (tifStr == "FOK") return LTPTimeInForce::FOK;
+  if (tifStr == "GTX") return LTPTimeInForce::GTX;
+  return LTPTimeInForce::UNKNOWN;
 }
 
-// 注意：交易所能力配置已移至 UnifiedTradingService 类中管理
-// 请使用 UnifiedTradingService::getExchangeCapabilities() 方法查询交易所能力
+// 注意：交易所能力配置已移至 LTPTradingService 类中管理
+// 请使用 LTPTradingService::getExchangeCapabilities() 方法查询交易所能力
 
-} /* namespace ccapi */
+} /* namespace ltp */
 
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_UNIFIED_TRADING_INTERFACE_H_
-
+#endif  // INCLUDE_LTP_TRADING_INTERFACE_H_

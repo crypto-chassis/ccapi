@@ -1,7 +1,7 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_UNIFIED_TRADING_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_UNIFIED_TRADING_SERVICE_H_
+#ifndef INCLUDE_LTP_TRADING_SERVICE_H_
+#define INCLUDE_LTP_TRADING_SERVICE_H_
 
-#include "ccapi_cpp/ccapi_unified_trading_interface.h"
+#include "ccapi_cpp/ccapi_ltp_trading_interface.h"
 #include "ccapi_cpp/ccapi_session.h"
 #include "ccapi_cpp/ccapi_request.h"
 #include "ccapi_cpp/ccapi_event.h"
@@ -11,7 +11,17 @@
 #include <iostream>
 #include <chrono>
 
-namespace ccapi {
+namespace ltp {
+
+// 引入ccapi命名空间的必要类型
+using ccapi::Session;
+using ccapi::Request;
+using ccapi::Event;
+using ccapi::Message;
+using ccapi::Element;
+using ccapi::Subscription;
+using ccapi::Queue;
+using ccapi::UtilTime;
 
 /**
  * 交易所协议能力配置
@@ -32,21 +42,21 @@ struct ExchangeCapabilities {
  * - 同步接口(createOrder等): 始终使用REST协议
  * - 异步接口(createOrderAsync等): 根据交易所能力配置，按优先级选择：FIX > WebSocket > REST
  */
-class UnifiedTradingService {
+class LTPTradingService {
  public:
   /**
    * 构造函数
    * @param session ccapi的Session对象指针
    */
-  explicit UnifiedTradingService(Session* session)
+  explicit LTPTradingService(Session* session)
     : session_(session), enableLatencyStats_(false) {
     initializeDefaultCapabilities();
   }
 
   /**
-   * 析构函数shi
+   * 析构函数
    */
-  virtual ~UnifiedTradingService() {}
+  virtual ~LTPTradingService() {}
 
   /**
    * 设置交易所的协议能力
@@ -58,10 +68,10 @@ class UnifiedTradingService {
    * caps.supportsFix = true;
    * caps.supportsWebsocket = true;
    * caps.supportsRest = true;
-   * service.setExchangeCapabilities(UnifiedExchange::BINANCE, caps);
+   * service.setExchangeCapabilities(LTPExchange::BINANCE, caps);
    */
-  void setExchangeCapabilities(UnifiedExchange exchange, const ExchangeCapabilities& capabilities) {
-    std::string exchangeStr = unifiedExchangeToString(exchange);
+  void setExchangeCapabilities(LTPExchange exchange, const ExchangeCapabilities& capabilities) {
+    std::string exchangeStr = ltp::exchangeToString(exchange);
     exchangeCapabilities_[exchangeStr] = capabilities;
   }
 
@@ -86,8 +96,8 @@ class UnifiedTradingService {
    * @param exchange 交易所
    * @return 协议能力配置
    */
-  ExchangeCapabilities getExchangeCapabilities(UnifiedExchange exchange) const {
-    std::string exchangeStr = unifiedExchangeToString(exchange);
+  ExchangeCapabilities getExchangeCapabilities(LTPExchange exchange) const {
+    std::string exchangeStr = ltp::exchangeToString(exchange);
     auto it = exchangeCapabilities_.find(exchangeStr);
     if (it != exchangeCapabilities_.end()) {
       return it->second;
@@ -108,7 +118,7 @@ class UnifiedTradingService {
    * @param credential 认证信息（API Key等）
    * @return 统一的响应结果
    */
-  UnifiedResponse createOrder(const UnifiedCreateOrderRequest& request,
+  LTPResponse createOrder(const LTPCreateOrderRequest& request,
                               const std::map<std::string, std::string>& credential = {}) {
     Request ccapiRequest = convertToCreateOrderRequest(request, credential);
     return executeRequestSync(ccapiRequest);
@@ -120,7 +130,7 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @return 统一的响应结果
    */
-  UnifiedResponse cancelOrder(const UnifiedCancelOrderRequest& request,
+  LTPResponse cancelOrder(const LTPCancelOrderRequest& request,
                               const std::map<std::string, std::string>& credential = {}) {
     Request ccapiRequest = convertToCancelOrderRequest(request, credential);
     return executeRequestSync(ccapiRequest);
@@ -132,7 +142,7 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @return 统一的响应结果
    */
-  UnifiedResponse cancelAllOrders(const UnifiedCancelAllOrdersRequest& request,
+  LTPResponse cancelAllOrders(const LTPCancelAllOrdersRequest& request,
                                   const std::map<std::string, std::string>& credential = {}) {
     Request ccapiRequest = convertToCancelAllOrdersRequest(request, credential);
     return executeRequestSync(ccapiRequest);
@@ -144,7 +154,7 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @return 统一的响应结果
    */
-  UnifiedResponse getOrder(const UnifiedGetOrderRequest& request,
+  LTPResponse getOrder(const LTPGetOrderRequest& request,
                           const std::map<std::string, std::string>& credential = {}) {
     Request ccapiRequest = convertToGetOrderRequest(request, credential);
     return executeRequestSync(ccapiRequest);
@@ -156,7 +166,7 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @return 统一的响应结果
    */
-  UnifiedResponse getOpenOrders(const UnifiedGetOpenOrdersRequest& request,
+  LTPResponse getOpenOrders(const LTPGetOpenOrdersRequest& request,
                                 const std::map<std::string, std::string>& credential = {}) {
     Request ccapiRequest = convertToGetOpenOrdersRequest(request, credential);
     return executeRequestSync(ccapiRequest);
@@ -168,7 +178,7 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @return 统一的响应结果
    */
-  UnifiedResponse getAccountBalances(const UnifiedGetAccountBalancesRequest& request,
+  LTPResponse getAccountBalances(const LTPGetAccountBalancesRequest& request,
                                      const std::map<std::string, std::string>& credential = {}) {
     Request ccapiRequest = convertToGetAccountBalancesRequest(request, credential);
     return executeRequestSync(ccapiRequest);
@@ -180,7 +190,7 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @return 统一的响应结果
    */
-  UnifiedResponse getAccountPositions(const UnifiedGetAccountPositionsRequest& request,
+  LTPResponse getAccountPositions(const LTPGetAccountPositionsRequest& request,
                                       const std::map<std::string, std::string>& credential = {}) {
     Request ccapiRequest = convertToGetAccountPositionsRequest(request, credential);
     return executeRequestSync(ccapiRequest);
@@ -197,14 +207,14 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @param correlationId 关联ID（用于匹配请求和响应）
    */
-  void createOrderAsync(const UnifiedCreateOrderRequest& request,
+  void createOrderAsync(const LTPCreateOrderRequest& request,
                        const std::map<std::string, std::string>& credential = {},
                        const std::string& correlationId = "") {
     // 记录API调用开始时间（纳秒级）
     auto apiCallStartTime = std::chrono::steady_clock::now();
 
     // 零拷贝优化：直接构造最终Request，避免中间转换
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
 
     // 检查交易所能力，选择最优快速路径
     auto it = exchangeCapabilities_.find(exchange);
@@ -233,14 +243,14 @@ class UnifiedTradingService {
    * 取消订单（异步）
    * 根据交易所能力配置，按优先级选择协议：FIX > WebSocket > REST
    */
-  void cancelOrderAsync(const UnifiedCancelOrderRequest& request,
+  void cancelOrderAsync(const LTPCancelOrderRequest& request,
                        const std::map<std::string, std::string>& credential = {},
                        const std::string& correlationId = "") {
     // 记录API调用开始时间（纳秒级）
     auto apiCallStartTime = std::chrono::steady_clock::now();
 
     // 零拷贝优化：直接构造最终Request，避免中间转换
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
 
     // 检查交易所能力，选择最优快速路径
     auto it = exchangeCapabilities_.find(exchange);
@@ -268,10 +278,10 @@ class UnifiedTradingService {
   /**
    * 取消所有订单（异步）
    */
-  void cancelAllOrdersAsync(const UnifiedCancelAllOrdersRequest& request,
+  void cancelAllOrdersAsync(const LTPCancelAllOrdersRequest& request,
                            const std::map<std::string, std::string>& credential = {},
                            const std::string& correlationId = "") {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest = convertToCancelAllOrdersRequest(request, credential);
     if (!correlationId.empty()) {
       ccapiRequest.setCorrelationId(correlationId);
@@ -284,7 +294,7 @@ class UnifiedTradingService {
    * 查询订单（异步）
    * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
-  void getOrderAsync(const UnifiedGetOrderRequest& request,
+  void getOrderAsync(const LTPGetOrderRequest& request,
                     const std::map<std::string, std::string>& credential = {},
                     const std::string& correlationId = "") {
     Request ccapiRequest = convertToGetOrderRequest(request, credential);
@@ -300,7 +310,7 @@ class UnifiedTradingService {
    * 查询开放订单（异步）
    * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
-  void getOpenOrdersAsync(const UnifiedGetOpenOrdersRequest& request,
+  void getOpenOrdersAsync(const LTPGetOpenOrdersRequest& request,
                          const std::map<std::string, std::string>& credential = {},
                          const std::string& correlationId = "") {
     Request ccapiRequest = convertToGetOpenOrdersRequest(request, credential);
@@ -316,7 +326,7 @@ class UnifiedTradingService {
    * 查询账户余额（异步）
    * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
-  void getAccountBalancesAsync(const UnifiedGetAccountBalancesRequest& request,
+  void getAccountBalancesAsync(const LTPGetAccountBalancesRequest& request,
                                const std::map<std::string, std::string>& credential = {},
                                const std::string& correlationId = "") {
     Request ccapiRequest = convertToGetAccountBalancesRequest(request, credential);
@@ -332,7 +342,7 @@ class UnifiedTradingService {
    * 查询持仓（异步）
    * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
-  void getAccountPositionsAsync(const UnifiedGetAccountPositionsRequest& request,
+  void getAccountPositionsAsync(const LTPGetAccountPositionsRequest& request,
                                 const std::map<std::string, std::string>& credential = {},
                                 const std::string& correlationId = "") {
     Request ccapiRequest = convertToGetAccountPositionsRequest(request, credential);
@@ -359,16 +369,16 @@ class UnifiedTradingService {
    *
    * 示例：
    * // 订阅OKX所有交易对的订单更新
-   * service.subscribeOrderUpdates(UnifiedExchange::OKX, "", credential, "okx-orders");
+   * service.subscribeOrderUpdates(LTPExchange::OKX, "", credential, "okx-orders");
    *
    * // 订阅币安U本位合约特定交易对的订单更新
-   * service.subscribeOrderUpdates(UnifiedExchange::BINANCE_USDS_FUTURES, "BTCUSDT", credential, "binance-btc");
+   * service.subscribeOrderUpdates(LTPExchange::BINANCE_USDS_FUTURES, "BTCUSDT", credential, "binance-btc");
    */
-  void subscribeOrderUpdates(UnifiedExchange exchange,
+  void subscribeOrderUpdates(LTPExchange exchange,
                             const std::string& symbol,
                             const std::map<std::string, std::string>& credential,
                             const std::string& correlationId = "") {
-    std::string exchangeStr = unifiedExchangeToString(exchange);
+    std::string exchangeStr = ltp::exchangeToString(exchange);
     std::string corrId = correlationId.empty()
                         ? "order_updates_" + exchangeStr + "_" + std::to_string(UtilTime::now().time_since_epoch().count())
                         : correlationId;
@@ -398,11 +408,11 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @param correlationId 关联ID
    */
-  void subscribePrivateTrades(UnifiedExchange exchange,
+  void subscribePrivateTrades(LTPExchange exchange,
                              const std::string& symbol,
                              const std::map<std::string, std::string>& credential,
                              const std::string& correlationId = "") {
-    std::string exchangeStr = unifiedExchangeToString(exchange);
+    std::string exchangeStr = ltp::exchangeToString(exchange);
     std::string corrId = correlationId.empty()
                         ? "private_trades_" + exchangeStr + "_" + std::to_string(UtilTime::now().time_since_epoch().count())
                         : correlationId;
@@ -429,10 +439,10 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @param correlationId 关联ID
    */
-  void subscribeBalanceUpdates(UnifiedExchange exchange,
+  void subscribeBalanceUpdates(LTPExchange exchange,
                               const std::map<std::string, std::string>& credential,
                               const std::string& correlationId = "") {
-    std::string exchangeStr = unifiedExchangeToString(exchange);
+    std::string exchangeStr = ltp::exchangeToString(exchange);
     std::string corrId = correlationId.empty()
                         ? "balance_updates_" + exchangeStr + "_" + std::to_string(UtilTime::now().time_since_epoch().count())
                         : correlationId;
@@ -460,11 +470,11 @@ class UnifiedTradingService {
    * @param credential 认证信息
    * @param correlationId 关联ID
    */
-  void subscribePositionUpdates(UnifiedExchange exchange,
+  void subscribePositionUpdates(LTPExchange exchange,
                                const std::string& symbol,
                                const std::map<std::string, std::string>& credential,
                                const std::string& correlationId = "") {
-    std::string exchangeStr = unifiedExchangeToString(exchange);
+    std::string exchangeStr = ltp::exchangeToString(exchange);
     std::string corrId = correlationId.empty()
                         ? "position_updates_" + exchangeStr + "_" + std::to_string(UtilTime::now().time_since_epoch().count())
                         : correlationId;
@@ -484,47 +494,47 @@ class UnifiedTradingService {
   }
 
   // ====================================================================
-  // 辅助方法 - 将ccapi的Event转换为UnifiedResponse
+  // 辅助方法 - 将ccapi的Event转换为LTPResponse
   // ====================================================================
 
   /**
-   * 将ccapi的Event转换为UnifiedResponse
+   * 将ccapi的Event转换为LTPResponse
    * @param event ccapi的事件对象
    * @return 统一的响应结果
    */
-  static UnifiedResponse convertEventToResponse(const Event& event) {
-    UnifiedResponse response;
+  static LTPResponse convertEventToResponse(const Event& event) {
+    LTPResponse response;
 
     // 设置事件类型
     if (event.getType() == Event::Type::RESPONSE) {
-      response.eventType = UnifiedEventType::RESPONSE;
+      response.eventType = LTPEventType::RESPONSE;
       response.eventTypeString = "RESPONSE";
     } else if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      response.eventType = UnifiedEventType::SUBSCRIPTION_DATA;
+      response.eventType = LTPEventType::SUBSCRIPTION_DATA;
       response.eventTypeString = "SUBSCRIPTION_DATA";
     } else if (event.getType() == Event::Type::SESSION_STATUS) {
-      response.eventType = UnifiedEventType::SESSION_STATUS;
+      response.eventType = LTPEventType::SESSION_STATUS;
       response.eventTypeString = "SESSION_STATUS";
     } else if (event.getType() == Event::Type::AUTHORIZATION_STATUS) {
-      response.eventType = UnifiedEventType::AUTHORIZATION_STATUS;
+      response.eventType = LTPEventType::AUTHORIZATION_STATUS;
       response.eventTypeString = "AUTHORIZATION_STATUS";
     } else if (event.getType() == Event::Type::SUBSCRIPTION_STATUS) {
-      response.eventType = UnifiedEventType::SUBSCRIPTION_STATUS;
+      response.eventType = LTPEventType::SUBSCRIPTION_STATUS;
       response.eventTypeString = "SUBSCRIPTION_STATUS";
     } else if (event.getType() == Event::Type::REQUEST_STATUS) {
-      response.eventType = UnifiedEventType::REQUEST_STATUS;
+      response.eventType = LTPEventType::REQUEST_STATUS;
       response.eventTypeString = "REQUEST_STATUS";
     } else if (event.getType() == Event::Type::FIX) {
-      response.eventType = UnifiedEventType::FIX;
+      response.eventType = LTPEventType::FIX;
       response.eventTypeString = "FIX";
     } else if (event.getType() == Event::Type::FIX_STATUS) {
-      response.eventType = UnifiedEventType::FIX_STATUS;
+      response.eventType = LTPEventType::FIX_STATUS;
       response.eventTypeString = "FIX_STATUS";
     } else if (event.getType() == Event::Type::HEARTBEAT) {
-      response.eventType = UnifiedEventType::HEARTBEAT;
+      response.eventType = LTPEventType::HEARTBEAT;
       response.eventTypeString = "HEARTBEAT";
     } else {
-      response.eventType = UnifiedEventType::OTHER;
+      response.eventType = LTPEventType::OTHER;
       response.eventTypeString = "OTHER";
     }
 
@@ -535,61 +545,61 @@ class UnifiedTradingService {
 
       // 设置消息类型
       if (message.getType() == Message::Type::CREATE_ORDER) {
-        response.messageType = UnifiedMessageType::CREATE_ORDER;
+        response.messageType = LTPMessageType::CREATE_ORDER;
         response.messageTypeString = "CREATE_ORDER";
       } else if (message.getType() == Message::Type::CANCEL_ORDER) {
-        response.messageType = UnifiedMessageType::CANCEL_ORDER;
+        response.messageType = LTPMessageType::CANCEL_ORDER;
         response.messageTypeString = "CANCEL_ORDER";
       } else if (message.getType() == Message::Type::GET_ORDER) {
-        response.messageType = UnifiedMessageType::GET_ORDER;
+        response.messageType = LTPMessageType::GET_ORDER;
         response.messageTypeString = "GET_ORDER";
       } else if (message.getType() == Message::Type::GET_OPEN_ORDERS) {
-        response.messageType = UnifiedMessageType::GET_OPEN_ORDERS;
+        response.messageType = LTPMessageType::GET_OPEN_ORDERS;
         response.messageTypeString = "GET_OPEN_ORDERS";
       } else if (message.getType() == Message::Type::GET_ACCOUNT_BALANCES) {
-        response.messageType = UnifiedMessageType::GET_ACCOUNT_BALANCES;
+        response.messageType = LTPMessageType::GET_ACCOUNT_BALANCES;
         response.messageTypeString = "GET_ACCOUNT_BALANCES";
       } else if (message.getType() == Message::Type::GET_ACCOUNT_POSITIONS) {
-        response.messageType = UnifiedMessageType::GET_ACCOUNT_POSITIONS;
+        response.messageType = LTPMessageType::GET_ACCOUNT_POSITIONS;
         response.messageTypeString = "GET_ACCOUNT_POSITIONS";
       } else if (message.getType() == Message::Type::RESPONSE_ERROR) {
-        response.messageType = UnifiedMessageType::RESPONSE_ERROR;
+        response.messageType = LTPMessageType::RESPONSE_ERROR;
         response.messageTypeString = "RESPONSE_ERROR";
       } else if (message.getType() == Message::Type::SESSION_CONNECTION_UP) {
-        response.messageType = UnifiedMessageType::SESSION_CONNECTION_UP;
+        response.messageType = LTPMessageType::SESSION_CONNECTION_UP;
         response.messageTypeString = "SESSION_CONNECTION_UP";
       } else if (message.getType() == Message::Type::SESSION_CONNECTION_DOWN) {
-        response.messageType = UnifiedMessageType::SESSION_CONNECTION_DOWN;
+        response.messageType = LTPMessageType::SESSION_CONNECTION_DOWN;
         response.messageTypeString = "SESSION_CONNECTION_DOWN";
       } else if (message.getType() == Message::Type::AUTHORIZATION_SUCCESS) {
-        response.messageType = UnifiedMessageType::AUTHORIZATION_SUCCESS;
+        response.messageType = LTPMessageType::AUTHORIZATION_SUCCESS;
         response.messageTypeString = "AUTHORIZATION_SUCCESS";
       } else if (message.getType() == Message::Type::AUTHORIZATION_FAILURE) {
-        response.messageType = UnifiedMessageType::AUTHORIZATION_FAILURE;
+        response.messageType = LTPMessageType::AUTHORIZATION_FAILURE;
         response.messageTypeString = "AUTHORIZATION_FAILURE";
       } else if (message.getType() == Message::Type::SUBSCRIPTION_STARTED) {
-        response.messageType = UnifiedMessageType::SUBSCRIPTION_STARTED;
+        response.messageType = LTPMessageType::SUBSCRIPTION_STARTED;
         response.messageTypeString = "SUBSCRIPTION_STARTED";
       } else if (message.getType() == Message::Type::SUBSCRIPTION_FAILURE) {
-        response.messageType = UnifiedMessageType::SUBSCRIPTION_FAILURE;
+        response.messageType = LTPMessageType::SUBSCRIPTION_FAILURE;
         response.messageTypeString = "SUBSCRIPTION_FAILURE";
       } else if (message.getType() == Message::Type::SUBSCRIPTION_FAILURE_DUE_TO_CONNECTION_FAILURE) {
-        response.messageType = UnifiedMessageType::SUBSCRIPTION_FAILURE_DUE_TO_CONNECTION_FAILURE;
+        response.messageType = LTPMessageType::SUBSCRIPTION_FAILURE_DUE_TO_CONNECTION_FAILURE;
         response.messageTypeString = "SUBSCRIPTION_FAILURE_DUE_TO_CONNECTION_FAILURE";
       } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_ORDER_UPDATE) {
-        response.messageType = UnifiedMessageType::ORDER_UPDATE;
+        response.messageType = LTPMessageType::ORDER_UPDATE;
         response.messageTypeString = "ORDER_UPDATE";
       } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE) {
-        response.messageType = UnifiedMessageType::PRIVATE_TRADE;
+        response.messageType = LTPMessageType::PRIVATE_TRADE;
         response.messageTypeString = "PRIVATE_TRADE";
       } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_BALANCE_UPDATE) {
-        response.messageType = UnifiedMessageType::BALANCE_UPDATE;
+        response.messageType = LTPMessageType::BALANCE_UPDATE;
         response.messageTypeString = "BALANCE_UPDATE";
       } else if (message.getType() == Message::Type::EXECUTION_MANAGEMENT_EVENTS_POSITION_UPDATE) {
-        response.messageType = UnifiedMessageType::POSITION_UPDATE;
+        response.messageType = LTPMessageType::POSITION_UPDATE;
         response.messageTypeString = "POSITION_UPDATE";
       } else {
-        response.messageType = UnifiedMessageType::OTHER;
+        response.messageType = LTPMessageType::OTHER;
         response.messageTypeString = "OTHER";
       }
 
@@ -755,7 +765,7 @@ class UnifiedTradingService {
    * FIX协议是专为金融交易设计的二进制协议，延迟比WebSocket更低
    * 直接构造最终的Request对象，避免convertToCreateOrderRequest的开销
    */
-  inline void createOrderAsyncFixFastPath(const UnifiedCreateOrderRequest& request,
+  inline void createOrderAsyncFixFastPath(const LTPCreateOrderRequest& request,
                                          const std::map<std::string, std::string>& credential,
                                          const std::string& correlationId,
                                          const std::string& exchange,
@@ -783,11 +793,11 @@ class UnifiedTradingService {
     std::map<std::string, std::string> param;
 
     // 订单方向（必需）
-    param.emplace(CCAPI_EM_ORDER_SIDE, unifiedOrderSideToString(request.side));
+    param.emplace(CCAPI_EM_ORDER_SIDE, ltp::orderSideToString(request.side));
 
     // 订单类型（必需）
     if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
-      param.emplace(CCAPI_EM_ORDER_TYPE, unifiedOrderTypeToString(request.type));
+      param.emplace(CCAPI_EM_ORDER_TYPE, ltp::orderTypeToString(request.type));
     }
 
     // 客户端订单ID
@@ -809,10 +819,10 @@ class UnifiedTradingService {
     }
 
     // 时间有效性
-    if (request.timeInForce != UnifiedTimeInForce::UNKNOWN &&
-        request.type != UnifiedOrderType::MARKET &&
+    if (request.timeInForce != LTPTimeInForce::UNKNOWN &&
+        request.type != LTPOrderType::MARKET &&
         exchange != CCAPI_EXCHANGE_NAME_OKX) {
-      param.emplace("timeInForce", unifiedTimeInForceToString(request.timeInForce));
+      param.emplace("timeInForce", ltp::timeInForceToString(request.timeInForce));
     }
 
     // 高级选项
@@ -847,7 +857,7 @@ class UnifiedTradingService {
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-      std::cout << "[UnifiedTradingService] createOrderAsync to sendRequestByFix latency: "
+      std::cout << "[LTPTradingService] createOrderAsync to sendRequestByFix latency: "
                 << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
     }
 
@@ -859,7 +869,7 @@ class UnifiedTradingService {
    * WebSocket快速路径 - 零拷贝优化
    * 直接构造最终的Request对象，避免convertToCreateOrderRequest的开销
    */
-  inline void createOrderAsyncWebSocketFastPath(const UnifiedCreateOrderRequest& request,
+  inline void createOrderAsyncWebSocketFastPath(const LTPCreateOrderRequest& request,
                                                const std::map<std::string, std::string>& credential,
                                                const std::string& correlationId,
                                                const std::string& exchange,
@@ -889,11 +899,11 @@ class UnifiedTradingService {
     std::map<std::string, std::string> param;
 
     // 订单方向（必需） - 直接emplace，避免临时对象
-    param.emplace(CCAPI_EM_ORDER_SIDE, unifiedOrderSideToString(request.side));
+    param.emplace(CCAPI_EM_ORDER_SIDE, ltp::orderSideToString(request.side));
 
     // 订单类型（必需，OKX除外）
     if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
-      param.emplace(CCAPI_EM_ORDER_TYPE, unifiedOrderTypeToString(request.type));
+      param.emplace(CCAPI_EM_ORDER_TYPE, ltp::orderTypeToString(request.type));
     }
 
     // 客户端订单ID
@@ -953,10 +963,10 @@ class UnifiedTradingService {
     }
 
     // 时间有效性
-    if (request.timeInForce != UnifiedTimeInForce::UNKNOWN &&
-        request.type != UnifiedOrderType::MARKET &&
+    if (request.timeInForce != LTPTimeInForce::UNKNOWN &&
+        request.type != LTPOrderType::MARKET &&
         exchange != CCAPI_EXCHANGE_NAME_OKX) {
-      param.emplace("timeInForce", unifiedTimeInForceToString(request.timeInForce));
+      param.emplace("timeInForce", ltp::timeInForceToString(request.timeInForce));
     }
 
     // 额外参数
@@ -971,7 +981,7 @@ class UnifiedTradingService {
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-      std::cout << "[UnifiedTradingService] createOrderAsync to sendRequestByWebsocket latency: "
+      std::cout << "[LTPTradingService] createOrderAsync to sendRequestByWebsocket latency: "
                 << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
     }
 
@@ -982,7 +992,7 @@ class UnifiedTradingService {
   /**
    * FIX快速路径 - 撤单零拷贝优化（最低延迟）
    */
-  inline void cancelOrderAsyncFixFastPath(const UnifiedCancelOrderRequest& request,
+  inline void cancelOrderAsyncFixFastPath(const LTPCancelOrderRequest& request,
                                          const std::map<std::string, std::string>& credential,
                                          const std::string& correlationId,
                                          const std::string& exchange,
@@ -1029,7 +1039,7 @@ class UnifiedTradingService {
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-      std::cout << "[UnifiedTradingService] cancelOrderAsync to sendRequestByFix latency: "
+      std::cout << "[LTPTradingService] cancelOrderAsync to sendRequestByFix latency: "
                 << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
     }
 
@@ -1040,7 +1050,7 @@ class UnifiedTradingService {
   /**
    * WebSocket快速路径 - 撤单零拷贝优化
    */
-  inline void cancelOrderAsyncWebSocketFastPath(const UnifiedCancelOrderRequest& request,
+  inline void cancelOrderAsyncWebSocketFastPath(const LTPCancelOrderRequest& request,
                                                const std::map<std::string, std::string>& credential,
                                                const std::string& correlationId,
                                                const std::string& exchange,
@@ -1087,7 +1097,7 @@ class UnifiedTradingService {
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-      std::cout << "[UnifiedTradingService] cancelOrderAsync to sendRequestByWebsocket latency: "
+      std::cout << "[LTPTradingService] cancelOrderAsync to sendRequestByWebsocket latency: "
                 << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
     }
 
@@ -1174,7 +1184,7 @@ class UnifiedTradingService {
       if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
         auto sendTime = std::chrono::steady_clock::now();
         auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-        std::cout << "[UnifiedTradingService] createOrderAsync to sendRequestByWebsocket latency: "
+        std::cout << "[LTPTradingService] createOrderAsync to sendRequestByWebsocket latency: "
                   << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
       }
 
@@ -1337,20 +1347,20 @@ class UnifiedTradingService {
   /**
    * 转换创建订单请求
    */
-  Request convertToCreateOrderRequest(const UnifiedCreateOrderRequest& request,
+  Request convertToCreateOrderRequest(const LTPCreateOrderRequest& request,
                                       const std::map<std::string, std::string>& credential) {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest(Request::Operation::CREATE_ORDER, exchange, request.symbol, "", credential);
 
     std::map<std::string, std::string> param;
 
     // 订单方向
-    param.insert({CCAPI_EM_ORDER_SIDE, unifiedOrderSideToString(request.side)});
+    param.insert({CCAPI_EM_ORDER_SIDE, ltp::orderSideToString(request.side)});
 
     // 订单类型
     // OKX特殊处理：不传递CCAPI_EM_ORDER_TYPE，因为OKX服务会自动将其转换为ordType参数
     if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
-      std::string orderTypeStr = unifiedOrderTypeToString(request.type);
+      std::string orderTypeStr = ltp::orderTypeToString(request.type);
       param.insert({CCAPI_EM_ORDER_TYPE, orderTypeStr});
     }
     // 注意：OKX的ordType会由ccapi_execution_management_service_okx.h自动添加
@@ -1379,10 +1389,10 @@ class UnifiedTradingService {
     // 时间有效性
     // timeInForce只在非市价单时添加
     // 某些交易所和订单类型不支持timeInForce
-    if (request.timeInForce != UnifiedTimeInForce::UNKNOWN && request.type != UnifiedOrderType::MARKET) {
+    if (request.timeInForce != LTPTimeInForce::UNKNOWN && request.type != LTPOrderType::MARKET) {
       // OKX不支持timeInForce参数
       if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
-        param.insert({"timeInForce", unifiedTimeInForceToString(request.timeInForce)});
+        param.insert({"timeInForce", ltp::timeInForceToString(request.timeInForce)});
       }
     }
 
@@ -1445,9 +1455,9 @@ class UnifiedTradingService {
   /**
    * 转换取消订单请求
    */
-  Request convertToCancelOrderRequest(const UnifiedCancelOrderRequest& request,
+  Request convertToCancelOrderRequest(const LTPCancelOrderRequest& request,
                                      const std::map<std::string, std::string>& credential) {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest(Request::Operation::CANCEL_ORDER, exchange, request.symbol, "", credential);
 
     std::map<std::string, std::string> param;
@@ -1471,9 +1481,9 @@ class UnifiedTradingService {
   /**
    * 转换取消所有订单请求
    */
-  Request convertToCancelAllOrdersRequest(const UnifiedCancelAllOrdersRequest& request,
+  Request convertToCancelAllOrdersRequest(const LTPCancelAllOrdersRequest& request,
                                          const std::map<std::string, std::string>& credential) {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest(Request::Operation::CANCEL_OPEN_ORDERS, exchange, request.symbol, "", credential);
 
     std::map<std::string, std::string> param;
@@ -1493,9 +1503,9 @@ class UnifiedTradingService {
   /**
    * 转换查询订单请求
    */
-  Request convertToGetOrderRequest(const UnifiedGetOrderRequest& request,
+  Request convertToGetOrderRequest(const LTPGetOrderRequest& request,
                                    const std::map<std::string, std::string>& credential) {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest(Request::Operation::GET_ORDER, exchange, request.symbol, "", credential);
 
     std::map<std::string, std::string> param;
@@ -1519,9 +1529,9 @@ class UnifiedTradingService {
   /**
    * 转换查询开放订单请求
    */
-  Request convertToGetOpenOrdersRequest(const UnifiedGetOpenOrdersRequest& request,
+  Request convertToGetOpenOrdersRequest(const LTPGetOpenOrdersRequest& request,
                                        const std::map<std::string, std::string>& credential) {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest(Request::Operation::GET_OPEN_ORDERS, exchange, request.symbol, "", credential);
 
     std::map<std::string, std::string> param;
@@ -1541,9 +1551,9 @@ class UnifiedTradingService {
   /**
    * 转换查询账户余额请求
    */
-  Request convertToGetAccountBalancesRequest(const UnifiedGetAccountBalancesRequest& request,
+  Request convertToGetAccountBalancesRequest(const LTPGetAccountBalancesRequest& request,
                                             const std::map<std::string, std::string>& credential) {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest(Request::Operation::GET_ACCOUNT_BALANCES, exchange, "", "", credential);
 
     std::map<std::string, std::string> param;
@@ -1563,9 +1573,9 @@ class UnifiedTradingService {
   /**
    * 转换查询持仓请求
    */
-  Request convertToGetAccountPositionsRequest(const UnifiedGetAccountPositionsRequest& request,
+  Request convertToGetAccountPositionsRequest(const LTPGetAccountPositionsRequest& request,
                                              const std::map<std::string, std::string>& credential) {
-    std::string exchange = unifiedExchangeToString(request.exchange);
+    std::string exchange = ltp::exchangeToString(request.exchange);
     Request ccapiRequest(Request::Operation::GET_ACCOUNT_POSITIONS, exchange, request.symbol, "", credential);
 
     std::map<std::string, std::string> param;
@@ -1585,7 +1595,7 @@ class UnifiedTradingService {
   /**
    * 执行同步请求
    */
-  UnifiedResponse executeRequestSync(Request& request) {
+  LTPResponse executeRequestSync(Request& request) {
     Queue<Event> eventQueue;
     session_->sendRequest(request, &eventQueue);
 
@@ -1594,17 +1604,17 @@ class UnifiedTradingService {
       return convertEventToResponse(eventList[0]);
     }
 
-    UnifiedResponse response;
+    LTPResponse response;
     response.success = false;
     response.errorMessage = "No response received";
     return response;
   }
 
   /**
-   * 将Element转换为UnifiedOrderInfo
+   * 将Element转换为LTPOrderInfo
    */
-  static UnifiedOrderInfo convertElementToOrderInfo(const Element& element) {
-    UnifiedOrderInfo orderInfo;
+  static LTPOrderInfo convertElementToOrderInfo(const Element& element) {
+    LTPOrderInfo orderInfo;
 
     orderInfo.orderId = element.getValue(CCAPI_EM_ORDER_ID);
     orderInfo.clientOrderId = element.getValue(CCAPI_EM_CLIENT_ORDER_ID);
@@ -1612,20 +1622,20 @@ class UnifiedTradingService {
 
     // 订单方向
     std::string sideStr = element.getValue(CCAPI_EM_ORDER_SIDE);
-    orderInfo.side = stringToUnifiedOrderSide(sideStr);
+    orderInfo.side = ltp::stringToOrderSide(sideStr);
 
     // 订单类型
     std::string typeStr = element.getValue(CCAPI_EM_ORDER_TYPE);
-    orderInfo.type = stringToUnifiedOrderType(typeStr);
+    orderInfo.type = ltp::stringToOrderType(typeStr);
 
     // 订单状态
     std::string statusStr = element.getValue(CCAPI_EM_ORDER_STATUS);
-    orderInfo.status = stringToUnifiedOrderStatus(statusStr);
+    orderInfo.status = ltp::stringToOrderStatus(statusStr);
 
     // 时间有效性
     std::string tifStr = element.getValue("timeInForce");
     if (!tifStr.empty()) {
-      orderInfo.timeInForce = stringToUnifiedTimeInForce(tifStr);
+      orderInfo.timeInForce = ltp::stringToTimeInForce(tifStr);
     }
 
     // 价格和数量
@@ -1655,10 +1665,10 @@ class UnifiedTradingService {
   }
 
   /**
-   * 将Element转换为UnifiedBalanceInfo
+   * 将Element转换为LTPBalanceInfo
    */
-  static UnifiedBalanceInfo convertElementToBalanceInfo(const Element& element) {
-    UnifiedBalanceInfo balanceInfo;
+  static LTPBalanceInfo convertElementToBalanceInfo(const Element& element) {
+    LTPBalanceInfo balanceInfo;
 
     balanceInfo.asset = element.getValue(CCAPI_EM_ASSET);
     balanceInfo.availableBalance = element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING);
@@ -1687,10 +1697,10 @@ class UnifiedTradingService {
   }
 
   /**
-   * 将Element转换为UnifiedPositionInfo
+   * 将Element转换为LTPPositionInfo
    */
-  static UnifiedPositionInfo convertElementToPositionInfo(const Element& element) {
-    UnifiedPositionInfo positionInfo;
+  static LTPPositionInfo convertElementToPositionInfo(const Element& element) {
+    LTPPositionInfo positionInfo;
 
     positionInfo.symbol = element.getValue(CCAPI_INSTRUMENT);
     positionInfo.positionSide = element.getValue(CCAPI_EM_POSITION_SIDE);
@@ -1706,11 +1716,12 @@ class UnifiedTradingService {
     }
 
     return positionInfo;
+    return positionInfo;
   }
 };
 
-} /* namespace ccapi */
+} /* namespace ltp */
 
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_UNIFIED_TRADING_SERVICE_H_
+#endif  // INCLUDE_LTP_TRADING_SERVICE_H_
 
 
