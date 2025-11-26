@@ -392,8 +392,6 @@ inline std::string exchangeToString(LTPExchange exchange) {
       return CCAPI_EXCHANGE_NAME_GATEIO;
     case LTPExchange::KUCOIN:
       return CCAPI_EXCHANGE_NAME_KUCOIN;
-    case LTPExchange::FTX:
-      return CCAPI_EXCHANGE_NAME_FTX;
     case LTPExchange::MEXC:
       return CCAPI_EXCHANGE_NAME_MEXC;
     case LTPExchange::BITGET:
@@ -422,7 +420,6 @@ inline LTPExchange stringToExchange(const std::string& exchangeStr) {
   if (exchangeStr == CCAPI_EXCHANGE_NAME_DERIBIT) return LTPExchange::DERIBIT;
   if (exchangeStr == CCAPI_EXCHANGE_NAME_GATEIO) return LTPExchange::GATEIO;
   if (exchangeStr == CCAPI_EXCHANGE_NAME_KUCOIN) return LTPExchange::KUCOIN;
-  if (exchangeStr == CCAPI_EXCHANGE_NAME_FTX) return LTPExchange::FTX;
   if (exchangeStr == CCAPI_EXCHANGE_NAME_MEXC) return LTPExchange::MEXC;
   if (exchangeStr == CCAPI_EXCHANGE_NAME_BITGET) return LTPExchange::BITGET;
   if (exchangeStr == CCAPI_EXCHANGE_NAME_CRYPTOCOM) return LTPExchange::CRYPTOCOM;
