@@ -32,6 +32,8 @@
 #include <openssl/sha.h>
 #include <cstdio>
 #include <cstring>
+#include <sstream>
+#include <array>
 
 namespace ccapi {
 
@@ -82,7 +84,12 @@ class LTPWebSocketAdapter {
     }
 
     try {
-      std::string ltpJson = convertRequestToLTPJson(request, credential, "order.place");
+      // auto startTime = std::chrono::steady_clock::now();
+      std::string ltpJson = std::move(convertRequestToLTPJson(request, credential, "order.place"));
+      // auto endTime = std::chrono::steady_clock::now();
+      // auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+      // std::cout << "convertRequestToLTPJson Latency: " << (latencyNs) << " ns" << std::endl;
+
       auto publishStartTime = std::chrono::steady_clock::now();
 
       if (apiCallStartTime.time_since_epoch().count() > 0) {
@@ -123,7 +130,8 @@ class LTPWebSocketAdapter {
     }
 
     try {
-      std::string ltpJson = convertRequestToLTPJson(request, credential, "order.cancel");
+      // 优化：使用移动语义接收返回值，避免拷贝
+      std::string ltpJson = std::move(convertRequestToLTPJson(request, credential, "order.cancel"));
       auto publishStartTime = std::chrono::steady_clock::now();
 
       if (apiCallStartTime.time_since_epoch().count() > 0) {
@@ -232,165 +240,167 @@ class LTPWebSocketAdapter {
     std::string clientOrderId = request.getCorrelationId();
     if (clientOrderId.empty()) {
       // 如果没有 correlationId，生成一个
-      clientOrderId = "ccapi_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+      std::ostringstream oss;
+      oss << "ccapi_" << std::chrono::steady_clock::now().time_since_epoch().count();
+      clientOrderId = oss.str();
     }
 
-    // 获取 API Key 和 Secret
     std::string apiKey;
     std::string apiSecret;
 
-    // 合并 credential：先使用传入的 credential，然后使用 Request 的 credential
-    std::map<std::string, std::string> mergedCredential = credential;
-    const auto& requestCredential = request.getCredential();
-    for (const auto& kv : requestCredential) {
-      // Request 的 credential 优先级更高（如果存在）
-      mergedCredential[kv.first] = kv.second;
-    }
-
-    // 从合并后的 credential 中查找 API Key 和 Secret
-    // 支持多种 key 名称格式：CCAPI_BINANCE_USDS_FUTURES_API_KEY, apiKey 等
-    for (const auto& kv : mergedCredential) {
+    for (const auto& kv : credential) {
       const std::string& key = kv.first;
       const std::string& value = kv.second;
 
-      // 查找 API Key（不区分大小写，查找包含 "API_KEY" 或等于 "apiKey" 的 key）
-      if (apiKey.empty()) {
-        if (key.find("API_KEY") != std::string::npos ||
-            key == "apiKey" ||
-            key.find("api_key") != std::string::npos) {
+      if (apiKey.empty() && (key.find("API_KEY") != std::string::npos ||
+                             key == "apiKey" ||
+                             key.find("api_key") != std::string::npos)) {
+        apiKey = value;
+      }
+
+      if (apiSecret.empty() && (key.find("API_SECRET") != std::string::npos ||
+                                key == "apiSecret" ||
+                                key.find("api_secret") != std::string::npos)) {
+        apiSecret = value;
+      }
+
+      if (!apiKey.empty() && !apiSecret.empty()) break;
+    }
+
+    if (apiKey.empty() || apiSecret.empty()) {
+      const auto& requestCredential = request.getCredential();
+      for (const auto& kv : requestCredential) {
+        const std::string& key = kv.first;
+        const std::string& value = kv.second;
+
+        if (apiKey.empty() && (key.find("API_KEY") != std::string::npos ||
+                               key == "apiKey" ||
+                               key.find("api_key") != std::string::npos)) {
           apiKey = value;
         }
-      }
 
-      // 查找 API Secret（不区分大小写，查找包含 "API_SECRET" 或等于 "apiSecret" 的 key）
-      if (apiSecret.empty()) {
-        if (key.find("API_SECRET") != std::string::npos ||
-            key == "apiSecret" ||
-            key.find("api_secret") != std::string::npos) {
+        if (apiSecret.empty() && (key.find("API_SECRET") != std::string::npos ||
+                                  key == "apiSecret" ||
+                                  key.find("api_secret") != std::string::npos)) {
           apiSecret = value;
         }
-      }
 
-      if (!apiKey.empty() && !apiSecret.empty()) {
-        break;
+        if (!apiKey.empty() && !apiSecret.empty()) break;
       }
     }
 
-    std::map<std::string, std::string> paramMap;
+    const std::map<std::string, std::string>* paramMap = nullptr;
     const auto& paramList = request.getParamList();
     if (!paramList.empty()) {
-      paramMap = paramList[0];
+      paramMap = &paramList[0];
     }
 
-    std::string queryString;
-    std::string paramsJson = "{";
+    std::ostringstream queryStream;
+    std::ostringstream resultStream;
 
-    if (!apiKey.empty()) {
-      queryString += "apiKey=" + apiKey;
-      paramsJson += "\"apiKey\":\"" + apiKey + "\"";
-    }
+    int64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
 
     if (method == "order.place") {
-      std::string symbol = request.getInstrument();
-      std::string side = getParamValue(paramMap, CCAPI_EM_ORDER_SIDE, "BUY");
-      std::string type = getParamValue(paramMap, CCAPI_EM_ORDER_TYPE, "LIMIT");
-      std::string quantity = getParamValue(paramMap, CCAPI_EM_ORDER_QUANTITY, "");
-      std::string price = getParamValue(paramMap, CCAPI_EM_ORDER_LIMIT_PRICE, "");
-      std::string timeInForce = getParamValue(paramMap, "timeInForce", "GTC");
-
-      std::string newClientOrderId = getParamValue(paramMap, CCAPI_EM_CLIENT_ORDER_ID, clientOrderId);
-
-      int64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::system_clock::now().time_since_epoch()).count();
-
       if (apiKey.empty() || apiSecret.empty()) {
-        CCAPI_LOGGER_ERROR("API Key or Secret not found. Available keys in credential:");
-        for (const auto& kv : mergedCredential) {
-          CCAPI_LOGGER_ERROR("  Key: " + kv.first);
-        }
+        CCAPI_LOGGER_ERROR("API Key or Secret not found in credential");
         throw std::runtime_error("API Key or Secret not found in credential");
       }
+
+      std::string symbol = request.getInstrument();
+      std::string side = paramMap ? getParamValue(*paramMap, CCAPI_EM_ORDER_SIDE, "BUY") : "BUY";
+      std::string type = paramMap ? getParamValue(*paramMap, CCAPI_EM_ORDER_TYPE, "LIMIT") : "LIMIT";
+      std::string quantity = paramMap ? getParamValue(*paramMap, CCAPI_EM_ORDER_QUANTITY, "") : "";
+      std::string price = paramMap ? getParamValue(*paramMap, CCAPI_EM_ORDER_LIMIT_PRICE, "") : "";
+      std::string timeInForce = paramMap ? getParamValue(*paramMap, "timeInForce", "GTC") : "GTC";
+      std::string newClientOrderId = paramMap ? getParamValue(*paramMap, CCAPI_EM_CLIENT_ORDER_ID, clientOrderId) : clientOrderId;
 
       if (price.empty() || quantity.empty()) {
         throw std::runtime_error("Price or quantity is empty. price=" + price + ", quantity=" + quantity);
       }
 
-      queryString = "apiKey=" + apiKey;
-      queryString += "&newClientOrderId=" + newClientOrderId;
-      queryString += "&price=" + price;
-      queryString += "&quantity=" + quantity;
-      queryString += "&side=" + side;
-      queryString += "&symbol=" + symbol;
-      queryString += "&timeInForce=" + timeInForce;
-      queryString += "&timestamp=" + std::to_string(timestamp);
-      queryString += "&type=" + type;
+      // auto startTime = std::chrono::steady_clock::now();
+      queryStream << "apiKey=" << apiKey
+                  << "&newClientOrderId=" << newClientOrderId
+                  << "&price=" << price
+                  << "&quantity=" << quantity
+                  << "&side=" << side
+                  << "&symbol=" << symbol
+                  << "&timeInForce=" << timeInForce
+                  << "&timestamp=" << timestamp
+                  << "&type=" << type;
 
+      std::string queryString = queryStream.str();
       std::string signature = generateHMACSHA256(queryString, apiSecret);
 
-      paramsJson = "{";
-      paramsJson += "\"apiKey\":\"" + apiKey + "\"";
-      paramsJson += ",\"newClientOrderId\":\"" + newClientOrderId + "\"";
-      paramsJson += ",\"symbol\":\"" + symbol + "\"";
-      paramsJson += ",\"price\":" + price;
-      paramsJson += ",\"quantity\":" + quantity;
-      paramsJson += ",\"side\":\"" + side + "\"";
-      paramsJson += ",\"timeInForce\":\"" + timeInForce + "\"";
-      paramsJson += ",\"timestamp\":" + std::to_string(timestamp);
-      paramsJson += ",\"type\":\"" + type + "\"";
-      paramsJson += ",\"signature\":\"" + signature + "\"";
-      paramsJson += "}";
+      // auto endTime = std::chrono::steady_clock::now();
+      // auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(endTime - startTime).count();
+      // std::cout << "Latency_3: " << (latencyNs) << " ns" << std::endl;
 
-      CCAPI_LOGGER_DEBUG("LTP queryString: " + queryString);
-      CCAPI_LOGGER_DEBUG("LTP signature: " + signature);
+      resultStream << "{\"id\":\"" << clientOrderId
+                   << "\",\"method\":\"" << method
+                   << "\",\"params\":{\"apiKey\":\"" << apiKey
+                   << "\",\"newClientOrderId\":\"" << newClientOrderId
+                   << "\",\"symbol\":\"" << symbol
+                   << "\",\"price\":" << price
+                   << ",\"quantity\":" << quantity
+                   << ",\"side\":\"" << side
+                   << "\",\"timeInForce\":\"" << timeInForce
+                   << "\",\"timestamp\":" << timestamp
+                   << ",\"type\":\"" << type
+                   << "\",\"signature\":\"" << signature << "\"}}";
+
+      // CCAPI_LOGGER_DEBUG("LTP queryString: " + queryString);
+      // CCAPI_LOGGER_DEBUG("LTP signature: " + signature);
+
+      return resultStream.str();
 
     } else if (method == "order.cancel") {
-      std::string symbol = request.getInstrument();
-      std::string orderId = getParamValue(paramMap, CCAPI_EM_ORDER_ID, "");
-      std::string origClientOrderId = getParamValue(paramMap, CCAPI_EM_CLIENT_ORDER_ID, "");
-
-      int64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::system_clock::now().time_since_epoch()).count();
-
       if (apiKey.empty() || apiSecret.empty()) {
         throw std::runtime_error("API Key or Secret not found in credential");
       }
+
+      std::string symbol = request.getInstrument();
+      std::string orderId = paramMap ? getParamValue(*paramMap, CCAPI_EM_ORDER_ID, "") : "";
+      std::string origClientOrderId = paramMap ? getParamValue(*paramMap, CCAPI_EM_CLIENT_ORDER_ID, "") : "";
+
       if (orderId.empty() && origClientOrderId.empty()) {
         throw std::runtime_error("Both orderId and origClientOrderId are empty");
       }
 
-      queryString = "apiKey=" + apiKey;
+      queryStream << "apiKey=" << apiKey;
       if (!orderId.empty()) {
-        queryString += "&orderId=" + orderId;
+        queryStream << "&orderId=" << orderId;
       }
       if (!origClientOrderId.empty()) {
-        queryString += "&origClientOrderId=" + origClientOrderId;
+        queryStream << "&origClientOrderId=" << origClientOrderId;
       }
-      queryString += "&symbol=" + symbol;
-      queryString += "&timestamp=" + std::to_string(timestamp);
+      queryStream << "&symbol=" << symbol
+                  << "&timestamp=" << timestamp;
 
+      std::string queryString = queryStream.str();
       std::string signature = generateHMACSHA256(queryString, apiSecret);
 
-      paramsJson = "{";
-      paramsJson += "\"apiKey\":\"" + apiKey + "\"";
+      resultStream << "{\"id\":\"" << clientOrderId
+                   << "\",\"method\":\"" << method
+                   << "\",\"params\":{\"apiKey\":\"" << apiKey << "\"";
       if (!orderId.empty()) {
-        paramsJson += ",\"orderId\":\"" + orderId + "\"";
+        resultStream << ",\"orderId\":\"" << orderId << "\"";
       }
+
       if (!origClientOrderId.empty()) {
-        paramsJson += ",\"origClientOrderId\":\"" + origClientOrderId + "\"";
+        resultStream << ",\"origClientOrderId\":\"" << origClientOrderId << "\"";
       }
-      paramsJson += ",\"symbol\":\"" + symbol + "\"";
-      paramsJson += ",\"timestamp\":" + std::to_string(timestamp);
-      paramsJson += ",\"signature\":\"" + signature + "\"";
-      paramsJson += "}";
+
+      resultStream << ",\"symbol\":\"" << symbol
+                   << "\",\"timestamp\":" << timestamp
+                   << ",\"signature\":\"" << signature << "\"}}";
+
+      return resultStream.str();
     }
 
-    std::string result = "{";
-    result += "\"id\":\"" + clientOrderId + "\"";
-    result += ",\"method\":\"" + method + "\"";
-    result += ",\"params\":" + paramsJson;
-    result += "}";
-
-    return result;
+    // 如果走到这里说明 method 不是预期的值，返回空字符串（不应该发生）
+    return "";
   }
 
   /**
@@ -408,22 +418,27 @@ class LTPWebSocketAdapter {
 
   /**
    * @brief 生成 HMAC SHA256 签名
-   * 与 ltp_om.cpp 中的 generate_signature 函数保持一致
    */
   std::string generateHMACSHA256(const std::string& queryString, const std::string& secret) {
-    unsigned char* digest = HMAC(EVP_sha256(),
-                                  secret.c_str(), static_cast<int>(secret.length()),
-                                  (unsigned char*)queryString.c_str(), static_cast<int>(queryString.length()),
-                                  NULL, NULL);
+    unsigned char digest[SHA256_DIGEST_LENGTH];
+    unsigned int digestLen;
 
-    std::string signature;
-    char hex[3];
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-      sprintf(hex, "%02x", digest[i]);
-      signature += hex;
+    HMAC(EVP_sha256(),
+         secret.c_str(), static_cast<int>(secret.length()),
+         (unsigned char*)queryString.c_str(), static_cast<int>(queryString.length()),
+         digest, &digestLen);
+
+    // 优化：使用字符数组直接构建，避免多次 += 操作的开销
+    static const char hexTable[] = "0123456789abcdef";
+    char signatureBuf[SHA256_DIGEST_LENGTH * 2];
+
+    for (unsigned int i = 0; i < digestLen; i++) {
+      signatureBuf[i * 2] = hexTable[digest[i] >> 4];
+      signatureBuf[i * 2 + 1] = hexTable[digest[i] & 0x0F];
     }
 
-    return signature;
+    // 直接构造 string，避免拷贝
+    return std::string(signatureBuf, digestLen * 2);
   }
 
   /**
