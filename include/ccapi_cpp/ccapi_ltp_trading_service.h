@@ -255,13 +255,9 @@ class LTPTradingService {
   void cancelOrderAsync(const LTPCancelOrderRequest& request,
                        const std::map<std::string, std::string>& credential = {},
                        const std::string& correlationId = "") {
-    // 记录API调用开始时间（纳秒级）
     auto apiCallStartTime = std::chrono::steady_clock::now();
-
-    // 零拷贝优化：直接构造最终Request，避免中间转换
     std::string exchange = ltp::exchangeToString(request.exchange);
 
-    // 检查交易所能力，选择最优快速路径
     auto it = exchangeCapabilities_.find(exchange);
     if (it != exchangeCapabilities_.end()) {
       // 优先级1: FIX快速路径（最低延迟）
@@ -795,12 +791,12 @@ class LTPTradingService {
 
     const std::string& fixCorrelationId = fixIt->second;
 
-    // 直接构造Request - 零拷贝优化
+    // 直接构造Request
     Request fixRequest(Request::Operation::CREATE_ORDER, exchange, request.symbol,
                       correlationId.empty() ? "" : correlationId,
                       std::map<std::string, std::string>{});  // FIX不需要credential
 
-    // 直接构造参数map - 极致优化版本
+    // 直接构造参数map
     std::map<std::string, std::string> param;
 
     // 订单方向（必需）
@@ -861,10 +857,8 @@ class LTPTradingService {
       param.emplace(kv.first, kv.second);
     }
 
-    // 使用move避免拷贝
     fixRequest.appendParam(std::move(param));
 
-    // 记录延迟
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
@@ -890,11 +884,10 @@ class LTPTradingService {
       if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
         auto sendTime = std::chrono::steady_clock::now();
         auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-        std::cout << "[LTPTradingService] createOrderAsync to LTP adapter latency: "
-                  << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+        std::cout << "[Create Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
       }
 
-      ltpAdapter_->sendCreateOrder(ccapiRequest, credential);
+      ltpAdapter_->sendCreateOrder(ccapiRequest, credential, apiCallStartTime);
       return;
     }
 
@@ -912,17 +905,14 @@ class LTPTradingService {
 
     const std::string& wsCorrelationId = wsIt->second;
 
-    // 直接构造Request - 零拷贝优化
     // 注意：WebSocket不需要credential
     Request wsRequest(Request::Operation::CREATE_ORDER, exchange, request.symbol,
                      correlationId.empty() ? "" : correlationId,
                      std::map<std::string, std::string>{});  // 空credential
 
-    // 直接构造参数map - 极致优化版本
     // 使用emplace + move语义减少拷贝
     std::map<std::string, std::string> param;
 
-    // 订单方向（必需） - 直接emplace，避免临时对象
     param.emplace(CCAPI_EM_ORDER_SIDE, ltp::orderSideToString(request.side));
 
     // 订单类型（必需，OKX除外）
@@ -986,7 +976,6 @@ class LTPTradingService {
       }
     }
 
-    // 时间有效性
     if (request.timeInForce != LTPTimeInForce::UNKNOWN &&
         request.type != LTPOrderType::MARKET &&
         exchange != CCAPI_EXCHANGE_NAME_OKX) {
@@ -998,15 +987,12 @@ class LTPTradingService {
       param.emplace(kv.first, kv.second);
     }
 
-    // 使用move避免拷贝
     wsRequest.appendParam(std::move(param));
 
-    // 记录延迟
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-      std::cout << "[LTPTradingService] createOrderAsync to sendRequestByWebsocket latency: "
-                << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+      std::cout << "[Create Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
     }
 
     // 直接发送
@@ -1035,12 +1021,11 @@ class LTPTradingService {
 
     const std::string& fixCorrelationId = fixIt->second;
 
-    // 直接构造Request - 零拷贝优化
+    // 直接构造Request
     Request fixRequest(Request::Operation::CANCEL_ORDER, exchange, request.symbol,
                       correlationId.empty() ? "" : correlationId,
                       std::map<std::string, std::string>{});  // FIX不需要credential
 
-    // 直接构造参数map - 极致优化版本
     std::map<std::string, std::string> param;
 
     // 订单ID或客户端订单ID（至少需要一个）
@@ -1056,15 +1041,12 @@ class LTPTradingService {
       param.emplace(kv.first, kv.second);
     }
 
-    // 使用move避免拷贝
     fixRequest.appendParam(std::move(param));
 
-    // 记录延迟
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-      std::cout << "[LTPTradingService] cancelOrderAsync to sendRequestByFix latency: "
-                << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+      std::cout << "[Cancel Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
     }
 
     // 直接发送
@@ -1086,15 +1068,13 @@ class LTPTradingService {
         ccapiRequest.setCorrelationId(correlationId);
       }
 
-      // 记录延迟
       if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
         auto sendTime = std::chrono::steady_clock::now();
         auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-        std::cout << "[LTPTradingService] cancelOrderAsync to LTP adapter latency: "
-                  << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+        std::cout << "[Cancel Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
       }
 
-      ltpAdapter_->sendCancelOrder(ccapiRequest, credential);
+      ltpAdapter_->sendCancelOrder(ccapiRequest, credential, apiCallStartTime);
       return;
     }
 
@@ -1112,12 +1092,12 @@ class LTPTradingService {
 
     const std::string& wsCorrelationId = wsIt->second;
 
-    // 直接构造Request - 零拷贝优化
+    // 直接构造Request
     Request wsRequest(Request::Operation::CANCEL_ORDER, exchange, request.symbol,
                      correlationId.empty() ? "" : correlationId,
                      std::map<std::string, std::string>{});  // 空credential
 
-    // 直接构造参数map - 极致优化版本
+    // 直接构造参数map
     std::map<std::string, std::string> param;
 
     // 订单ID或客户端订单ID（至少需要一个）
@@ -1128,20 +1108,16 @@ class LTPTradingService {
       param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
     }
 
-    // 额外参数
     for (const auto& kv : request.extraParams) {
       param.emplace(kv.first, kv.second);
     }
 
-    // 使用move避免拷贝
     wsRequest.appendParam(std::move(param));
 
-    // 记录延迟
     if (enableLatencyStats_ && apiCallStartTime.time_since_epoch().count() > 0) {
       auto sendTime = std::chrono::steady_clock::now();
       auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(sendTime - apiCallStartTime).count();
-      std::cout << "[LTPTradingService] cancelOrderAsync to sendRequestByWebsocket latency: "
-                << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
+      std::cout << "[Cancel Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
     }
 
     // 直接发送

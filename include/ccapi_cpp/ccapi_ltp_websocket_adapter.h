@@ -60,9 +60,6 @@ class LTPWebSocketAdapter {
     initialize();
   }
 
-  /**
-   * @brief 析构函数
-   */
   ~LTPWebSocketAdapter() {
     shutdown();
   }
@@ -86,20 +83,17 @@ class LTPWebSocketAdapter {
 
     try {
       std::string ltpJson = convertRequestToLTPJson(request, credential, "order.place");
-
       auto publishStartTime = std::chrono::steady_clock::now();
 
       if (apiCallStartTime.time_since_epoch().count() > 0) {
-        auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            publishStartTime - apiCallStartTime).count();
-        auto latencyUs = latencyNs / 1000;  // 转换为微秒
+        auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(publishStartTime - apiCallStartTime).count();
+        auto latencyUs = latencyNs / 1000;
 
         if (latencyCallback) {
           latencyCallback(latencyUs);
         }
 
-        CCAPI_LOGGER_DEBUG("LTP adapter latency (createOrderAsync -> publish_order): " +
-                          std::to_string(latencyUs) + " μs");
+        std::cout << "[Create Order] LTP adapter latency: " << latencyUs << " us" << std::endl;
       }
 
       publish_order(publisher_, ltpJson.c_str(), static_cast<unsigned int>(ltpJson.length()));
@@ -130,23 +124,19 @@ class LTPWebSocketAdapter {
 
     try {
       std::string ltpJson = convertRequestToLTPJson(request, credential, "order.cancel");
-
       auto publishStartTime = std::chrono::steady_clock::now();
 
       if (apiCallStartTime.time_since_epoch().count() > 0) {
-        auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            publishStartTime - apiCallStartTime).count();
-        auto latencyUs = latencyNs / 1000;  // 转换为微秒
+        auto latencyNs = std::chrono::duration_cast<std::chrono::nanoseconds>(publishStartTime - apiCallStartTime).count();
+        auto latencyUs = latencyNs / 1000;
 
         if (latencyCallback) {
           latencyCallback(latencyUs);
         }
 
-        CCAPI_LOGGER_DEBUG("LTP adapter latency (cancelOrderAsync -> publish_order): " +
-                          std::to_string(latencyUs) + " μs");
+        std::cout << "[Cancel Order] LTP adapter latency: " << latencyUs << " us" << std::endl;
       }
 
-      // 发布撤单请求（注意：publish_order 需要 unsigned int 类型的长度）
       publish_order(publisher_, ltpJson.c_str(), static_cast<unsigned int>(ltpJson.length()));
 
       CCAPI_LOGGER_DEBUG("Sent cancel order via LTP: " + ltpJson);
