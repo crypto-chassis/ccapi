@@ -23,6 +23,12 @@ add_dependencies(${NAME} boost rapidjson)
 # 如果库在 /usr/local/lib，确保链接器能找到它
 link_directories(/usr/local/lib)
 target_link_libraries(${NAME} ucli_ffi pthread ssl crypto)
+# 设置运行时库搜索路径，让程序能找到 /usr/local/lib 中的库
+set_target_properties(${NAME} PROPERTIES
+    BUILD_RPATH "/usr/local/lib"
+    INSTALL_RPATH "/usr/local/lib"
+    BUILD_WITH_INSTALL_RPATH TRUE
+)
 
 # 压测程序 - 币安U本位合约WebSocket压测
 set(NAME_STRESS ltp_trading_stress_test)
@@ -30,3 +36,9 @@ add_executable(${NAME_STRESS} stress_test.cpp)
 add_dependencies(${NAME_STRESS} boost rapidjson)
 # 压测程序也需要链接 LTP UCLI FFI 库（如果使用）
 target_link_libraries(${NAME_STRESS} ucli_ffi pthread ssl crypto)
+# 设置运行时库搜索路径
+set_target_properties(${NAME_STRESS} PROPERTIES
+    BUILD_RPATH "/usr/local/lib"
+    INSTALL_RPATH "/usr/local/lib"
+    BUILD_WITH_INSTALL_RPATH TRUE
+)

@@ -100,79 +100,126 @@ class StressTestHandler : public EventHandler {
         isSubscribed = true;
       }
     }
-    // 处理交易响应
-    else if (response.eventType == LTPEventType::RESPONSE) {
-      if (response.messageType == LTPMessageType::CREATE_ORDER) {
-        auto now = std::chrono::steady_clock::now();
-        auto latency = std::chrono::duration_cast<std::chrono::microseconds>(
-            now - lastCreateOrderTime).count();
+    else if (response.eventType == LTPEventType::SUBSCRIPTION_DATA) {
+      if (!response.orderInfo.orderId.empty()) {
+        switch (response.orderInfo.status)
+        {
+        case LTPOrderStatus::NEW: {
+          auto now = std::chrono::steady_clock::now();
+          auto latency = std::chrono::duration_cast<std::chrono::microseconds>(now - lastCreateOrderTime).count();
 
-        std::lock_guard<std::mutex> lock(latencyMutex);
-        createLatencies.push_back(latency);
+          std::lock_guard<std::mutex> lock(latencyMutex);
+          createLatencies.push_back(latency);
 
-        if (response.success && !response.orderInfo.orderId.empty()) {
-          lastOrderId = response.orderInfo.orderId;
-          // 立即撤单
-          cancelOrder(session);
-        } else {
-          std::cout << "❌ 下单失败: " << response.errorMessage << std::endl;
+          if (response.success && !response.orderInfo.orderId.empty()) {
+            lastOrderId = response.orderInfo.orderId;
+          }
+          if (response.success && !response.orderInfo.clientOrderId.empty()) {
+            lastClientOrderId = response.orderInfo.clientOrderId;
+          }
+
+          if (response.success) {
+            cancelOrder(session, response.orderInfo.orderId, response.orderInfo.clientOrderId);
+          } else {
+            std::cout << "❌ 下单失败: " << response.errorMessage << std::endl;
+            completedOrders++;
+          }
+
+          break;
+        }
+        case LTPOrderStatus::CANCELED: {
+          auto now = std::chrono::steady_clock::now();
+          auto latency = std::chrono::duration_cast<std::chrono::microseconds>(now - lastCancelOrderTime).count();
+
+          std::lock_guard<std::mutex> lock(latencyMutex);
+          cancelLatencies.push_back(latency);
+
           completedOrders++;
+
+          if (completedOrders % 10 == 0 || completedOrders == totalOrders) {
+            std::cout << "进度: " << completedOrders << "/" << totalOrders << std::endl;
+          }
+
+          lastOrderId.clear();
+          lastClientOrderId.clear();
+          cancelRequested = false;
+
+          if (completedOrders < totalOrders) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            createOrder(session);
+          } else {
+            std::cout << "\n========== 测试完成 ==========" << std::endl;
+            printPercentiles("下单", createLatencies);
+            printPercentiles("撤单", cancelLatencies);
+            std::cout << "============================\n" << std::endl;
+          }
+
+          break;
+        }
+        default:
+          break;
         }
       }
-      else if (response.messageType == LTPMessageType::CANCEL_ORDER) {
-        auto now = std::chrono::steady_clock::now();
-        auto latency = std::chrono::duration_cast<std::chrono::microseconds>(
-            now - lastCancelOrderTime).count();
-
-        std::lock_guard<std::mutex> lock(latencyMutex);
-        cancelLatencies.push_back(latency);
-
-        completedOrders++;
-
-        // 显示进度
-        if (completedOrders % 10 == 0 || completedOrders == totalOrders) {
-          std::cout << "进度: " << completedOrders << "/" << totalOrders << std::endl;
-        }
-
-        if (completedOrders < totalOrders) {
-          // 继续下一轮测试
-          std::this_thread::sleep_for(std::chrono::milliseconds(100));
-          createOrder(session);
-        } else {
-          // 测试完成,打印统计
-          std::cout << "\n========== 测试完成 ==========" << std::endl;
-          printPercentiles("下单", createLatencies);
-          printPercentiles("撤单", cancelLatencies);
-          std::cout << "============================\n" << std::endl;
-        }
-      }
-      else if (response.messageType == LTPMessageType::RESPONSE_ERROR) {
-        std::cout << "❌ 请求失败: " << response.errorMessage << std::endl;
-        completedOrders++;
-      }
+    }
+    else if (response.messageType == LTPMessageType::RESPONSE_ERROR) {
+      std::cout << "❌ 请求失败: " << response.errorMessage << std::endl;
+      cancelRequested = false;
+      completedOrders++;
     }
   }
 
   void createOrder(Session* session) {
+    auto now = std::chrono::system_clock::now();
+    auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+
     LTPCreateOrderRequest request;
     request.exchange = LTPExchange::BINANCE_USDS_FUTURES;
     request.symbol = "USDCUSDT";
     request.side = LTPOrderSide::BUY;
     request.type = LTPOrderType::LIMIT;
     request.quantity = "10";
-    request.price = "0.990";  // 低于市价，不会成交
+    request.price = "0.9";
     request.timeInForce = LTPTimeInForce::GTC;
+    request.clientOrderId = "stress_test_" + std::to_string(timestamp);
+
+    lastClientOrderId = request.clientOrderId;
+    lastOrderId.clear();
+    cancelRequested = false;
 
     lastCreateOrderTime = std::chrono::steady_clock::now();
     tradingService->createOrderAsync(request, credential, "stress-test-create");
   }
 
-  void cancelOrder(Session* session) {
+  void cancelOrder(Session* session,
+                   const std::string& orderIdFromResponse = "",
+                   const std::string& clientOrderIdFromResponse = "") {
+    if (cancelRequested) {
+      return;
+    }
+
+    if (!orderIdFromResponse.empty()) {
+      lastOrderId = orderIdFromResponse;
+    }
+    if (!clientOrderIdFromResponse.empty()) {
+      lastClientOrderId = clientOrderIdFromResponse;
+    }
+
+    if (lastOrderId.empty() && lastClientOrderId.empty()) {
+      std::cout << "⚠️  没有可用的 orderId/clientOrderId，跳过撤单" << std::endl;
+      completedOrders++;
+      return;
+    }
+
     LTPCancelOrderRequest request;
     request.exchange = LTPExchange::BINANCE_USDS_FUTURES;
     request.symbol = "USDCUSDT";
-    request.orderId = lastOrderId;
+    if (!lastOrderId.empty()) {
+      request.orderId = lastOrderId;
+    } else {
+      request.clientOrderId = lastClientOrderId;
+    }
 
+    cancelRequested = true;
     lastCancelOrderTime = std::chrono::steady_clock::now();
     tradingService->cancelOrderAsync(request, credential, "stress-test-cancel");
   }
@@ -183,6 +230,8 @@ class StressTestHandler : public EventHandler {
   bool isAuthorized = false;
   bool isSubscribed = false;
   std::string lastOrderId;
+  std::string lastClientOrderId;
+  bool cancelRequested = false;
   std::chrono::steady_clock::time_point lastCreateOrderTime;
   std::chrono::steady_clock::time_point lastCancelOrderTime;
   int completedOrders = 0;
@@ -238,7 +287,21 @@ int main(int argc, char** argv) {
   StressTestHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
 
-  LTPTradingService tradingService(&session);
+  // LTPTradingService tradingService(&session);
+
+  bool useLTPAdapter = true;
+  std::string orderPubTopic = "bf0_order_sub";
+  std::string orderSubTopic = "bf0_order_pub";
+
+  LTPTradingService tradingService(&session, useLTPAdapter, orderPubTopic, orderSubTopic);
+
+  if (useLTPAdapter) {
+    std::cout << "✅ 已启用 LTP WebSocket 适配器" << std::endl;
+    std::cout << "   发布主题: " << orderPubTopic << std::endl;
+    std::cout << "   订阅主题: " << orderSubTopic << std::endl;
+  } else {
+    std::cout << "ℹ️  使用默认 ccapi WebSocket (boost.beast)" << std::endl;
+  }
 
   // 启用延迟统计
   tradingService.setEnableLatencyStats(true);
