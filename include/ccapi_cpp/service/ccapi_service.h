@@ -133,6 +133,13 @@ class Service : public std::enable_shared_from_this<Service> {
     this->pongTimeoutMillisecondsByMethodMap[PingPongMethod::FIX_PROTOCOL_LEVEL] = sessionOptions.heartbeatFixTimeoutMilliseconds;
   }
 
+  void startHttpConnectionPoolIfEnabled() {
+    if (this->sessionOptions.enableHttpConnectionPoolMultiIP && !this->sessionOptions.httpConnectionPoolBindIPs.empty()) {
+      CCAPI_LOGGER_INFO("Initializing HTTP connection pool with " + std::to_string(this->sessionOptions.httpConnectionPoolBindIPs.size()) + " IPs");
+      this->initializeHttpConnectionPool();
+    }
+  }
+
   virtual ~Service() {
     for (const auto& x : this->pingTimerByMethodByConnectionIdMap) {
       for (const auto& y : x.second) {
@@ -147,13 +154,24 @@ class Service : public std::enable_shared_from_this<Service> {
     for (const auto& x : this->connectRetryOnFailTimerByConnectionIdMap) {
       x.second->cancel();
     }
+    // 清理HTTP连接池保活定时器
+    this->stopAllHttpConnectionPoolKeepAliveTimers();
   }
 
-  void purgeHttpConnectionPool() { this->httpConnectionPool.clear(); }
+  void purgeHttpConnectionPool() {
+    this->httpConnectionPool.clear();
+    this->stopAllHttpConnectionPoolKeepAliveTimers();
+  }
 
-  void purgeHttpConnectionPool(const std::string& localIpAddress) { this->httpConnectionPool.erase(localIpAddress); }
+  void purgeHttpConnectionPool(const std::string& localIpAddress) {
+    this->httpConnectionPool.erase(localIpAddress);
+    this->stopHttpConnectionPoolKeepAliveTimers(localIpAddress);
+  }
 
-  void purgeHttpConnectionPool(const std::string& localIpAddress, const std::string& baseUrl) { this->httpConnectionPool[localIpAddress].erase(baseUrl); }
+  void purgeHttpConnectionPool(const std::string& localIpAddress, const std::string& baseUrl) {
+    this->httpConnectionPool[localIpAddress].erase(baseUrl);
+    this->stopHttpConnectionPoolKeepAliveTimer(localIpAddress, baseUrl);
+  }
 
   void forceCloseWebsocketConnections() {
     for (const auto& x : this->wsConnectionPtrByIdMap) {
@@ -834,6 +852,14 @@ class Service : public std::enable_shared_from_this<Service> {
       try {
         const auto& localIpAddress = request.getLocalIpAddress();
         const auto& requestBaseUrl = request.getBaseUrl();
+
+        // 如果这是第一次请求且启用了多IP连接池,为所有IP预建立连接
+        if (!this->httpConnectionPoolInitialized && this->sessionOptions.enableHttpConnectionPoolMultiIP &&
+            !this->sessionOptions.httpConnectionPoolBindIPs.empty() && !requestBaseUrl.empty()) {
+          CCAPI_LOGGER_INFO("First REST request detected, initializing connection pool with URL: " + requestBaseUrl);
+          this->initializeHttpConnectionPoolWithUrl(requestBaseUrl);
+        }
+
         if (this->sessionOptions.enableOneHttpConnectionPerRequest || this->httpConnectionPool[localIpAddress][requestBaseUrl].empty() ||
             std::chrono::duration_cast<std::chrono::seconds>(request.getTimeSent() -
                                                              this->httpConnectionPool[localIpAddress][requestBaseUrl].back()->lastReceiveDataTp)
@@ -1649,6 +1675,11 @@ class Service : public std::enable_shared_from_this<Service> {
   std::map<std::string, std::string> credentialDefault;
   std::map<std::string, TimerPtr> sendRequestDelayTimerByCorrelationIdMap;
 
+  // HTTP连接池主动保活相关
+  std::map<std::string, std::map<std::string, TimerPtr>> httpConnectionPoolKeepAliveTimerMap;  // localIP -> baseURL -> timer
+  std::map<std::string, std::map<std::string, int>> httpConnectionPoolReconnectAttemptMap;  // localIP -> baseURL -> retry count
+  bool httpConnectionPoolInitialized = false;  // 标记连接池是否已初始化
+
   std::map<std::string, std::shared_ptr<WsConnection>> wsConnectionPtrByIdMap;
 
   std::map<std::string, bool> wsConnectionPendingPingingByConnectionIdMap;
@@ -1674,7 +1705,446 @@ class Service : public std::enable_shared_from_this<Service> {
 
   std::array<char, CCAPI_JSON_PARSE_BUFFER_SIZE> jsonParseBuffer;
   rj::MemoryPoolAllocator<> jsonDocumentAllocator;
+
+ protected:
+  // ========== HTTP连接池主动保活和重连实现 ==========
+
+  void stopHttpConnectionPoolKeepAliveTimer(const std::string& localIpAddress, const std::string& baseUrl) {
+    if (this->httpConnectionPoolKeepAliveTimerMap.find(localIpAddress) != this->httpConnectionPoolKeepAliveTimerMap.end() &&
+        this->httpConnectionPoolKeepAliveTimerMap[localIpAddress].find(baseUrl) != this->httpConnectionPoolKeepAliveTimerMap[localIpAddress].end()) {
+      this->httpConnectionPoolKeepAliveTimerMap[localIpAddress][baseUrl]->cancel();
+      this->httpConnectionPoolKeepAliveTimerMap[localIpAddress].erase(baseUrl);
+    }
+  }
+
+  void stopHttpConnectionPoolKeepAliveTimers(const std::string& localIpAddress) {
+    if (this->httpConnectionPoolKeepAliveTimerMap.find(localIpAddress) != this->httpConnectionPoolKeepAliveTimerMap.end()) {
+      for (auto& kv : this->httpConnectionPoolKeepAliveTimerMap[localIpAddress]) {
+        kv.second->cancel();
+      }
+      this->httpConnectionPoolKeepAliveTimerMap.erase(localIpAddress);
+    }
+  }
+
+  void stopAllHttpConnectionPoolKeepAliveTimers() {
+    for (auto& ipMap : this->httpConnectionPoolKeepAliveTimerMap) {
+      for (auto& kv : ipMap.second) {
+        kv.second->cancel();
+      }
+    }
+    this->httpConnectionPoolKeepAliveTimerMap.clear();
+  }
+
+  void sendHttpConnectionPoolKeepAliveRequest(const std::string& localIpAddress, const std::string& baseUrl) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_DEBUG("Sending keep-alive request for localIpAddress=" + localIpAddress + ", baseUrl=" + baseUrl);
+
+    if (!this->sessionOptions.enableHttpConnectionPoolKeepAlive) {
+      CCAPI_LOGGER_DEBUG("Keep-alive disabled, skipping");
+      return;
+    }
+
+    // 构造保活请求
+    http::request<http::string_body> req;
+    req.version(11);
+    req.keep_alive(true);
+
+    // 设置HTTP方法
+    auto method = this->sessionOptions.httpConnectionPoolKeepAliveMethod;
+    if (method == "HEAD") {
+      req.method(http::verb::head);
+    } else if (method == "OPTIONS") {
+      req.method(http::verb::options);
+    } else if (method == "GET") {
+      req.method(http::verb::get);
+    } else {
+      req.method(http::verb::head);  // 默认使用HEAD
+    }
+
+    // 解析baseUrl获取host和port
+    auto hostPort = this->extractHostFromUrl(baseUrl);
+    std::string host = hostPort.first;
+    std::string port = hostPort.second;
+
+    req.set(http::field::host, host);
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.target(this->sessionOptions.httpConnectionPoolKeepAlivePath);
+
+    CCAPI_LOGGER_TRACE("Keep-alive request: " + method + " " + this->sessionOptions.httpConnectionPoolKeepAlivePath);
+
+    // 检查连接池中是否有可用连接
+    if (!this->httpConnectionPool[localIpAddress][baseUrl].empty()) {
+      auto httpConnectionPtr = this->httpConnectionPool[localIpAddress][baseUrl].back();
+      this->httpConnectionPool[localIpAddress][baseUrl].pop_back();
+
+      CCAPI_LOGGER_TRACE("Using existing connection for keep-alive");
+
+      // 发送保活请求
+      beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+      if (this->sessionOptions.httpRequestTimeoutMilliseconds > 0) {
+        beast::get_lowest_layer(stream).expires_after(std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliseconds));
+      }
+
+      auto reqPtr = std::make_shared<http::request<http::string_body>>(std::move(req));
+      http::async_write(stream, *reqPtr,
+        [that = shared_from_this(), httpConnectionPtr, reqPtr, localIpAddress, baseUrl](beast::error_code ec, std::size_t bytes_transferred) {
+          boost::ignore_unused(bytes_transferred);
+          if (ec) {
+            CCAPI_LOGGER_WARN("Keep-alive write failed: " + ec.message());
+            that->httpConnectionPool[localIpAddress][baseUrl].clear();
+            // 尝试重连
+            if (that->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+              that->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+            }
+            return;
+          }
+
+          // 读取响应
+          httpConnectionPtr->clearBuffer();
+          beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+          auto resParserPtr = std::make_shared<http::response_parser<http::string_body>>();
+          resParserPtr->body_limit(CCAPI_HTTP_RESPONSE_PARSER_BODY_LIMIT);
+
+          http::async_read(stream, httpConnectionPtr->buffer, *resParserPtr,
+            [that, httpConnectionPtr, localIpAddress, baseUrl, resParserPtr](beast::error_code ec, std::size_t bytes_transferred) {
+              boost::ignore_unused(bytes_transferred);
+              if (ec) {
+                CCAPI_LOGGER_WARN("Keep-alive read failed: " + ec.message());
+                that->httpConnectionPool[localIpAddress][baseUrl].clear();
+                // 尝试重连
+                if (that->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+                  that->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+                }
+                return;
+              }
+
+              auto now = UtilTime::now();
+              httpConnectionPtr->lastReceiveDataTp = now;
+
+              // 将连接归还到池中
+              if (that->sessionOptions.httpConnectionPoolMaxSize > 0 &&
+                  that->httpConnectionPool[localIpAddress][baseUrl].size() >= that->sessionOptions.httpConnectionPoolMaxSize) {
+                that->httpConnectionPool[localIpAddress][baseUrl].pop_front();
+              }
+              that->httpConnectionPool[localIpAddress][baseUrl].push_back(httpConnectionPtr);
+
+              CCAPI_LOGGER_TRACE("Keep-alive successful, connection returned to pool");
+
+              // 重置重连计数
+              that->httpConnectionPoolReconnectAttemptMap[localIpAddress][baseUrl] = 0;
+            });
+        });
+    } else {
+      CCAPI_LOGGER_DEBUG("No connection in pool, creating new connection for keep-alive");
+      // 如果池中没有连接,尝试预连接
+      if (this->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+        this->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+      }
+    }
+
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+
+  void startHttpConnectionPoolKeepAlive(const std::string& localIpAddress, const std::string& baseUrl) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+
+    if (!this->sessionOptions.enableHttpConnectionPoolKeepAlive) {
+      CCAPI_LOGGER_DEBUG("Keep-alive disabled");
+      return;
+    }
+
+    long intervalMilliseconds = this->sessionOptions.httpConnectionPoolKeepAliveIntervalSeconds * 1000;
+    if (intervalMilliseconds <= 0) {
+      CCAPI_LOGGER_WARN("Invalid keep-alive interval: " + std::to_string(intervalMilliseconds));
+      return;
+    }
+
+    CCAPI_LOGGER_DEBUG("Starting keep-alive timer for localIpAddress=" + localIpAddress +
+                       ", baseUrl=" + baseUrl + ", interval=" + std::to_string(intervalMilliseconds) + "ms");
+
+    // 取消现有定时器
+    this->stopHttpConnectionPoolKeepAliveTimer(localIpAddress, baseUrl);
+
+    // 创建新定时器
+    auto timerPtr = std::make_shared<net::steady_timer>(*this->serviceContextPtr->ioContextPtr,
+                                                        std::chrono::milliseconds(intervalMilliseconds));
+
+    timerPtr->async_wait([that = shared_from_this(), localIpAddress, baseUrl, intervalMilliseconds](ErrorCode const& ec) {
+      if (ec) {
+        if (ec != boost::asio::error::operation_aborted) {
+          CCAPI_LOGGER_ERROR("Keep-alive timer error: " + ec.message());
+        }
+        return;
+      }
+
+      // 发送保活请求
+      that->sendHttpConnectionPoolKeepAliveRequest(localIpAddress, baseUrl);
+
+      // 重新启动定时器
+      that->startHttpConnectionPoolKeepAlive(localIpAddress, baseUrl);
+    });
+
+    this->httpConnectionPoolKeepAliveTimerMap[localIpAddress][baseUrl] = timerPtr;
+
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+
+  void preConnectHttpConnectionPool(const std::string& localIpAddress, const std::string& baseUrl) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+    CCAPI_LOGGER_DEBUG("Pre-connecting for localIpAddress=" + localIpAddress + ", baseUrl=" + baseUrl);
+
+    // 检查重连次数
+    int& reconnectAttempt = this->httpConnectionPoolReconnectAttemptMap[localIpAddress][baseUrl];
+    if (this->sessionOptions.enableHttpConnectionPoolAutoReconnect &&
+        reconnectAttempt >= this->sessionOptions.httpConnectionPoolReconnectMaxRetries) {
+      CCAPI_LOGGER_WARN("Max reconnect attempts reached for localIpAddress=" + localIpAddress + ", baseUrl=" + baseUrl);
+      return;
+    }
+
+    reconnectAttempt++;
+
+    // 解析baseUrl
+    auto hostPort = this->extractHostFromUrl(baseUrl);
+    std::string host = hostPort.first;
+    std::string port = hostPort.second;
+
+    CCAPI_LOGGER_DEBUG("Connecting to host=" + host + ", port=" + port);
+
+    // 创建新连接
+    std::shared_ptr<beast::ssl_stream<beast::tcp_stream>> streamPtr{nullptr};
+    try {
+      streamPtr = this->createStream<beast::ssl_stream<beast::tcp_stream>>(
+        this->serviceContextPtr->ioContextPtr, this->serviceContextPtr->sslContextPtr, host);
+    } catch (const beast::error_code& ec) {
+      CCAPI_LOGGER_ERROR("Failed to create stream: " + ec.message());
+      // 延迟重试
+      if (this->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+        auto timerPtr = std::make_shared<net::steady_timer>(
+          *this->serviceContextPtr->ioContextPtr,
+          std::chrono::milliseconds(this->sessionOptions.httpConnectionPoolReconnectDelayMilliseconds));
+        timerPtr->async_wait([that = shared_from_this(), localIpAddress, baseUrl](ErrorCode const& ec) {
+          if (!ec) {
+            that->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+          }
+        });
+      }
+      return;
+    }
+
+    auto httpConnectionPtr = std::make_shared<HttpConnection>(host, port, streamPtr);
+
+    // 绑定本地IP
+    if (!localIpAddress.empty()) {
+      ErrorCode ec;
+      beast::get_lowest_layer(*streamPtr).socket().open(net::ip::tcp::v4(), ec);
+      if (!ec) {
+        tcp::endpoint localEndpoint(net::ip::make_address(localIpAddress), 0);
+        beast::get_lowest_layer(*streamPtr).socket().bind(localEndpoint, ec);
+      }
+      if (ec) {
+        CCAPI_LOGGER_ERROR("Failed to bind to local IP: " + ec.message());
+        return;
+      }
+    }
+
+    // 解析DNS
+    auto newResolverPtr = std::make_shared<tcp::resolver>(*this->serviceContextPtr->ioContextPtr);
+    newResolverPtr->async_resolve(host, port,
+      [that = shared_from_this(), httpConnectionPtr, newResolverPtr, localIpAddress, baseUrl]
+      (beast::error_code ec, tcp::resolver::results_type results) {
+        if (ec) {
+          CCAPI_LOGGER_ERROR("DNS resolve failed: " + ec.message());
+          // 延迟重试
+          if (that->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+            auto timerPtr = std::make_shared<net::steady_timer>(
+              *that->serviceContextPtr->ioContextPtr,
+              std::chrono::milliseconds(that->sessionOptions.httpConnectionPoolReconnectDelayMilliseconds));
+            timerPtr->async_wait([that, localIpAddress, baseUrl](ErrorCode const& ec) {
+              if (!ec) {
+                that->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+              }
+            });
+          }
+          return;
+        }
+
+        // 使用workaround方法手动连接,避免async_connect重新打开socket导致bind失效
+        that->asyncConnectWorkaroundForPreConnect(httpConnectionPtr, localIpAddress, baseUrl, results, 0);
+      });
+
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+
+  void initializeHttpConnectionPool() {
+    initializeHttpConnectionPoolWithUrl(this->baseUrlRest);
+  }
+
+  void initializeHttpConnectionPoolWithUrl(const std::string& targetUrl) {
+    CCAPI_LOGGER_FUNCTION_ENTER;
+
+    if (!this->sessionOptions.enableHttpConnectionPoolMultiIP) {
+      CCAPI_LOGGER_DEBUG("Multi-IP connection pool disabled");
+      return;
+    }
+
+    if (this->sessionOptions.httpConnectionPoolBindIPs.empty()) {
+      CCAPI_LOGGER_WARN("No bind IPs configured for connection pool");
+      return;
+    }
+
+    // 检查targetUrl是否有效
+    if (targetUrl.empty()) {
+      CCAPI_LOGGER_WARN("Target URL is empty, cannot initialize connection pool");
+      CCAPI_LOGGER_WARN("Connection pool will be initialized on first request");
+      return;
+    }
+
+    // 检查是否已经初始化过
+    if (this->httpConnectionPoolInitialized) {
+      CCAPI_LOGGER_DEBUG("Connection pool already initialized");
+      return;
+    }
+
+    this->httpConnectionPoolInitialized = true;
+
+    size_t numIPs = this->sessionOptions.httpConnectionPoolBindIPs.size();
+    size_t poolSize = this->sessionOptions.httpConnectionPoolMaxSize;
+
+    // 计算每个IP应该建立的连接数
+    size_t connectionsPerIP = (poolSize > 0 && numIPs > 0) ? (poolSize / numIPs) : 1;
+    if (connectionsPerIP == 0) {
+      connectionsPerIP = 1;
+    }
+
+    CCAPI_LOGGER_INFO("Initializing HTTP connection pool:");
+    CCAPI_LOGGER_INFO("  - Total IPs: " + std::to_string(numIPs));
+    CCAPI_LOGGER_INFO("  - Pool size: " + std::to_string(poolSize));
+    CCAPI_LOGGER_INFO("  - Connections per IP: " + std::to_string(connectionsPerIP));
+    CCAPI_LOGGER_INFO("  - Target URL: " + targetUrl);
+
+    // 为每个IP预建立多个连接
+    for (const auto& ip : this->sessionOptions.httpConnectionPoolBindIPs) {
+      CCAPI_LOGGER_INFO("Pre-connecting IP: " + ip);
+      for (size_t i = 0; i < connectionsPerIP; ++i) {
+        CCAPI_LOGGER_DEBUG("  - Creating connection " + std::to_string(i + 1) + "/" + std::to_string(connectionsPerIP));
+        this->preConnectHttpConnectionPool(ip, targetUrl);
+      }
+    }
+
+    CCAPI_LOGGER_FUNCTION_EXIT;
+  }
+
+  // 预连接专用的连接workaround方法实现
+  void asyncConnectWorkaroundForPreConnect(std::shared_ptr<HttpConnection> httpConnectionPtr,
+                                          const std::string& localIpAddress, const std::string& baseUrl,
+                                          tcp::resolver::results_type results, size_t resultIndex) {
+    auto it = results.begin();
+    std::advance(it, resultIndex);
+    if (it == results.end()) {
+      CCAPI_LOGGER_ERROR("All connection attempts failed for localIpAddress=" + localIpAddress + ", baseUrl=" + baseUrl);
+      // 延迟重试
+      if (this->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+        auto timerPtr = std::make_shared<net::steady_timer>(
+          *this->serviceContextPtr->ioContextPtr,
+          std::chrono::milliseconds(this->sessionOptions.httpConnectionPoolReconnectDelayMilliseconds));
+        timerPtr->async_wait([that = shared_from_this(), localIpAddress, baseUrl](ErrorCode const& ec) {
+          if (!ec) {
+            that->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+          }
+        });
+      }
+      return;
+    }
+
+    beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+    if (this->sessionOptions.httpRequestTimeoutMilliseconds > 0) {
+      beast::get_lowest_layer(stream).expires_after(
+        std::chrono::milliseconds(this->sessionOptions.httpRequestTimeoutMilliseconds));
+    }
+
+    CCAPI_LOGGER_TRACE("Attempting to connect to endpoint: " + it->endpoint().address().to_string() + ":" + std::to_string(it->endpoint().port()));
+
+    beast::get_lowest_layer(stream).socket().async_connect(*it,
+      [that = shared_from_this(), httpConnectionPtr, localIpAddress, baseUrl, results, resultIndex]
+      (beast::error_code ec) {
+        if (ec) {
+          CCAPI_LOGGER_WARN("TCP connect attempt failed: " + ec.message() + ", trying next endpoint");
+          // 尝试下一个endpoint
+          that->asyncConnectWorkaroundForPreConnect(httpConnectionPtr, localIpAddress, baseUrl, results, resultIndex + 1);
+          return;
+        }
+
+        // 连接成功,验证本地绑定地址
+        beast::ssl_stream<beast::tcp_stream>& stream = *httpConnectionPtr->streamPtr;
+        auto localEndpoint = beast::get_lowest_layer(stream).socket().local_endpoint();
+        std::string actualLocalIP = localEndpoint.address().to_string();
+
+        CCAPI_LOGGER_INFO("TCP connected! Local IP: " + actualLocalIP + ", Expected: " + localIpAddress);
+
+        if (!localIpAddress.empty() && actualLocalIP != localIpAddress) {
+          CCAPI_LOGGER_ERROR("Local IP mismatch! Expected: " + localIpAddress + ", Got: " + actualLocalIP);
+          // 关闭连接并重试
+          ErrorCode closeEc;
+          beast::get_lowest_layer(stream).socket().close(closeEc);
+
+          if (that->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+            auto timerPtr = std::make_shared<net::steady_timer>(
+              *that->serviceContextPtr->ioContextPtr,
+              std::chrono::milliseconds(that->sessionOptions.httpConnectionPoolReconnectDelayMilliseconds));
+            timerPtr->async_wait([that, localIpAddress, baseUrl](ErrorCode const& ec) {
+              if (!ec) {
+                that->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+              }
+            });
+          }
+          return;
+        }
+
+        // 设置TCP_NODELAY
+        beast::get_lowest_layer(stream).socket().set_option(tcp::no_delay(true));
+
+        // SSL握手
+        stream.async_handshake(ssl::stream_base::client,
+          [that, httpConnectionPtr, localIpAddress, baseUrl](beast::error_code ec) {
+            if (ec) {
+              CCAPI_LOGGER_ERROR("SSL handshake failed: " + ec.message());
+              // 延迟重试
+              if (that->sessionOptions.enableHttpConnectionPoolAutoReconnect) {
+                auto timerPtr = std::make_shared<net::steady_timer>(
+                  *that->serviceContextPtr->ioContextPtr,
+                  std::chrono::milliseconds(that->sessionOptions.httpConnectionPoolReconnectDelayMilliseconds));
+                timerPtr->async_wait([that, localIpAddress, baseUrl](ErrorCode const& ec) {
+                  if (!ec) {
+                    that->preConnectHttpConnectionPool(localIpAddress, baseUrl);
+                  }
+                });
+              }
+              return;
+            }
+
+            CCAPI_LOGGER_INFO("✓ Pre-connection fully established for localIpAddress=" + localIpAddress + ", baseUrl=" + baseUrl);
+
+            // 更新时间戳
+            auto now = UtilTime::now();
+            httpConnectionPtr->lastReceiveDataTp = now;
+
+            // 将连接放入池中
+            if (that->sessionOptions.httpConnectionPoolMaxSize > 0 &&
+                that->httpConnectionPool[localIpAddress][baseUrl].size() >= that->sessionOptions.httpConnectionPoolMaxSize) {
+              that->httpConnectionPool[localIpAddress][baseUrl].pop_front();
+            }
+            that->httpConnectionPool[localIpAddress][baseUrl].push_back(httpConnectionPtr);
+
+            // 重置重连计数
+            that->httpConnectionPoolReconnectAttemptMap[localIpAddress][baseUrl] = 0;
+
+            // 启动保活定时器
+            that->startHttpConnectionPoolKeepAlive(localIpAddress, baseUrl);
+          });
+      });
+  }
 };
 
 } /* namespace ccapi */
 #endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
+

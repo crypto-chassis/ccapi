@@ -606,6 +606,8 @@ class Session {
       for (const auto& y : x.second) {
         auto exchange = y.first;
         CCAPI_LOGGER_INFO("enabled service: " + serviceName + ", exchange: " + exchange);
+        // 初始化HTTP连接池(如果启用)
+        y.second->startHttpConnectionPoolIfEnabled();
       }
     }
     CCAPI_LOGGER_FUNCTION_EXIT;
