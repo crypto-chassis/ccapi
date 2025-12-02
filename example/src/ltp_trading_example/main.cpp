@@ -750,7 +750,7 @@ int main(int argc, char** argv) {
   // ====================================================================
   // 测试7: 币安U本位合约 - 通过WebSocket订阅获取订单状态
   // ====================================================================
-  if (1)
+  if (0)
   {
     std::cout << "\n测试7: 币安U本位合约 - WebSocket订阅订单状态" << std::endl;
     std::cout << "========================================" << std::endl;
@@ -1094,6 +1094,112 @@ int main(int argc, char** argv) {
     }
   }
 
+  // ====================================================================
+  // 测试9: HTTP连接池 - 简化配置示例
+  // ====================================================================
+  if (1)
+  {
+    std::cout << "\n测试9: HTTP连接池 - 简化配置示例" << std::endl;
+    std::cout << "========================================" << std::endl;
+
+    std::cout << "\n本测试展示如何用最少的配置启用HTTP连接池的所有功能\n" << std::endl;
+
+    // ========== 最简配置：只需2行代码 ==========
+    SessionOptions poolSessionOptions;
+
+    // 1. 启用多IP连接池
+    poolSessionOptions.enableHttpConnectionPoolMultiIP = true;
+
+    // 2. 配置IP列表
+    poolSessionOptions.httpConnectionPoolBindIPs = {
+      "10.18.20.16",
+      "10.18.80.199",
+      "10.18.12.154",
+      "10.18.17.213"
+    };
+
+    // ========== 就这么简单！以下功能会自动启用 ==========
+    // ✅ 连接池大小 = IP数量 (4个)
+    // ✅ 主动保活 (每30秒)
+    // ✅ 自动重连 (最多3次)
+    // ✅ 长连接复用
+    // ✅ 连接保持5分钟
+
+    std::cout << "✅ 配置完成！以下功能已自动启用:" << std::endl;
+    std::cout << "   - 连接池大小: " << poolSessionOptions.httpConnectionPoolMaxSize << std::endl;
+    std::cout << "   - 主动保活: " << (poolSessionOptions.enableHttpConnectionPoolKeepAlive ? "是" : "否") << std::endl;
+    std::cout << "   - 保活间隔: " << poolSessionOptions.httpConnectionPoolKeepAliveIntervalSeconds << "秒" << std::endl;
+    std::cout << "   - 自动重连: " << (poolSessionOptions.enableHttpConnectionPoolAutoReconnect ? "是" : "否") << std::endl;
+    std::cout << "   - 连接超时: " << poolSessionOptions.httpConnectionKeepAliveTimeoutSeconds << "秒" << std::endl;
+    std::cout << "   - 长连接: " << (!poolSessionOptions.enableOneHttpConnectionPerRequest ? "是" : "否") << std::endl;
+
+    // ========== 可选：自定义配置 ==========
+    // 如果需要修改默认值，可以在启用多IP后手动设置
+    // 例如：使用GET方法进行保活（币安统一账户推荐）
+    poolSessionOptions.httpConnectionPoolKeepAliveMethod = "GET";
+    poolSessionOptions.httpConnectionPoolKeepAlivePath = "/papi/v1/ping";
+
+    std::cout << "\n✅ 自定义配置:" << std::endl;
+    std::cout << "   - 保活方法: " << poolSessionOptions.httpConnectionPoolKeepAliveMethod << std::endl;
+    std::cout << "   - 保活路径: " << poolSessionOptions.httpConnectionPoolKeepAlivePath << std::endl;
+
+    SessionConfigs poolSessionConfigs;
+    ConnectivityTestHandler poolEventHandler;
+    Session poolSession(poolSessionOptions, poolSessionConfigs, &poolEventHandler);
+
+    std::cout << "\n✅ Session创建完成，连接池已自动初始化！" << std::endl;
+    std::cout << "\n💡 提示:" << std::endl;
+    std::cout << "   - 无需手动调用任何初始化方法" << std::endl;
+    std::cout << "   - 无需手动启动保活定时器" << std::endl;
+    std::cout << "   - 无需手动处理重连逻辑" << std::endl;
+    std::cout << "   - 一切都是自动的！\n" << std::endl;
+
+    const char* pmApiKey = "pdLQpJ7RBVX4NIITIWD6T6fqSdRrSU7uc50xdnZegYL6MqYYVazJ4jE44PHqL5EA";
+    const char* pmApiSecret = "zCEaRraKY8r927WubwGzTBsRyjsvPY7GyWm6C1pDb4V2xbyAZhVqTWmfkFshsMdm";
+
+    if (pmApiKey && pmApiSecret) {
+      std::cout << "执行测试请求以验证连接池..." << std::endl;
+
+      std::map<std::string, std::string> poolCredential;
+      poolCredential[CCAPI_BINANCE_PORTFOLIO_MARGIN_API_KEY] = pmApiKey;
+      poolCredential[CCAPI_BINANCE_PORTFOLIO_MARGIN_API_SECRET] = pmApiSecret;
+
+      LTPTradingService poolTradingService(&poolSession);
+
+      std::cout << "\n发送3个查询请求测试连接池复用..." << std::endl;
+      for (int i = 0; i < 3; i++) {
+        std::cout << "\n[请求 " << (i+1) << "/3]" << std::endl;
+        LTPGetAccountBalancesRequest balanceRequest;
+        balanceRequest.exchange = LTPExchange::BINANCE_PORTFOLIO_MARGIN;
+
+        poolTradingService.getAccountBalancesAsync(balanceRequest, poolCredential, "pool-test-" + std::to_string(i));
+
+        std::string countCmd = "lsof -p " + std::to_string(getpid()) + " -a -i TCP 2>/dev/null | grep ESTABLISHED | wc -l";
+        std::cout << "   ESTABLISHED连接数: ";
+        system(countCmd.c_str());
+
+        std::cout << "   连接详情:" << std::endl;
+        std::string detailCmd = "lsof -p " + std::to_string(getpid()) + " -a -i TCP 2>/dev/null | grep ESTABLISHED | head -5";
+        system(detailCmd.c_str());
+
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+      }
+
+      std::cout << "\n✅ 连接池测试完成！" << std::endl;
+      std::cout << "💡 观察日志可以看到连接被复用，而不是每次都创建新连接\n" << std::endl;
+    }
+
+    std::cout << "等待10秒观察连接池保活..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    std::cout << "\n测试9完成！\n" << std::endl;
+
+    // 正确关闭poolSession
+    std::cout << "\n正在关闭连接池Session..." << std::endl;
+    poolSession.stop();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+  }
+
   std::cout << "\n========================================" << std::endl;
   std::cout << "测试完成!" << std::endl;
   std::cout << "========================================" << std::endl;
@@ -1105,6 +1211,7 @@ int main(int argc, char** argv) {
   std::cout << "   - 测试6: OKX订单状态订阅（实时接收订单状态更新）" << std::endl;
   std::cout << "   - ⭐ 测试7: 币安U本位合约 - WebSocket订阅+查询订单状态（已启用）" << std::endl;
   std::cout << "   - ⭐ 测试8: OKX - WebSocket订阅+查询订单状态（已禁用）" << std::endl;
+  std::cout << "   - 🔧 测试9: HTTP连接池 - 简化配置示例（已禁用）" << std::endl;
   std::cout << "\n2. 测试流程:" << std::endl;
   std::cout << "   - 测试1-6: 下单 → 撤单" << std::endl;
   std::cout << "   - ⭐ 测试7-8（新流程）:" << std::endl;
