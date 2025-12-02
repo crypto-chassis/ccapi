@@ -261,9 +261,19 @@ int main() {
   client.start();
   std::cout << "✅ 客户端已启动\n" << std::endl;
 
+  const char* apiKey = std::getenv("BINANCE_USDS_FUTURES_API_KEY");
+  const char* apiSecret = std::getenv("BINANCE_USDS_FUTURES_API_SECRET");
+
+  if (!apiKey || !apiSecret) {
+    std::cerr << "错误: 请设置环境变量 BINANCE_USDS_FUTURES_API_KEY 和 BINANCE_USDS_FUTURES_API_SECRET" << std::endl;
+    std::cerr << "示例: export BINANCE_USDS_FUTURES_API_KEY=your_api_key" << std::endl;
+    std::cerr << "      export BINANCE_USDS_FUTURES_API_SECRET=your_api_secret" << std::endl;
+    return 1;
+  }
+
   std::map<std::string, std::string> credential;
-  credential["BINANCE_USDS_FUTURES_API_KEY"] = "hplus70npfafWR87cFC9V0mgfitu3t9oDxfg5kDCVy9OhUfI5VCJiQ17uFnRKCYB";
-  credential["BINANCE_USDS_FUTURES_API_SECRET"] = "ztBWlo3PrHbFDxCv11kdRzCBF4v4EgkLwQeDUfx5pmwau9ax3cTkgJBKNCFOlOxa";
+  credential["BINANCE_USDS_FUTURES_API_KEY"] = apiKey;
+  credential["BINANCE_USDS_FUTURES_API_SECRET"] = apiSecret;
 
   std::cout << "订阅订单更新..." << std::endl;
   client.subscribeOrderUpdates(

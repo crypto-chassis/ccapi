@@ -320,8 +320,8 @@ int main(int argc, char** argv) {
     std::cout << "测试1: 币安统一账户 U本位合约 (REST)" << std::endl;
     std::cout << "----------------------------------------" << std::endl;
 
-    const char* pmApiKey = "ZU62l6Zk1sNMnCbTc329jUsvDlfbWz2KWC8fmlSMcjdLMqfninAxEtmfRJ41E2Um";
-    const char* pmApiSecret = "jd80wDi7E02j0art7GYrI2af7iEiwE3SQzpqk7fVzmbTmcqZxo0O05eoThlyLMpH";
+    const char* pmApiKey = std::getenv("BINANCE_PM_API_KEY");
+    const char* pmApiSecret = std::getenv("BINANCE_PM_API_SECRET");
 
     if (pmApiKey && pmApiSecret) {
       std::cout << "API Key: " << std::string(pmApiKey).substr(0, 8) << "..." << std::endl;
@@ -387,8 +387,8 @@ int main(int argc, char** argv) {
     std::cout << "\n测试2: 币安经典账户 U本位合约 (WebSocket)" << std::endl;
     std::cout << "----------------------------------------" << std::endl;
 
-    const char* futuresApiKey = "hplus70npfafWR87cFC9V0mgfitu3t9oDxfg5kDCVy9OhUfI5VCJiQ17uFnRKCYB";
-    const char* futuresApiSecret = "ztBWlo3PrHbFDxCv11kdRzCBF4v4EgkLwQeDUfx5pmwau9ax3cTkgJBKNCFOlOxa";
+    const char* futuresApiKey = std::getenv("BINANCE_FUTURES_API_KEY");
+    const char* futuresApiSecret = std::getenv("BINANCE_FUTURES_API_SECRET");
 
     if (futuresApiKey && futuresApiSecret) {
       std::cout << "API Key: " << std::string(futuresApiKey).substr(0, 8) << "..." << std::endl;
@@ -459,9 +459,9 @@ int main(int argc, char** argv) {
     std::cout << "\n测试3: OKX - REST API" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    const char* okxApiKey = "9a746984-40e6-492b-bdb6-5024877ecf72";
-    const char* okxApiSecret = "AA2AA1ABC5F7B08A52C342F719F4F209";
-    const char* okxApiPassphrase = "%ug8wYpFABJM%A0A";
+    const char* okxApiKey = std::getenv("OKX_API_KEY");
+    const char* okxApiSecret = std::getenv("OKX_API_SECRET");
+    const char* okxApiPassphrase = std::getenv("OKX_API_PASSPHRASE");
 
     if (okxApiKey && okxApiSecret && okxApiPassphrase) {
       std::cout << "API Key: " << std::string(okxApiKey).substr(0, 8) << "..." << std::endl;
@@ -532,9 +532,9 @@ int main(int argc, char** argv) {
     std::cout << "\n测试4: OKX - WebSocket API" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    const char* okxApiKey = "9a746984-40e6-492b-bdb6-5024877ecf72";
-    const char* okxApiSecret = "AA2AA1ABC5F7B08A52C342F719F4F209";
-    const char* okxApiPassphrase = "%ug8wYpFABJM%A0A";
+    const char* okxApiKey = std::getenv("OKX_API_KEY");
+    const char* okxApiSecret = std::getenv("OKX_API_SECRET");
+    const char* okxApiPassphrase = std::getenv("OKX_API_PASSPHRASE");
 
     if (okxApiKey && okxApiSecret && okxApiPassphrase) {
       std::cout << "API Key: " << std::string(okxApiKey).substr(0, 8) << "..." << std::endl;
@@ -615,9 +615,9 @@ int main(int argc, char** argv) {
     std::cout << "\n测试5: OKX永续合约 - WebSocket API" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    const char* okxApiKey = "9a746984-40e6-492b-bdb6-5024877ecf72";
-    const char* okxApiSecret = "AA2AA1ABC5F7B08A52C342F719F4F209";
-    const char* okxApiPassphrase = "%ug8wYpFABJM%A0A";
+    const char* okxApiKey = std::getenv("OKX_API_KEY");
+    const char* okxApiSecret = std::getenv("OKX_API_SECRET");
+    const char* okxApiPassphrase = std::getenv("OKX_API_PASSPHRASE");
 
     if (okxApiKey && okxApiSecret && okxApiPassphrase) {
       std::cout << "API Key: " << std::string(okxApiKey).substr(0, 8) << "..." << std::endl;
@@ -691,9 +691,9 @@ int main(int argc, char** argv) {
     std::cout << "\n测试6: OKX订单状态订阅" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    const char* okxApiKey = "9a746984-40e6-492b-bdb6-5024877ecf72";
-    const char* okxApiSecret = "AA2AA1ABC5F7B08A52C342F719F4F209";
-    const char* okxApiPassphrase = "%ug8wYpFABJM%A0A";
+    const char* okxApiKey = std::getenv("OKX_API_KEY");
+    const char* okxApiSecret = std::getenv("OKX_API_SECRET");
+    const char* okxApiPassphrase = std::getenv("OKX_API_PASSPHRASE");
 
     if (okxApiKey && okxApiSecret && okxApiPassphrase) {
       std::cout << "API Key: " << std::string(okxApiKey).substr(0, 8) << "..." << std::endl;
@@ -755,8 +755,8 @@ int main(int argc, char** argv) {
     std::cout << "\n测试7: 币安U本位合约 - WebSocket订阅订单状态" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    const char* futuresApiKey = "hplus70npfafWR87cFC9V0mgfitu3t9oDxfg5kDCVy9OhUfI5VCJiQ17uFnRKCYB";
-    const char* futuresApiSecret = "ztBWlo3PrHbFDxCv11kdRzCBF4v4EgkLwQeDUfx5pmwau9ax3cTkgJBKNCFOlOxa";
+    const char* futuresApiKey = std::getenv("BINANCE_FUTURES_API_KEY");
+    const char* futuresApiSecret = std::getenv("BINANCE_FUTURES_API_SECRET");
 
     if (futuresApiKey && futuresApiSecret) {
       std::cout << "API Key: " << std::string(futuresApiKey).substr(0, 8) << "..." << std::endl;
@@ -891,9 +891,9 @@ int main(int argc, char** argv) {
     std::cout << "\n测试8: OKX - WebSocket订阅订单状态" << std::endl;
     std::cout << "========================================" << std::endl;
 
-    const char* okxApiKey = "9a746984-40e6-492b-bdb6-5024877ecf72";
-    const char* okxApiSecret = "AA2AA1ABC5F7B08A52C342F719F4F209";
-    const char* okxApiPassphrase = "%ug8wYpFABJM%A0A";
+    const char* okxApiKey = std::getenv("OKX_API_KEY");
+    const char* okxApiSecret = std::getenv("OKX_API_SECRET");
+    const char* okxApiPassphrase = std::getenv("OKX_API_PASSPHRASE");
 
     if (okxApiKey && okxApiSecret && okxApiPassphrase) {
       std::cout << "API Key: " << std::string(okxApiKey).substr(0, 8) << "..." << std::endl;
@@ -1154,8 +1154,8 @@ int main(int argc, char** argv) {
     std::cout << "   - 无需手动处理重连逻辑" << std::endl;
     std::cout << "   - 一切都是自动的！\n" << std::endl;
 
-    const char* pmApiKey = "pdLQpJ7RBVX4NIITIWD6T6fqSdRrSU7uc50xdnZegYL6MqYYVazJ4jE44PHqL5EA";
-    const char* pmApiSecret = "zCEaRraKY8r927WubwGzTBsRyjsvPY7GyWm6C1pDb4V2xbyAZhVqTWmfkFshsMdm";
+    const char* pmApiKey = std::getenv("BINANCE_PM_API_KEY");
+    const char* pmApiSecret = std::getenv("BINANCE_PM_API_SECRET");
 
     if (pmApiKey && pmApiSecret) {
       std::cout << "执行测试请求以验证连接池..." << std::endl;
