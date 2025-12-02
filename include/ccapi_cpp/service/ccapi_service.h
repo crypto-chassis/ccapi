@@ -2022,13 +2022,24 @@ class Service : public std::enable_shared_from_this<Service> {
     CCAPI_LOGGER_INFO("  - Connections per IP: " + std::to_string(connectionsPerIP));
     CCAPI_LOGGER_INFO("  - Target URL: " + targetUrl);
 
-    // 为每个IP预建立多个连接
-    for (const auto& ip : this->sessionOptions.httpConnectionPoolBindIPs) {
+    // 为每个IP预建立连接
+    // 注意: 如果connectionsPerIP=1,我们只为前N-1个IP预建立连接
+    // 最后一个IP的连接将由第一次实际请求创建,避免创建多余连接
+    size_t numIPsToPreConnect = (connectionsPerIP == 1) ? (numIPs > 0 ? numIPs - 1 : 0) : numIPs;
+
+    for (size_t ipIndex = 0; ipIndex < numIPsToPreConnect; ++ipIndex) {
+      const auto& ip = this->sessionOptions.httpConnectionPoolBindIPs[ipIndex];
       CCAPI_LOGGER_INFO("Pre-connecting IP: " + ip);
       for (size_t i = 0; i < connectionsPerIP; ++i) {
         CCAPI_LOGGER_DEBUG("  - Creating connection " + std::to_string(i + 1) + "/" + std::to_string(connectionsPerIP));
         this->preConnectHttpConnectionPool(ip, targetUrl);
       }
+    }
+
+    // 如果每个IP只需要1个连接,最后一个IP的连接将由第一次请求创建
+    if (connectionsPerIP == 1 && numIPs > 0) {
+      CCAPI_LOGGER_INFO("Last IP (" + this->sessionOptions.httpConnectionPoolBindIPs.back() +
+                       ") will be connected on first request to avoid creating extra connection");
     }
 
     CCAPI_LOGGER_FUNCTION_EXIT;

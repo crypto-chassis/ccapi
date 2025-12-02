@@ -15,6 +15,23 @@ namespace ccapi {
  */
 class SessionOptions {
  public:
+  SessionOptions() {
+    applyMultiIPDefaults();
+  }
+
+  void applyMultiIPDefaults() {
+    if (enableHttpConnectionPoolMultiIP && !httpConnectionPoolBindIPs.empty()) {
+      if (httpConnectionPoolMaxSize == 2) {
+        httpConnectionPoolMaxSize = static_cast<int>(httpConnectionPoolBindIPs.size());
+      }
+
+      enableOneHttpConnectionPerRequest = false;
+      if (httpConnectionKeepAliveTimeoutSeconds == 10) {
+        httpConnectionKeepAliveTimeoutSeconds = 300;
+      }
+    }
+  }
+
   std::string toString() const {
     std::string output = "SessionOptions [enableCheckSequence = " + ccapi::toString(enableCheckSequence) +
                          ", enableCheckOrderBookChecksum = " + ccapi::toString(enableCheckOrderBookChecksum) +
@@ -77,8 +94,8 @@ class SessionOptions {
   // HTTP连接池主动保活机制
   bool enableHttpConnectionPoolKeepAlive{true};  // 启用HTTP连接保活，定期发送轻量级请求保持连接活跃
   long httpConnectionPoolKeepAliveIntervalSeconds{30};  // 保活间隔（秒），建议30-60秒
-  std::string httpConnectionPoolKeepAliveMethod{"HEAD"};  // 保活HTTP方法：HEAD（推荐）/OPTIONS/GET
-  std::string httpConnectionPoolKeepAlivePath{"/api/v3/ping"};  // 保活请求路径，币安使用 /api/v3/ping
+  std::string httpConnectionPoolKeepAliveMethod{"GET"};  // 保活HTTP方法
+  std::string httpConnectionPoolKeepAlivePath{"/papi/v1/ping"};  // 保活请求路径
 
   // HTTP连接池自动重连机制
   bool enableHttpConnectionPoolAutoReconnect{true};  // 启用自动重连，连接断开时自动尝试重新建立

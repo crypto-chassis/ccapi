@@ -286,6 +286,8 @@ class Session {
     if (!this->eventHandler && this->eventDispatcher) {
       throw std::runtime_error("eventHandler is needed when eventDispatcher is provided");
     }
+
+    this->sessionOptions.applyMultiIPDefaults();
     this->start();
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
