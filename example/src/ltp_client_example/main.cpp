@@ -278,7 +278,7 @@ int main() {
   std::cout << "订阅订单更新..." << std::endl;
   client.subscribeOrderUpdates(
     ltp::LTPExchange::BINANCE_USDS_FUTURES,
-    "BTCUSDT",
+    "USDCUSDT",
     credential,
     "order-updates"
   );
