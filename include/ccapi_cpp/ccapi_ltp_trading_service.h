@@ -27,19 +27,9 @@ using ccapi::UtilTime;
 struct ExchangeCapabilities {
   bool supportsFix = false;        // 是否支持FIX协议
   bool supportsWebsocket = false;  // 是否支持WebSocket协议
-  bool supportsRest = true;        // 是否支持REST协议（默认都支持）
+  bool supportsRest = true;        // 是否支持REST协议
 };
 
-/**
- * 统一交易服务类
- *
- * 这个类封装了ccapi的Session，提供统一的交易接口
- * 客户可以通过这个类在不同交易所进行交易，而无需关心各交易所的参数差异
- *
- * 协议选择策略：
- * - 同步接口(createOrder等): 始终使用REST协议
- * - 异步接口(createOrderAsync等): 根据交易所能力配置，按优先级选择：FIX > WebSocket > REST
- */
 class LTPTradingService {
  public:
   /**
@@ -61,7 +51,6 @@ class LTPTradingService {
     if (useLTPAdapter_) {
       ltpAdapter_ = std::make_unique<ccapi::LTPWebSocketAdapter>(orderPubTopic, orderSubTopic, session_);
       if (ltpAdapter_->isInitialized()) {
-        // 启动接收线程（传入 Session 指针以便正确分发事件）
         ltpAdapter_->startReceiving();
       }
     }
@@ -313,7 +302,6 @@ class LTPTradingService {
 
   /**
    * 查询开放订单（异步）
-   * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
   void getOpenOrdersAsync(const LTPGetOpenOrdersRequest& request,
                          const std::map<std::string, std::string>& credential = {},
@@ -323,13 +311,11 @@ class LTPTradingService {
       ccapiRequest.setCorrelationId(correlationId);
     }
 
-    // 查询操作强制使用REST
     session_->sendRequest(ccapiRequest);
   }
 
   /**
    * 查询账户余额（异步）
-   * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
   void getAccountBalancesAsync(const LTPGetAccountBalancesRequest& request,
                                const std::map<std::string, std::string>& credential = {},
@@ -339,13 +325,11 @@ class LTPTradingService {
       ccapiRequest.setCorrelationId(correlationId);
     }
 
-    // 查询操作强制使用REST
     session_->sendRequest(ccapiRequest);
   }
 
   /**
    * 查询持仓（异步）
-   * 注意：查询操作强制使用REST协议，因为大多数交易所的WebSocket不支持查询操作
    */
   void getAccountPositionsAsync(const LTPGetAccountPositionsRequest& request,
                                 const std::map<std::string, std::string>& credential = {},
@@ -355,7 +339,6 @@ class LTPTradingService {
       ccapiRequest.setCorrelationId(correlationId);
     }
 
-    // 查询操作强制使用REST
     session_->sendRequest(ccapiRequest);
   }
 
@@ -395,7 +378,7 @@ class LTPTradingService {
     Subscription subscription(
       exchangeStr,                    // 交易所
       symbol,                         // 交易对（空字符串表示所有）
-      CCAPI_EM_ORDER_UPDATE,         // 订单状态更新
+      CCAPI_EM_ORDER_UPDATE,          // 订单状态更新
       "",                             // 选项
       corrId,                         // 关联ID
       subCredential                   // 认证信息
@@ -497,10 +480,6 @@ class LTPTradingService {
 
     session_->subscribe(subscription);
   }
-
-  // ====================================================================
-  // 辅助方法 - 将ccapi的Event转换为LTPResponse
-  // ====================================================================
 
   /**
    * 将ccapi的Event转换为LTPResponse
@@ -625,7 +604,7 @@ class LTPTradingService {
           // 根据消息类型解析不同的响应
           const auto& elementList = message.getElementList();
           if (!elementList.empty()) {
-            // 生成原始响应（使用ccapi的toString函数）
+            // 生成原始响应
             response.rawResponse = ccapi::toString(elementList);
 
             // 账户余额响应
@@ -767,17 +746,11 @@ class LTPTradingService {
   bool useLTPAdapter_;  // 是否使用LTP适配器
   std::unique_ptr<ccapi::LTPWebSocketAdapter> ltpAdapter_;  // LTP WebSocket适配器
 
-  /**
-   * FIX快速路径 - 零拷贝优化（最低延迟）
-   * FIX协议是专为金融交易设计的二进制协议，延迟比WebSocket更低
-   * 直接构造最终的Request对象，避免convertToCreateOrderRequest的开销
-   */
   inline void createOrderAsyncFixFastPath(const LTPCreateOrderRequest& request,
                                          const std::map<std::string, std::string>& credential,
                                          const std::string& correlationId,
                                          const std::string& exchange,
                                          const std::chrono::steady_clock::time_point& apiCallStartTime) {
-    // 获取FIX correlationId（已缓存，快速）
     auto fixIt = fixSubscriptionCorrelationIds_.find(exchange);
     if (fixIt == fixSubscriptionCorrelationIds_.end()) {
       // 首次调用，需要建立FIX连接（降级到标准路径）
@@ -791,33 +764,26 @@ class LTPTradingService {
 
     const std::string& fixCorrelationId = fixIt->second;
 
-    // 直接构造Request
     Request fixRequest(Request::Operation::CREATE_ORDER, exchange, request.symbol,
                       correlationId.empty() ? "" : correlationId,
                       std::map<std::string, std::string>{});  // FIX不需要credential
 
-    // 直接构造参数map
     std::map<std::string, std::string> param;
 
-    // 订单方向（必需）
     param.emplace(CCAPI_EM_ORDER_SIDE, ltp::orderSideToString(request.side));
 
-    // 订单类型（必需）
     if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
       param.emplace(CCAPI_EM_ORDER_TYPE, ltp::orderTypeToString(request.type));
     }
 
-    // 客户端订单ID
     if (!request.clientOrderId.empty()) {
       param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
     }
 
-    // 价格
     if (!request.price.empty()) {
       param.emplace(CCAPI_EM_ORDER_LIMIT_PRICE, request.price);
     }
 
-    // 数量
     if (!request.quantity.empty()) {
       param.emplace(CCAPI_EM_ORDER_QUANTITY, request.quantity);
     }
@@ -825,14 +791,12 @@ class LTPTradingService {
       param.emplace("quoteOrderQty", request.quoteOrderQty);
     }
 
-    // 时间有效性
     if (request.timeInForce != LTPTimeInForce::UNKNOWN &&
         request.type != LTPOrderType::MARKET &&
         exchange != CCAPI_EXCHANGE_NAME_OKX) {
       param.emplace("timeInForce", ltp::timeInForceToString(request.timeInForce));
     }
 
-    // 高级选项
     if (request.reduceOnly) {
       param.emplace("reduceOnly", "true");
     }
@@ -852,7 +816,6 @@ class LTPTradingService {
       param.emplace("stopPrice", request.stopPrice);
     }
 
-    // 额外参数
     for (const auto& kv : request.extraParams) {
       param.emplace(kv.first, kv.second);
     }
@@ -866,7 +829,6 @@ class LTPTradingService {
                 << latencyNs << " ns (" << (latencyNs / 1000.0) << " us)" << std::endl;
     }
 
-    // 直接发送
     session_->sendRequestByFix(fixCorrelationId, fixRequest);
   }
 
@@ -891,7 +853,7 @@ class LTPTradingService {
       return;
     }
 
-    // 获取WebSocket correlationId（已缓存，快速）
+    // 获取WebSocket correlationId
     auto wsIt = websocketSubscriptionCorrelationIds_.find(exchange);
     if (wsIt == websocketSubscriptionCorrelationIds_.end()) {
       // 首次调用，需要建立连接（降级到标准路径）
@@ -910,7 +872,6 @@ class LTPTradingService {
                      correlationId.empty() ? "" : correlationId,
                      std::map<std::string, std::string>{});  // 空credential
 
-    // 使用emplace + move语义减少拷贝
     std::map<std::string, std::string> param;
 
     param.emplace(CCAPI_EM_ORDER_SIDE, ltp::orderSideToString(request.side));
@@ -920,37 +881,30 @@ class LTPTradingService {
       param.emplace(CCAPI_EM_ORDER_TYPE, ltp::orderTypeToString(request.type));
     }
 
-    // 客户端订单ID
     if (!request.clientOrderId.empty()) {
       param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
     }
 
-    // 杠杆
     if (!request.leverage.empty()) {
       param.emplace(CCAPI_EM_ORDER_LEVERAGE, request.leverage);
     }
 
-    // 保证金模式
     if (!request.marginMode.empty()) {
       param.emplace(CCAPI_MARGIN_MODE, request.marginMode);
     }
 
-    // 价格
     if (!request.price.empty()) {
       param.emplace(CCAPI_EM_ORDER_LIMIT_PRICE, request.price);
     }
 
-    // 持仓方向
     if (!request.positionSide.empty()) {
       param.emplace("positionSide", request.positionSide);
     }
 
-    // postOnly标志
     if (request.postOnly) {
       param.emplace("postOnly", "true");
     }
 
-    // 数量
     if (!request.quantity.empty()) {
       param.emplace(CCAPI_EM_ORDER_QUANTITY, request.quantity);
     }
@@ -958,12 +912,10 @@ class LTPTradingService {
       param.emplace("quoteOrderQty", request.quoteOrderQty);
     }
 
-    // reduceOnly标志
     if (request.reduceOnly) {
       param.emplace("reduceOnly", "true");
     }
 
-    // 止损价格
     if (!request.stopPrice.empty()) {
       param.emplace("stopPrice", request.stopPrice);
     }
@@ -982,7 +934,6 @@ class LTPTradingService {
       param.emplace("timeInForce", ltp::timeInForceToString(request.timeInForce));
     }
 
-    // 额外参数
     for (const auto& kv : request.extraParams) {
       param.emplace(kv.first, kv.second);
     }
@@ -995,13 +946,9 @@ class LTPTradingService {
       std::cout << "[Create Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
     }
 
-    // 直接发送
     session_->sendRequestByWebsocket(wsCorrelationId, wsRequest);
   }
 
-  /**
-   * FIX快速路径 - 撤单零拷贝优化（最低延迟）
-   */
   inline void cancelOrderAsyncFixFastPath(const LTPCancelOrderRequest& request,
                                          const std::map<std::string, std::string>& credential,
                                          const std::string& correlationId,
@@ -1021,7 +968,6 @@ class LTPTradingService {
 
     const std::string& fixCorrelationId = fixIt->second;
 
-    // 直接构造Request
     Request fixRequest(Request::Operation::CANCEL_ORDER, exchange, request.symbol,
                       correlationId.empty() ? "" : correlationId,
                       std::map<std::string, std::string>{});  // FIX不需要credential
@@ -1032,11 +978,11 @@ class LTPTradingService {
     if (!request.orderId.empty()) {
       param.emplace(CCAPI_EM_ORDER_ID, request.orderId);
     }
+
     if (!request.clientOrderId.empty()) {
       param.emplace(CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId);
     }
 
-    // 额外参数
     for (const auto& kv : request.extraParams) {
       param.emplace(kv.first, kv.second);
     }
@@ -1049,13 +995,9 @@ class LTPTradingService {
       std::cout << "[Cancel Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
     }
 
-    // 直接发送
     session_->sendRequestByFix(fixCorrelationId, fixRequest);
   }
 
-  /**
-   * WebSocket快速路径 - 撤单零拷贝优化
-   */
   inline void cancelOrderAsyncWebSocketFastPath(const LTPCancelOrderRequest& request,
                                                const std::map<std::string, std::string>& credential,
                                                const std::string& correlationId,
@@ -1078,7 +1020,7 @@ class LTPTradingService {
       return;
     }
 
-    // 获取WebSocket correlationId（已缓存，快速）
+    // 获取WebSocket correlationId
     auto wsIt = websocketSubscriptionCorrelationIds_.find(exchange);
     if (wsIt == websocketSubscriptionCorrelationIds_.end()) {
       // 首次调用，需要建立连接（降级到标准路径）
@@ -1092,15 +1034,12 @@ class LTPTradingService {
 
     const std::string& wsCorrelationId = wsIt->second;
 
-    // 直接构造Request
     Request wsRequest(Request::Operation::CANCEL_ORDER, exchange, request.symbol,
                      correlationId.empty() ? "" : correlationId,
                      std::map<std::string, std::string>{});  // 空credential
 
-    // 直接构造参数map
     std::map<std::string, std::string> param;
 
-    // 订单ID或客户端订单ID（至少需要一个）
     if (!request.orderId.empty()) {
       param.emplace(CCAPI_EM_ORDER_ID, request.orderId);
     }
@@ -1120,7 +1059,6 @@ class LTPTradingService {
       std::cout << "[Cancel Order] ccapi adapter transfer latency: " << (latencyNs / 1000.0) << " us" << std::endl;
     }
 
-    // 直接发送
     session_->sendRequestByWebsocket(wsCorrelationId, wsRequest);
   }
 
@@ -1267,8 +1205,6 @@ class LTPTradingService {
         wsCredential[CCAPI_BINANCE_COIN_FUTURES_API_SECRET] = apiSecretIt->second;
       }
     }
-    // 币安US - 如果也支持WebSocket，需要类似处理
-    // 注意：需要确认币安US是否有专门的WebSocket API Key宏
 
     // Subscription构造函数: (exchange, instrument, field, options, correlationId, credential, proxyUrl)
     Subscription subscription(exchange, "", CCAPI_EM_WEBSOCKET_ORDER_ENTRY, "", correlationId, wsCredential, "");
@@ -1312,7 +1248,6 @@ class LTPTradingService {
 
   /**
    * 为订阅准备正确的credential
-   * 某些交易所（如币安）的WebSocket订阅需要使用特殊的API Key宏
    */
   std::map<std::string, std::string> prepareSubscriptionCredential(
       const std::string& exchange,
@@ -1359,10 +1294,6 @@ class LTPTradingService {
     return subCredential;
   }
 
-  // ====================================================================
-  // 内部转换方法 - 将统一请求转换为ccapi Request
-  // ====================================================================
-
   /**
    * 转换创建订单请求
    */
@@ -1373,10 +1304,8 @@ class LTPTradingService {
 
     std::map<std::string, std::string> param;
 
-    // 订单方向
     param.insert({CCAPI_EM_ORDER_SIDE, ltp::orderSideToString(request.side)});
 
-    // 订单类型
     // OKX特殊处理：不传递CCAPI_EM_ORDER_TYPE，因为OKX服务会自动将其转换为ordType参数
     if (exchange != CCAPI_EXCHANGE_NAME_OKX) {
       std::string orderTypeStr = ltp::orderTypeToString(request.type);
@@ -1384,7 +1313,6 @@ class LTPTradingService {
     }
     // 注意：OKX的ordType会由ccapi_execution_management_service_okx.h自动添加
 
-    // 数量
     if (!request.quantity.empty()) {
       param.insert({CCAPI_EM_ORDER_QUANTITY, request.quantity});
     }
@@ -1392,7 +1320,6 @@ class LTPTradingService {
       param.insert({"quoteOrderQty", request.quoteOrderQty});
     }
 
-    // 价格
     if (!request.price.empty()) {
       param.insert({CCAPI_EM_ORDER_LIMIT_PRICE, request.price});
     }
@@ -1400,12 +1327,10 @@ class LTPTradingService {
       param.insert({"stopPrice", request.stopPrice});
     }
 
-    // 客户端订单ID
     if (!request.clientOrderId.empty()) {
       param.insert({CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId});
     }
 
-    // 时间有效性
     // timeInForce只在非市价单时添加
     // 某些交易所和订单类型不支持timeInForce
     if (request.timeInForce != LTPTimeInForce::UNKNOWN && request.type != LTPOrderType::MARKET) {
@@ -1445,7 +1370,6 @@ class LTPTradingService {
       // 如果用户已通过extraParams指定tdMode，则会在后面的extraParams循环中添加
     }
 
-    // 高级选项
     if (request.reduceOnly) {
       param.insert({"reduceOnly", "true"});
     }
@@ -1462,7 +1386,6 @@ class LTPTradingService {
       param.insert({"positionSide", request.positionSide});
     }
 
-    // 额外参数（最后添加，可以覆盖默认值）
     for (const auto& kv : request.extraParams) {
       param.insert(kv);
     }
@@ -1471,9 +1394,6 @@ class LTPTradingService {
     return ccapiRequest;
   }
 
-  /**
-   * 转换取消订单请求
-   */
   Request convertToCancelOrderRequest(const LTPCancelOrderRequest& request,
                                      const std::map<std::string, std::string>& credential) {
     std::string exchange = ltp::exchangeToString(request.exchange);
@@ -1488,7 +1408,6 @@ class LTPTradingService {
       param.insert({CCAPI_EM_CLIENT_ORDER_ID, request.clientOrderId});
     }
 
-    // 额外参数
     for (const auto& kv : request.extraParams) {
       param.insert(kv);
     }
@@ -1497,9 +1416,6 @@ class LTPTradingService {
     return ccapiRequest;
   }
 
-  /**
-   * 转换取消所有订单请求
-   */
   Request convertToCancelAllOrdersRequest(const LTPCancelAllOrdersRequest& request,
                                          const std::map<std::string, std::string>& credential) {
     std::string exchange = ltp::exchangeToString(request.exchange);
@@ -1507,7 +1423,6 @@ class LTPTradingService {
 
     std::map<std::string, std::string> param;
 
-    // 额外参数
     for (const auto& kv : request.extraParams) {
       param.insert(kv);
     }
@@ -1519,9 +1434,6 @@ class LTPTradingService {
     return ccapiRequest;
   }
 
-  /**
-   * 转换查询订单请求
-   */
   Request convertToGetOrderRequest(const LTPGetOrderRequest& request,
                                    const std::map<std::string, std::string>& credential) {
     std::string exchange = ltp::exchangeToString(request.exchange);
@@ -1545,9 +1457,6 @@ class LTPTradingService {
     return ccapiRequest;
   }
 
-  /**
-   * 转换查询开放订单请求
-   */
   Request convertToGetOpenOrdersRequest(const LTPGetOpenOrdersRequest& request,
                                        const std::map<std::string, std::string>& credential) {
     std::string exchange = ltp::exchangeToString(request.exchange);
@@ -1567,9 +1476,6 @@ class LTPTradingService {
     return ccapiRequest;
   }
 
-  /**
-   * 转换查询账户余额请求
-   */
   Request convertToGetAccountBalancesRequest(const LTPGetAccountBalancesRequest& request,
                                             const std::map<std::string, std::string>& credential) {
     std::string exchange = ltp::exchangeToString(request.exchange);
@@ -1589,9 +1495,6 @@ class LTPTradingService {
     return ccapiRequest;
   }
 
-  /**
-   * 转换查询持仓请求
-   */
   Request convertToGetAccountPositionsRequest(const LTPGetAccountPositionsRequest& request,
                                              const std::map<std::string, std::string>& credential) {
     std::string exchange = ltp::exchangeToString(request.exchange);
@@ -1611,9 +1514,6 @@ class LTPTradingService {
     return ccapiRequest;
   }
 
-  /**
-   * 执行同步请求
-   */
   LTPResponse executeRequestSync(Request& request) {
     Queue<Event> eventQueue;
     session_->sendRequest(request, &eventQueue);
@@ -1629,9 +1529,6 @@ class LTPTradingService {
     return response;
   }
 
-  /**
-   * 将Element转换为LTPOrderInfo
-   */
   static LTPOrderInfo convertElementToOrderInfo(const Element& element) {
     LTPOrderInfo orderInfo;
 
@@ -1639,39 +1536,31 @@ class LTPTradingService {
     orderInfo.clientOrderId = element.getValue(CCAPI_EM_CLIENT_ORDER_ID);
     orderInfo.symbol = element.getValue(CCAPI_EM_ORDER_INSTRUMENT);
 
-    // 订单方向
     std::string sideStr = element.getValue(CCAPI_EM_ORDER_SIDE);
     orderInfo.side = ltp::stringToOrderSide(sideStr);
 
-    // 订单类型
     std::string typeStr = element.getValue(CCAPI_EM_ORDER_TYPE);
     orderInfo.type = ltp::stringToOrderType(typeStr);
 
-    // 订单状态
     std::string statusStr = element.getValue(CCAPI_EM_ORDER_STATUS);
     orderInfo.status = ltp::stringToOrderStatus(statusStr);
 
-    // 时间有效性
     std::string tifStr = element.getValue("timeInForce");
     if (!tifStr.empty()) {
       orderInfo.timeInForce = ltp::stringToTimeInForce(tifStr);
     }
 
-    // 价格和数量
     orderInfo.price = element.getValue(CCAPI_EM_ORDER_LIMIT_PRICE);
     orderInfo.quantity = element.getValue(CCAPI_EM_ORDER_QUANTITY);
     orderInfo.executedQty = element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY);
     orderInfo.cumulativeQuoteQty = element.getValue(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY);
     orderInfo.avgPrice = element.getValue(CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE);
 
-    // 触发价格
     orderInfo.stopPrice = element.getValue("stopPrice");
 
-    // 时间信息
     orderInfo.createTime = element.getValue("createTime");
     orderInfo.updateTime = element.getValue("updateTime");
 
-    // 费用信息
     orderInfo.commission = element.getValue(CCAPI_EM_ORDER_FEE_QUANTITY);
     orderInfo.commissionAsset = element.getValue(CCAPI_EM_ORDER_FEE_ASSET);
 
@@ -1683,9 +1572,6 @@ class LTPTradingService {
     return orderInfo;
   }
 
-  /**
-   * 将Element转换为LTPBalanceInfo
-   */
   static LTPBalanceInfo convertElementToBalanceInfo(const Element& element) {
     LTPBalanceInfo balanceInfo;
 
@@ -1715,9 +1601,6 @@ class LTPTradingService {
     return balanceInfo;
   }
 
-  /**
-   * 将Element转换为LTPPositionInfo
-   */
   static LTPPositionInfo convertElementToPositionInfo(const Element& element) {
     LTPPositionInfo positionInfo;
 

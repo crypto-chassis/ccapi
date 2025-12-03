@@ -130,7 +130,6 @@ class LTPWebSocketAdapter {
     }
 
     try {
-      // 优化：使用移动语义接收返回值，避免拷贝
       std::string ltpJson = std::move(convertRequestToLTPJson(request, credential, "order.cancel"));
       auto publishStartTime = std::chrono::steady_clock::now();
 
@@ -169,6 +168,8 @@ class LTPWebSocketAdapter {
     receiveThread_ = std::thread([this]() {
       this->receiveLoop();
     });
+
+    // TODO: 新的接受线程需要绑核
   }
 
   /**
@@ -217,12 +218,8 @@ class LTPWebSocketAdapter {
     CCAPI_LOGGER_INFO("LTP WebSocket adapter initialized successfully");
   }
 
-  /**
-   * @brief 关闭连接
-   */
   void shutdown() {
     stopReceiving();
-    // 注意：根据 ltp_ucli_ffi.h 的接口，可能需要清理资源
     // 如果 FFI 接口提供了清理函数，应该在这里调用
   }
 
@@ -399,7 +396,6 @@ class LTPWebSocketAdapter {
       return resultStream.str();
     }
 
-    // 如果走到这里说明 method 不是预期的值，返回空字符串（不应该发生）
     return "";
   }
 
@@ -428,7 +424,6 @@ class LTPWebSocketAdapter {
          (unsigned char*)queryString.c_str(), static_cast<int>(queryString.length()),
          digest, &digestLen);
 
-    // 优化：使用字符数组直接构建，避免多次 += 操作的开销
     static const char hexTable[] = "0123456789abcdef";
     char signatureBuf[SHA256_DIGEST_LENGTH * 2];
 
@@ -437,7 +432,6 @@ class LTPWebSocketAdapter {
       signatureBuf[i * 2 + 1] = hexTable[digest[i] & 0x0F];
     }
 
-    // 直接构造 string，避免拷贝
     return std::string(signatureBuf, digestLen * 2);
   }
 
@@ -471,23 +465,16 @@ class LTPWebSocketAdapter {
         }
       }
 
-      // 短暂休眠，避免 CPU 占用过高
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
   }
 
-  /**
-   * @brief 检查响应是否包含错误
-   */
   bool hasError(const std::string& json) {
     return json.find("\"error\":") != std::string::npos ||
            json.find("\"Error\":") != std::string::npos ||
            json.find("\"ERROR\":") != std::string::npos;
   }
 
-  /**
-   * @brief 从 JSON 响应中提取值
-   */
   std::string extractJsonValue(const std::string& json, const std::string& key) {
     std::string searchKey = "\"" + key + "\":";
     size_t pos = json.find(searchKey);
@@ -504,7 +491,6 @@ class LTPWebSocketAdapter {
 
     if (end > start) {
       std::string value = json.substr(start, end - start);
-      // Remove quotes if present
       if (value.length() >= 2 && value.front() == '"' && value.back() == '"') {
         value = value.substr(1, value.length() - 2);
       }
@@ -513,9 +499,6 @@ class LTPWebSocketAdapter {
     return "";
   }
 
-  /**
-   * @brief 从 JSON 响应中提取错误消息
-   */
   std::string extractErrorMessage(const std::string& json) {
     std::string errorMsg;
 
