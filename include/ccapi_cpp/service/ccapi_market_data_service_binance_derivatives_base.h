@@ -25,7 +25,7 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
     auto conflateIntervalMilliseconds = std::stoi(optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS));
     if (field == CCAPI_MARKET_DEPTH) {
       int marketDepthSubscribedToExchange = 1;
-      marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({1, 5, 10, 20}));
+      marketDepthSubscribedToExchange = this->calculateMarketDepthAllowedByExchange(marketDepthRequested, std::vector<int>({1, 5, 10, 20, 1000}));
       if (marketDepthSubscribedToExchange == 1) {
         channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_BOOK_TICKER;
       } else {
@@ -35,9 +35,16 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
         } else if (conflateIntervalMilliseconds >= 500) {
           updateSpeed = "500ms";
         }
-        channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
-        if (!updateSpeed.empty()) {
-          channelId += "&UPDATE_SPEED=" + updateSpeed;
+        if (marketDepthSubscribedToExchange > 20) {
+          channelId = CCAPI_WEBSOCKET_BINANCE_BASE_CHANNEL_DIFF_DEPTH;
+          if (!updateSpeed.empty()) {
+            channelId += "?UPDATE_SPEED=" + updateSpeed;
+          }
+        } else {
+          channelId += std::string("?") + CCAPI_MARKET_DEPTH_SUBSCRIBED_TO_EXCHANGE + "=" + std::to_string(marketDepthSubscribedToExchange);
+          if (!updateSpeed.empty()) {
+            channelId += "&UPDATE_SPEED=" + updateSpeed;
+          }
         }
         this->marketDepthSubscribedToExchangeByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId] = marketDepthSubscribedToExchange;
       }
@@ -144,6 +151,13 @@ class MarketDataServiceBinanceDerivativesBase : public MarketDataServiceBinanceB
       default:
         MarketDataServiceBinanceBase::convertTextMessageToMarketDataMessage(request, textMessageView, timeReceived, event, marketDataMessageList);
     }
+  }
+
+  void createFetchOrderBookInitialReq(http::request<http::string_body>& req, const std::string& symbolId, const TimePoint& now,
+                                      const std::map<std::string, std::string>& credential) override {
+    req.set(http::field::host, this->hostRest);
+    req.method(http::verb::get);
+    req.target(this->getMarketDepthTarget + "?symbol=" + Url::urlEncode(symbolId) + "&limit=1000");
   }
 };
 

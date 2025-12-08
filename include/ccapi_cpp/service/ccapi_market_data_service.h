@@ -870,7 +870,7 @@ class MarketDataService : public Service {
                               const TimePoint& tp, const TimePoint& timeReceived, MarketDataMessage::TypeForData& input, const std::string& field,
                               const std::map<std::string, std::string>& optionMap, const std::vector<std::string>& correlationIdList,
                               std::map<Decimal, std::string>& snapshotBid, std::map<Decimal, std::string>& snapshotAsk) {
-    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
+    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString<MarketDataMessage::TypeForData>(input));
     if (this->processedInitialSnapshotByConnectionIdChannelIdSymbolIdMap[wsConnectionPtr->id][channelId][symbolId]) {
       std::vector<Message> messageList;
       CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
@@ -988,7 +988,7 @@ class MarketDataService : public Service {
   void processTrade(std::shared_ptr<WsConnection> wsConnectionPtr, const std::string& channelId, const std::string& symbolId, Event& event, const TimePoint& tp,
                     const TimePoint& timeReceived, MarketDataMessage::TypeForData& input, const std::string& field,
                     const std::map<std::string, std::string>& optionMap, const std::vector<std::string>& correlationIdList, bool isSolicited) {
-    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString(input));
+    CCAPI_LOGGER_TRACE("input = " + MarketDataMessage::dataToString<MarketDataMessage::TypeForData>(input));
     CCAPI_LOGGER_TRACE("optionMap = " + toString(optionMap));
     bool shouldConflate = optionMap.at(CCAPI_CONFLATE_INTERVAL_MILLISECONDS) != CCAPI_CONFLATE_INTERVAL_MILLISECONDS_DEFAULT;
     CCAPI_LOGGER_TRACE("shouldConflate = " + toString(shouldConflate));
@@ -1459,20 +1459,18 @@ class MarketDataService : public Service {
   }
 
   void buildOrderBookInitialOnFail(std::shared_ptr<WsConnection> wsConnectionPtr, const std::string& exchangeSubscriptionId, long delayMilliseconds) {
-    auto thisDelayMilliseconds = delayMilliseconds * 2;
-    if (thisDelayMilliseconds > 0) {
-      TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(thisDelayMilliseconds)));
-      timerPtr->async_wait([wsConnectionPtr, exchangeSubscriptionId, thisDelayMilliseconds, that = this](ErrorCode const& ec) {
-        if (ec) {
-          that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
-        } else {
-          that->buildOrderBookInitial(wsConnectionPtr, exchangeSubscriptionId, thisDelayMilliseconds);
-        }
-      });
-      this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId] = timerPtr;
-    } else {
-      this->buildOrderBookInitial(wsConnectionPtr, exchangeSubscriptionId, thisDelayMilliseconds);
-    }
+    CCAPI_LOGGER_ERROR("buildOrderBookInitialOnFail: wsConnectionPtr = " + toString(*wsConnectionPtr) + ", exchangeSubscriptionId = " + exchangeSubscriptionId +
+                       ", delayMilliseconds = " + toString(delayMilliseconds));
+    auto thisDelayMilliseconds = delayMilliseconds > 0 ? delayMilliseconds * 2 : 1000;
+    TimerPtr timerPtr(new boost::asio::steady_timer(*this->serviceContextPtr->ioContextPtr, std::chrono::milliseconds(thisDelayMilliseconds)));
+    timerPtr->async_wait([wsConnectionPtr, exchangeSubscriptionId, thisDelayMilliseconds, that = this](ErrorCode const& ec) {
+      if (ec) {
+        that->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::GENERIC_ERROR, ec, "timer");
+      } else {
+        that->buildOrderBookInitial(wsConnectionPtr, exchangeSubscriptionId, thisDelayMilliseconds);
+      }
+    });
+    this->fetchMarketDepthInitialSnapshotTimerByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId] = timerPtr;
   }
 
   void buildOrderBookInitial(std::shared_ptr<WsConnection> wsConnectionPtr, const std::string& exchangeSubscriptionId, long delayMilliseconds) {
@@ -1536,39 +1534,39 @@ class MarketDataService : public Service {
                     }
                   }
                 }
-                if (that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id).find(exchangeSubscriptionId) !=
-                    that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id).end()) {
-                  auto it = that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id)
-                                .at(exchangeSubscriptionId)
-                                .upper_bound(versionId);
-                  while (it != that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id)
-                                   .at(exchangeSubscriptionId)
-                                   .end()) {
-                    const auto& input = it->second;
-                    for (const auto& x : input) {
-                      const auto& type = x.first;
-                      const auto& detail = x.second;
-                      if (type == MarketDataMessage::DataType::BID) {
-                        for (const auto& y : detail) {
-                          const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
-                          const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-                          Decimal decimalPrice(price);
-                          that->updateOrderBook(snapshotBid, decimalPrice, size, that->sessionOptions.enableCheckOrderBookChecksum);
-                        }
-                      } else if (type == MarketDataMessage::DataType::ASK) {
-                        for (const auto& y : detail) {
-                          const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
-                          const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
-                          Decimal decimalPrice(price);
-                          that->updateOrderBook(snapshotAsk, decimalPrice, size, that->sessionOptions.enableCheckOrderBookChecksum);
-                        }
+                // if (that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id).find(exchangeSubscriptionId) !=
+                //     that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id).end()) {
+                auto it = that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id)
+                              .at(exchangeSubscriptionId)
+                              .upper_bound(versionId);
+                while (it != that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id)
+                                 .at(exchangeSubscriptionId)
+                                 .end()) {
+                  const auto& input = it->second;
+                  for (const auto& x : input) {
+                    const auto& type = x.first;
+                    const auto& detail = x.second;
+                    if (type == MarketDataMessage::DataType::BID) {
+                      for (const auto& y : detail) {
+                        const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
+                        const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
+                        Decimal decimalPrice(price);
+                        that->updateOrderBook(snapshotBid, decimalPrice, size, that->sessionOptions.enableCheckOrderBookChecksum);
+                      }
+                    } else if (type == MarketDataMessage::DataType::ASK) {
+                      for (const auto& y : detail) {
+                        const auto& price = y.at(MarketDataMessage::DataFieldType::PRICE);
+                        const auto& size = y.at(MarketDataMessage::DataFieldType::SIZE);
+                        Decimal decimalPrice(price);
+                        that->updateOrderBook(snapshotAsk, decimalPrice, size, that->sessionOptions.enableCheckOrderBookChecksum);
                       }
                     }
-                    that->orderbookVersionIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId] = it->first;
-                    it++;
                   }
-                  that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id).erase(exchangeSubscriptionId);
+                  that->orderbookVersionIdByConnectionIdExchangeSubscriptionIdMap[wsConnectionPtr->id][exchangeSubscriptionId] = it->first;
+                  it++;
                 }
+                that->marketDataMessageDataBufferByConnectionIdExchangeSubscriptionIdVersionIdMap.at(wsConnectionPtr->id).erase(exchangeSubscriptionId);
+                // }
                 Event event;
                 event.setType(Event::Type::SUBSCRIPTION_DATA);
                 std::vector<Element> elementList;
