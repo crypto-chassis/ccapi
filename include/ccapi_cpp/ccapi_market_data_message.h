@@ -176,43 +176,56 @@ class MarketDataMessage {
     return output;
   }
 
-  static std::string dataToString(const TypeForData& data) {
+  template <typename DataMap>
+  static std::string dataToString(const DataMap& data) {
     std::string output1 = "{";
     auto size1 = data.size();
     auto i1 = 0;
+
     for (const auto& elem1 : data) {
       output1 += dataTypeToString(elem1.first);
       output1 += "=";
+
       std::string output2 = "[ ";
       auto size2 = elem1.second.size();
       auto i2 = 0;
+
       for (const auto& elem2 : elem1.second) {
         std::string output3 = "{";
         auto size3 = elem2.size();
         auto i3 = 0;
+
         for (const auto& elem3 : elem2) {
           output3 += dataFieldTypeToString(elem3.first);
           output3 += "=";
+
+          // Works for std::string, std::string_view, or any type
           output3 += ccapi::toString(elem3.second);
+
           if (i3 < size3 - 1) {
             output3 += ", ";
           }
           ++i3;
         }
+
         output3 += "}";
         output2 += output3;
+
         if (i2 < size2 - 1) {
           output2 += ", ";
         }
         ++i2;
       }
+
       output2 += " ]";
       output1 += output2;
+
       if (i1 < size1 - 1) {
         output1 += ", ";
       }
       ++i1;
     }
+
     output1 += "}";
     return output1;
   }
@@ -243,7 +256,7 @@ class MarketDataMessage {
 
   std::string toString() const {
     std::string output = "MarketDataMessage [type = " + typeToString(type) + ", recapType = " + recapTypeToString(recapType) + ", tp = " + ccapi::toString(tp) +
-                         ", exchangeSubscriptionId = " + exchangeSubscriptionId + ", data = " + dataToString(data) + "]";
+                         ", exchangeSubscriptionId = " + exchangeSubscriptionId + ", data = " + dataToString<TypeForData>(data) + "]";
     return output;
   }
 
