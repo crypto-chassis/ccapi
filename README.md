@@ -354,13 +354,12 @@ Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
 ### Advanced Market Data
 
 #### Complex request parameters
-Please follow the exchange's API documentations: e.g. https://www.okx.com/docs-v5/en/#order-book-trading-market-data-get-trades-history.
+Please follow the exchange's API documentations: e.g. https://bybit-exchange.github.io/docs/v5/market/instrument.
 ```
-Request request(Request::Operation::GET_HISTORICAL_TRADES, "okx", "BTC-USDT");
+Request request(Request::Operation::GET_INSTRUMENTS, "bybit");
 request.appendParam({
-  {"before", "1"},
-  {"after", "3"},
-  {"limit", "1"},
+    {"category", "linear"},
+    {"limit", "1000"},
 });
 ```
 

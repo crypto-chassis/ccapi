@@ -22,11 +22,10 @@ int main(int argc, char** argv) {
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Request request(Request::Operation::GET_HISTORICAL_TRADES, "bybit", "BTCUSDT");
+  Request request(Request::Operation::GET_INSTRUMENTS, "bybit");
   request.appendParam({
-      {"before", "1"},
-      {"after", "3"},
-      {"limit", "1"},
+      {"category", "linear"},
+      {"limit", "1000"},
   });
   session.sendRequest(request);
   std::this_thread::sleep_for(std::chrono::seconds(10));
