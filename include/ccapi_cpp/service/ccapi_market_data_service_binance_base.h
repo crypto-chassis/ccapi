@@ -543,7 +543,9 @@ class MarketDataServiceBinanceBase : public MarketDataService {
       case Request::Operation::GET_MARKET_DEPTH: {
         MarketDataMessage marketDataMessage;
         marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
-        marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(document["T"].GetString()));
+        if (this->isDerivatives) {
+          marketDataMessage.tp = UtilTime::makeTimePointFromMilliseconds(std::stoll(document["T"].GetString()));
+        }
         for (const auto& x : document["bids"].GetArray()) {
           MarketDataMessage::TypeForDataPoint dataPoint;
           dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
