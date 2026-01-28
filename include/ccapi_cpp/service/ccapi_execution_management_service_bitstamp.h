@@ -1,5 +1,6 @@
 #ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BITSTAMP_H_
 #define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_BITSTAMP_H_
+
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BITSTAMP
 #include "ccapi_cpp/service/ccapi_execution_management_service.h"
@@ -20,12 +21,12 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
     this->apiSecretName = CCAPI_BITSTAMP_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
     std::string prefix = "/api/v2";
-    this->createOrderTarget = prefix + "/{buy_or_sell}/{order_type}/{currency_pair}/";
+    this->createOrderTarget = prefix + "/{buy_or_sell}/{order_type}/{market_symbol}/";
     this->cancelOrderTarget = prefix + "/cancel_order/";
     this->getOrderTarget = prefix + "/order_status/";
-    this->getOpenOrdersTarget = prefix + "/open_orders/{currency_pair}/";
-    this->cancelOpenOrdersTarget = prefix + "/cancel_all_orders/{currency_pair}/";
-    this->getAccountBalancesTarget = prefix + "/balance/{currency_pair}/";
+    this->getOpenOrdersTarget = prefix + "/open_orders/";
+    this->cancelOpenOrdersTarget = prefix + "/cancel_all_orders/{market_symbol}/";
+    this->getAccountBalancesTarget = prefix + "/account_balances/";
     this->getWebSocketsTokenTarget = prefix + "/websockets_token/";
   }
 
@@ -138,7 +139,7 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         std::string target = this->createOrderTarget;
         UtilString::replaceFirstOccurrence(target, "{buy_or_sell}", orderSide);
         UtilString::replaceFirstOccurrence(target, "{order_type}", orderType);
-        UtilString::replaceFirstOccurrence(target, "{currency_pair}", symbolId);
+        UtilString::replaceFirstOccurrence(target, "{market_symbol}", symbolId);
         UtilString::replaceFirstOccurrence(target, "//", "/");
         req.target(target);
         std::string body;
@@ -168,7 +169,10 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string target = this->getOpenOrdersTarget;
-        UtilString::replaceFirstOccurrence(target, "{currency_pair}", symbolId.empty() ? "all" : symbolId);
+        if (!symbolId.empty()) {
+          target += symbolId;
+          target += "/";
+        }
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
@@ -176,18 +180,14 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string target = this->cancelOpenOrdersTarget;
-        UtilString::replaceFirstOccurrence(target, "{currency_pair}", symbolId);
+        UtilString::replaceFirstOccurrence(target, "{market_symbol}", symbolId);
         UtilString::replaceFirstOccurrence(target, "//", "/");
         req.target(target);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::post);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        std::string target = this->getAccountBalancesTarget;
-        UtilString::replaceFirstOccurrence(target, "{currency_pair}", symbolId);
-        UtilString::replaceFirstOccurrence(target, "//", "/");
-        req.target(target);
+        req.target(this->getAccountBalancesTarget);
         this->signRequest(req, "", credential);
       } break;
       default:
@@ -214,9 +214,8 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
         {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("client_order_id", JsonDataType::INTEGER)},
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_REMAINING_QUANTITY, std::make_pair("amount_remaining", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("currency_pair", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("market", JsonDataType::STRING)},
     };
     if (operation == Request::Operation::CANCEL_OPEN_ORDERS) {
       for (const auto& x : document["canceled"].GetArray()) {
@@ -243,24 +242,11 @@ class ExecutionManagementServiceBitstamp : public ExecutionManagementService {
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        std::map<std::string, std::map<std::string, std::string>> balances;
-        for (auto itr = document.MemberBegin(); itr != document.MemberEnd(); ++itr) {
-          const auto& splitted = UtilString::split(itr->name.GetString(), '_');
-          if (splitted.size() >= 2) {
-            const auto& type = splitted.at(1);
-            if (type == "available") {
-              balances[splitted.at(0)][CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING] = itr->value.GetString();
-            } else if (type == "balance") {
-              balances[splitted.at(0)][CCAPI_EM_QUANTITY_TOTAL] = itr->value.GetString();
-            }
-          }
-        }
-        for (const auto& kv1 : balances) {
+        for (const auto& x : document.GetArray()) {
           Element element;
-          element.insert(CCAPI_EM_ASSET, UtilString::toUpper(kv1.first));
-          for (const auto& kv2 : kv1.second) {
-            element.insert(kv2.first, kv2.second);
-          }
+          element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, x["total"].GetString());
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
           elementList.emplace_back(std::move(element));
         }
       } break;
