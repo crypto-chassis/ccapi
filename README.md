@@ -212,7 +212,7 @@ For a specific exchange and instrument, get recents trades.
 
 **Code 1:**
 
-[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py) / [Java](binding/java/example/market_data_simple_request/Main.java) / [C#](binding/csharp/example/market_data_simple_request/MainProgram.cs) / [Go](binding/go/example/market_data_simple_request/main.go) / [Javascript](binding/javascript/example/market_data_simple_request/index.js)
+[C++](example/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py) / [Java](binding/java/example/market_data_simple_request/Main.java) / [C#](binding/csharp/example/market_data_simple_request/MainProgram.cs) / [Go](binding/go/example/market_data_simple_request/main.go) / [Javascript](binding/javascript/example/market_data_simple_request/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -281,7 +281,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `GET_SERVER_TIME`, `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_BBOS`, `GET_RECENT_TRADES`, `GET_HISTORICAL_TRADES`, `GET_RECENT_CANDLESTICKS`, `GET_HISTORICAL_CANDLESTICKS`, `GET_RECENT_AGG_TRADES`, `GET_HISTORICAL_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list), ``.
-* Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`, `CANDLESTICK_INTERVAL_SECONDS`, `START_TIME_SECONDS`, `END_TIME_SECONDS`, `START_TRADE_ID`, `END_TRADE_ID`, `START_AGG_TRADE_ID`, `END_AGG_TRADE_ID`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
+* Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`, `CANDLESTICK_INTERVAL_SECONDS`, `START_TIME_SECONDS`, `END_TIME_SECONDS`, `START_TRADE_ID`, `END_TRADE_ID`, `START_AGG_TRADE_ID`, `END_AGG_TRADE_ID`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/market_data_advanced_request/main.cpp).
 * Message's `time` represents the exchange's reported timestamp. Its `timeReceived` represents the library's receiving timestamp. `time` can be retrieved by `getTime` method and `timeReceived` can be retrieved by `getTimeReceived` method. (For non-C++, please use `getTimeUnix` and `getTimeReceivedUnix` methods or `getTimeISO` and `getTimeReceivedISO` methods).
 
 **Objective 2:**
@@ -290,7 +290,7 @@ For a specific exchange and instrument, whenever the best bid's or ask's price o
 
 **Code 2:**
 
-[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java) / [C#](binding/csharp/example/market_data_simple_subscription/MainProgram.cs) / [Go](binding/go/example/market_data_simple_subscription/main.go) / [Javascript](binding/javascript/example/market_data_simple_subscription/index.js)
+[C++](example/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java) / [C#](binding/csharp/example/market_data_simple_subscription/MainProgram.cs) / [Go](binding/go/example/market_data_simple_subscription/main.go) / [Javascript](binding/javascript/example/market_data_simple_subscription/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -484,7 +484,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code 1:**
 
-[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java) / [C#](binding/csharp/example/execution_management_simple_request/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_request/main.go) / [Javascript](binding/javascript/example/execution_management_simple_request/index.js)
+[C++](example/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java) / [C#](binding/csharp/example/execution_management_simple_request/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_request/main.go) / [Javascript](binding/javascript/example/execution_management_simple_request/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -572,7 +572,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
-* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_advanced_request/main.cpp).
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/execution_management_advanced_request/main.cpp).
 
 **Objective 2:**
 
@@ -580,7 +580,7 @@ For a specific exchange and instrument, receive order updates.
 
 **Code 2:**
 
-[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py) / [Java](binding/java/example/execution_management_simple_subscription/Main.java) / [C#](binding/csharp/example/execution_management_simple_subscription/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_subscription/main.go) / [Javascript](binding/javascript/example/execution_management_simple_subscription/index.js)
+[C++](example/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py) / [Java](binding/java/example/execution_management_simple_subscription/Main.java) / [C#](binding/csharp/example/execution_management_simple_subscription/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_subscription/main.go) / [Javascript](binding/javascript/example/execution_management_simple_subscription/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -820,7 +820,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code:**
 
-[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs) / [Go](binding/go/example/fix_simple/main.go) / [Javascript](binding/javascript/example/fix_simple/index.js)
+[C++](example/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs) / [Go](binding/go/example/fix_simple/main.go) / [Javascript](binding/javascript/example/fix_simple/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -994,12 +994,12 @@ Bye
 
 In general there are 2 ways to handle events.
 * When a `Session` is instantiated with an `eventHandler` argument, it will handle events in immediate mode. The `processEvent` method in the `eventHandler` will be invoked immediately when an `Event` is available, and the invocation will run on the thread where `boost::asio::io_context` runs. When a `Session` is instantiated with an `eventHandler` and an `eventDispatcher` argument, it will also handle events in immediate mode. The `processEvent` method in the `eventHandler` will also be invoked immediately when an `Event` is available, but the invocation will run in the thread(s) provided by the `eventDispatcher` therefore not blocking the thread where `boost::asio::io_context` runs. `EventHandler`s and/or `EventDispatcher`s can be shared among different sessions. Otherwise, different sessions are independent from each other.
-An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
+An example can be found [here](example/market_data_advanced_subscription/main.cpp).
 * When a `Session` is instantiated without an `eventHandler` argument, it will handle events in batching mode. The events will be batched into an internal `Queue<Event>` and can be retrieved by
 ```
 std::vector<Event> eventList = session.getEventQueue().purge();
 ```
-An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
+An example can be found [here](example/market_data_advanced_subscription/main.cpp).
 
 #### Thread safety
 * The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::setTimer`, all public methods in `Queue`.
@@ -1007,7 +1007,7 @@ An example can be found [here](example/src/market_data_advanced_subscription/mai
 
 #### Enable library logging
 
-[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py) / [Java](binding/java/example/enable_library_logging/Main.java) / [C#](binding/csharp/example/enable_library_logging/MainProgram.cs) / [Go](binding/go/example/enable_library_logging/main.go)
+[C++](example/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py) / [Java](binding/java/example/enable_library_logging/Main.java) / [C#](binding/csharp/example/enable_library_logging/MainProgram.cs) / [Go](binding/go/example/enable_library_logging/main.go)
 
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```
@@ -1033,7 +1033,7 @@ Logger* Logger::logger = &myLogger;
 
 #### Set timer
 
-[C++](example/src/set_timer/main.cpp)
+[C++](example/set_timer/main.cpp)
 
 To perform an asynchronous wait, use the utility method `setTimer` in class `Session`. The handlers are invoked in the same threads as the `processEvent` method in the `EventHandler` class. The `id` of the timer should be unique. `delayMilliseconds` can be 0.
 ```
@@ -1047,7 +1047,7 @@ sessionPtr->setTimer(
 
 #### Heartbeat
 
-[C++](example/src/heartbeat/main.cpp)
+[C++](example/heartbeat/main.cpp)
 
 To receive heartbeat events, instantiate a `Subscription` object with field `HEARTBEAT` and subscribe it.
 ```
@@ -1057,7 +1057,7 @@ session.subscribe(subscription);
 
 #### Use multiple sessions
 
-[C++](example/src/use_multiple_sessions/main.cpp)
+[C++](example/use_multiple_sessions/main.cpp)
 
 Multiple `session` instances, each with their own `SessionOptions` and `SessionConfigs`, can share a common `EventHandler`. If no `EventDispatcher` is provided, thread safety must be maintained by using a shared `ServiceContext`.
 ```
@@ -1066,7 +1066,7 @@ session.subscribe(subscription);
 ```
 
 #### Override exchange urls
-You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/src/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://testnet.bybit.com/).
+You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://testnet.bybit.com/).
 
 #### Connect to a proxy
 Instantiate `Subscription` with the desired `proxyUrl`.
@@ -1075,7 +1075,7 @@ Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "", "", {}, "172.3
 ```
 
 #### Reduce build time
-The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/src/reduce_build_time).
+The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/reduce_build_time).
 
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
