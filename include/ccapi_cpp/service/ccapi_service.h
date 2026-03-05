@@ -533,7 +533,7 @@ class Service : public std::enable_shared_from_this<Service> {
     // Set SNI hostname (important for TLS handshakes)
     if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
       beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-      CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+      CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name for host " + host + ": " + ec.message());
       throw ec;
     }
 
@@ -1024,7 +1024,7 @@ class Service : public std::enable_shared_from_this<Service> {
             // Set SNI hostname (only for WSS)
             if (!SSL_set_tlsext_host_name(streamPtr->next_layer().native_handle(), wsConnectionPtr->host.c_str())) {
               beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-              CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+              CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name for host " + wsConnectionPtr->host + ": " + ec.message());
               this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "set SNI Hostname", wsConnectionPtr->correlationIdList);
               return;
             }
