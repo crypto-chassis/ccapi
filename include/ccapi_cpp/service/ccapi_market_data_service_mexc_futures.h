@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_MEXC_FUTURES_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_MEXC_FUTURES_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_MEXC_FUTURES
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
@@ -261,4 +261,3 @@ class MarketDataServiceMexcFutures : public MarketDataService {
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_MEXC_FUTURES_H_

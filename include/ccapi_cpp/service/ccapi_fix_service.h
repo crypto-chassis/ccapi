@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifndef CCAPI_FIX_READ_BUFFER_SIZE
 #define CCAPI_FIX_READ_BUFFER_SIZE (1 << 20)
@@ -698,4 +698,3 @@ class FixService : public Service {
 
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_

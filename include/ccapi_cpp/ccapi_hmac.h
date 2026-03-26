@@ -1,5 +1,4 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_HMAC_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_HMAC_H_
+#pragma once
 
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -70,4 +69,3 @@ class Hmac {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_HMAC_H_

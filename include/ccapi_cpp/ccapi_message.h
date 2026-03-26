@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_MESSAGE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_MESSAGE_H_
+#pragma once
+
 #include <chrono>
 #include <vector>
 
@@ -315,4 +315,3 @@ class Message {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_MESSAGE_H_

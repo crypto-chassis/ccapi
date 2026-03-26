@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_EVENT_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_EVENT_H_
+#pragma once
+
 #include <vector>
 
 #include "ccapi_cpp/ccapi_logger.h"
@@ -115,4 +115,3 @@ class Event {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_EVENT_H_

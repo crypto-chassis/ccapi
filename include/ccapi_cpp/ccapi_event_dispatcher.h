@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_EVENT_DISPATCHER_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_EVENT_DISPATCHER_H_
+#pragma once
+
 #include <stddef.h>
 
 #include <atomic>
@@ -104,4 +104,3 @@ class EventDispatcher {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_EVENT_DISPATCHER_H_

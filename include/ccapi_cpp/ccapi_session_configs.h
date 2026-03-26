@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_CONFIGS_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_SESSION_CONFIGS_H_
+#pragma once
+
 #include <map>
 #include <set>
 #include <string>
@@ -440,4 +440,3 @@ class SessionConfigs {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_CONFIGS_H_

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_FTX_BASE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_FTX_BASE_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #if defined(CCAPI_ENABLE_EXCHANGE_FTX) || defined(CCAPI_ENABLE_EXCHANGE_FTX_US)
 #include "ccapi_cpp/ccapi_hmac.h"
@@ -59,4 +59,3 @@ class FixServiceFtxBase : public FixService<beast::ssl_stream<beast::tcp_stream>
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_FTX_BASE_H_

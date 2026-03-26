@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_LOGGER_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_LOGGER_H_
+#pragma once
+
 #ifdef _WIN32
 #define CCAPI_LOGGER_FILE_SEPARATOR '\\'
 #else
@@ -168,4 +168,3 @@ class Logger {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_LOGGER_H_

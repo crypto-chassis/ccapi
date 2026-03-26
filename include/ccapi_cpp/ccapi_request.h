@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_
+#pragma once
+
 #include <condition_variable>
 #include <map>
 #include <mutex>
@@ -318,4 +318,3 @@ class Request {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_REQUEST_H_

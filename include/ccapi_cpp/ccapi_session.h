@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
+#pragma once
+
 #include "ccapi_cpp/ccapi_macro.h"
 
 // start: enable exchanges for market data
@@ -1038,4 +1038,3 @@ class Session {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_H_
