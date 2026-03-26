@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_ELEMENT_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_ELEMENT_H_
+#pragma once
+
 #include <map>
 #include <string>
 
@@ -125,4 +125,3 @@ class Element {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_ELEMENT_H_

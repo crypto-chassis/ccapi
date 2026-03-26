@@ -1,5 +1,4 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_
+#pragma once
 
 #include "boost/asio/ssl.hpp"
 #include "ccapi_cpp/ccapi_logger.h"
@@ -94,5 +93,3 @@ class ServiceContext {
 };
 
 } /* namespace ccapi */
-
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_CONTEXT_H_

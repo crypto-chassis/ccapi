@@ -1,5 +1,4 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
+#pragma once
 
 #if (defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                   \
      (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))) || \
@@ -1677,4 +1676,3 @@ class Service : public std::enable_shared_from_this<Service> {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_
+#pragma once
+
 #ifdef _WIN32
 #define timegm _mkgmtime
 #endif
@@ -1877,4 +1877,3 @@ V mapGetWithDefault(const C<K, V, Args...>& m, const K& key, const V defaultValu
 }
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_UTIL_PRIVATE_H_

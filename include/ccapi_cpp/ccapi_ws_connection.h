@@ -1,5 +1,4 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_
+#pragma once
 
 #include <string>
 #include <variant>
@@ -164,5 +163,3 @@ class WsConnection {
 };
 
 } /* namespace ccapi */
-
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_WS_CONNECTION_H_

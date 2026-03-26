@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_HTTP_CONNECTION_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_HTTP_CONNECTION_H_
+#pragma once
+
 #include <string>
 
 #include "ccapi_cpp/ccapi_logger.h"
@@ -37,4 +37,3 @@ class HttpConnection {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_HTTP_CONNECTION_H_

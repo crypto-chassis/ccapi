@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_INFLATE_STREAM_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_INFLATE_STREAM_H_
+#pragma once
+
 #ifndef CCAPI_DECOMPRESS_BUFFER_SIZE
 #define CCAPI_DECOMPRESS_BUFFER_SIZE (1 << 20)
 #endif
@@ -100,4 +100,3 @@ class InflateStream {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_INFLATE_STREAM_H_

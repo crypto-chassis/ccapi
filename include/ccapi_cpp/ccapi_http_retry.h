@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_HTTP_RETRY_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_HTTP_RETRY_H_
+#pragma once
+
 #include <future>
 #include <string>
 
@@ -28,4 +28,3 @@ class HttpRetry {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_HTTP_RETRY_H_
