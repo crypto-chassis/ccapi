@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_FIX_CONNECTION_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_FIX_CONNECTION_H_
+#pragma once
+
 #include <string>
 #include <variant>
 
@@ -125,4 +125,3 @@ class FixConnection {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_FIX_CONNECTION_H_

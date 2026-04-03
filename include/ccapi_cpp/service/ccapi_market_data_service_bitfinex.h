@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_BITFINEX
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
@@ -246,7 +246,7 @@ class MarketDataServiceBitfinex : public MarketDataService {
               } else {
                 MarketDataMessage::TypeForDataPoint dataPoint;
                 dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, UtilString::normalizeDecimalStringView(x[0].GetString()));
-                std::string_view count = std::string(x[1].GetString());
+                std::string_view count = x[1].GetString();
                 std::string_view amount = UtilString::normalizeDecimalStringView(x[2].GetString());
                 if (count != "0") {
                   if (amount.at(0) == '-') {
@@ -587,4 +587,3 @@ class MarketDataServiceBitfinex : public MarketDataService {
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITFINEX_H_

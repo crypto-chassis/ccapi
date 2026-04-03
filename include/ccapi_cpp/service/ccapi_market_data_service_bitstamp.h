@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITSTAMP_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITSTAMP_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_MARKET_DATA
 #ifdef CCAPI_ENABLE_EXCHANGE_BITSTAMP
 #include "ccapi_cpp/service/ccapi_market_data_service.h"
@@ -17,9 +17,10 @@ class MarketDataServiceBitstamp : public MarketDataService {
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     // this->setHostWsFromUrlWs(this->baseUrlWs);
-    this->getRecentTradesTarget = "/api/v2/transactions/{currency_pair}/";  // must have trailing slash
-    this->getInstrumentTarget = "/api/v2/trading-pairs-info/";
-    this->getInstrumentsTarget = "/api/v2/trading-pairs-info/";
+    this->getRecentTradesTarget = "/api/v2/transactions/{market_symbol}/";  // must have trailing slash
+    this->getMarketDepthTarget = "/api/v2/order_book/{market_symbol}/";
+    this->getInstrumentTarget = "/api/v2/markets/";
+    this->getInstrumentsTarget = "/api/v2/markets/";
   }
 
   virtual ~MarketDataServiceBitstamp() {}
@@ -168,7 +169,18 @@ class MarketDataServiceBitstamp : public MarketDataService {
         req.method(http::verb::get);
         auto target = this->getRecentTradesTarget;
         this->substituteParam(target, {
-                                          {"{currency_pair}", symbolId},
+                                          {"{market_symbol}", symbolId},
+                                      });
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param, {});
+        req.target(target + "?" + queryString);
+      } break;
+      case Request::Operation::GET_MARKET_DEPTH: {
+        req.method(http::verb::get);
+        auto target = this->getMarketDepthTarget;
+        this->substituteParam(target, {
+                                          {"{market_symbol}", symbolId},
                                       });
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -191,13 +203,9 @@ class MarketDataServiceBitstamp : public MarketDataService {
   }
 
   void extractInstrumentInfo(Element& element, const rj::Value& x) {
-    element.insert(CCAPI_INSTRUMENT, x["url_symbol"].GetString());
-    std::string name = x["name"].GetString();
-    auto splitted = UtilString::split(name, "/");
-    auto baseAsset = splitted.at(0);
-    auto quoteAsset = splitted.at(1);
-    element.insert(CCAPI_BASE_ASSET, baseAsset);
-    element.insert(CCAPI_QUOTE_ASSET, quoteAsset);
+    element.insert(CCAPI_INSTRUMENT, x["market_symbol"].GetString());
+    element.insert(CCAPI_BASE_ASSET, x["base_currency"].GetString());
+    element.insert(CCAPI_QUOTE_ASSET, x["counter_currency"].GetString());
     int counterDecimals = std::stoi(x["counter_decimals"].GetString());
     if (counterDecimals > 0) {
       element.insert(CCAPI_ORDER_PRICE_INCREMENT, "0." + std::string(counterDecimals - 1, '0') + "1");
@@ -210,13 +218,22 @@ class MarketDataServiceBitstamp : public MarketDataService {
     } else {
       element.insert(CCAPI_ORDER_QUANTITY_INCREMENT, "1");
     }
-    auto splittedMinimumOrder = UtilString::split(x["minimum_order"].GetString(), ' ');
-    if (splittedMinimumOrder.size() == 2) {
-      if (splittedMinimumOrder.at(1) == quoteAsset) {
-        element.insert(CCAPI_ORDER_QUOTE_QUANTITY_MIN, splittedMinimumOrder.at(0));
-      } else if (splittedMinimumOrder.at(1) == baseAsset) {
-        element.insert(CCAPI_ORDER_QUANTITY_MIN, splittedMinimumOrder.at(0));
-      }
+    if (x.HasMember("minimum_order_amount")) {
+      element.insert(CCAPI_ORDER_QUANTITY_MIN, x["minimum_order_amount"].GetString());
+    } else {
+      element.insert(CCAPI_ORDER_QUANTITY_MIN, element.getValue(CCAPI_ORDER_QUANTITY_INCREMENT));
+    }
+    if (x.HasMember("minimum_order_value")) {
+      element.insert(CCAPI_ORDER_QUOTE_QUANTITY_MIN, x["minimum_order_value"].GetString());
+    }
+    if (x.HasMember("maximum_order_amount")) {
+      element.insert(CCAPI_ORDER_QUANTITY_MAX, x["maximum_order_amount"].GetString());
+    }
+    if (x.HasMember("maximum_order_value")) {
+      element.insert(CCAPI_ORDER_QUOTE_QUANTITY_MAX, x["maximum_order_value"].GetString());
+    }
+    if (x.HasMember("contract_size")) {
+      element.insert(CCAPI_CONTRACT_SIZE, x["contract_size"].GetString());
     }
   }
 
@@ -239,6 +256,26 @@ class MarketDataServiceBitstamp : public MarketDataService {
           marketDataMessage.data[MarketDataMessage::DataType::TRADE].emplace_back(std::move(dataPoint));
           marketDataMessageList.emplace_back(std::move(marketDataMessage));
         }
+      } break;
+      case Request::Operation::GET_MARKET_DEPTH: {
+        MarketDataMessage marketDataMessage;
+        marketDataMessage.type = MarketDataMessage::Type::MARKET_DATA_EVENTS_MARKET_DEPTH;
+        std::string microtimestamp = document["microtimestamp"].GetString();
+        microtimestamp.insert(microtimestamp.size() - 6, ".");
+        marketDataMessage.tp = UtilTime::makeTimePoint(UtilTime::divide(microtimestamp));
+        for (const auto& x : document["bids"].GetArray()) {
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
+          marketDataMessage.data[MarketDataMessage::DataType::BID].emplace_back(std::move(dataPoint));
+        }
+        for (const auto& x : document["asks"].GetArray()) {
+          MarketDataMessage::TypeForDataPoint dataPoint;
+          dataPoint.emplace(MarketDataMessage::DataFieldType::PRICE, x[0].GetString());
+          dataPoint.emplace(MarketDataMessage::DataFieldType::SIZE, x[1].GetString());
+          marketDataMessage.data[MarketDataMessage::DataType::ASK].emplace_back(std::move(dataPoint));
+        }
+        marketDataMessageList.emplace_back(std::move(marketDataMessage));
       } break;
       case Request::Operation::GET_INSTRUMENT: {
         Message message;
@@ -278,4 +315,3 @@ class MarketDataServiceBitstamp : public MarketDataService {
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_MARKET_DATA_SERVICE_BITSTAMP_H_

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_EVENT_HANDLER_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_EVENT_HANDLER_H_
+#pragma once
+
 #include "ccapi_cpp/ccapi_event.h"
 
 namespace ccapi {
@@ -27,4 +27,3 @@ class EventHandler {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_EVENT_HANDLER_H_

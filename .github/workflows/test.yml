@@ -14,6 +14,10 @@ on:
       - '**/README.md'
       - '**.example'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   CMAKE_VERSION: 3.17.5
   NINJA_VERSION: 1.9.0
@@ -53,7 +57,7 @@ jobs:
       #   }
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja

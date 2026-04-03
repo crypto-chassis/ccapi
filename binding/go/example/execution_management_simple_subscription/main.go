@@ -13,7 +13,7 @@ type MyEventHandler struct {
 
 func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 	if event.GetType() == ccapi.EventType_SUBSCRIPTION_STATUS {
-		fmt.Printf("Received an event of type SUBSCRIPTION_STATUS:\n%s\n", event.ToStringPretty(2, 2))
+		fmt.Printf("Received an event of type SUBSCRIPTION_STATUS:\n%s\n", event.ToPrettyString(2, 2))
 		message := event.GetMessageList().Get(0)
 		if message.GetType() == ccapi.MessageType_SUBSCRIPTION_STARTED {
 			request := ccapi.NewRequest(ccapi.RequestOperation_CREATE_ORDER, "okx", "BTC-USDT")
@@ -27,7 +27,7 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 			session.SendRequest(request)
 		}
 	} else if event.GetType() == ccapi.EventType_SUBSCRIPTION_DATA {
-		fmt.Printf("Received an event of type SUBSCRIPTION_DATA:\n%s\n", event.ToStringPretty(2, 2))
+		fmt.Printf("Received an event of type SUBSCRIPTION_DATA:\n%s\n", event.ToPrettyString(2, 2))
 	}
 	}
 

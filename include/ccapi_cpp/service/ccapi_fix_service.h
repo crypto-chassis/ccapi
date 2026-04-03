@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifndef CCAPI_FIX_READ_BUFFER_SIZE
 #define CCAPI_FIX_READ_BUFFER_SIZE (1 << 20)
@@ -170,7 +170,7 @@ class FixService : public Service {
           if constexpr (std::is_same_v<StreamType, beast::ssl_stream<beast::tcp_stream>>) {
             if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), fixConnectionPtr->host.c_str())) {
               beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-              CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+              CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name for host " + fixConnectionPtr->host + ": " + ec.message());
               this->onError(Event::Type::FIX_STATUS, Message::Type::FIX_FAILURE, ec, "set SNI Hostname", {fixConnectionPtr->subscription.getCorrelationId()});
               return;
             }
@@ -698,4 +698,3 @@ class FixService : public Service {
 
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_H_

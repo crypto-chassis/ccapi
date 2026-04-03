@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_
+#pragma once
+
 #include <optional>
 #include <string>
 
@@ -64,4 +64,3 @@ class SessionOptions {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_SESSION_OPTIONS_H_

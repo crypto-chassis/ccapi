@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_
+#pragma once
+
 #include <set>
 #include <string>
 
@@ -193,4 +193,3 @@ class Subscription {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_SUBSCRIPTION_H_

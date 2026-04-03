@@ -1,5 +1,13 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_
+#pragma once
+
+#if (defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                   \
+     (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))) || \
+    (defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                          \
+     (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART)))
+#define CCAPI_REQUIRES_INFLATE_STREAM 1
+#else
+#define CCAPI_REQUIRES_INFLATE_STREAM 0
+#endif
 
 #ifndef CCAPI_HTTP_RESPONSE_PARSER_BODY_LIMIT
 #define CCAPI_HTTP_RESPONSE_PARSER_BODY_LIMIT (8 * 1024 * 1024)
@@ -26,12 +34,6 @@
 #ifndef CCAPI_WEBSOCKET_WRITE_BUFFER_SIZE
 #define CCAPI_WEBSOCKET_WRITE_BUFFER_SIZE (1 << 20)
 #endif
-
-#define CCAPI_REQUIRES_INFLATE_STREAM                                                                                                              \
-  ((defined(CCAPI_ENABLE_SERVICE_MARKET_DATA) &&                                                                                                   \
-    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP))) || \
-   (defined(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT) &&                                                                                          \
-    (defined(CCAPI_ENABLE_EXCHANGE_HUOBI_USDT_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_HUOBI_COIN_SWAP) || defined(CCAPI_ENABLE_EXCHANGE_BITMART))))
 
 #include <regex>
 
@@ -530,7 +532,7 @@ class Service : public std::enable_shared_from_this<Service> {
     // Set SNI hostname (important for TLS handshakes)
     if (!SSL_set_tlsext_host_name(streamPtr->native_handle(), host.c_str())) {
       beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-      CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+      CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name for host " + host + ": " + ec.message());
       throw ec;
     }
 
@@ -1021,7 +1023,7 @@ class Service : public std::enable_shared_from_this<Service> {
             // Set SNI hostname (only for WSS)
             if (!SSL_set_tlsext_host_name(streamPtr->next_layer().native_handle(), wsConnectionPtr->host.c_str())) {
               beast::error_code ec{static_cast<int>(::ERR_get_error()), net::error::get_ssl_category()};
-              CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name: " + ec.message());
+              CCAPI_LOGGER_DEBUG("error SSL_set_tlsext_host_name for host " + wsConnectionPtr->host + ": " + ec.message());
               this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "set SNI Hostname", wsConnectionPtr->correlationIdList);
               return;
             }
@@ -1674,4 +1676,3 @@ class Service : public std::enable_shared_from_this<Service> {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_SERVICE_H_

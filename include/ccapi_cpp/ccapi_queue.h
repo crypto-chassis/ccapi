@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_QUEUE_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_QUEUE_H_
+#pragma once
+
 #include <mutex>
 #include <vector>
 
@@ -87,4 +87,3 @@ class Queue {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_QUEUE_H_

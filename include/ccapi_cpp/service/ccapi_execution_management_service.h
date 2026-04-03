@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #include <sys/stat.h>
 
@@ -373,4 +373,3 @@ class ExecutionManagementService : public Service {
 
 } /* namespace ccapi */
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_EXECUTION_MANAGEMENT_SERVICE_H_

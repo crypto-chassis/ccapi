@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_CCAPI_URL_H_
-#define INCLUDE_CCAPI_CPP_CCAPI_URL_H_
+#pragma once
+
 #include <regex>
 #include <string>
 
@@ -120,4 +120,3 @@ class Url {
 };
 
 } /* namespace ccapi */
-#endif  // INCLUDE_CCAPI_CPP_CCAPI_URL_H_

@@ -75,7 +75,7 @@
 * Example CMake: example/CMakeLists.txt.
 * Require C++17 and OpenSSL.
 * Macros in the compiler command line:
-  * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_OKX`, etc. These macros can be found at the top of [`include/ccapi_cpp/ccapi_session.h`](include/ccapi_cpp/ccapi_session.h).
+  * Define service enablement macro such as `CCAPI_ENABLE_SERVICE_MARKET_DATA`, `CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT`, `CCAPI_ENABLE_SERVICE_FIX`, etc. and exchange enablement macros such as `CCAPI_ENABLE_EXCHANGE_BYBIT`, etc. These macros can be found at the top of [`include/ccapi_cpp/ccapi_session.h`](include/ccapi_cpp/ccapi_session.h).
 * Dependencies:
   * boost https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz (notice that its include directory is boost).
   * rapidjson https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.tar.gz (notice that its include directory is rapidjson/include).
@@ -212,7 +212,7 @@ For a specific exchange and instrument, get recents trades.
 
 **Code 1:**
 
-[C++](example/src/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py) / [Java](binding/java/example/market_data_simple_request/Main.java) / [C#](binding/csharp/example/market_data_simple_request/MainProgram.cs) / [Go](binding/go/example/market_data_simple_request/main.go) / [Javascript](binding/javascript/example/market_data_simple_request/index.js)
+[C++](example/market_data_simple_request/main.cpp) / [Python](binding/python/example/market_data_simple_request/main.py) / [Java](binding/java/example/market_data_simple_request/Main.java) / [C#](binding/csharp/example/market_data_simple_request/MainProgram.cs) / [Go](binding/go/example/market_data_simple_request/main.go) / [Javascript](binding/javascript/example/market_data_simple_request/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Request request(Request::Operation::GET_RECENT_TRADES, "okx", "BTC-USDT");
+  Request request(Request::Operation::GET_RECENT_TRADES, "bybit", "BTCUSDT");
   request.appendParam({
       {"LIMIT", "1"},
   });
@@ -281,7 +281,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `GET_SERVER_TIME`, `GET_INSTRUMENT`, `GET_INSTRUMENTS`, `GET_BBOS`, `GET_RECENT_TRADES`, `GET_HISTORICAL_TRADES`, `GET_RECENT_CANDLESTICKS`, `GET_HISTORICAL_CANDLESTICKS`, `GET_RECENT_AGG_TRADES`, `GET_HISTORICAL_AGG_TRADES`(only applicable to binance family: https://binance-docs.github.io/apidocs/spot/en/#compressed-aggregate-trades-list), ``.
-* Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`, `CANDLESTICK_INTERVAL_SECONDS`, `START_TIME_SECONDS`, `END_TIME_SECONDS`, `START_TRADE_ID`, `END_TRADE_ID`, `START_AGG_TRADE_ID`, `END_AGG_TRADE_ID`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/market_data_advanced_request/main.cpp).
+* Request parameter names: `LIMIT`, `INSTRUMENT_TYPE`, `CANDLESTICK_INTERVAL_SECONDS`, `START_TIME_SECONDS`, `END_TIME_SECONDS`, `START_TRADE_ID`, `END_TRADE_ID`, `START_AGG_TRADE_ID`, `END_AGG_TRADE_ID`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/market_data_advanced_request/main.cpp).
 * Message's `time` represents the exchange's reported timestamp. Its `timeReceived` represents the library's receiving timestamp. `time` can be retrieved by `getTime` method and `timeReceived` can be retrieved by `getTimeReceived` method. (For non-C++, please use `getTimeUnix` and `getTimeReceivedUnix` methods or `getTimeISO` and `getTimeReceivedISO` methods).
 
 **Objective 2:**
@@ -290,7 +290,7 @@ For a specific exchange and instrument, whenever the best bid's or ask's price o
 
 **Code 2:**
 
-[C++](example/src/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java) / [C#](binding/csharp/example/market_data_simple_subscription/MainProgram.cs) / [Go](binding/go/example/market_data_simple_subscription/main.go) / [Javascript](binding/javascript/example/market_data_simple_subscription/index.js)
+[C++](example/market_data_simple_subscription/main.cpp) / [Python](binding/python/example/market_data_simple_subscription/main.py) / [Java](binding/java/example/market_data_simple_subscription/Main.java) / [C#](binding/csharp/example/market_data_simple_subscription/MainProgram.cs) / [Go](binding/go/example/market_data_simple_subscription/main.go) / [Javascript](binding/javascript/example/market_data_simple_subscription/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -331,7 +331,7 @@ int main(int argc, char** argv) {
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH");
+  Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH");
   session.subscribe(subscription);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();
@@ -354,13 +354,12 @@ Best bid and ask at 2020-07-27T23:56:51.935993000Z are:
 ### Advanced Market Data
 
 #### Complex request parameters
-Please follow the exchange's API documentations: e.g. https://www.okx.com/docs-v5/en/#order-book-trading-market-data-get-trades-history.
+Please follow the exchange's API documentations: e.g. https://bybit-exchange.github.io/docs/v5/market/instrument.
 ```
-Request request(Request::Operation::GET_HISTORICAL_TRADES, "okx", "BTC-USDT");
+Request request(Request::Operation::GET_INSTRUMENTS, "bybit");
 request.appendParam({
-  {"before", "1"},
-  {"after", "3"},
-  {"limit", "1"},
+    {"category", "linear"},
+    {"limit", "1000"},
 });
 ```
 
@@ -368,18 +367,18 @@ request.appendParam({
 
 Instantiate `Subscription` with option `MARKET_DEPTH_MAX` set to be the desired market depth (e.g. you want to receive market depth snapshot whenever the top 10 bid's or ask's price or size changes).
 ```
-Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "MARKET_DEPTH_MAX=10");
+Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "MARKET_DEPTH_MAX=10");
 ```
 
 #### Specify correlation id
 
 Instantiate `Request` with the desired correlationId. The `correlationId` should be unique.
 ```
-Request request(Request::Operation::GET_RECENT_TRADES, "okx", "BTC-USDT", "cool correlation id");
+Request request(Request::Operation::GET_RECENT_TRADES, "bybit", "BTCUSDT", "cool correlation id");
 ```
 Instantiate `Subscription` with the desired correlationId.
 ```
-Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "", "cool correlation id");
+Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "", "cool correlation id");
 ```
 This is used to match a particular request or subscription with its returned data. Within each `Message` there is a `correlationIdList` to identify the request or subscription that requested the data.
 
@@ -387,7 +386,7 @@ This is used to match a particular request or subscription with its returned dat
 
 Send a `std::vector<Request>`.
 ```
-Request request_1(Request::Operation::GET_RECENT_TRADES, "okx", "BTC-USDT", "cool correlation id for BTC");
+Request request_1(Request::Operation::GET_RECENT_TRADES, "bybit", "BTCUSDT", "cool correlation id for BTC");
 request_1.appendParam(...);
 Request request_2(Request::Operation::GET_RECENT_TRADES, "binance", "ETH-USDT", "cool correlation id for ETH");
 request_2.appendParam(...);
@@ -396,8 +395,8 @@ session.sendRequest(requests);
 ```
 Subscribe a `std::vector<Subscription>`.
 ```
-Subscription subscription_1("okx", "BTC-USDT", "MARKET_DEPTH", "", "cool correlation id for okx BTC-USDT");
-Subscription subscription_2("binance", "ETH-USDT", "MARKET_DEPTH", "", "cool correlation id for binance ETH-USDT");
+Subscription subscription_1("bybit", "BTCUSDT", "MARKET_DEPTH", "", "cool correlation id for bybit BTCUSDT");
+Subscription subscription_2("binance", "ETHUSDT", "MARKET_DEPTH", "", "cool correlation id for binance ETHUSDT");
 std::vector<ccapi::Subscription> subscriptions = {subscription_1, subscription_2};
 session.subscribe(subscriptions);
 ```
@@ -406,49 +405,49 @@ session.subscribe(subscriptions);
 
 Instantiate `Subscription` with option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval.
 ```
-Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000");
+Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000");
 ```
 
 #### Receive subscription events at periodic intervals including when the market depth snapshot hasn't changed
 
 Instantiate `Subscription` with option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CONFLATE_GRACE_PERIOD_MILLISECONDS` to be the grace period for late events.
 ```
-Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
+Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "CONFLATE_INTERVAL_MILLISECONDS=1000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
 ```
 
 #### Receive subscription market depth updates
 
 Instantiate `Subscription` with option `MARKET_DEPTH_RETURN_UPDATE` set to 1. This will return the order book updates instead of snapshots.
 ```
-Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "MARKET_DEPTH_RETURN_UPDATE=1&MARKET_DEPTH_MAX=2");
+Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "MARKET_DEPTH_RETURN_UPDATE=1&MARKET_DEPTH_MAX=2");
 ```
 
 #### Receive subscription trade events
 
 Instantiate `Subscription` with field `TRADE`.
 ```
-Subscription subscription("okx", "BTC-USDT", "TRADE");
+Subscription subscription("bybit", "BTCUSDT", "TRADE");
 ```
 
 #### Receive subscription calculated-candlestick events at periodic intervals
 
 Instantiate `Subscription` with field `TRADE` and option `CONFLATE_INTERVAL_MILLISECONDS` set to be the desired interval and `CONFLATE_GRACE_PERIOD_MILLISECONDS` to be your network latency.
 ```
-Subscription subscription("okx", "BTC-USDT", "TRADE", "CONFLATE_INTERVAL_MILLISECONDS=5000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
+Subscription subscription("bybit", "BTCUSDT", "TRADE", "CONFLATE_INTERVAL_MILLISECONDS=5000&CONFLATE_GRACE_PERIOD_MILLISECONDS=0");
 ```
 
 #### Receive subscription exchange-provided-candlestick events at periodic intervals
 
 Instantiate `Subscription` with field `CANDLESTICK` and option `CANDLESTICK_INTERVAL_SECONDS` set to be the desired interval.
 ```
-Subscription subscription("okx", "BTC-USDT", "CANDLESTICK", "CANDLESTICK_INTERVAL_SECONDS=60");
+Subscription subscription("bybit", "BTCUSDT", "CANDLESTICK", "CANDLESTICK_INTERVAL_SECONDS=60");
 ```
 
 #### Send generic public requests
 
 Instantiate `Request` with operation `GENERIC_PUBLIC_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (query string parameter values should be url-encoded), `HTTP_BODY`.
 ```
-Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "okx", "", "Check Server Time");
+Request request(Request::Operation::GENERIC_PUBLIC_REQUEST, "bybit", "", "Check Server Time");
 request.appendParam({
     {"HTTP_METHOD", "GET"},
     {"HTTP_PATH", "/api/v5/public/time"},
@@ -459,14 +458,14 @@ request.appendParam({
 
 Instantiate `Subscription` with empty instrument, field `GENERIC_PUBLIC_SUBSCRIPTION` and options set to be the desired websocket payload.
 ```
-Subscription subscription("okx", "", "GENERIC_PUBLIC_SUBSCRIPTION", R"({"type":"subscribe","channels":[{"name":"status"}]})");
+Subscription subscription("bybit", "", "GENERIC_PUBLIC_SUBSCRIPTION", R"({"type":"subscribe","channels":[{"name":"status"}]})");
 ```
 
 #### Send generic private requests
 
 Instantiate `Request` with operation `GENERIC_PRIVATE_REQUEST`. Provide request parameters `HTTP_METHOD`, `HTTP_PATH`, and optionally `HTTP_QUERY_STRING` (query string parameter values should be url-encoded), `HTTP_BODY`.
 ```
-Request request(Request::Operation::GENERIC_PRIVATE_REQUEST, "okx", "", "close all positions");
+Request request(Request::Operation::GENERIC_PRIVATE_REQUEST, "bybit", "", "close all positions");
 request.appendParam({
     {"HTTP_METHOD", "POST"},
     {"HTTP_PATH", "/api/v5/trade/close-position"},
@@ -485,7 +484,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code 1:**
 
-[C++](example/src/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java) / [C#](binding/csharp/example/execution_management_simple_request/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_request/main.go) / [Javascript](binding/javascript/example/execution_management_simple_request/index.js)
+[C++](example/execution_management_simple_request/main.cpp) / [Python](binding/python/example/execution_management_simple_request/main.py) / [Java](binding/java/example/execution_management_simple_request/Main.java) / [C#](binding/csharp/example/execution_management_simple_request/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_request/main.go) / [Javascript](binding/javascript/example/execution_management_simple_request/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -511,24 +510,21 @@ using ::ccapi::toString;
 using ::ccapi::UtilSystem;
 
 int main(int argc, char** argv) {
-  if (UtilSystem::getEnvAsString("OKX_API_KEY").empty()) {
-    std::cerr << "Please set environment variable OKX_API_KEY" << std::endl;
+  if (UtilSystem::getEnvAsString("BYBIT_API_KEY").empty()) {
+    std::cerr << "Please set environment variable BYBIT_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
-  if (UtilSystem::getEnvAsString("OKX_API_SECRET").empty()) {
-    std::cerr << "Please set environment variable OKX_API_SECRET" << std::endl;
+  if (UtilSystem::getEnvAsString("BYBIT_API_SECRET").empty()) {
+    std::cerr << "Please set environment variable BYBIT_API_SECRET" << std::endl;
     return EXIT_FAILURE;
   }
-  if (UtilSystem::getEnvAsString("OKX_API_PASSPHRASE").empty()) {
-    std::cerr << "Please set environment variable OKX_API_PASSPHRASE" << std::endl;
-    return EXIT_FAILURE;
-  }
+
 
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT");
+  Request request(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT");
   request.appendParam({
       {"SIDE", "BUY"},
       {"QUANTITY", "0.0005"},
@@ -576,7 +572,7 @@ Received an event:
 Bye
 ```
 * Request operation types: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
-* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/src/execution_management_advanced_request/main.cpp).
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/execution_management_advanced_request/main.cpp).
 
 **Objective 2:**
 
@@ -584,7 +580,7 @@ For a specific exchange and instrument, receive order updates.
 
 **Code 2:**
 
-[C++](example/src/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py) / [Java](binding/java/example/execution_management_simple_subscription/Main.java) / [C#](binding/csharp/example/execution_management_simple_subscription/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_subscription/main.go) / [Javascript](binding/javascript/example/execution_management_simple_subscription/index.js)
+[C++](example/execution_management_simple_subscription/main.cpp) / [Python](binding/python/example/execution_management_simple_subscription/main.py) / [Java](binding/java/example/execution_management_simple_subscription/Main.java) / [C#](binding/csharp/example/execution_management_simple_subscription/MainProgram.cs) / [Go](binding/go/example/execution_management_simple_subscription/main.go) / [Javascript](binding/javascript/example/execution_management_simple_subscription/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -599,7 +595,7 @@ class MyEventHandler : public EventHandler {
       std::cout << "Received an event of type SUBSCRIPTION_STATUS:\n" + event.toPrettyString(2, 2) << std::endl;
       auto message = event.getMessageList().at(0);
       if (message.getType() == Message::Type::SUBSCRIPTION_STARTED) {
-        Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT");
+        Request request(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT");
         request.appendParam({
             {"SIDE", "BUY"},
             {"LIMIT_PRICE", "20000"},
@@ -625,23 +621,20 @@ using ::ccapi::Subscription;
 using ::ccapi::UtilSystem;
 
 int main(int argc, char** argv) {
-  if (UtilSystem::getEnvAsString("OKX_API_KEY").empty()) {
-    std::cerr << "Please set environment variable OKX_API_KEY" << std::endl;
+  if (UtilSystem::getEnvAsString("BYBIT_API_KEY").empty()) {
+    std::cerr << "Please set environment variable BYBIT_API_KEY" << std::endl;
     return EXIT_FAILURE;
   }
-  if (UtilSystem::getEnvAsString("OKX_API_SECRET").empty()) {
-    std::cerr << "Please set environment variable OKX_API_SECRET" << std::endl;
+  if (UtilSystem::getEnvAsString("BYBIT_API_SECRET").empty()) {
+    std::cerr << "Please set environment variable BYBIT_API_SECRET" << std::endl;
     return EXIT_FAILURE;
   }
-  if (UtilSystem::getEnvAsString("OKX_API_PASSPHRASE").empty()) {
-    std::cerr << "Please set environment variable OKX_API_PASSPHRASE" << std::endl;
-    return EXIT_FAILURE;
-  }
+
   SessionOptions sessionOptions;
   SessionConfigs sessionConfigs;
   MyEventHandler eventHandler;
   Session session(sessionOptions, sessionConfigs, &eventHandler);
-  Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE");
+  Subscription subscription("bybit", "BTCUSDT", "ORDER_UPDATE");
   session.subscribe(subscription);
   std::this_thread::sleep_for(std::chrono::seconds(10));
   session.stop();
@@ -705,11 +698,11 @@ Bye
 
 Instantiate `Request` with the desired `correlationId`. The `correlationId` should be unique.
 ```
-Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT", "cool correlation id");
+Request request(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT", "cool correlation id");
 ```
 Instantiate `Subscription` with the desired `correlationId`.
 ```
-Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "cool correlation id");
+Subscription subscription("bybit", "BTCUSDT", "ORDER_UPDATE", "", "cool correlation id");
 ```
 This is used to match a particular request or subscription with its returned data. Within each `Message` there is a `correlationIdList` to identify the request or subscription that requested the data.
 
@@ -717,23 +710,23 @@ This is used to match a particular request or subscription with its returned dat
 
 Send a `std::vector<Request>`.
 ```
-Request request_1(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT", "cool correlation id for BTC");
+Request request_1(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT", "cool correlation id for BTC");
 request_1.appendParam(...);
-Request request_2(Request::Operation::CREATE_ORDER, "okx", "ETH-USDT", "cool correlation id for ETH");
+Request request_2(Request::Operation::CREATE_ORDER, "bybit", "ETH-USDT", "cool correlation id for ETH");
 request_2.appendParam(...);
 std::vector<ccapi::Request> requests = {request_1, request_2};
 session.sendRequest(requests);
 ```
 Subscribe one `Subscription` per exchange with a comma separated string of instruments.
 ```
-Subscription subscription("okx", "BTC-USDT,ETH-USDT", "ORDER_UPDATE");
+Subscription subscription("bybit", "BTC-USDT,ETH-USDT", "ORDER_UPDATE");
 ```
 
 #### Multiple subscription fields
 
 Subscribe one `Subscription` with a comma separated string of fields.
 ```
-Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE,PRIVATE_TRADE");
+Subscription subscription("bybit", "BTCUSDT", "ORDER_UPDATE,PRIVATE_TRADE");
 ```
 
 #### Make Session::sendRequest blocking
@@ -752,31 +745,30 @@ There are 3 ways to provide API credentials (listed with increasing priority).
 * Provide credentials to `SessionConfigs`.
 ```
 sessionConfigs.setCredential({
-  {"OKX_API_KEY", ...},
-  {"OKX_API_SECRET", ...}
+  {"BYBIT_API_KEY", ...},
+  {"BYBIT_API_SECRET", ...}
 });
 ```
 * Provide credentials to `Request` or `Subscription`.
 ```
-Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT", "", {
-  {"OKX_API_KEY", ...},
-  {"OKX_API_SECRET", ...}
+Request request(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT", "", {
+  {"BYBIT_API_KEY", ...},
+  {"BYBIT_API_SECRET", ...}
 });
 ```
 ```
-Subscription subscription("okx", "BTC-USDT", "ORDER_UPDATE", "", "", {
-  {"OKX_API_KEY", ...},
-  {"OKX_API_SECRET", ...}
+Subscription subscription("bybit", "BTCUSDT", "ORDER_UPDATE", "", "", {
+  {"BYBIT_API_KEY", ...},
+  {"BYBIT_API_SECRET", ...}
 });
 ```
 
 #### Complex request parameters
-Please follow the exchange's API documentations: e.g. https://www.okx.com/docs-v5/en/#order-book-trading-trade-post-place-order.
+Please follow the exchange's API documentations: e.g. https://bybit-exchange.github.io/docs/v5/order/create-order.
 ```
-Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT");
+Request request(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT");
 request.appendParam({
-    {"tdMode", "cross"},
-    {"ccy", "USDT"},
+    {"isLeverage", "1"},
 });
 ```
 
@@ -784,10 +776,10 @@ request.appendParam({
 For okx, cryptocom:
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
-Subscription subscription("okx", "", "ORDER_UPDATE", "", websocketOrderEntrySubscriptionCorrelationId);
+Subscription subscription("bybit", "", "ORDER_UPDATE", "", websocketOrderEntrySubscriptionCorrelationId);
 session.subscribe(subscription);
 ...
-Request request(Request::Operation::CREATE_ORDER, "okx", "BTC-USDT");
+Request request(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT");
 request.appendParam({
     {"SIDE", "BUY"},
     {"LIMIT_PRICE", "20000"},
@@ -828,7 +820,7 @@ For a specific exchange and instrument, submit a simple limit order.
 
 **Code:**
 
-[C++](example/src/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs) / [Go](binding/go/example/fix_simple/main.go) / [Javascript](binding/javascript/example/fix_simple/index.js)
+[C++](example/fix_simple/main.cpp) / [Python](binding/python/example/fix_simple/main.py) / [Java](binding/java/example/fix_simple/Main.java) / [C#](binding/csharp/example/fix_simple/MainProgram.cs) / [Go](binding/go/example/fix_simple/main.go) / [Javascript](binding/javascript/example/fix_simple/index.js)
 ```
 #include "ccapi_cpp/ccapi_session.h"
 
@@ -1002,12 +994,12 @@ Bye
 
 In general there are 2 ways to handle events.
 * When a `Session` is instantiated with an `eventHandler` argument, it will handle events in immediate mode. The `processEvent` method in the `eventHandler` will be invoked immediately when an `Event` is available, and the invocation will run on the thread where `boost::asio::io_context` runs. When a `Session` is instantiated with an `eventHandler` and an `eventDispatcher` argument, it will also handle events in immediate mode. The `processEvent` method in the `eventHandler` will also be invoked immediately when an `Event` is available, but the invocation will run in the thread(s) provided by the `eventDispatcher` therefore not blocking the thread where `boost::asio::io_context` runs. `EventHandler`s and/or `EventDispatcher`s can be shared among different sessions. Otherwise, different sessions are independent from each other.
-An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
+An example can be found [here](example/market_data_advanced_subscription/main.cpp).
 * When a `Session` is instantiated without an `eventHandler` argument, it will handle events in batching mode. The events will be batched into an internal `Queue<Event>` and can be retrieved by
 ```
 std::vector<Event> eventList = session.getEventQueue().purge();
 ```
-An example can be found [here](example/src/market_data_advanced_subscription/main.cpp).
+An example can be found [here](example/market_data_advanced_subscription/main.cpp).
 
 #### Thread safety
 * The following methods are implemented to be thread-safe: `Session::sendRequest`, `Session::subscribe`, `Session::sendRequestByFix`, `Session::setTimer`, all public methods in `Queue`.
@@ -1015,7 +1007,7 @@ An example can be found [here](example/src/market_data_advanced_subscription/mai
 
 #### Enable library logging
 
-[C++](example/src/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py) / [Java](binding/java/example/enable_library_logging/Main.java) / [C#](binding/csharp/example/enable_library_logging/MainProgram.cs) / [Go](binding/go/example/enable_library_logging/main.go)
+[C++](example/enable_library_logging/main.cpp) / [Python](binding/python/example/enable_library_logging/main.py) / [Java](binding/java/example/enable_library_logging/Main.java) / [C#](binding/csharp/example/enable_library_logging/MainProgram.cs) / [Go](binding/go/example/enable_library_logging/main.go)
 
 Extend a subclass, e.g. `MyLogger`, from class `Logger` and override method `logMessage`. Assign a `MyLogger` pointer to `Logger::logger`. Add one of the following macros in the compiler command line: `CCAPI_ENABLE_LOG_TRACE`, `CCAPI_ENABLE_LOG_DEBUG`, `CCAPI_ENABLE_LOG_INFO`, `CCAPI_ENABLE_LOG_WARN`, `CCAPI_ENABLE_LOG_ERROR`, `CCAPI_ENABLE_LOG_FATAL`. Enable logging if you'd like to inspect raw responses/messages from the exchange for troubleshooting purposes.
 ```
@@ -1041,7 +1033,7 @@ Logger* Logger::logger = &myLogger;
 
 #### Set timer
 
-[C++](example/src/set_timer/main.cpp)
+[C++](example/set_timer/main.cpp)
 
 To perform an asynchronous wait, use the utility method `setTimer` in class `Session`. The handlers are invoked in the same threads as the `processEvent` method in the `EventHandler` class. The `id` of the timer should be unique. `delayMilliseconds` can be 0.
 ```
@@ -1055,7 +1047,7 @@ sessionPtr->setTimer(
 
 #### Heartbeat
 
-[C++](example/src/heartbeat/main.cpp)
+[C++](example/heartbeat/main.cpp)
 
 To receive heartbeat events, instantiate a `Subscription` object with field `HEARTBEAT` and subscribe it.
 ```
@@ -1065,7 +1057,7 @@ session.subscribe(subscription);
 
 #### Use multiple sessions
 
-[C++](example/src/use_multiple_sessions/main.cpp)
+[C++](example/use_multiple_sessions/main.cpp)
 
 Multiple `session` instances, each with their own `SessionOptions` and `SessionConfigs`, can share a common `EventHandler`. If no `EventDispatcher` is provided, thread safety must be maintained by using a shared `ServiceContext`.
 ```
@@ -1074,16 +1066,16 @@ session.subscribe(subscription);
 ```
 
 #### Override exchange urls
-You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/src/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://www.okx.com/docs-v5/en/#overview-demo-trading-services).
+You can override exchange urls at compile time by using macros. See section "exchange REST urls", "exchange WS urls", and "exchange FIX urls" in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h). You can also override exchange urls at runtime. See [this example](example/override_exchange_url_at_runtime/main.cpp). These can be useful if you need to connect to test accounts (e.g. https://testnet.bybit.com/).
 
 #### Connect to a proxy
 Instantiate `Subscription` with the desired `proxyUrl`.
 ```
-Subscription subscription("okx", "BTC-USDT", "MARKET_DEPTH", "", "", {}, "172.30.0.146:9000");
+Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "", "", {}, "172.30.0.146:9000");
 ```
 
 #### Reduce build time
-The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/src/reduce_build_time).
+The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/reduce_build_time).
 
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).

@@ -1,5 +1,5 @@
-#ifndef INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_GEMINI_H_
-#define INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_GEMINI_H_
+#pragma once
+
 #ifdef CCAPI_ENABLE_SERVICE_FIX
 #ifdef CCAPI_ENABLE_EXCHANGE_GEMINI
 #include "ccapi_cpp/service/ccapi_fix_service.h"
@@ -56,4 +56,3 @@ class FixServiceGemini : public FixService<beast::tcp_stream> {
 } /* namespace ccapi */
 #endif
 #endif
-#endif  // INCLUDE_CCAPI_CPP_SERVICE_CCAPI_FIX_SERVICE_GEMINI_H_

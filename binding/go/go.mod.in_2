@@ -1,5 +1,7 @@
 module main
 
+go 1.17
+
 require (
     cryptochassis.com/ccapi v1.0.0
 )

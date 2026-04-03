@@ -13,7 +13,7 @@ type MyEventHandler struct {
 
 func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 	if event.GetType() == ccapi.EventType_AUTHORIZATION_STATUS {
-		fmt.Printf("Received an event of type AUTHORIZATION_STATUS:\n%s\n", event.ToStringPretty(2, 2))
+		fmt.Printf("Received an event of type AUTHORIZATION_STATUS:\n%s\n", event.ToPrettyString(2, 2))
 		message := event.GetMessageList().Get(0)
 		if message.GetType() == ccapi.MessageType_AUTHORIZATION_SUCCESS {
 			request := ccapi.NewRequest(ccapi.RequestOperation_FIX, "coinbase", "", "same correlation id for subscription and request")
@@ -44,7 +44,7 @@ func (*MyEventHandler) ProcessEvent(event ccapi.Event, session ccapi.Session)  {
 			session.SendRequestByFix(request)
 		}
 	} else if event.GetType() == ccapi.EventType_FIX {
-		fmt.Printf("Received an event of type FIX:\n%s\n", event.ToStringPretty(2, 2))
+		fmt.Printf("Received an event of type FIX:\n%s\n", event.ToPrettyString(2, 2))
 	}
 	}
 
