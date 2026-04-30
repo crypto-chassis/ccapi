@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
         {"SIDE", strcmp(argv[3], "buy") == 0 ? "BUY" : "SELL"},
         {"QUANTITY", argv[4]},
         {"LIMIT_PRICE", argv[5]},
+        {"CLIENT_ORDER_ID", request.generateNextClientOrderId()},
     });
     session.sendRequest(request);
   } else if (mode == "cancel_order") {
