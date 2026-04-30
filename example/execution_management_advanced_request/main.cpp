@@ -36,6 +36,7 @@ int main(int argc, char** argv) {
   request.appendParam({
       {"tdMode", "cross"},
       {"ccy", "USDT"},
+      {"CLIENT_ORDER_ID", request.generateNextClientOrderId()},
   });
   session.sendRequest(request);
   std::this_thread::sleep_for(std::chrono::seconds(10));
