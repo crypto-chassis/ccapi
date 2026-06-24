@@ -57,7 +57,7 @@ jobs:
       #   }
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Download Ninja and CMake
       id: cmake_and_ninja
