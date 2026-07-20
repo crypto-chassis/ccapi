@@ -57,9 +57,10 @@ if(NOT HFFIX_INCLUDE_DIR)
 else()
   add_library(hffix INTERFACE)
 endif()
-include_directories(
-  ${CCAPI_PROJECT_DIR}/include ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR}
-  ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
+
+include_directories(${CCAPI_PROJECT_DIR}/include)
+include_directories(SYSTEM ${BOOST_INCLUDE_DIR} ${RAPIDJSON_INCLUDE_DIR}
+                    ${HFFIX_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 
 find_package(OpenSSL REQUIRED)
 set(ADDITIONAL_LINK_LIBRARIES "")
