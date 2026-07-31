@@ -46,6 +46,8 @@
       - [Override exchange urls](#override-exchange-urls)
       - [Connect to a proxy](#connect-to-a-proxy)
       - [Reduce build time](#reduce-build-time)
+  - [Exchange Specific Notes](#exchange-specific-notes)
+    - [Hyperliquid](#hyperliquid)
   - [Performance Tuning](#performance-tuning)
   - [Known Issues and Workarounds](#known-issues-and-workarounds)
 
@@ -1076,6 +1078,35 @@ Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH", "", "", {}, "172.3
 
 #### Reduce build time
 The Pimpl (Pointer to Implementation) idiom in C++ can significantly reduce build time. This reduction is achieved by minimizing compilation dependencies and isolating implementation details. See [this example](example/reduce_build_time).
+
+## Exchange Specific Notes
+### Hyperliquid
+* If you need execution management, secp256k1 and msgpack are needed. For example, a CMakeLists.txt for macOS will look like
+```
+if(APPLE)
+  find_path(SECP256K1_INCLUDE_DIR secp256k1.h PATHS /opt/homebrew/include)
+  find_path(
+    MSGPACK_INCLUDE_DIR
+    NAMES msgpack.hpp
+    PATHS /opt/homebrew/include)
+
+  find_library(SECP256K1_LIBRARY secp256k1 PATHS /opt/homebrew/lib)
+  find_library(MSGPACKC_LIBRARY msgpackc PATHS /opt/homebrew/lib)
+endif()
+
+add_compile_definitions(CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_HYPERLIQUID)
+add_executable(${NAME} main.cpp)
+add_dependencies(${NAME} boost rapidjson)
+
+target_include_directories(${NAME} PRIVATE ${SECP256K1_INCLUDE_DIR}
+                                           ${MSGPACK_INCLUDE_DIR})
+target_link_libraries(${NAME} PRIVATE ${SECP256K1_LIBRARY} ${MSGPACKC_LIBRARY})
+```
+* For create order and cancel order, please provide hyperliquid's asset id as instrument (e.g. BTC = 0 on mainnet. See https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/asset-ids). For example,
+```
+Request request(Request::Operation::CREATE_ORDER, "hyperliquid", "0");  // Corresponds to https://app.hyperliquid.xyz/trade/BTC
+```
 
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
