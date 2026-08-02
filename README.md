@@ -1107,6 +1107,7 @@ target_link_libraries(${NAME} PRIVATE ${SECP256K1_LIBRARY} ${MSGPACKC_LIBRARY})
 ```
 Request request(Request::Operation::CREATE_ORDER, "hyperliquid", "0");  // Corresponds to https://app.hyperliquid.xyz/trade/BTC
 ```
+* For the client order ID, please use either request.generateNextClientOrderId() or your own implementation, as long as it complies with the Hyperliquid requirements: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/exchange-endpoint#place-an-order. Orders submitted with an invalid client order ID will be rejected.
 
 ## Performance Tuning
 * Turn on compiler optimization flags (e.g. `cmake -DCMAKE_BUILD_TYPE=Release ...`).
