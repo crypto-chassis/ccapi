@@ -294,6 +294,18 @@ class Request {
     }
     nextClientOrderId += std::to_string(lastClientOrderIdUnixTimestampInSeconds);
     nextClientOrderId += UtilString::leftPadTo(std::to_string(lastClientOrderIdSequenceNumber), CCAPI_EM_CLIENT_ORDER_ID_SEQUENCE_NUMBER_PAD_TO_LENGTH, '0');
+
+    if (this->exchange == CCAPI_EXCHANGE_NAME_HYPERLIQUID) {
+      int64_t value = std::stoll(nextClientOrderId);
+      std::stringstream ss;
+      ss << std::hex << std::nouppercase << value;
+      std::string hexStr = ss.str();
+      if (hexStr.length() < 32) {
+        hexStr = std::string(32 - hexStr.length(), '0') + hexStr;
+      }
+      nextClientOrderId = "0x" + hexStr;
+    }
+
     return nextClientOrderId;
   }
 #ifndef CCAPI_EXPOSE_INTERNAL

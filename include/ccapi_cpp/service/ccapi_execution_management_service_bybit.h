@@ -411,6 +411,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
             message.setCorrelationIdList({requestCorrelationId});
             messageList.emplace_back(std::move(message));
           }
+          this->requestCorrelationIdByWsRequestIdByConnectionIdMap.at(wsConnectionPtr->id).erase(wsRequestId);
         }
       }
     } else {
