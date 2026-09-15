@@ -35,7 +35,7 @@ class EventDispatcher {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 
-  void dispatch(const std::function<void()>& op) {
+  virtual void dispatch(const std::function<void()>& op) {
     CCAPI_LOGGER_FUNCTION_ENTER;
     if (this->shouldContinue.load()) {
       CCAPI_LOGGER_TRACE("start to dispatch an operation");
@@ -51,18 +51,18 @@ class EventDispatcher {
     CCAPI_LOGGER_FUNCTION_EXIT;
   }
 
-  void start() {
+  virtual void start() {
     this->shouldContinue = true;
     for (size_t i = 0; i < numDispatcherThreads; i++) {
-      this->dispatcherThreads.push_back(std::thread(&EventDispatcher::dispatch_thread_handler, this));
+      this->dispatcherThreads.push_back(std::thread(&EventDispatcher::dispatchThreadHandler, this));
     }
   }
 
-  void resume() { this->shouldContinue = true; }
+  virtual void resume() { this->shouldContinue = true; }
 
-  void pause() { this->shouldContinue = false; }
+  virtual void pause() { this->shouldContinue = false; }
 
-  void stop() {
+  virtual void stop() {
     std::unique_lock<std::mutex> lock(this->lock);
     this->quit = true;
     lock.unlock();
@@ -73,9 +73,9 @@ class EventDispatcher {
   }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
- private:
+ protected:
 #endif
-  void dispatch_thread_handler() {
+  virtual void dispatchThreadHandler() {
     CCAPI_LOGGER_FUNCTION_ENTER;
     std::unique_lock<std::mutex> lock(this->lock);
     do {
