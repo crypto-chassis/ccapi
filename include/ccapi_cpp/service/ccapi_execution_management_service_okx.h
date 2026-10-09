@@ -51,7 +51,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     preSignedText += methodString;
     auto target = path;
     if (!queryString.empty()) {
-      target += queryString;
+      target += "?" + queryString;
     }
     preSignedText += target;
     preSignedText += body;
@@ -285,6 +285,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         {CCAPI_EM_ORDER_QUANTITY, std::make_pair("sz", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("px", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("accFillSz", JsonDataType::STRING)},
+        {CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, std::make_pair("avgPx", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("state", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instId", JsonDataType::STRING)}};
     const rj::Value& data = document["data"];
