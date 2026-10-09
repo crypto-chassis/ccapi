@@ -178,14 +178,21 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
-        req.target(request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
-                       ? this->createOrderMarginTarget
-                       : this->createOrderTarget);
+        req.target(!this->isDerivatives && !request.getMarginType().empty() ? this->createOrderMarginTarget : this->createOrderTarget);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(document, allocator, param);
         this->appendSymbolId(document, allocator, symbolId);
+        if (!this->isDerivatives) {
+          if (!request.getMarginType().empty()) {
+            std::string mode = request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN ? "cross" : "isolated";
+            document.AddMember("marginModel", rj::Value(mode.c_str(), allocator).Move(), allocator);
+          }
+        } else {
+          std::string mode = request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN ? "CROSS" : "ISOLATED";
+          document.AddMember("marginMode", rj::Value(mode.c_str(), allocator).Move(), allocator);
+        }
         rj::StringBuffer stringBuffer;
         rj::Writer<rj::StringBuffer> writer(stringBuffer);
         document.Accept(writer);
@@ -220,12 +227,14 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
         req.method(http::verb::get);
         auto target = this->getOpenOrdersTarget;
         target += "?status=active";
-        target += std::string("&tradeType=") + (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
-                                                : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
-                                                                                                                  : "TRADE");
         if (!symbolId.empty()) {
           target += "&symbol=";
           target += symbolId;
+        }
+        if (!this->isDerivatives) {
+          target += std::string("&tradeType=") + (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+                                                  : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                                                                    : "TRADE");
         }
         req.target(target);
         this->signRequest(req, "", credential);
@@ -233,12 +242,14 @@ class ExecutionManagementServiceKucoinBase : public ExecutionManagementService {
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
         auto target = this->cancelOpenOrdersTarget;
-        target += std::string("?tradeType=") + (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
-                                                : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
-                                                                                                                  : "TRADE");
         if (!symbolId.empty()) {
           target += "&symbol=";
           target += symbolId;
+        }
+        if (!this->isDerivatives) {
+          target += std::string("?tradeType=") + (request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN      ? "MARGIN_TRADE"
+                                                  : request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN ? "MARGIN_ISOLATED_TRADE"
+                                                                                                                    : "TRADE");
         }
         req.target(target);
         this->signRequest(req, "", credential);
