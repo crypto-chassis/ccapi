@@ -51,7 +51,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     preSignedText += methodString;
     auto target = path;
     if (!queryString.empty()) {
-      target += queryString;
+      target += "?" + queryString;
     }
     preSignedText += target;
     preSignedText += body;
