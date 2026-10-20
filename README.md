@@ -1,3 +1,11 @@
+[!IMPORTANT]
+⚠️ Action Required for OKX Users — Update Before October 31, 2026
+
+If you use OKX, please update to our latest stable release before October 31, 2026 to ensure compatibility with the upcoming discontinuation of OKX WebSocket Port 8443.
+
+For more details, see the [official OKX announcement](https://www.okx.com/help/okx-websocket-port-8443-discontinuation-announcement).
+
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/ktechhub/doctoc)*

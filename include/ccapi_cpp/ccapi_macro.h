@@ -1202,7 +1202,7 @@
 #endif
 
 #ifndef CCAPI_OKX_URL_WS_BASE
-#define CCAPI_OKX_URL_WS_BASE "wss://ws.okx.com:8443"
+#define CCAPI_OKX_URL_WS_BASE "wss://ws.okx.com"
 #endif
 
 #ifndef CCAPI_OKX_PUBLIC_WS_PATH
