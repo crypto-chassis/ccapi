@@ -807,7 +807,7 @@ session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, req
 ```
 
 #### Specify instrument type
-Some exchanges (i.e. bybit) might need instrument type for `Subscription`. Use `Subscription`'s `setInstrumentType` method.
+Some exchanges (i.e. bybit, bitget-uta) might need instrument type for `Subscription`. Use `Subscription`'s `setInstrumentType` method.
 ```
 Subscription subscription("bybit", "BTCUSDT", "MARKET_DEPTH");
 subscription.setInstrumentType("spot");

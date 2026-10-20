@@ -2,35 +2,100 @@
 
 #ifdef CCAPI_ENABLE_SERVICE_EXECUTION_MANAGEMENT
 #ifdef CCAPI_ENABLE_EXCHANGE_BITGET_UTA
-#include "ccapi_cpp/service/ccapi_execution_management_service_bitget_base.h"
+#include "ccapi_cpp/service/ccapi_execution_management_service.h"
 
 namespace ccapi {
 
-class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBitgetBase {
+class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
  public:
   ExecutionManagementServiceBitgetUta(std::function<void(Event&, Queue<Event>*)> eventHandler, SessionOptions sessionOptions, SessionConfigs sessionConfigs,
                                       ServiceContextPtr serviceContextPtr)
-      : ExecutionManagementServiceBitgetBase(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
+      : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITGET_UTA;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v3/ws/private";
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
-    this->apiKeyName = CCAPI_BITGET_API_KEY;
-    this->apiSecretName = CCAPI_BITGET_API_SECRET;
-    this->apiPassphraseName = CCAPI_BITGET_API_PASSPHRASE;
-    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName});
+    this->apiKeyName = CCAPI_BITGET_UTA_API_KEY;
+    this->apiSecretName = CCAPI_BITGET_UTA_API_SECRET;
+    this->apiPassphraseName = CCAPI_BITGET_UTA_API_PASSPHRASE;
+    this->apiDemoTradingName = CCAPI_BITGET_UTA_API_DEMO_TRADING;
+    this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName, this->apiDemoTradingName});
     this->createOrderTarget = "/api/v3/trade/place-order";
     this->cancelOrderTarget = "/api/v3/trade/cancel-order";
     this->cancelOpenOrdersTarget = "/api/v3/trade/cancel-symbol-order";
     this->getOrderTarget = "/api/v3/trade/order-info";
     this->getOpenOrdersTarget = "/api/v3/trade/unfilled-orders";
     this->getAccountBalancesTarget = "/api/v3/account/assets";
+    this->getAccountPositionsTarget = "/api/v3/position/current-position";
   }
 
   virtual ~ExecutionManagementServiceBitgetUta() {}
 #ifndef CCAPI_EXPOSE_INTERNAL
  private:
 #endif
+  void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override { this->send(wsConnectionPtr, "ping", ec); }
+
+  bool doesHttpBodyContainError(boost::beast::string_view bodyView) override {
+    return !std::regex_search(bodyView.begin(), bodyView.end(), std::regex("\"code\":\\s*\"00000\""));
+  }
+
+  void signReqeustForRestGenericPrivateRequest(http::request<http::string_body>& req, const Request& request, std::string& methodString,
+                                               std::string& headerString, std::string& path, std::string& queryString, std::string& body, const TimePoint& now,
+                                               const std::map<std::string, std::string>& credential) override {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = std::string(req.base().at("ACCESS-TIMESTAMP"));
+    preSignedText += methodString;
+    auto target = path;
+    if (!queryString.empty()) {
+      target += "?";
+      target += queryString;
+    }
+    preSignedText += target;
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
+    if (!headerString.empty()) {
+      headerString += "\r\n";
+    }
+    headerString += "ACCESS-SIGN:" + signature;
+  }
+
+  void signRequest(http::request<http::string_body>& req, const std::string& body, const std::map<std::string, std::string>& credential) {
+    auto apiSecret = mapGetWithDefault(credential, this->apiSecretName);
+    auto preSignedText = std::string(req.base().at("ACCESS-TIMESTAMP"));
+    preSignedText += std::string(req.method_string());
+    preSignedText += std::string(req.target());
+    preSignedText += body;
+    auto signature = UtilAlgorithm::base64Encode(Hmac::hmac(Hmac::ShaVersion::SHA256, apiSecret, preSignedText));
+    req.set("ACCESS-SIGN", signature);
+    req.body() = body;
+    req.prepare_payload();
+  }
+
+  void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
+    rjValue.AddMember("symbol", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
+  }
+
+  void appendSymbolId(std::string& queryString, const std::string& symbolId) {
+    queryString += "symbol=";
+    queryString += Url::urlEncode(symbolId);
+    queryString += "&";
+  }
+
+  void prepareReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
+                  const std::map<std::string, std::string>& credential) {
+    req.set(beast::http::field::content_type, "application/json");
+    req.set("locale", "en-US");
+    auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
+    req.set("ACCESS-KEY", apiKey);
+    req.set("ACCESS-TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()));
+    auto apiPassphrase = mapGetWithDefault(credential, this->apiPassphraseName);
+    req.set("ACCESS-PASSPHRASE", apiPassphrase);
+    auto apiDemoTrading = mapGetWithDefault(credential, this->apiDemoTradingName);
+    if (apiDemoTrading == "1") {
+      req.set("paptrading", "1");
+    }
+  }
+
   // ---------- request helpers ----------
 
   // JSON body params
@@ -62,6 +127,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
                        {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
                        {CCAPI_SYMBOL_ID, "symbol"},
                        {CCAPI_INSTRUMENT_TYPE, "category"},
+                       {CCAPI_EM_POSITION_SIDE, "posSide"},
                        {CCAPI_LIMIT, "limit"},
                    }) {
     for (const auto& kv : param) {
@@ -80,13 +146,13 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
 
   // v3 trade endpoints take `category` (SPOT, MARGIN, USDT-FUTURES, COIN-FUTURES, USDC-FUTURES); default to SPOT.
   static void addDefaultCategory(rj::Document& document, rj::Document::AllocatorType& allocator, const std::map<std::string, std::string>& param) {
-    if (param.find(CCAPI_INSTRUMENT_TYPE) == param.end()) {
+    if (param.find(CCAPI_INSTRUMENT_TYPE) == param.end() && param.find("category") == param.end()) {
       document.AddMember("category", rj::Value("SPOT").Move(), allocator);
     }
   }
 
   static void addDefaultCategory(std::string& queryString, const std::map<std::string, std::string>& param) {
-    if (param.find(CCAPI_INSTRUMENT_TYPE) == param.end()) {
+    if (param.find(CCAPI_INSTRUMENT_TYPE) == param.end() && param.find("category") == param.end()) {
       queryString += "category=SPOT&";
     }
   }
@@ -183,6 +249,18 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
         req.target(this->getAccountBalancesTarget);
         this->signRequest(req, "", credential);
       } break;
+      case Request::Operation::GET_ACCOUNT_POSITIONS: {
+        req.method(http::verb::get);
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param);
+        if (!symbolId.empty()) {
+          this->appendSymbolId(queryString, symbolId);
+        }
+        popTrailingAmpersand(queryString);
+        req.target(toTarget(this->getAccountPositionsTarget, queryString));
+        this->signRequest(req, "", credential);
+      } break;
       default:
         this->convertRequestForRestCustom(req, request, now, symbolId, credential);
     }
@@ -200,7 +278,9 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("cumExecQty", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("cumExecValue", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("orderStatus", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)},
+        {CCAPI_INSTRUMENT_TYPE, std::make_pair("category", JsonDataType::STRING)},
+    };
     return m;
   }
 
@@ -235,7 +315,6 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        // TODO: verify against the Get Account Assets docs; assumed data.assets[] = {coin, balance, available, locked, ...}
         const rj::Value& data = document["data"];
         for (const auto& x : data["assets"].GetArray()) {
           Element element;
@@ -249,6 +328,23 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
             std::string locked = x.HasMember("locked") ? x["locked"].GetString() : "0";
             element.insert(CCAPI_EM_QUANTITY_TOTAL, ConvertDecimalToString(Decimal(available) + Decimal(locked)));
           }
+          elementList.emplace_back(std::move(element));
+        }
+      } break;
+      case Request::Operation::GET_ACCOUNT_POSITIONS: {
+        for (const auto& x : document["data"]["list"].GetArray()) {
+          Element element;
+          element.insert(CCAPI_INSTRUMENT, x["symbol"].GetString());
+          element.insert(CCAPI_INSTRUMENT_TYPE, x["category"].GetString());
+          element.insert(CCAPI_EM_POSITION_ASSET, x["marginCoin"].GetString());
+          element.insert(CCAPI_MARGIN_ASSET, x["marginCoin"].GetString());
+          element.insert(CCAPI_EM_POSITION_SIDE, x["posSide"].GetString());
+          element.insert(CCAPI_EM_POSITION_QUANTITY, x["total"].GetString());
+          element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, x["avgPrice"].GetString());
+          element.insert(CCAPI_EM_POSITION_LEVERAGE, x["leverage"].GetString());
+          element.insert(CCAPI_EM_UNREALIZED_PNL, x["unrealisedPnl"].GetString());
+          std::string marginMode = x["marginMode"].GetString();
+          element.insert(CCAPI_EM_POSITION_MARGIN_TYPE, marginMode == "crossed" ? CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN : CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
           elementList.emplace_back(std::move(element));
         }
       } break;
@@ -306,6 +402,8 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
           topicSet.insert("fill");
         } else if (field == CCAPI_EM_BALANCE_UPDATE) {
           topicSet.insert("account");
+        } else if (field == CCAPI_EM_POSITION_UPDATE) {
+          topicSet.insert("position");
         }
       }
       rj::Document subscribeDocument;
@@ -357,14 +455,19 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
       };
       if (topic == "fill") {
         if (fieldSet.find(CCAPI_EM_PRIVATE_TRADE) != fieldSet.end()) {
-          // TODO: verify the v3 fill push layout; assumed to mirror GET /api/v3/trade/fills
           for (const auto& x : data.GetArray()) {
             std::string instrument = getStringOrEmpty(x, "symbol");
             if (!instrumentAllowed(instrument)) continue;
             Message message;
             message.setTimeReceived(timeReceived);
             message.setCorrelationIdList({subscription.getCorrelationId()});
-            message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(getStringOrEmpty(x, "createdTime"))));
+            std::string execTime = getStringOrEmpty(x, "execTime");
+            if (execTime.empty()) {
+              execTime = getStringOrEmpty(x, "updatedTime");
+            }
+            if (!execTime.empty()) {
+              message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(execTime)));
+            }
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_PRIVATE_TRADE);
             Element element;
             element.insert(CCAPI_TRADE_ID, x["execId"].GetString());
@@ -375,6 +478,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
             element.insert(CCAPI_EM_ORDER_ID, x["orderId"].GetString());
             element.insert(CCAPI_EM_CLIENT_ORDER_ID, getStringOrEmpty(x, "clientOid"));
             element.insert(CCAPI_EM_ORDER_INSTRUMENT, instrument);
+            element.insert(CCAPI_INSTRUMENT_TYPE, x["category"].GetString());
             auto itFee = x.FindMember("feeDetail");
             if (itFee != x.MemberEnd() && itFee->value.IsArray() && itFee->value.Size() > 0) {
               const rj::Value& fee = itFee->value[0];
@@ -387,7 +491,6 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
         }
       } else if (topic == "order") {
         if (fieldSet.find(CCAPI_EM_ORDER_UPDATE) != fieldSet.end()) {
-          // TODO: verify the v3 order push layout; assumed to mirror GET /api/v3/trade/order-info
           for (const auto& x : data.GetArray()) {
             std::string instrument = getStringOrEmpty(x, "symbol");
             if (!instrumentAllowed(instrument)) continue;
@@ -409,7 +512,6 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
         }
       } else if (topic == "account") {
         if (fieldSet.find(CCAPI_EM_BALANCE_UPDATE) != fieldSet.end()) {
-          // TODO: verify the v3 account push layout; handles both a flat {coin,...} item and an item holding a "coin" array
           for (const auto& x : data.GetArray()) {
             std::vector<Element> elementList;
             auto addCoin = [&](const rj::Value& c) {
@@ -441,6 +543,38 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
             messageList.emplace_back(std::move(message));
           }
         }
+      } else if (topic == "position") {
+        if (fieldSet.find(CCAPI_EM_POSITION_UPDATE) != fieldSet.end()) {
+          for (const auto& x : data.GetArray()) {
+            std::string instrument = getStringOrEmpty(x, "symbol");
+            if (!instrumentAllowed(instrument)) continue;
+            Message message;
+            message.setTimeReceived(timeReceived);
+            message.setCorrelationIdList({subscription.getCorrelationId()});
+            std::string updatedTime = getStringOrEmpty(x, "updatedTime");
+            if (updatedTime.empty()) {
+              updatedTime = getStringOrEmpty(x, "createdTime");
+            }
+            if (!updatedTime.empty()) {
+              message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(updatedTime)));
+            }
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_POSITION_UPDATE);
+            Element element;
+            element.insert(CCAPI_INSTRUMENT, instrument);
+            element.insert(CCAPI_EM_POSITION_SIDE, getStringOrEmpty(x, "posSide"));
+            element.insert(CCAPI_EM_POSITION_QUANTITY, getStringOrEmpty(x, "size"));
+            element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, getStringOrEmpty(x, "avgPrice"));
+            element.insert(CCAPI_EM_POSITION_LEVERAGE, getStringOrEmpty(x, "leverage"));
+            element.insert(CCAPI_EM_POSITION_ASSET, getStringOrEmpty(x, "marginCoin"));
+            element.insert(CCAPI_EM_UNREALIZED_PNL, getStringOrEmpty(x, "unrealisedPnl"));
+            std::string marginMode = getStringOrEmpty(x, "marginMode");
+            if (!marginMode.empty()) {
+              element.insert(CCAPI_EM_POSITION_MARGIN_TYPE, marginMode == "crossed" ? CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN : CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
+            }
+            message.setElementList({element});
+            messageList.emplace_back(std::move(message));
+          }
+        }
       }
     } else if (eventStr == "subscribe") {
       event.setType(Event::Type::SUBSCRIPTION_STATUS);
@@ -466,6 +600,8 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementServiceBit
     event.setMessageList(messageList);
     return event;
   }
+
+  std::string apiDemoTradingName;
 };
 
 } /* namespace ccapi */
