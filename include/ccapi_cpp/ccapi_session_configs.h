@@ -188,6 +188,11 @@ class SessionConfigs {
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_BOOKS},
         {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BITGET_BASE_CHANNEL_KLINE},
     };
+    std::map<std::string, std::string> fieldWebsocketChannelMapBitgetUta = {
+        {CCAPI_TRADE, CCAPI_WEBSOCKET_BITGET_UTA_CHANNEL_TRADES},
+        {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITGET_UTA_CHANNEL_BOOKS},
+        {CCAPI_CANDLESTICK, CCAPI_WEBSOCKET_BITGET_UTA_CHANNEL_KLINE},
+    };
     std::map<std::string, std::string> fieldWebsocketChannelMapBitmart = {
         {CCAPI_TRADE, CCAPI_WEBSOCKET_BITMART_CHANNEL_TRADE},
         {CCAPI_MARKET_DEPTH, CCAPI_WEBSOCKET_BITMART_CHANNEL_PUBLIC_DEPTH5},
@@ -292,6 +297,9 @@ class SessionConfigs {
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitgetFutures) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITGET_FUTURES].push_back(fieldWebsocketChannel.first);
     }
+    for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitgetUta) {
+      this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITGET_UTA].push_back(fieldWebsocketChannel.first);
+    }
     for (auto const& fieldWebsocketChannel : fieldWebsocketChannelMapBitmart) {
       this->exchangeFieldMap[CCAPI_EXCHANGE_NAME_BITMART].push_back(fieldWebsocketChannel.first);
     }
@@ -340,6 +348,7 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_ASCENDEX, fieldWebsocketChannelMapAscendex},
         {CCAPI_EXCHANGE_NAME_BITGET, fieldWebsocketChannelMapBitget},
         {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, fieldWebsocketChannelMapBitgetFutures},
+        {CCAPI_EXCHANGE_NAME_BITGET_UTA, fieldWebsocketChannelMapBitgetUta},
         {CCAPI_EXCHANGE_NAME_BITMART, fieldWebsocketChannelMapBitmart},
         {CCAPI_EXCHANGE_NAME_MEXC, fieldWebsocketChannelMapMexc},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, fieldWebsocketChannelMapMexcFutures},
@@ -378,6 +387,7 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_ASCENDEX, CCAPI_ASCENDEX_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET, CCAPI_BITGET_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, CCAPI_BITGET_FUTURES_URL_WS_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET_UTA, CCAPI_BITGET_UTA_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_WS_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_WS_BASE},
@@ -425,6 +435,7 @@ class SessionConfigs {
         {CCAPI_EXCHANGE_NAME_ASCENDEX, CCAPI_ASCENDEX_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET, CCAPI_BITGET_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITGET_FUTURES, CCAPI_BITGET_FUTURES_URL_REST_BASE},
+        {CCAPI_EXCHANGE_NAME_BITGET_UTA, CCAPI_BITGET_UTA_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_BITMART, CCAPI_BITMART_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC, CCAPI_MEXC_URL_REST_BASE},
         {CCAPI_EXCHANGE_NAME_MEXC_FUTURES, CCAPI_MEXC_FUTURES_URL_REST_BASE},
