@@ -125,10 +125,10 @@ class MarketDataService : public Service {
     const auto& field = subscription.getField();
     if (field == CCAPI_GENERIC_PUBLIC_SUBSCRIPTION) {
       return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getCorrelationId() + "|" + subscription.getSerializedCredential() + "|" +
-             subscription.getProxyUrl();
+             subscription.getInstrumentType() + "|" + subscription.getProxyUrl();
     } else {
       return this->baseUrlWs + "|" + subscription.getField() + "|" + subscription.getSerializedOptions() + "|" + subscription.getSerializedCredential() + "|" +
-             subscription.getProxyUrl();
+             subscription.getInstrumentType() + "|" + subscription.getProxyUrl();
     }
   }
 
