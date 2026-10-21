@@ -62,6 +62,25 @@ class ExecutionManagementServiceKucoinFutures : public ExecutionManagementServic
         CCAPI_LOGGER_FATAL(CCAPI_UNSUPPORTED_VALUE);
     }
   }
+  void extractOrderInfo(Element& element, const rj::Value& x,
+                        const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap,
+                        const std::map<std::string_view, std::function<std::string(const std::string&)>> conversionMap = {}) override {
+    ExecutionManagementServiceKucoinBase::extractOrderInfo(element, x, extractionFieldNameMap);
+    {
+      {
+        auto it = x.FindMember("dealValue");
+        if (it != x.MemberEnd()) {
+          element.insert(CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, it->value.GetString());
+        }
+      }
+      {
+        auto it = x.FindMember("avgDealPrice");
+        if (it != x.MemberEnd()) {
+          element.insert(CCAPI_EM_ORDER_AVERAGE_FILLED_PRICE, it->value.GetString());
+        }
+      }
+    }
+  }
 };
 
 } /* namespace ccapi */

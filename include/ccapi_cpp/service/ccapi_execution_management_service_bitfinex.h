@@ -70,7 +70,7 @@ class ExecutionManagementServiceBitfinex : public ExecutionManagementService {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key != CCAPI_EM_ORDER_QUANTITY && key != CCAPI_EM_ORDER_SIDE) {
-        if (key != "id" & key != "gid" && key != "cid" && key != "flags" && key != "lev") {
+        if (key != "id" && key != "gid" && key != "cid" && key != "flags" && key != "lev") {
           rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
         } else {
           int64_t x = std::stoll(value);

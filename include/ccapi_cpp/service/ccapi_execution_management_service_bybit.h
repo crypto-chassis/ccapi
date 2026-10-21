@@ -480,6 +480,18 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
                   element.insert(CCAPI_EM_ORDER_FEE_QUANTITY, it->value.GetString());
                 }
               }
+              {
+                auto it = x.FindMember("orderPrice");
+                if (it != x.MemberEnd() && !it->value.IsNull()) {
+                  element.insert(CCAPI_EM_ORDER_LIMIT_PRICE, it->value.GetString());
+                }
+              }
+              {
+                auto it = x.FindMember("orderQty");
+                if (it != x.MemberEnd() && !it->value.IsNull()) {
+                  element.insert(CCAPI_EM_ORDER_QUANTITY, it->value.GetString());
+                }
+              }
               elementList.emplace_back(std::move(element));
               message.setElementList(elementList);
               messageList.emplace_back(std::move(message));
