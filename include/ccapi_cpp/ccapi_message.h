@@ -61,6 +61,7 @@ class Message {
     SESSION_CONNECTION_DOWN,
     INCORRECT_STATE_FOUND,
     CREATE_ORDER,
+    AMEND_ORDER,
     CANCEL_ORDER,
     GET_ORDER,
     GET_OPEN_ORDERS,
@@ -151,6 +152,9 @@ class Message {
         break;
       case Type::CREATE_ORDER:
         output = "CREATE_ORDER";
+        break;
+      case Type::AMEND_ORDER:
+        output = "AMEND_ORDER";
         break;
       case Type::CANCEL_ORDER:
         output = "CANCEL_ORDER";

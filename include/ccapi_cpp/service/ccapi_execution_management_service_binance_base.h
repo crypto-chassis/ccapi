@@ -248,6 +248,34 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                         : this->createOrderTarget) +
                    "?" + queryString);
       } break;
+      case Request::Operation::AMEND_ORDER: {
+        // spot: cancel and replace; derivatives: modify order in place
+        req.method(this->isDerivatives ? http::verb::put : http::verb::post);
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, this->isDerivatives ? "orderId" : "cancelOrderId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, this->isDerivatives ? "origClientOrderId" : "newClientOrderId"},
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "quantity"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                          });
+        if (!this->isDerivatives) {
+          if (param.find("type") == param.end()) {
+            queryString += "type=LIMIT&";
+            if (param.find("timeInForce") == param.end()) {
+              queryString += "timeInForce=GTC&";
+            }
+          }
+          if (param.find("cancelReplaceMode") == param.end()) {
+            queryString += "cancelReplaceMode=STOP_ON_FAILURE&";
+          }
+        }
+        this->appendSymbolId(queryString, symbolId);
+        this->signRequest(queryString, param, now, credential);
+        req.target(this->amendOrderTarget + "?" + queryString);
+      } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         std::string queryString;
@@ -346,7 +374,16 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     } else {
       extractionFieldNameMap.emplace(CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOrderId", JsonDataType::STRING));
     }
-    if (document.IsObject()) {
+    if (operation == Request::Operation::AMEND_ORDER && !this->isDerivatives) {
+      Element element;
+      if (document.HasMember("cancelResult")) {
+        element.insert("cancelResult", document["cancelResult"].GetString());
+      }
+      if (document.HasMember("newOrderResult")) {
+        element.insert("newOrderResult", document["newOrderResult"].GetString());
+      }
+      elementList.emplace_back(std::move(element));
+    } else if (document.IsObject()) {
       Element element;
       this->extractOrderInfo(
           element, document, extractionFieldNameMap,
