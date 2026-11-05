@@ -400,6 +400,7 @@ class ExecutionManagementService : public Service {
 
   std::map<std::string, unsigned int> wsRequestIdByConnectionIdMap;
   std::map<std::string, std::map<unsigned int, std::string>> requestCorrelationIdByWsRequestIdByConnectionIdMap;
+  std::map<std::string, std::map<unsigned int, Request::Operation>> requestOperationByWsRequestIdByConnectionIdMap;
 };
 
 } /* namespace ccapi */
