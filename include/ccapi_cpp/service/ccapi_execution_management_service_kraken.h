@@ -14,6 +14,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_KRAKEN;
     this->baseUrlWs = CCAPI_KRAKEN_URL_WS_BASE_PRIVATE;
+    this->baseUrlWsOrderEntry = sessionConfigs.getUrlWebsocketOrderEntryBase().at(this->exchangeName);
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     // this->setHostWsFromUrlWs(this->baseUrlWs);
@@ -38,9 +39,16 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
  protected:
 #endif
 
+  // websocket v2 is only used for order entry; the deprecated v1 endpoint is still used for the push channels
+  bool isWebsocketV2(std::shared_ptr<WsConnection> wsConnectionPtr) { return UtilString::endsWith(wsConnectionPtr->url, "/v2"); }
+
   void pingOnApplicationLevel(std::shared_ptr<WsConnection> wsConnectionPtr, ErrorCode& ec) override {
     auto now = UtilTime::now();
-    this->send(wsConnectionPtr, "{\"reqid\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"event\":\"ping\"}", ec);
+    if (this->isWebsocketV2(wsConnectionPtr)) {
+      this->send(wsConnectionPtr, "{\"req_id\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"method\":\"ping\"}", ec);
+    } else {
+      this->send(wsConnectionPtr, "{\"reqid\":" + std::to_string(UtilTime::getUnixTimestamp(now)) + ",\"event\":\"ping\"}", ec);
+    }
   }
 
   bool doesHttpBodyContainError(boost::beast::string_view bodyView) override { return bodyView.find(R"("error":[])") == std::string::npos; }
@@ -132,7 +140,8 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         body.pop_back();
         this->signRequest(req, body, credential, nonce);
       } break;
-      case Request::Operation::AMEND_ORDER: {
+      case Request::Operation::AMEND_ORDER:
+      case Request::Operation::AMEND_ORDER_KEEP_PRIORITY: {
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         req.target(this->amendOrderTarget);
@@ -317,7 +326,6 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
               document.Parse<rj::kParseNumbersAsStringsFlag>(body.c_str());
               if (document.HasMember("result") && document["result"].HasMember("token")) {
                 std::string token = document["result"]["token"].GetString();
-                wsConnectionPtr->setUrl(that->baseUrlWs);
                 that->connect(wsConnectionPtr);
                 that->extraPropertyByConnectionIdMap[wsConnectionPtr->id].insert({
                     {"token", token},
@@ -335,8 +343,12 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
 
   std::vector<std::string> createSendStringListFromSubscription(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
                                                                 const TimePoint& now, const std::map<std::string, std::string>& credential) override {
-    const auto& fieldSet = subscription.getFieldSet();
     std::vector<std::string> sendStringList;
+    if (this->isWebsocketV2(wsConnectionPtr)) {
+      // the websocket v2 connection is dedicated to order entry; push subscriptions are served by the v1 connection
+      return sendStringList;
+    }
+    const auto& fieldSet = subscription.getFieldSetWithoutWsOrderEntry();
     for (const auto& field : fieldSet) {
       std::string name;
       if (field == CCAPI_EM_ORDER_UPDATE) {
@@ -361,6 +373,142 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     return sendStringList;
   }
 
+  static bool isNumberString(const std::string& value) {
+    if (value.empty()) {
+      return false;
+    }
+    if (value.find_first_not_of("0123456789+-.eE") != std::string::npos) {
+      return false;
+    }
+    try {
+      size_t pos = 0;
+      auto parsed = std::stod(value, &pos);
+      (void)parsed;
+      return pos == value.size();
+    } catch (const std::exception&) {
+      return false;
+    }
+  }
+
+  static void addNumberOrStringMember(rj::Value& object, rj::Document::AllocatorType& allocator, const std::string& key, const std::string& value) {
+    if (isNumberString(value)) {
+      object.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(std::stod(value)), allocator);
+    } else {
+      object.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+    }
+  }
+
+  std::string getToken(std::shared_ptr<WsConnection> wsConnectionPtr) {
+    auto it = this->extraPropertyByConnectionIdMap.find(wsConnectionPtr->id);
+    return it != this->extraPropertyByConnectionIdMap.end() ? mapGetWithDefault(it->second, std::string("token")) : "";
+  }
+
+  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
+                                  const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                  const std::map<std::string, std::string>& credential) override {
+    if (!this->isWebsocketV2(wsConnectionPtr)) {
+      this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
+      return;
+    }
+    document.SetObject();
+    this->requestCorrelationIdByWsRequestIdByConnectionIdMap[wsConnectionPtr->id][wsRequestId] = request.getCorrelationId();
+    this->requestOperationByWsRequestIdByConnectionIdMap[wsConnectionPtr->id][wsRequestId] = request.getOperation();
+    Request::Operation operation = request.getOperation();
+    const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+    std::map<std::string, std::string> extraParam = param;
+    for (const auto& key : {std::string(CCAPI_EM_ORDER_ID), std::string(CCAPI_EM_CLIENT_ORDER_ID), std::string(CCAPI_EM_ORDER_SIDE),
+                            std::string(CCAPI_EM_ORDER_QUANTITY), std::string(CCAPI_EM_ORDER_LIMIT_PRICE), std::string(CCAPI_EM_ORDER_TYPE),
+                            std::string("IS_POST_ONLY"), std::string("IS_IOC")}) {
+      extraParam.erase(key);
+    }
+    rj::Value params(rj::kObjectType);
+    switch (operation) {
+      case Request::Operation::CREATE_ORDER: {
+        document.AddMember("method", rj::Value("add_order").Move(), allocator);
+        if (param.find(CCAPI_EM_ORDER_TYPE) != param.end()) {
+          addNumberOrStringMember(params, allocator, "order_type", param.at(CCAPI_EM_ORDER_TYPE));
+        } else if (param.find("order_type") != param.end()) {
+          addNumberOrStringMember(params, allocator, "order_type", param.at("order_type"));
+        } else {
+          params.AddMember("order_type", rj::Value("limit").Move(), allocator);
+        }
+        if (param.find(CCAPI_EM_ORDER_SIDE) != param.end()) {
+          addNumberOrStringMember(params, allocator, "side", UtilString::toLower(param.at(CCAPI_EM_ORDER_SIDE)).rfind("buy", 0) == 0 ? "buy" : "sell");
+        }
+        addNumberOrStringMember(params, allocator, "symbol", symbolId);
+        if (param.find(CCAPI_EM_ORDER_QUANTITY) != param.end()) {
+          addNumberOrStringMember(params, allocator, "order_qty", param.at(CCAPI_EM_ORDER_QUANTITY));
+        }
+        if (param.find(CCAPI_EM_ORDER_LIMIT_PRICE) != param.end()) {
+          addNumberOrStringMember(params, allocator, "limit_price", param.at(CCAPI_EM_ORDER_LIMIT_PRICE));
+        }
+        if (param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end()) {
+          addNumberOrStringMember(params, allocator, "cl_ord_id", param.at(CCAPI_EM_CLIENT_ORDER_ID));
+        } else if (param.find("cl_ord_id") != param.end()) {
+          addNumberOrStringMember(params, allocator, "cl_ord_id", param.at("cl_ord_id"));
+        }
+        if (param.find("IS_POST_ONLY") != param.end() && UtilString::toLower(param.at("IS_POST_ONLY")) == "true") {
+          params.AddMember("post_only", true, allocator);
+        }
+        if (param.find("IS_IOC") != param.end() && UtilString::toLower(param.at("IS_IOC")) == "true") {
+          params.AddMember("time_in_force", rj::Value("ioc").Move(), allocator);
+        }
+        for (const auto& kv : extraParam) {
+          if (params.HasMember(kv.first.c_str())) {
+            continue;
+          }
+          addNumberOrStringMember(params, allocator, kv.first, kv.second);
+        }
+      } break;
+      case Request::Operation::AMEND_ORDER:
+      case Request::Operation::AMEND_ORDER_KEEP_PRIORITY: {
+        document.AddMember("method", rj::Value("amend_order").Move(), allocator);
+        if (param.find(CCAPI_EM_ORDER_ID) != param.end()) {
+          addNumberOrStringMember(params, allocator, "order_id", param.at(CCAPI_EM_ORDER_ID));
+        }
+        if (param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end()) {
+          addNumberOrStringMember(params, allocator, "cl_ord_id", param.at(CCAPI_EM_CLIENT_ORDER_ID));
+        }
+        if (!symbolId.empty()) {
+          addNumberOrStringMember(params, allocator, "symbol", symbolId);
+        }
+        if (param.find(CCAPI_EM_ORDER_QUANTITY) != param.end()) {
+          addNumberOrStringMember(params, allocator, "order_qty", param.at(CCAPI_EM_ORDER_QUANTITY));
+        }
+        if (param.find(CCAPI_EM_ORDER_LIMIT_PRICE) != param.end()) {
+          addNumberOrStringMember(params, allocator, "limit_price", param.at(CCAPI_EM_ORDER_LIMIT_PRICE));
+        }
+        if (param.find("IS_POST_ONLY") != param.end() && UtilString::toLower(param.at("IS_POST_ONLY")) == "true") {
+          params.AddMember("post_only", true, allocator);
+        }
+        for (const auto& kv : extraParam) {
+          if (params.HasMember(kv.first.c_str())) {
+            continue;
+          }
+          addNumberOrStringMember(params, allocator, kv.first, kv.second);
+        }
+      } break;
+      case Request::Operation::CANCEL_ORDER: {
+        document.AddMember("method", rj::Value("cancel_order").Move(), allocator);
+        if (param.find(CCAPI_EM_ORDER_ID) != param.end()) {
+          rj::Value orderIdList(rj::kArrayType);
+          orderIdList.PushBack(rj::Value(param.at(CCAPI_EM_ORDER_ID).c_str(), allocator).Move(), allocator);
+          params.AddMember("order_id", orderIdList, allocator);
+        } else if (param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end()) {
+          rj::Value clientOrderIdList(rj::kArrayType);
+          clientOrderIdList.PushBack(rj::Value(param.at(CCAPI_EM_CLIENT_ORDER_ID).c_str(), allocator).Move(), allocator);
+          params.AddMember("cl_ord_id", clientOrderIdList, allocator);
+        }
+      } break;
+      default:
+        this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
+        return;
+    }
+    params.AddMember("token", rj::Value(this->getToken(wsConnectionPtr).c_str(), allocator).Move(), allocator);
+    document.AddMember("params", params, allocator);
+    document.AddMember("req_id", rj::Value().SetUint64(wsRequestId), allocator);
+  }
+
   void onTextMessage(std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                      const TimePoint& timeReceived) override {
     this->jsonDocumentAllocator.Clear();
@@ -372,8 +520,83 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     }
   }
 
+  Event createEventFromWebsocketV2(const std::shared_ptr<WsConnection> wsConnectionPtr, boost::beast::string_view textMessageView, const rj::Document& document,
+                                   const TimePoint& timeReceived) {
+    Event event;
+    std::vector<Message> messageList;
+    auto methodIt = document.FindMember("method");
+    std::string method = methodIt != document.MemberEnd() && methodIt->value.IsString() ? methodIt->value.GetString() : "";
+    if (method == "add_order" || method == "amend_order" || method == "cancel_order") {
+      unsigned long wsRequestId{};
+      bool hasWsRequestId{};
+      auto reqIdIt = document.FindMember("req_id");
+      if (reqIdIt != document.MemberEnd()) {
+        try {
+          if (reqIdIt->value.IsString()) {
+            wsRequestId = std::stoul(reqIdIt->value.GetString());
+            hasWsRequestId = true;
+          } else if (reqIdIt->value.IsUint64()) {
+            wsRequestId = reqIdIt->value.GetUint64();
+            hasWsRequestId = true;
+          }
+        } catch (const std::exception&) {
+          hasWsRequestId = false;
+        }
+      }
+      if (!hasWsRequestId) {
+        CCAPI_LOGGER_ERROR("received a websocket response without req_id: " + std::string(textMessageView));
+        return event;
+      }
+      const auto& requestInfo = this->eraseWebsocketRequestInfo(wsConnectionPtr->id, wsRequestId);
+      if (requestInfo.first.empty()) {
+        CCAPI_LOGGER_ERROR("received a websocket response for an unknown req_id: " + std::string(textMessageView));
+        return event;
+      }
+      event.setType(Event::Type::RESPONSE);
+      Message message;
+      message.setTimeReceived(timeReceived);
+      message.setCorrelationIdList({requestInfo.first});
+      auto successIt = document.FindMember("success");
+      if (successIt == document.MemberEnd() || !successIt->value.IsBool() || !successIt->value.GetBool()) {
+        message.setType(Message::Type::RESPONSE_ERROR);
+        Element element;
+        element.insert(CCAPI_ERROR_MESSAGE, std::string(textMessageView));
+        message.setElementList({element});
+      } else {
+        if (method == "add_order") {
+          message.setType(Message::Type::CREATE_ORDER);
+        } else if (method == "amend_order") {
+          message.setType(requestInfo.second == Request::Operation::AMEND_ORDER_KEEP_PRIORITY ? Message::Type::AMEND_ORDER_KEEP_PRIORITY
+                                                                                             : Message::Type::AMEND_ORDER);
+        } else {
+          message.setType(Message::Type::CANCEL_ORDER);
+        }
+        Element element;
+        auto resultIt = document.FindMember("result");
+        if (resultIt != document.MemberEnd() && resultIt->value.IsObject()) {
+          const rj::Value& result = resultIt->value;
+          auto orderIdIt = result.FindMember("order_id");
+          if (orderIdIt != result.MemberEnd() && orderIdIt->value.IsString()) {
+            element.insert(CCAPI_EM_ORDER_ID, orderIdIt->value.GetString());
+          }
+          auto clientOrderIdIt = result.FindMember("cl_ord_id");
+          if (clientOrderIdIt != result.MemberEnd() && clientOrderIdIt->value.IsString()) {
+            element.insert(CCAPI_EM_CLIENT_ORDER_ID, clientOrderIdIt->value.GetString());
+          }
+        }
+        message.setElementList({element});
+      }
+      messageList.emplace_back(std::move(message));
+    }
+    event.setMessageList(messageList);
+    return event;
+  }
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
+    if (this->isWebsocketV2(wsConnectionPtr)) {
+      return document.IsObject() ? this->createEventFromWebsocketV2(wsConnectionPtr, textMessageView, document, timeReceived) : Event();
+    }
     Event event;
     std::vector<Message> messageList;
     if (document.IsArray() && document.Size() == 3) {

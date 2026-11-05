@@ -31,6 +31,7 @@ class ExecutionManagementServiceBinance : public ExecutionManagementServiceBinan
     this->websocketOrderEntryHost = CCAPI_BINANCE_HOST_WS_ORDER_ENTRY;
     this->createOrderTarget = CCAPI_BINANCE_CREATE_ORDER_PATH;
     this->amendOrderTarget = "/api/v3/order/cancelReplace";
+    this->amendOrderKeepPriorityTarget = "/api/v3/order/amend/keepPriority";
     this->cancelOrderTarget = "/api/v3/order";
     this->getOrderTarget = "/api/v3/order";
     this->getOpenOrdersTarget = "/api/v3/openOrders";

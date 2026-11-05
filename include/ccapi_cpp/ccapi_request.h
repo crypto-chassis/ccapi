@@ -47,6 +47,7 @@ class Request {
     GET_TICKERS,
     CREATE_ORDER = CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER,
     AMEND_ORDER,
+    AMEND_ORDER_KEEP_PRIORITY,
     CANCEL_ORDER,
     GET_ORDER,
     GET_OPEN_ORDERS,
@@ -115,6 +116,9 @@ class Request {
         break;
       case Operation::AMEND_ORDER:
         output = "AMEND_ORDER";
+        break;
+      case Operation::AMEND_ORDER_KEEP_PRIORITY:
+        output = "AMEND_ORDER_KEEP_PRIORITY";
         break;
       case Operation::CANCEL_ORDER:
         output = "CANCEL_ORDER";

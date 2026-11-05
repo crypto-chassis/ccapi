@@ -581,8 +581,8 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `CREATE_ORDER`, `AMEND_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
-* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/execution_management_advanced_request/main.cpp).
+* Request operation types: `CREATE_ORDER`, `AMEND_ORDER`, `AMEND_ORDER_KEEP_PRIORITY`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
+* Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`, `IS_POST_ONLY`, `IS_IOC`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/execution_management_advanced_request/main.cpp).
 
 **Objective 2:**
 
@@ -783,6 +783,8 @@ request.appendParam({
 ```
 
 #### Send request by Websocket API
+`CREATE_ORDER`, `AMEND_ORDER`, `AMEND_ORDER_KEEP_PRIORITY` and `CANCEL_ORDER` can be sent by the Websocket API. The response of the request is delivered as an `Event::Type::RESPONSE` event whose messages bear the correlation id of the request (or as `Event::Type::RESPONSE_ERROR` if the exchange rejects the request).
+
 For okx, cryptocom:
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
@@ -797,7 +799,7 @@ request.appendParam({
 });
 session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
 ```
-For bybit, binance, binance-usds-futures, binance-coin-futures:
+For bybit, binance, binance-usds-futures, binance-coin-futures, bitget-uta, kraken:
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
 Subscription subscription_1("bybit", "", "ORDER_UPDATE");
@@ -810,6 +812,15 @@ request.appendParam({
     {"SIDE", "BUY"},
     {"LIMIT_PRICE", "20000"},
     {"QUANTITY", "0.001"},
+});
+session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
+```
+`AMEND_ORDER_KEEP_PRIORITY` amends the order in place so that its queue priority is retained where the exchange supports it (binance spot, kraken). Exchanges that cannot keep the priority while amending reject the request with `Event::Type::RESPONSE_ERROR`.
+```
+Request request(Request::Operation::AMEND_ORDER_KEEP_PRIORITY, "binance", "BTCUSDT");
+request.appendParam({
+    {"ORDER_ID", "123456789"},
+    {"QUANTITY", "0.002"},
 });
 session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
 ```
