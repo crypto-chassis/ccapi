@@ -482,14 +482,15 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
         param.erase(CCAPI_INSTRUMENT_TYPE);
         param.erase("category");
         document.AddMember("category", rj::Value(category.c_str(), allocator).Move(), allocator);
-        this->appendParam(arg, allocator, param, {
-                                                     {CCAPI_EM_ORDER_SIDE, "side"},
-                                                     {CCAPI_EM_ORDER_QUANTITY, "qty"},
-                                                     {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                                                     {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
-                                                     {CCAPI_EM_ORDER_ID, "orderId"},
-                                                     {CCAPI_EM_ORDER_TYPE, "orderType"},
-                                                 });
+        this->appendParam(arg, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "qty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_ORDER_TYPE, "orderType"},
+                          });
         if (!arg.HasMember("symbol")) {
           this->appendSymbolId(arg, allocator, symbolId);
         }
@@ -499,14 +500,15 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
       } break;
       case Request::Operation::AMEND_ORDER: {
         document.AddMember("topic", rj::Value("modify-order").Move(), allocator);
-        this->appendParam(arg, allocator, param, {
-                                                     {CCAPI_EM_ORDER_SIDE, "side"},
-                                                     {CCAPI_EM_ORDER_QUANTITY, "qty"},
-                                                     {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
-                                                     {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
-                                                     {CCAPI_EM_ORDER_ID, "orderId"},
-                                                     {CCAPI_EM_ORDER_TYPE, "orderType"},
-                                                 });
+        this->appendParam(arg, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "qty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_ORDER_TYPE, "orderType"},
+                          });
         if (!arg.HasMember("symbol")) {
           this->appendSymbolId(arg, allocator, symbolId);
         }

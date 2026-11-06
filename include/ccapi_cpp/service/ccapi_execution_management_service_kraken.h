@@ -416,9 +416,9 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     Request::Operation operation = request.getOperation();
     const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
     std::map<std::string, std::string> extraParam = param;
-    for (const auto& key : {std::string(CCAPI_EM_ORDER_ID), std::string(CCAPI_EM_CLIENT_ORDER_ID), std::string(CCAPI_EM_ORDER_SIDE),
-                            std::string(CCAPI_EM_ORDER_QUANTITY), std::string(CCAPI_EM_ORDER_LIMIT_PRICE), std::string(CCAPI_EM_ORDER_TYPE),
-                            std::string("IS_POST_ONLY"), std::string("IS_IOC")}) {
+    for (const auto& key :
+         {std::string(CCAPI_EM_ORDER_ID), std::string(CCAPI_EM_CLIENT_ORDER_ID), std::string(CCAPI_EM_ORDER_SIDE), std::string(CCAPI_EM_ORDER_QUANTITY),
+          std::string(CCAPI_EM_ORDER_LIMIT_PRICE), std::string(CCAPI_EM_ORDER_TYPE), std::string("IS_POST_ONLY"), std::string("IS_IOC")}) {
       extraParam.erase(key);
     }
     rj::Value params(rj::kObjectType);
@@ -567,7 +567,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
           message.setType(Message::Type::CREATE_ORDER);
         } else if (method == "amend_order") {
           message.setType(requestInfo.second == Request::Operation::AMEND_ORDER_KEEP_PRIORITY ? Message::Type::AMEND_ORDER_KEEP_PRIORITY
-                                                                                             : Message::Type::AMEND_ORDER);
+                                                                                              : Message::Type::AMEND_ORDER);
         } else {
           message.setType(Message::Type::CANCEL_ORDER);
         }

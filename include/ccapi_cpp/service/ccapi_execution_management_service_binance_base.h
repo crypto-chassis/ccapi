@@ -545,15 +545,14 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       } else if (UtilString::startsWith(id, this->websocketOrderEntryCreateOrderJsonIdPrefix) ||
                  UtilString::startsWith(id, this->websocketOrderEntryAmendOrderJsonIdPrefix) ||
                  UtilString::startsWith(id, this->websocketOrderEntryCancelOrderJsonIdPrefix)) {
-        const std::string* jsonIdPrefixPtr = UtilString::startsWith(id, this->websocketOrderEntryCreateOrderJsonIdPrefix)
-                                                 ? &this->websocketOrderEntryCreateOrderJsonIdPrefix
-                                             : UtilString::startsWith(id, this->websocketOrderEntryAmendOrderJsonIdPrefix)
-                                                 ? &this->websocketOrderEntryAmendOrderJsonIdPrefix
-                                                 : &this->websocketOrderEntryCancelOrderJsonIdPrefix;
+        const std::string* jsonIdPrefixPtr =
+            UtilString::startsWith(id, this->websocketOrderEntryCreateOrderJsonIdPrefix)  ? &this->websocketOrderEntryCreateOrderJsonIdPrefix
+            : UtilString::startsWith(id, this->websocketOrderEntryAmendOrderJsonIdPrefix) ? &this->websocketOrderEntryAmendOrderJsonIdPrefix
+                                                                                          : &this->websocketOrderEntryCancelOrderJsonIdPrefix;
         unsigned long wsRequestId = std::stoul(id.substr(jsonIdPrefixPtr->size()));
         const auto& requestInfo = this->eraseWebsocketRequestInfo(wsConnectionPtr->id, wsRequestId);
         if (requestInfo.first.empty()) {
-          CCAPI_LOGGER_ERROR("received a websocket response for an unknown request id: " + textMessageView);
+          CCAPI_LOGGER_ERROR("received a websocket response for an unknown request id: " + std::string(textMessageView));
           return event;
         }
         event.setType(Event::Type::RESPONSE);
@@ -889,8 +888,8 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     };
 
     Element element;
-    const rj::Value& result = document.HasMember("result") && document["result"].HasMember("newOrderResponse") ? document["result"]["newOrderResponse"]
-                                                                                                            : document["result"];
+    const rj::Value& result =
+        document.HasMember("result") && document["result"].HasMember("newOrderResponse") ? document["result"]["newOrderResponse"] : document["result"];
     this->extractOrderInfo(element, result, extractionFieldNameMap,
                            {
                                {CCAPI_LAST_UPDATED_TIME_SECONDS, [](const std::string& input) { return UtilTime::convertMillisecondsStrToSecondsStr(input); }},
