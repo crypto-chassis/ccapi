@@ -276,6 +276,21 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         this->signRequest(queryString, param, now, credential);
         req.target(this->amendOrderTarget + "?" + queryString);
       } break;
+      case Request::Operation::AMEND_ORDER_KEEP_PRIORITY: {
+        // only the spot product keeps the queue priority of the amended order
+        req.method(http::verb::put);
+        std::string queryString;
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        this->appendParam(queryString, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_ORDER_QUANTITY, "newQty"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"},
+                          });
+        this->appendSymbolId(queryString, symbolId);
+        this->signRequest(queryString, param, now, credential);
+        req.target(this->amendOrderKeepPriorityTarget + "?" + queryString);
+      } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         std::string queryString;
@@ -528,35 +543,33 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           message.setElementList({element});
         }
       } else if (UtilString::startsWith(id, this->websocketOrderEntryCreateOrderJsonIdPrefix) ||
+                 UtilString::startsWith(id, this->websocketOrderEntryAmendOrderJsonIdPrefix) ||
                  UtilString::startsWith(id, this->websocketOrderEntryCancelOrderJsonIdPrefix)) {
-        bool isCreateOrder = UtilString::startsWith(id, this->websocketOrderEntryCreateOrderJsonIdPrefix);
-        std::string_view wsRequestIdStr;
-        if (isCreateOrder) {
-          wsRequestIdStr = std::string_view(id).substr(this->websocketOrderEntryCreateOrderJsonIdPrefix.size());
-        } else {
-          wsRequestIdStr = std::string_view(id).substr(this->websocketOrderEntryCancelOrderJsonIdPrefix.size());
+        const std::string* jsonIdPrefixPtr =
+            UtilString::startsWith(id, this->websocketOrderEntryCreateOrderJsonIdPrefix)  ? &this->websocketOrderEntryCreateOrderJsonIdPrefix
+            : UtilString::startsWith(id, this->websocketOrderEntryAmendOrderJsonIdPrefix) ? &this->websocketOrderEntryAmendOrderJsonIdPrefix
+                                                                                          : &this->websocketOrderEntryCancelOrderJsonIdPrefix;
+        unsigned long wsRequestId = std::stoul(id.substr(jsonIdPrefixPtr->size()));
+        const auto& requestInfo = this->eraseWebsocketRequestInfo(wsConnectionPtr->id, wsRequestId);
+        if (requestInfo.first.empty()) {
+          CCAPI_LOGGER_ERROR("received a websocket response for an unknown request id: " + std::string(textMessageView));
+          return event;
         }
-        unsigned long wsRequestId = std::stoul(std::string(wsRequestIdStr));
-        const auto& requestCorrelationId = this->requestCorrelationIdByWsRequestIdByConnectionIdMap.at(wsConnectionPtr->id).at(wsRequestId);
         event.setType(Event::Type::RESPONSE);
         if (!success) {
           message.setType(Message::Type::RESPONSE_ERROR);
           Element element;
           element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
           message.setElementList({element});
-          message.setCorrelationIdList({requestCorrelationId});
+          message.setCorrelationIdList({requestInfo.first});
         } else {
           std::vector<Element> elementList;
-          if (isCreateOrder) {
-            message.setType(Message::Type::CREATE_ORDER);
-          } else {
-            message.setType(Message::Type::CANCEL_ORDER);
-          }
+          auto messageTypeIt = this->requestOperationToMessageTypeMap.find(requestInfo.second);
+          message.setType(messageTypeIt != this->requestOperationToMessageTypeMap.end() ? messageTypeIt->second : Message::Type::RESPONSE_ERROR);
           this->extractOrderInfoFromResponse(elementList, document);
           message.setElementList(elementList);
-          message.setCorrelationIdList({requestCorrelationId});
+          message.setCorrelationIdList({requestInfo.first});
         }
-        this->requestCorrelationIdByWsRequestIdByConnectionIdMap.at(wsConnectionPtr->id).erase(wsRequestId);
       }
       messageList.emplace_back(std::move(message));
     } else {
@@ -725,6 +738,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                                   const std::map<std::string, std::string>& credential) override {
     document.SetObject();
     this->requestCorrelationIdByWsRequestIdByConnectionIdMap[wsConnectionPtr->id][wsRequestId] = request.getCorrelationId();
+    this->requestOperationByWsRequestIdByConnectionIdMap[wsConnectionPtr->id][wsRequestId] = request.getOperation();
     Request::Operation operation = request.getOperation();
     switch (operation) {
       case Request::Operation::CREATE_ORDER: {
@@ -751,6 +765,64 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                         allocator)
                   .Move(),
               allocator);
+        }
+        if (param.find("timestamp") == param.end()) {
+          params.AddMember("timestamp", rj::Value(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()).Move(), allocator);
+        }
+        document.AddMember("params", params, allocator);
+      } break;
+      case Request::Operation::AMEND_ORDER: {
+        document.AddMember("id", rj::Value((this->websocketOrderEntryAmendOrderJsonIdPrefix + std::to_string(wsRequestId)).c_str(), allocator).Move(),
+                           allocator);
+        // spot: cancel and replace; derivatives: modify order in place
+        document.AddMember("method", rj::Value(rj::StringRef(this->isDerivatives ? "order.modify" : "order.cancelReplace")).Move(), allocator);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        rj::Value params(rj::kObjectType);
+        this->appendParam(params, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, this->isDerivatives ? "orderId" : "cancelOrderId"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, this->isDerivatives ? "origClientOrderId" : "newClientOrderId"},
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "quantity"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                          });
+        if (!symbolId.empty()) {
+          ExecutionManagementService::appendSymbolId(params, allocator, symbolId, "symbol");
+        }
+        if (!this->isDerivatives) {
+          if (param.find("type") == param.end()) {
+            params.AddMember("type", "LIMIT", allocator);
+            if (param.find("timeInForce") == param.end()) {
+              params.AddMember("timeInForce", "GTC", allocator);
+            }
+          }
+          if (param.find("cancelReplaceMode") == param.end()) {
+            params.AddMember("cancelReplaceMode", "STOP_ON_FAILURE", allocator);
+          }
+        }
+        if (param.find("timestamp") == param.end()) {
+          params.AddMember("timestamp", rj::Value(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()).Move(), allocator);
+        }
+        document.AddMember("params", params, allocator);
+      } break;
+      case Request::Operation::AMEND_ORDER_KEEP_PRIORITY: {
+        if (this->isDerivatives) {
+          this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
+          return;
+        }
+        document.AddMember("id", rj::Value((this->websocketOrderEntryAmendOrderJsonIdPrefix + std::to_string(wsRequestId)).c_str(), allocator).Move(),
+                           allocator);
+        document.AddMember("method", rj::Value("order.amend.keepPriority").Move(), allocator);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        rj::Value params(rj::kObjectType);
+        this->appendParam(params, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_ORDER_QUANTITY, "newQty"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"},
+                          });
+        if (!symbolId.empty()) {
+          ExecutionManagementService::appendSymbolId(params, allocator, symbolId, "symbol");
         }
         if (param.find("timestamp") == param.end()) {
           params.AddMember("timestamp", rj::Value(std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()).Move(), allocator);
@@ -816,7 +888,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     };
 
     Element element;
-    this->extractOrderInfo(element, document["result"], extractionFieldNameMap,
+    const rj::Value& result =
+        document.HasMember("result") && document["result"].HasMember("newOrderResponse") ? document["result"]["newOrderResponse"] : document["result"];
+    this->extractOrderInfo(element, result, extractionFieldNameMap,
                            {
                                {CCAPI_LAST_UPDATED_TIME_SECONDS, [](const std::string& input) { return UtilTime::convertMillisecondsStrToSecondsStr(input); }},
                            });
@@ -904,8 +978,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   std::string websocketOrderEntryApiPrivateKeyPasswordName;
   std::string websocketOrderEntrySessionLogonJsonId{"session_logon"};
   std::string websocketOrderEntryCreateOrderJsonIdPrefix{"order_place"};
+  std::string websocketOrderEntryAmendOrderJsonIdPrefix{"order_amend"};
   std::string websocketOrderEntryCancelOrderJsonIdPrefix{"order_cancel"};
   std::string websocketOrderEntryHost;
+  std::string amendOrderKeepPriorityTarget;
 };
 
 } /* namespace ccapi */

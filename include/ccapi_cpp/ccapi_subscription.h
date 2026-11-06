@@ -97,6 +97,12 @@ class Subscription {
 
   const std::set<std::string>& getFieldSet() const { return fieldSet; }
 
+  std::set<std::string> getFieldSetWithoutWsOrderEntry() const {
+    std::set<std::string> fieldSetWithoutWsOrderEntry(fieldSet);
+    fieldSetWithoutWsOrderEntry.erase(CCAPI_EM_WEBSOCKET_ORDER_ENTRY);
+    return fieldSetWithoutWsOrderEntry;
+  }
+
   const std::string getSerializedOptions() const {
     std::string output;
     if (this->rawOptions.empty()) {

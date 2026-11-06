@@ -36,6 +36,7 @@ class ExecutionManagementService : public Service {
     this->requestOperationToMessageTypeMap = {
         {Request::Operation::CREATE_ORDER, Message::Type::CREATE_ORDER},
         {Request::Operation::AMEND_ORDER, Message::Type::AMEND_ORDER},
+        {Request::Operation::AMEND_ORDER_KEEP_PRIORITY, Message::Type::AMEND_ORDER_KEEP_PRIORITY},
         {Request::Operation::CANCEL_ORDER, Message::Type::CANCEL_ORDER},
         {Request::Operation::GET_ORDER, Message::Type::GET_ORDER},
         {Request::Operation::GET_OPEN_ORDERS, Message::Type::GET_OPEN_ORDERS},
@@ -244,6 +245,7 @@ class ExecutionManagementService : public Service {
     }
     this->wsRequestIdByConnectionIdMap.erase(wsConnectionPtr->id);
     this->requestCorrelationIdByWsRequestIdByConnectionIdMap.erase(wsConnectionPtr->id);
+    this->requestOperationByWsRequestIdByConnectionIdMap.erase(wsConnectionPtr->id);
     Service::onClose(wsConnectionPtr, ec);
   }
 
@@ -317,8 +319,13 @@ class ExecutionManagementService : public Service {
                           credential = that->credentialDefault;
                         }
                         rj::Document document(&that->jsonDocumentAllocator);
-                        that->convertRequestForWebsocket(document, that->jsonDocumentAllocator, wsConnectionPtr, request,
-                                                         ++that->wsRequestIdByConnectionIdMap[wsConnectionPtr->id], now, symbolId, credential);
+                        try {
+                          that->convertRequestForWebsocket(document, that->jsonDocumentAllocator, wsConnectionPtr, request,
+                                                           ++that->wsRequestIdByConnectionIdMap[wsConnectionPtr->id], now, symbolId, credential);
+                        } catch (const std::exception& e) {
+                          that->onError(Event::Type::REQUEST_STATUS, Message::Type::REQUEST_FAILURE, std::string(e.what()), {request.getCorrelationId()});
+                          return;
+                        }
                         rj::StringBuffer stringBuffer;
                         rj::Writer<rj::StringBuffer> writer(stringBuffer);
                         document.Accept(writer);
@@ -336,6 +343,28 @@ class ExecutionManagementService : public Service {
 
   virtual void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const std::string& wsRequestId, const TimePoint& now,
                                      const std::string& symbolId, const std::map<std::string, std::string>& credential) {}
+
+  // Consumes the tracking info of a websocket request once its response has been processed. Returns an empty correlation id if the request is unknown.
+  std::pair<std::string, Request::Operation> eraseWebsocketRequestInfo(const std::string& connectionId, unsigned long wsRequestId) {
+    std::pair<std::string, Request::Operation> output{"", Request::Operation::UNKNOWN};
+    auto correlationIdByWsRequestIdIt = this->requestCorrelationIdByWsRequestIdByConnectionIdMap.find(connectionId);
+    if (correlationIdByWsRequestIdIt != this->requestCorrelationIdByWsRequestIdByConnectionIdMap.end()) {
+      auto it = correlationIdByWsRequestIdIt->second.find(wsRequestId);
+      if (it != correlationIdByWsRequestIdIt->second.end()) {
+        output.first = it->second;
+        correlationIdByWsRequestIdIt->second.erase(it);
+      }
+    }
+    auto operationByWsRequestIdIt = this->requestOperationByWsRequestIdByConnectionIdMap.find(connectionId);
+    if (operationByWsRequestIdIt != this->requestOperationByWsRequestIdByConnectionIdMap.end()) {
+      auto it = operationByWsRequestIdIt->second.find(wsRequestId);
+      if (it != operationByWsRequestIdIt->second.end()) {
+        output.second = it->second;
+        operationByWsRequestIdIt->second.erase(it);
+      }
+    }
+    return output;
+  }
 
   virtual void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
                                           const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
@@ -371,6 +400,7 @@ class ExecutionManagementService : public Service {
 
   std::map<std::string, unsigned int> wsRequestIdByConnectionIdMap;
   std::map<std::string, std::map<unsigned int, std::string>> requestCorrelationIdByWsRequestIdByConnectionIdMap;
+  std::map<std::string, std::map<unsigned int, Request::Operation>> requestOperationByWsRequestIdByConnectionIdMap;
 };
 
 } /* namespace ccapi */

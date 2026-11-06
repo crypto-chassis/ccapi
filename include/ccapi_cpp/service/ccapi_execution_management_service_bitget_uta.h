@@ -13,6 +13,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
       : ExecutionManagementService(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->exchangeName = CCAPI_EXCHANGE_NAME_BITGET_UTA;
     this->baseUrlWs = sessionConfigs.getUrlWebsocketBase().at(this->exchangeName) + "/v3/ws/private";
+    this->baseUrlWsOrderEntry = this->baseUrlWs;
     this->baseUrlRest = sessionConfigs.getUrlRestBase().at(this->exchangeName);
     this->setHostRestFromUrlRest(this->baseUrlRest);
     this->apiKeyName = CCAPI_BITGET_UTA_API_KEY;
@@ -411,7 +412,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
     if (eventStr == "login") {
       // v3 uses a single UTA instType; one topic covers every product category and symbol
       std::set<std::string> topicSet;
-      for (const auto& field : subscription.getFieldSet()) {
+      for (const auto& field : subscription.getFieldSetWithoutWsOrderEntry()) {
         if (field == CCAPI_EM_ORDER_UPDATE) {
           topicSet.insert("order");
         } else if (field == CCAPI_EM_PRIVATE_TRADE) {
@@ -434,16 +435,18 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
         args.PushBack(arg, allocator);
       }
       subscribeDocument.AddMember("args", args, allocator);
-      rj::StringBuffer stringBufferSubscribe;
-      rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
-      subscribeDocument.Accept(writerSubscribe);
-      ErrorCode ec;
-      this->send(wsConnectionPtr, stringBufferSubscribe.GetString(), ec);
-      if (ec) {
-        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+      if (!topicSet.empty()) {
+        rj::StringBuffer stringBufferSubscribe;
+        rj::Writer<rj::StringBuffer> writerSubscribe(stringBufferSubscribe);
+        subscribeDocument.Accept(writerSubscribe);
+        ErrorCode ec;
+        this->send(wsConnectionPtr, stringBufferSubscribe.GetString(), ec);
+        if (ec) {
+          this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, ec, "subscribe");
+        }
       }
     } else {
-      Event event = this->createEvent(subscription, textMessageView, document, eventStr, timeReceived);
+      Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, eventStr, timeReceived);
       if (!event.getMessageList().empty()) {
         this->eventHandler(event, nullptr);
       }
@@ -455,11 +458,200 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
     return (it != x.MemberEnd() && it->value.IsString()) ? it->value.GetString() : "";
   }
 
-  Event createEvent(const Subscription& subscription, const std::string& textMessageView, const rj::Document& document, const std::string& eventStr,
-                    const TimePoint& timeReceived) {
+  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
+                                  const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                  const std::map<std::string, std::string>& credential) override {
+    document.SetObject();
+    this->requestCorrelationIdByWsRequestIdByConnectionIdMap[wsConnectionPtr->id][wsRequestId] = request.getCorrelationId();
+    this->requestOperationByWsRequestIdByConnectionIdMap[wsConnectionPtr->id][wsRequestId] = request.getOperation();
+    document.AddMember("op", rj::Value("trade").Move(), allocator);
+    document.AddMember("id", rj::Value(std::to_string(wsRequestId).c_str(), allocator).Move(), allocator);
+    std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+    rj::Value args(rj::kArrayType);
+    rj::Value arg(rj::kObjectType);
+    switch (request.getOperation()) {
+      case Request::Operation::CREATE_ORDER: {
+        document.AddMember("topic", rj::Value("place-order").Move(), allocator);
+        std::string category = "spot";
+        auto it = param.find(CCAPI_INSTRUMENT_TYPE);
+        if (it == param.end()) {
+          it = param.find("category");
+        }
+        if (it != param.end() && !it->second.empty()) {
+          category = it->second;
+        }
+        param.erase(CCAPI_INSTRUMENT_TYPE);
+        param.erase("category");
+        document.AddMember("category", rj::Value(category.c_str(), allocator).Move(), allocator);
+        this->appendParam(arg, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "qty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_ORDER_TYPE, "orderType"},
+                          });
+        if (!arg.HasMember("symbol")) {
+          this->appendSymbolId(arg, allocator, symbolId);
+        }
+        if (param.find(CCAPI_EM_ORDER_TYPE) == param.end() && param.find("orderType") == param.end()) {
+          arg.AddMember("orderType", rj::Value("limit").Move(), allocator);
+        }
+      } break;
+      case Request::Operation::AMEND_ORDER: {
+        document.AddMember("topic", rj::Value("modify-order").Move(), allocator);
+        this->appendParam(arg, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_SIDE, "side"},
+                              {CCAPI_EM_ORDER_QUANTITY, "qty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
+                              {CCAPI_EM_ORDER_ID, "orderId"},
+                              {CCAPI_EM_ORDER_TYPE, "orderType"},
+                          });
+        if (!arg.HasMember("symbol")) {
+          this->appendSymbolId(arg, allocator, symbolId);
+        }
+        if (param.find(CCAPI_EM_ORDER_TYPE) == param.end() && param.find("orderType") == param.end()) {
+          arg.AddMember("orderType", rj::Value("limit").Move(), allocator);
+        }
+      } break;
+      case Request::Operation::CANCEL_ORDER: {
+        document.AddMember("topic", rj::Value("cancel-order").Move(), allocator);
+        this->appendSymbolId(arg, allocator, symbolId);
+        const auto& orderId = mapGetWithDefault(param, std::string(CCAPI_EM_ORDER_ID));
+        const auto& clientOrderId = mapGetWithDefault(param, std::string(CCAPI_EM_CLIENT_ORDER_ID));
+        if (!orderId.empty()) {
+          arg.AddMember("orderId", rj::Value(orderId.c_str(), allocator).Move(), allocator);
+        } else if (!clientOrderId.empty()) {
+          arg.AddMember("clientOid", rj::Value(clientOrderId.c_str(), allocator).Move(), allocator);
+        }
+      } break;
+      default:
+        this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
+        return;
+    }
+    args.PushBack(arg, allocator);
+    document.AddMember("args", args, allocator);
+  }
+
+  // Fetches the request id echoed by the trade response; the exchange nests it differently across products.
+  static bool getWebsocketResponseRequestId(const rj::Document& document, unsigned long& wsRequestId) {
+    const rj::Value* idValue = nullptr;
+    auto idIt = document.FindMember("id");
+    if (idIt != document.MemberEnd()) {
+      idValue = &idIt->value;
+    } else {
+      auto argIt = document.FindMember("arg");
+      if (argIt != document.MemberEnd()) {
+        if (argIt->value.IsArray() && !argIt->value.Empty()) {
+          const auto& first = *argIt->value.Begin();
+          auto firstIdIt = first.FindMember("id");
+          if (firstIdIt != first.MemberEnd()) {
+            idValue = &firstIdIt->value;
+          }
+        } else if (argIt->value.IsObject()) {
+          auto objectIdIt = argIt->value.FindMember("id");
+          if (objectIdIt != argIt->value.MemberEnd()) {
+            idValue = &objectIdIt->value;
+          }
+        }
+      }
+    }
+    if (idValue == nullptr) {
+      return false;
+    }
+    if (idValue->IsString()) {
+      try {
+        wsRequestId = std::stoul(idValue->GetString());
+      } catch (const std::exception&) {
+        return false;
+      }
+      return true;
+    }
+    if (idValue->IsUint64()) {
+      wsRequestId = idValue->GetUint64();
+      return true;
+    }
+    return false;
+  }
+
+  Event createEventFromWebsocketResponse(const std::shared_ptr<WsConnection> wsConnectionPtr, const std::string& textMessageView, const rj::Document& document,
+                                         const TimePoint& timeReceived) {
     Event event;
     std::vector<Message> messageList;
-    const auto& fieldSet = subscription.getFieldSet();
+    unsigned long wsRequestId{};
+    if (!getWebsocketResponseRequestId(document, wsRequestId)) {
+      CCAPI_LOGGER_ERROR("received a websocket response without a request id: " + textMessageView);
+      return event;
+    }
+    const auto& requestInfo = this->eraseWebsocketRequestInfo(wsConnectionPtr->id, wsRequestId);
+    if (requestInfo.first.empty()) {
+      CCAPI_LOGGER_ERROR("received a websocket response for an unknown request id: " + textMessageView);
+      return event;
+    }
+    event.setType(Event::Type::RESPONSE);
+    Message message;
+    message.setTimeReceived(timeReceived);
+    message.setCorrelationIdList({requestInfo.first});
+    const auto& code = getStringOrEmpty(document, "code");
+    if (!code.empty() && code != "0" && code != "00000") {
+      message.setType(Message::Type::RESPONSE_ERROR);
+      Element element;
+      element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
+      message.setElementList({element});
+    } else {
+      auto messageTypeIt = this->requestOperationToMessageTypeMap.find(requestInfo.second);
+      message.setType(messageTypeIt != this->requestOperationToMessageTypeMap.end() ? messageTypeIt->second : Message::Type::RESPONSE_ERROR);
+      std::vector<Element> elementList;
+      const rj::Value* dataPtr = nullptr;
+      auto dataIt = document.FindMember("data");
+      if (dataIt != document.MemberEnd()) {
+        dataPtr = &dataIt->value;
+      }
+      if (dataPtr != nullptr && dataPtr->IsArray()) {
+        for (const auto& x : dataPtr->GetArray()) {
+          if (!x.IsObject()) {
+            continue;
+          }
+          Element element;
+          for (const auto& key : {std::make_pair(CCAPI_EM_ORDER_ID, "orderId"), std::make_pair(CCAPI_EM_CLIENT_ORDER_ID, "clientOid")}) {
+            auto xIt = x.FindMember(key.second);
+            if (xIt != x.MemberEnd() && xIt->value.IsString()) {
+              element.insert(key.first, xIt->value.GetString());
+            }
+          }
+          elementList.emplace_back(std::move(element));
+        }
+      } else if (dataPtr != nullptr && dataPtr->IsObject()) {
+        Element element;
+        for (const auto& key : {std::make_pair(CCAPI_EM_ORDER_ID, "orderId"), std::make_pair(CCAPI_EM_CLIENT_ORDER_ID, "clientOid")}) {
+          auto xIt = dataPtr->FindMember(key.second);
+          if (xIt != dataPtr->MemberEnd() && xIt->value.IsString()) {
+            element.insert(key.first, xIt->value.GetString());
+          }
+        }
+        elementList.emplace_back(std::move(element));
+      }
+      if (elementList.empty()) {
+        elementList.emplace_back(Element());
+      }
+      message.setElementList(elementList);
+    }
+    messageList.emplace_back(std::move(message));
+    event.setMessageList(messageList);
+    return event;
+  }
+
+  Event createEvent(const std::shared_ptr<WsConnection>& wsConnectionPtr, const Subscription& subscription, const std::string& textMessageView,
+                    const rj::Document& document, const std::string& eventStr, const TimePoint& timeReceived) {
+    if (eventStr == "trade") {
+      return this->createEventFromWebsocketResponse(wsConnectionPtr, textMessageView, document, timeReceived);
+    }
+    Event event;
+    std::vector<Message> messageList;
+    const auto& fieldSet = subscription.getFieldSetWithoutWsOrderEntry();
     const auto& instrumentSet = subscription.getInstrumentSet();
     if (eventStr.empty()) {
       if (!document.HasMember("arg") || !document.HasMember("data")) return event;
