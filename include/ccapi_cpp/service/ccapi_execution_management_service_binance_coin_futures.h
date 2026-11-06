@@ -27,6 +27,7 @@ class ExecutionManagementServiceBinanceCoinFutures : public ExecutionManagementS
                            this->websocketOrderEntryApiPrivateKeyPasswordName});
     this->websocketOrderEntryHost = CCAPI_BINANCE_COIN_FUTURES_HOST_WS_ORDER_ENTRY;
     this->createOrderTarget = CCAPI_BINANCE_COIN_FUTURES_CREATE_ORDER_PATH;
+    this->amendOrderTarget = "/dapi/v1/order";
     this->cancelOrderTarget = "/dapi/v1/order";
     this->getOrderTarget = "/dapi/v1/order";
     this->getOpenOrdersTarget = "/dapi/v1/openOrders";

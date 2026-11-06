@@ -166,6 +166,48 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         }
         this->signRequest(req, path, "", body, credential);
       } break;
+      case Request::Operation::AMEND_ORDER: {
+        req.set("X-Gate-Channel-Id", CCAPI_GATEIO_API_CHANNEL_ID);
+        req.method(this->isDerivatives ? http::verb::put : http::verb::patch);
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
+                         : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID)
+                                                                               : mapGetWithDefault(param, std::string("order_id"));
+        std::string path = this->amendOrderTarget;
+        this->substituteParam(path, {{"{order_id}", Url::urlEncode(id)}});
+        if (this->isDerivatives) {
+          this->substituteParamSettle(path, param, symbolId);
+          param.erase("settle");
+          param.erase(CCAPI_SETTLE_ASSET);
+          param.erase(CCAPI_SYMBOL_ID);
+          param.erase("contract");
+        }
+        param.erase(CCAPI_EM_ORDER_ID);
+        param.erase(CCAPI_EM_CLIENT_ORDER_ID);
+        param.erase("order_id");
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        this->appendParam(document, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_QUANTITY, this->amountName},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                              {CCAPI_EM_ACCOUNT_ID, "account"},
+                              {CCAPI_EM_ACCOUNT_TYPE, "account"},
+                              {CCAPI_SYMBOL_ID, this->symbolName},
+                          });
+        if (this->isDerivatives) {
+          if (document.HasMember("size")) {
+            document["size"].SetInt64(std::stoll(document["size"].GetString()));
+          }
+        } else if (!symbolId.empty() && !document.HasMember("currency_pair")) {
+          this->appendSymbolId(document, allocator, symbolId);
+        }
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        this->signRequest(req, path, "", stringBuffer.GetString(), credential);
+      } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::delete_);
         std::map<std::string, std::string> param = request.getFirstParamWithDefault();

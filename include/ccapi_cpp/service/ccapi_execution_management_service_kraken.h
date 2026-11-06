@@ -22,6 +22,7 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
     this->setupCredential({this->apiKeyName, this->apiSecretName});
     std::string prefix = "/0/private";
     this->createOrderTarget = prefix + "/AddOrder";
+    this->amendOrderTarget = prefix + "/AmendOrder";
     this->cancelOrderTarget = prefix + "/CancelOrder";
     this->getOrderTarget = prefix + "/QueryOrders";
     this->getOpenOrdersTarget = prefix + "/OpenOrders";
@@ -127,6 +128,22 @@ class ExecutionManagementServiceKraken : public ExecutionManagementService {
         if (param.find(CCAPI_EM_ORDER_TYPE) == param.end() && param.find("ordertype") == param.end()) {
           body += "ordertype=limit&";
         }
+        this->appendSymbolId(body, symbolId);
+        body.pop_back();
+        this->signRequest(req, body, credential, nonce);
+      } break;
+      case Request::Operation::AMEND_ORDER: {
+        req.method(http::verb::post);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        req.target(this->amendOrderTarget);
+        std::string body;
+        this->appendParam(body, param, nonce,
+                          {
+                              {CCAPI_EM_ORDER_QUANTITY, "order_qty"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "limit_price"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "cl_ord_id"},
+                              {CCAPI_EM_ORDER_ID, "txid"},
+                          });
         this->appendSymbolId(body, symbolId);
         body.pop_back();
         this->signRequest(req, body, credential, nonce);

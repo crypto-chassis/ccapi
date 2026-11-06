@@ -21,6 +21,7 @@ class ExecutionManagementServiceGateio : public ExecutionManagementServiceGateio
     this->setupCredential({this->apiKeyName, this->apiSecretName});
     std::string prefix = "/api/v4";
     this->createOrderTarget = prefix + "/spot/orders";
+    this->amendOrderTarget = prefix + "/spot/orders/{order_id}";
     this->cancelOrderTarget = prefix + "/spot/orders/{order_id}";
     this->getOrderTarget = prefix + "/spot/orders/{order_id}";
     this->getOpenOrdersTarget = prefix + "/spot/orders";
