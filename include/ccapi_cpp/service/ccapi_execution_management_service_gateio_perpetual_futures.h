@@ -21,6 +21,7 @@ class ExecutionManagementServiceGateioPerpetualFutures : public ExecutionManagem
     this->setupCredential({this->apiKeyName, this->apiSecretName});
     std::string prefix = "/api/v4";
     this->createOrderTarget = prefix + "/futures/{settle}/orders";
+    this->amendOrderTarget = prefix + "/futures/{settle}/orders/{order_id}";
     this->cancelOrderTarget = prefix + "/futures/{settle}/orders/{order_id}";
     this->getOrderTarget = prefix + "/futures/{settle}/orders/{order_id}";
     this->getOpenOrdersTarget = prefix + "/futures/{settle}/orders";

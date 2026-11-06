@@ -112,6 +112,81 @@ TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestCreateO
   EXPECT_EQ(element.getValue(CCAPI_EM_ORDER_ID), "12345689");
 }
 
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestAmendOrderByOrderId) {
+  Request request(Request::Operation::AMEND_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
+  request.appendParam({{CCAPI_EM_ORDER_ID, "2510789768709120"}, {CCAPI_EM_ORDER_QUANTITY, "3"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "2.25"}});
+  auto req = this->service->convertRequest(request, this->now);
+  EXPECT_EQ(req.method(), http::verb::post);
+  EXPECT_EQ(req.target(), "/api/v5/trade/amend-order");
+  EXPECT_EQ(req.base().at(beast::http::field::content_type), "application/json");
+  verifyApiKeyEtc(req, this->credential.at(CCAPI_OKX_API_KEY), this->credential.at(CCAPI_OKX_API_PASSPHRASE), this->timestampStr);
+  rj::Document document;
+  document.Parse(req.body().c_str());
+  ASSERT_TRUE(document.IsObject());
+  EXPECT_EQ(document.MemberCount(), 4);
+  EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
+  EXPECT_EQ(std::string(document["ordId"].GetString()), "2510789768709120");
+  EXPECT_EQ(std::string(document["newSz"].GetString()), "3");
+  EXPECT_EQ(std::string(document["newPx"].GetString()), "2.25");
+  verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
+}
+
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestAmendOrderByClientOrderId) {
+  for (const auto& field : {CCAPI_EM_ORDER_QUANTITY, CCAPI_EM_ORDER_LIMIT_PRICE}) {
+    Request request(Request::Operation::AMEND_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
+    request.appendParam({{CCAPI_EM_CLIENT_ORDER_ID, "oktswap6"}, {field, "3"}});
+    auto req = this->service->convertRequest(request, this->now);
+    EXPECT_EQ(req.method(), http::verb::post);
+    EXPECT_EQ(req.target(), "/api/v5/trade/amend-order");
+    rj::Document document;
+    document.Parse(req.body().c_str());
+    ASSERT_TRUE(document.IsObject());
+    EXPECT_EQ(document.MemberCount(), 3);
+    EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
+    EXPECT_EQ(std::string(document["clOrdId"].GetString()), "oktswap6");
+    auto key = std::string(field) == CCAPI_EM_ORDER_QUANTITY ? "newSz" : "newPx";
+    EXPECT_EQ(std::string(document[key].GetString()), "3");
+    verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
+  }
+}
+
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestAmendOrderNativeParams) {
+  for (const auto& cxlOnFail : {"true", "false"}) {
+    Request request(Request::Operation::AMEND_ORDER, CCAPI_EXCHANGE_NAME_OKX, "", "foo", this->credential);
+    request.appendParam(
+        {{"instId", "BTC-USDT"}, {"ordId", "2510789768709120"}, {"newSz", "3"}, {"newPx", "2.25"}, {"reqId", "amend1"}, {"cxlOnFail", cxlOnFail}});
+    auto req = this->service->convertRequest(request, this->now);
+    EXPECT_EQ(req.method(), http::verb::post);
+    EXPECT_EQ(req.target(), "/api/v5/trade/amend-order");
+    rj::Document document;
+    document.Parse(req.body().c_str());
+    ASSERT_TRUE(document.IsObject());
+    EXPECT_EQ(document.MemberCount(), 6);
+    EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
+    EXPECT_EQ(std::string(document["ordId"].GetString()), "2510789768709120");
+    EXPECT_EQ(std::string(document["newSz"].GetString()), "3");
+    EXPECT_EQ(std::string(document["newPx"].GetString()), "2.25");
+    EXPECT_EQ(std::string(document["reqId"].GetString()), "amend1");
+    ASSERT_TRUE(document["cxlOnFail"].IsBool());
+    EXPECT_EQ(document["cxlOnFail"].GetBool(), std::string(cxlOnFail) == "true");
+    verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
+  }
+}
+
+TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestAmendOrder) {
+  Request request(Request::Operation::AMEND_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
+  std::string textMessage = R"({"code":"0","msg":"","data":[{"clOrdId":"oktswap6","ordId":"12345689","reqId":"amend1","sCode":"0","sMsg":""}]})";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  ASSERT_EQ(messageList.size(), 1);
+  verifyCorrelationId(messageList, request.getCorrelationId());
+  const auto& message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::AMEND_ORDER);
+  const auto& elementList = message.getElementList();
+  ASSERT_EQ(elementList.size(), 1);
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_ORDER_ID), "12345689");
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_CLIENT_ORDER_ID), "oktswap6");
+}
+
 TEST_F(ExecutionManagementServiceOkxTest, convertRequestCancelOrderByOrderId) {
   Request request(Request::Operation::CANCEL_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::map<std::string, std::string> param{
