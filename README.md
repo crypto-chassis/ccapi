@@ -581,10 +581,7 @@ Received an event:
   ]
 Bye
 ```
-* Request operation types: `CREATE_ORDER`, `AMEND_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
-* Gate.io REST `AMEND_ORDER` supports [spot](https://www.gate.com/docs/developers/apiv4/en/spot/#amend-single-order) (`PATCH`) and [perpetual futures](https://www.gate.com/docs/developers/apiv4/en/futures/#amend-single-order) (`PUT`). Identify the order with `ORDER_ID` or `CLIENT_ORDER_ID`, and provide `QUANTITY` and/or `LIMIT_PRICE`. Spot quantity maps to `amount`; futures quantity maps to a signed integer `size` (positive for buy, negative for sell), including the already-filled quantity. Futures settlement is inferred from the instrument or supplied via `SETTLE_ASSET`/`settle`. Native body parameters such as `amend_text` are also supported.
-* Bitget UTA REST `AMEND_ORDER` uses [POST /api/v3/trade/modify-order](https://www.bitget.com/docs/catalog/trading/order-management#modify-order). Provide `ORDER_ID` or `CLIENT_ORDER_ID`, and `QUANTITY` (mapped to `qty`) and/or `LIMIT_PRICE` (mapped to `price`). `INSTRUMENT_TYPE` maps to `category` (defaults to `SPOT`). Native parameters such as `autoCancel` are supported; `requestId` is sent as a JSON number.
-* OKX REST `AMEND_ORDER` uses [POST /api/v5/trade/amend-order](https://www.okx.com/docs-v5/en/#order-book-trading-trade-post-amend-order). Set the instrument and `ORDER_ID` or `CLIENT_ORDER_ID`, and provide `QUANTITY` (mapped to `newSz`, the new total order quantity) and/or `LIMIT_PRICE` (mapped to `newPx`). Native parameters such as `reqId` are also supported; pass `cxlOnFail` as `"true"` or `"false"` to send a JSON boolean.
+* Request operation types: `CREATE_ORDER`, `AMEND_ORDER`, `AMEND_ORDER_KEEP_PRIORITY`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
 * Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/execution_management_advanced_request/main.cpp).
 
 **Objective 2:**
@@ -786,6 +783,8 @@ request.appendParam({
 ```
 
 #### Send request by Websocket API
+`CREATE_ORDER`, `AMEND_ORDER`, `AMEND_ORDER_KEEP_PRIORITY` and `CANCEL_ORDER` can be sent by the Websocket API. The response of the request is delivered as an `Event::Type::RESPONSE` event whose messages bear the correlation id of the request (or as `Event::Type::RESPONSE_ERROR` if the exchange rejects the request).
+
 For okx, cryptocom:
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
@@ -800,7 +799,10 @@ request.appendParam({
 });
 session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
 ```
-For bybit, binance, binance-usds-futures, binance-coin-futures:
+For bybit, binance, binance-usds-futures, binance-coin-futures, bitget-uta, kraken, gateio, gateio-perpetual-futures:
+
+Gate.io WebSocket order requests include `X-Gate-Channel-Id` in `payload.req_header`, using `CCAPI_GATEIO_API_CHANNEL_ID`.
+
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
 Subscription subscription_1("bybit", "", "ORDER_UPDATE");
@@ -813,6 +815,16 @@ request.appendParam({
     {"SIDE", "BUY"},
     {"LIMIT_PRICE", "20000"},
     {"QUANTITY", "0.001"},
+});
+session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
+```
+
+`AMEND_ORDER_KEEP_PRIORITY` amends the order in place so that its queue priority is retained where the exchange supports it (binance spot, kraken). Exchanges that cannot keep the priority while amending reject the request with `Event::Type::RESPONSE_ERROR`.
+```
+Request request(Request::Operation::AMEND_ORDER_KEEP_PRIORITY, "binance", "BTCUSDT");
+request.appendParam({
+    {"ORDER_ID", "123456789"},
+    {"QUANTITY", "0.002"},
 });
 session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
 ```

@@ -62,6 +62,7 @@ class Message {
     INCORRECT_STATE_FOUND,
     CREATE_ORDER,
     AMEND_ORDER,
+    AMEND_ORDER_KEEP_PRIORITY,
     CANCEL_ORDER,
     GET_ORDER,
     GET_OPEN_ORDERS,
@@ -155,6 +156,9 @@ class Message {
         break;
       case Type::AMEND_ORDER:
         output = "AMEND_ORDER";
+        break;
+      case Type::AMEND_ORDER_KEEP_PRIORITY:
+        output = "AMEND_ORDER_KEEP_PRIORITY";
         break;
       case Type::CANCEL_ORDER:
         output = "CANCEL_ORDER";

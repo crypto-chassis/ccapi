@@ -1109,6 +1109,10 @@
 #define CCAPI_KRAKEN_URL_WS_BASE_PRIVATE "wss://ws-auth.kraken.com"
 #endif
 
+#ifndef CCAPI_KRAKEN_URL_WS_ORDER_ENTRY_BASE
+#define CCAPI_KRAKEN_URL_WS_ORDER_ENTRY_BASE "wss://ws-auth.kraken.com/v2"
+#endif
+
 #ifndef CCAPI_KRAKEN_FUTURES_URL_WS_BASE
 #define CCAPI_KRAKEN_FUTURES_URL_WS_BASE "wss://futures.kraken.com"
 #endif
