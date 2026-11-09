@@ -133,6 +133,7 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
   }
 
   void prepareReq(http::request<http::string_body>& req, const TimePoint& now, const std::map<std::string, std::string>& credential) {
+    req.set("X-Gate-Channel-Id", CCAPI_GATEIO_API_CHANNEL_ID);
     req.set("Accept", "application/json");
     req.set(beast::http::field::content_type, "application/json");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -148,7 +149,6 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
       } break;
       case Request::Operation::CREATE_ORDER: {
-        req.set("X-Gate-Channel-Id", CCAPI_GATEIO_API_CHANNEL_ID);
         req.method(http::verb::post);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
@@ -167,7 +167,6 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         this->signRequest(req, path, "", body, credential);
       } break;
       case Request::Operation::AMEND_ORDER: {
-        req.set("X-Gate-Channel-Id", CCAPI_GATEIO_API_CHANNEL_ID);
         req.method(this->isDerivatives ? http::verb::put : http::verb::patch);
         std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
@@ -313,6 +312,76 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     }
   }
 
+  void convertRequestForWebsocket(rj::Document& document, rj::Document::AllocatorType& allocator, std::shared_ptr<WsConnection> wsConnectionPtr,
+                                  const Request& request, unsigned long wsRequestId, const TimePoint& now, const std::string& symbolId,
+                                  const std::map<std::string, std::string>& credential) override {
+    const auto operation = request.getOperation();
+    std::string channel = this->isDerivatives ? "futures." : "spot.";
+    switch (operation) {
+      case Request::Operation::CREATE_ORDER:
+        channel += "order_place";
+        break;
+      case Request::Operation::AMEND_ORDER:
+        channel += "order_amend";
+        break;
+      case Request::Operation::CANCEL_ORDER:
+        channel += "order_cancel";
+        break;
+      default:
+        this->convertRequestForWebsocketCustom(document, allocator, wsConnectionPtr, request, wsRequestId, now, symbolId, credential);
+        return;
+    }
+    auto param = request.getFirstParamWithDefault();
+    if (operation != Request::Operation::CREATE_ORDER) {
+      if (param.find(CCAPI_EM_ORDER_ID) != param.end()) {
+        param["order_id"] = param.at(CCAPI_EM_ORDER_ID);
+      } else if (param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end()) {
+        param["order_id"] = param.at(CCAPI_EM_CLIENT_ORDER_ID);
+      }
+      param.erase(CCAPI_EM_ORDER_ID);
+      param.erase(CCAPI_EM_CLIENT_ORDER_ID);
+    }
+    param.erase("settle");
+    param.erase(CCAPI_SETTLE_ASSET);
+    rj::Document reqParam;
+    reqParam.SetObject();
+    this->appendParam(reqParam, allocator, param,
+                      {
+                          {CCAPI_EM_ORDER_SIDE, "side"},
+                          {CCAPI_EM_ORDER_QUANTITY, this->amountName},
+                          {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                          {CCAPI_EM_CLIENT_ORDER_ID, "text"},
+                          {CCAPI_EM_ORDER_TYPE, "type"},
+                          {CCAPI_EM_ACCOUNT_ID, "account"},
+                          {CCAPI_EM_ACCOUNT_TYPE, "account"},
+                          {CCAPI_SYMBOL_ID, this->symbolName},
+                      });
+    if (this->isDerivatives) {
+      reqParam.RemoveMember("side");
+      if (reqParam.HasMember("size")) {
+        reqParam["size"].SetInt64(std::stoll(reqParam["size"].GetString()));
+      }
+      if (operation != Request::Operation::CREATE_ORDER) {
+        reqParam.RemoveMember("contract");
+      }
+    }
+    if ((!this->isDerivatives || operation == Request::Operation::CREATE_ORDER) && !symbolId.empty() && !reqParam.HasMember(this->symbolName.c_str())) {
+      this->appendSymbolId(reqParam, allocator, symbolId);
+    }
+    document.SetObject();
+    document.AddMember("time", rj::Value().SetInt64(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()), allocator);
+    document.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
+    document.AddMember("event", "api", allocator);
+    rj::Value payload(rj::kObjectType);
+    rj::Value reqHeader(rj::kObjectType);
+    reqHeader.AddMember("X-Gate-Channel-Id", rj::Value(CCAPI_GATEIO_API_CHANNEL_ID, allocator).Move(), allocator);
+    payload.AddMember("req_header", reqHeader, allocator);
+    payload.AddMember("req_id", rj::Value(std::to_string(wsRequestId).c_str(), allocator).Move(), allocator);
+    payload.AddMember("req_param", reqParam.Move(), allocator);
+    document.AddMember("payload", payload, allocator);
+    this->requestCorrelationIdByWsRequestIdByConnectionIdMap[wsConnectionPtr->id][wsRequestId] = request.getCorrelationId();
+  }
+
   void extractAccountInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
@@ -365,6 +434,27 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     int time = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
     const auto& fieldSet = subscription.getFieldSet();
     const auto& instrumentSet = subscription.getInstrumentSet();
+    if (fieldSet.find(CCAPI_EM_WEBSOCKET_ORDER_ENTRY) != fieldSet.end()) {
+      rj::Document document;
+      document.SetObject();
+      auto& allocator = document.GetAllocator();
+      std::string channel = this->isDerivatives ? "futures.login" : "spot.login";
+      std::string timestamp = std::to_string(time);
+      auto signature = Hmac::hmac(Hmac::ShaVersion::SHA512, apiSecret, "api\n" + channel + "\n\n" + timestamp, true);
+      document.AddMember("time", rj::Value(time), allocator);
+      document.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
+      document.AddMember("event", "api", allocator);
+      rj::Value payload(rj::kObjectType);
+      payload.AddMember("req_id", "login", allocator);
+      payload.AddMember("api_key", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
+      payload.AddMember("signature", rj::Value(signature.c_str(), allocator).Move(), allocator);
+      payload.AddMember("timestamp", rj::Value(timestamp.c_str(), allocator).Move(), allocator);
+      document.AddMember("payload", payload, allocator);
+      rj::StringBuffer stringBuffer;
+      rj::Writer<rj::StringBuffer> writer(stringBuffer);
+      document.Accept(writer);
+      return {stringBuffer.GetString()};
+    }
     for (const auto& field : fieldSet) {
       rj::Document document;
       document.SetObject();
@@ -408,19 +498,107 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     this->jsonDocumentAllocator.Clear();
     rj::Document document(&this->jsonDocumentAllocator);
     document.Parse<rj::kParseNumbersAsStringsFlag>(textMessageView.data(), textMessageView.size());
+    if (document.HasParseError() || !document.IsObject()) {
+      return;
+    }
     Event event = this->createEvent(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
     if (!event.getMessageList().empty()) {
       this->eventHandler(event, nullptr);
     }
   }
 
+  Event createEventForWebsocketApi(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription,
+                                   boost::beast::string_view textMessageView, const rj::Document& document, const TimePoint& timeReceived) {
+    Event event;
+    const auto& header = document["header"];
+    if (!header.IsObject() || !header.HasMember("channel") || !document.HasMember("data") || !document["data"].IsObject()) {
+      return event;
+    }
+    const auto& data = document["data"];
+    const std::string channel = header["channel"].GetString();
+    const std::string prefix = this->isDerivatives ? "futures." : "spot.";
+    bool hasError =
+        (data.HasMember("errs") && !data["errs"].IsNull()) || (header.HasMember("status") && std::string_view(header["status"].GetString()) != "200");
+    if (document.HasMember("ack") && document["ack"].IsBool() && document["ack"].GetBool() && !hasError) {
+      return event;
+    }
+    Message message;
+    message.setTimeReceived(timeReceived);
+    if (channel == prefix + "login") {
+      event.setType(Event::Type::AUTHORIZATION_STATUS);
+      hasError = hasError || !data.HasMember("result") || !data["result"].IsObject();
+      message.setType(hasError ? Message::Type::AUTHORIZATION_FAILURE : Message::Type::AUTHORIZATION_SUCCESS);
+      message.setCorrelationIdList({subscription.getCorrelationId()});
+      Element element;
+      element.insert(CCAPI_CONNECTION_ID, wsConnectionPtr->id);
+      element.insert(CCAPI_CONNECTION_URL, wsConnectionPtr->url);
+      element.insert(hasError ? CCAPI_ERROR_MESSAGE : CCAPI_INFO_MESSAGE, textMessageView);
+      message.setElementList({element});
+    } else {
+      Request::Operation operation;
+      if (channel == prefix + "order_place") {
+        operation = Request::Operation::CREATE_ORDER;
+      } else if (channel == prefix + "order_amend") {
+        operation = Request::Operation::AMEND_ORDER;
+      } else if (channel == prefix + "order_cancel") {
+        operation = Request::Operation::CANCEL_ORDER;
+      } else {
+        return event;
+      }
+      auto connectionIt = this->requestCorrelationIdByWsRequestIdByConnectionIdMap.find(wsConnectionPtr->id);
+      if (connectionIt == this->requestCorrelationIdByWsRequestIdByConnectionIdMap.end() || !document.HasMember("request_id")) {
+        return event;
+      }
+      unsigned long wsRequestId;
+      try {
+        std::size_t pos;
+        const std::string requestId = document["request_id"].GetString();
+        wsRequestId = std::stoul(requestId, &pos);
+        if (pos != requestId.size()) {
+          return event;
+        }
+      } catch (const std::exception&) {
+        return event;
+      }
+      auto requestIt = connectionIt->second.find(wsRequestId);
+      if (requestIt == connectionIt->second.end() || requestIt->first != wsRequestId) {
+        return event;
+      }
+      event.setType(Event::Type::RESPONSE);
+      message.setCorrelationIdList({requestIt->second});
+      if (hasError || !data.HasMember("result") || !data["result"].IsObject()) {
+        message.setType(Message::Type::RESPONSE_ERROR);
+        Element element;
+        element.insert(CCAPI_ERROR_MESSAGE, textMessageView);
+        message.setElementList({element});
+      } else {
+        message.setType(this->requestOperationToMessageTypeMap.at(operation));
+        rj::Document result;
+        result.CopyFrom(data["result"], result.GetAllocator());
+        std::vector<Element> elementList;
+        Request request(operation, this->exchangeName);
+        this->extractOrderInfoFromRequest(elementList, request, operation, result);
+        message.setElementList(elementList);
+      }
+      connectionIt->second.erase(requestIt);
+    }
+    event.setMessageList({message});
+    return event;
+  }
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
+    if (document.HasMember("header")) {
+      return this->createEventForWebsocketApi(wsConnectionPtr, subscription, textMessageView, document, timeReceived);
+    }
     Event event;
     std::vector<Message> messageList;
     Message message;
     message.setTimeReceived(timeReceived);
     message.setCorrelationIdList({subscription.getCorrelationId()});
+    if (!document.HasMember("event")) {
+      return event;
+    }
     std::string eventType = document["event"].GetString();
     if (eventType == "update") {
       event.setType(Event::Type::SUBSCRIPTION_DATA);

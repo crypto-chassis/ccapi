@@ -799,7 +799,10 @@ request.appendParam({
 });
 session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
 ```
-For bybit, binance, binance-usds-futures, binance-coin-futures, bitget-uta, kraken:
+For bybit, binance, binance-usds-futures, binance-coin-futures, bitget-uta, kraken, gateio, gateio-perpetual-futures:
+
+Gate.io WebSocket order requests include `X-Gate-Channel-Id` in `payload.req_header`, using `CCAPI_GATEIO_API_CHANNEL_ID`.
+
 ```
 std::string websocketOrderEntrySubscriptionCorrelationId("any");
 Subscription subscription_1("bybit", "", "ORDER_UPDATE");
@@ -815,6 +818,7 @@ request.appendParam({
 });
 session.sendRequestByWebsocket(websocketOrderEntrySubscriptionCorrelationId, request);
 ```
+
 `AMEND_ORDER_KEEP_PRIORITY` amends the order in place so that its queue priority is retained where the exchange supports it (binance spot, kraken). Exchanges that cannot keep the priority while amending reject the request with `Event::Type::RESPONSE_ERROR`.
 ```
 Request request(Request::Operation::AMEND_ORDER_KEEP_PRIORITY, "binance", "BTCUSDT");

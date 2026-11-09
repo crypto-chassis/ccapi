@@ -85,6 +85,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
 
   void prepareReq(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                   const std::map<std::string, std::string>& credential) {
+    req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
     req.set(beast::http::field::content_type, "application/json");
     req.set("locale", "en-US");
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
@@ -175,7 +176,6 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
       } break;
       case Request::Operation::CREATE_ORDER: {
-        req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -194,7 +194,6 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
         this->signRequest(req, this->finalizeBody(document), credential);
       } break;
       case Request::Operation::AMEND_ORDER: {
-        req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
         req.method(http::verb::post);
         req.target(this->amendOrderTarget);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -471,6 +470,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
     rj::Value arg(rj::kObjectType);
     switch (request.getOperation()) {
       case Request::Operation::CREATE_ORDER: {
+        document.AddMember("apiCode", rj::Value(CCAPI_BITGET_API_CHANNEL_API_CODE).Move(), allocator);
         document.AddMember("topic", rj::Value("place-order").Move(), allocator);
         std::string category = "spot";
         auto it = param.find(CCAPI_INSTRUMENT_TYPE);
