@@ -701,6 +701,9 @@ Received an event of type SUBSCRIPTION_DATA:
 Bye
 ```
 * Subscription fields: `ORDER_UPDATE`, `PRIVATE_TRADE`, `PRIVATE_TRADE_LITE`, `BALANCE_UPDATE`, `POSITION_UPDATE`.
+  * Gate.io: `BALANCE_UPDATE` uses [spot.balances](https://www.gate.com/docs/developers/apiv4/ws/en/#spot-balance-channel) for spot or [futures.balances](https://www.gate.com/docs/developers/futures/ws/en/#balances-api) for perpetual futures. Balances are account-wide regardless of the instrument filter; available balance is reported only for spot.
+  * Gate.io perpetual futures: `POSITION_UPDATE` uses [futures.positions](https://www.gate.com/docs/developers/futures/ws/en/#positions-api), honoring the instrument filter (empty means all contracts). Position quantity retains the exchange's signed contract size; entry price, leverage, margin type, and settlement margin asset are reported when available. These channels do not provide unrealised PnL or a position-asset currency.
+  * Gate.io futures subscription options: `ACCOUNT_ID=<Gate user ID>` is required for balances and optional for positions (which otherwise use a deprecated user-ID placeholder). `SETTLE_ASSET=btc|usdt|usd1` selects the settlement endpoint; absent this option, settlement is inferred from the instrument, or defaults to `usdt` for account-wide subscriptions. For example: `Subscription("gateio-perpetual-futures", "", "BALANCE_UPDATE,POSITION_UPDATE", "ACCOUNT_ID=20011&SETTLE_ASSET=usdt")`.
 
 ### Advanced Execution Management
 

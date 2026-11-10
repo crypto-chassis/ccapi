@@ -746,6 +746,10 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
             Message message;
             message.setTimeReceived(timeReceived);
             message.setCorrelationIdList({subscription.getCorrelationId()});
+            std::string timestamp = getStringOrEmpty(document, "ts");
+            if (!timestamp.empty()) {
+              message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(timestamp)));
+            }
             message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_BALANCE_UPDATE);
             message.setElementList(elementList);
             messageList.emplace_back(std::move(message));
@@ -763,6 +767,9 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
             if (updatedTime.empty()) {
               updatedTime = getStringOrEmpty(x, "createdTime");
             }
+            if (updatedTime.empty()) {
+              updatedTime = getStringOrEmpty(document, "ts");
+            }
             if (!updatedTime.empty()) {
               message.setTime(UtilTime::makeTimePointFromMilliseconds(std::stoll(updatedTime)));
             }
@@ -774,6 +781,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
             element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, getStringOrEmpty(x, "avgPrice"));
             element.insert(CCAPI_EM_POSITION_LEVERAGE, getStringOrEmpty(x, "leverage"));
             element.insert(CCAPI_EM_POSITION_ASSET, getStringOrEmpty(x, "marginCoin"));
+            element.insert(CCAPI_MARGIN_ASSET, getStringOrEmpty(x, "marginCoin"));
             element.insert(CCAPI_EM_UNREALIZED_PNL, getStringOrEmpty(x, "unrealisedPnl"));
             std::string marginMode = getStringOrEmpty(x, "marginMode");
             if (!marginMode.empty()) {

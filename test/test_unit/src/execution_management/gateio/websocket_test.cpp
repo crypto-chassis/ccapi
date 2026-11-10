@@ -60,6 +60,12 @@ class ExecutionManagementServiceGateioWebsocketTest : public ::testing::TestWith
     this->service->onTextMessage(this->connection, this->subscription, text, this->now);
   }
 
+  void receiveUpdate(const Subscription& subscription, const std::string& channel, const std::string& result) {
+    const auto text =
+        "{\"channel\":\"" + this->prefix + channel + "\",\"event\":\"update\",\"time\":1700000000,\"time_ms\":1700000000123,\"result\":" + result + "}";
+    this->service->onTextMessage(this->connection, subscription, text, this->now);
+  }
+
   ServiceContext context;
   std::shared_ptr<ExecutionManagementServiceGateioBase> service;
   std::shared_ptr<WsConnection> connection;
@@ -311,6 +317,223 @@ TEST_P(ExecutionManagementServiceGateioWebsocketTest, subscriptionUsesOrderEntry
   EXPECT_EQ(connections.at(0)->url, GetParam() ? "wss://futures.example.com/v4/ws/usdt" : "wss://spot.example.com/ws/v4/");
   EXPECT_EQ(connections.at(1)->url, GetParam() ? "wss://futures.example.com/v4/ws/btc" : "wss://spot.example.com/ws/v4/");
   EXPECT_EQ(connections.at(2)->url, GetParam() ? "wss://futures.example.com/v4/ws/usdt" : "wss://spot.example.com/ws/v4/");
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, balanceSubscriptionAndSignature) {
+  for (const auto& instrument : {"", "BTC_USDT"}) {
+    Subscription subscription(this->exchange, instrument, CCAPI_EM_BALANCE_UPDATE, "ACCOUNT_ID=20011", "balances");
+    auto strings = this->service->createSendStringListFromSubscription(this->connection, subscription, this->now, this->credential);
+    ASSERT_EQ(strings.size(), 1);
+    rj::Document document;
+    document.Parse(strings.at(0).c_str());
+    EXPECT_EQ(std::string(document["channel"].GetString()), this->prefix + "balances");
+    EXPECT_EQ(std::string(document["event"].GetString()), "subscribe");
+    EXPECT_EQ(document["time"].GetInt(), 1499827319);
+    EXPECT_EQ(std::string(document["auth"]["KEY"].GetString()), "test-key");
+    EXPECT_EQ(std::string(document["auth"]["SIGN"].GetString()),
+              Hmac::hmac(Hmac::ShaVersion::SHA512, "test-secret", "channel=" + this->prefix + "balances&event=subscribe&time=1499827319", true));
+    if (GetParam()) {
+      ASSERT_TRUE(document["payload"].IsArray());
+      ASSERT_EQ(document["payload"].Size(), 1);
+      EXPECT_EQ(std::string(document["payload"][0].GetString()), "20011");
+    } else {
+      EXPECT_FALSE(document.HasMember("payload"));
+    }
+  }
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, positionSubscriptionAndUnsupportedSpotField) {
+  for (const auto& instrument : {"", "BTC_USDT,ETH_USDT"}) {
+    Subscription subscription(this->exchange, instrument, CCAPI_EM_POSITION_UPDATE, "ACCOUNT_ID=20011", "positions");
+    auto strings = this->service->createSendStringListFromSubscription(this->connection, subscription, this->now, this->credential);
+    if (!GetParam()) {
+      EXPECT_TRUE(strings.empty());
+      ASSERT_FALSE(this->events.empty());
+      EXPECT_EQ(this->events.back().getMessageList().at(0).getType(), Message::Type::SUBSCRIPTION_FAILURE);
+      continue;
+    }
+    ASSERT_EQ(strings.size(), 1);
+    rj::Document document;
+    document.Parse(strings.at(0).c_str());
+    EXPECT_EQ(std::string(document["channel"].GetString()), "futures.positions");
+    EXPECT_EQ(std::string(document["auth"]["SIGN"].GetString()),
+              Hmac::hmac(Hmac::ShaVersion::SHA512, "test-secret", "channel=futures.positions&event=subscribe&time=1499827319", true));
+    const auto& payload = document["payload"];
+    ASSERT_EQ(payload.Size(), std::string(instrument).empty() ? 2 : 3);
+    EXPECT_EQ(std::string(payload[0].GetString()), "20011");
+    EXPECT_EQ(std::string(payload[1].GetString()), std::string(instrument).empty() ? "!all" : "BTC_USDT");
+    if (payload.Size() == 3) {
+      EXPECT_EQ(std::string(payload[2].GetString()), "ETH_USDT");
+    }
+  }
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, missingFuturesAccountId) {
+  if (!GetParam()) return;
+  Subscription balances(this->exchange, "", CCAPI_EM_BALANCE_UPDATE, "", "balances");
+  EXPECT_TRUE(this->service->createSendStringListFromSubscription(this->connection, balances, this->now, this->credential).empty());
+  ASSERT_EQ(this->events.size(), 1);
+  EXPECT_EQ(this->events.at(0).getMessageList().at(0).getType(), Message::Type::SUBSCRIPTION_FAILURE);
+  EXPECT_EQ(this->events.at(0).getMessageList().at(0).getCorrelationIdList(), std::vector<std::string>{"balances"});
+  Subscription positions(this->exchange, "", CCAPI_EM_POSITION_UPDATE);
+  auto strings = this->service->createSendStringListFromSubscription(this->connection, positions, this->now, this->credential);
+  ASSERT_EQ(strings.size(), 1);
+  rj::Document document;
+  document.Parse(strings.at(0).c_str());
+  EXPECT_EQ(std::string(document["payload"][0].GetString()), "0");
+  EXPECT_EQ(std::string(document["payload"][1].GetString()), "!all");
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, balanceUpdatesAreAccountWide) {
+  Subscription subscription(this->exchange, "ETH_USDT", CCAPI_EM_BALANCE_UPDATE, "", "balances");
+  this->receiveUpdate(subscription, "balances",
+                      GetParam() ? R"([{"currency":"btc","balance":9.998739899488,"time":1547199246,"time_ms":1547199246123},
+      {"currency":"usdt","balance":"0","time":1547199247}])"
+                                 : R"([{"currency":"USDT","total":"222244.3827652","available":"222244.3827",
+      "timestamp":"1667556323","timestamp_ms":"1667556323730"},
+      {"currency":"BTC","total":"0","available":"0","timestamp":"1667556324"}])");
+  ASSERT_EQ(this->events.size(), 1);
+  EXPECT_EQ(this->events.at(0).getType(), Event::Type::SUBSCRIPTION_DATA);
+  const auto& messages = this->events.at(0).getMessageList();
+  ASSERT_EQ(messages.size(), 2);
+  for (const auto& message : messages) {
+    EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_BALANCE_UPDATE);
+    EXPECT_EQ(message.getTimeReceived(), this->now);
+    EXPECT_EQ(message.getCorrelationIdList(), std::vector<std::string>{"balances"});
+    ASSERT_EQ(message.getElementList().size(), 1);
+  }
+  EXPECT_EQ(messages.at(0).getTime(), UtilTime::makeTimePointFromMilliseconds(GetParam() ? 1547199246123LL : 1667556323730LL));
+  EXPECT_EQ(messages.at(1).getTime(), UtilTime::makeTimePointFromMilliseconds(GetParam() ? 1547199247000LL : 1667556324000LL));
+  const auto& element = messages.at(0).getElementList().at(0);
+  EXPECT_EQ(element.getValue(CCAPI_EM_ASSET), GetParam() ? "btc" : "USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_TOTAL), GetParam() ? "9.998739899488" : "222244.3827652");
+  if (GetParam()) {
+    EXPECT_FALSE(element.has(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING));
+  } else {
+    EXPECT_EQ(element.getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "222244.3827");
+  }
+  EXPECT_EQ(messages.at(1).getElementList().at(0).getValue(CCAPI_EM_QUANTITY_TOTAL), "0");
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, futuresPositionUpdatesAndFiltering) {
+  if (!GetParam()) return;
+  Subscription subscription(this->exchange, "BTC_USDT", CCAPI_EM_POSITION_UPDATE, "", "positions");
+  this->connection->url = "wss://fx-ws.gateio.ws/v4/ws/usdt";
+  this->receiveUpdate(subscription, "positions", R"([{"contract":"ETH_USDT","size":10},
+    {"contract":"BTC_USDT","size":"-3.5","entry_price":40000.36666661111,"mode":"single",
+    "leverage":0,"lever":"10","pos_margin_mode":"cross","time":1628736848,"time_ms":1628736848321},
+    {"contract":"BTC_USDT","size":0,"entry_price":"0","mode":"dual_short","leverage":20,"time":1628736849}])");
+  ASSERT_EQ(this->events.size(), 1);
+  const auto& messages = this->events.at(0).getMessageList();
+  ASSERT_EQ(messages.size(), 2);
+  for (const auto& message : messages) {
+    EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_POSITION_UPDATE);
+    EXPECT_EQ(message.getTimeReceived(), this->now);
+    EXPECT_EQ(message.getCorrelationIdList(), std::vector<std::string>{"positions"});
+  }
+  EXPECT_EQ(messages.at(0).getTime(), UtilTime::makeTimePointFromMilliseconds(1628736848321LL));
+  EXPECT_EQ(messages.at(1).getTime(), UtilTime::makeTimePointFromSeconds(1628736849));
+  const auto& element = messages.at(0).getElementList().at(0);
+  EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "BTC_USDT");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "short");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "-3.5");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE), "40000.36666661111");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "10");
+  EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_MARGIN_TYPE), CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN);
+  EXPECT_EQ(element.getValue(CCAPI_MARGIN_ASSET), "USDT");
+  const auto& closed = messages.at(1).getElementList().at(0);
+  EXPECT_EQ(closed.getValue(CCAPI_EM_POSITION_SIDE), "short");
+  EXPECT_EQ(closed.getValue(CCAPI_EM_POSITION_QUANTITY), "0");
+  EXPECT_EQ(closed.getValue(CCAPI_EM_POSITION_LEVERAGE), "20");
+  EXPECT_EQ(closed.getValue(CCAPI_EM_POSITION_MARGIN_TYPE), CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, accountUpdateFieldFilteringAndEmptyResults) {
+  Subscription subscription(this->exchange, "", CCAPI_EM_ORDER_UPDATE);
+  for (const auto& channel : {"balances", "positions"}) {
+    this->receiveUpdate(subscription, channel, "[{}]");
+    EXPECT_TRUE(this->events.empty());
+  }
+  subscription = Subscription(this->exchange, "", std::string(CCAPI_EM_BALANCE_UPDATE) + "," + CCAPI_EM_POSITION_UPDATE);
+  for (const auto& channel : {"balances", "positions"}) {
+    this->receiveUpdate(subscription, channel, "[]");
+    EXPECT_TRUE(this->events.empty());
+  }
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, accountWideFuturesSettlementRouting) {
+  if (!GetParam()) return;
+  for (const auto& field : {CCAPI_EM_BALANCE_UPDATE, CCAPI_EM_POSITION_UPDATE}) {
+    for (const auto& settle : {"", "BTC", "usdt", "usd1"}) {
+      const auto options = std::string("ACCOUNT_ID=20011") + (std::string(settle).empty() ? "" : std::string("&SETTLE_ASSET=") + settle);
+      std::vector<Subscription> subscriptions{Subscription(this->exchange, "", field, options)};
+      this->service->subscribe(subscriptions);
+    }
+  }
+  this->context.ioContextPtr->poll();
+  const auto& connections = std::dynamic_pointer_cast<GateioWebsocketProbe<ExecutionManagementServiceGateioPerpetualFutures>>(this->service)->connections;
+  ASSERT_EQ(connections.size(), 8);
+  for (std::size_t i = 0; i < connections.size(); ++i) {
+    const std::vector<std::string> settlements{"usdt", "btc", "usdt", "usd1"};
+    EXPECT_EQ(connections.at(i)->url, "wss://fx-ws.gateio.ws/v4/ws/" + settlements.at(i % 4));
+  }
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, positionSidesAndLegacyCrossMargin) {
+  if (!GetParam()) return;
+  Subscription subscription(this->exchange, "", CCAPI_EM_POSITION_UPDATE);
+  this->connection->url = "wss://fx-ws.gateio.ws/v4/ws/btc";
+  this->receiveUpdate(subscription, "positions", R"([{"contract":"BTC_USD","size":3,"mode":"single","leverage":0},
+    {"contract":"ETH_USD","size":0,"mode":"dual_long","lever":"20","pos_margin_mode":"isolated"},
+    {"contract":"BTC_USD","size":0,"mode":"single"}])");
+  ASSERT_EQ(this->events.size(), 1);
+  const auto& messages = this->events.at(0).getMessageList();
+  ASSERT_EQ(messages.size(), 3);
+  const auto& longPosition = messages.at(0).getElementList().at(0);
+  EXPECT_EQ(longPosition.getValue(CCAPI_EM_POSITION_SIDE), "long");
+  EXPECT_EQ(longPosition.getValue(CCAPI_EM_POSITION_QUANTITY), "3");
+  EXPECT_EQ(longPosition.getValue(CCAPI_EM_POSITION_MARGIN_TYPE), CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN);
+  EXPECT_EQ(longPosition.getValue(CCAPI_MARGIN_ASSET), "BTC");
+  EXPECT_FALSE(longPosition.has(CCAPI_EM_POSITION_ENTRY_PRICE));
+  EXPECT_EQ(messages.at(0).getTime(), UtilTime::makeTimePointFromMilliseconds(1700000000123LL));
+  EXPECT_EQ(messages.at(1).getElementList().at(0).getValue(CCAPI_EM_POSITION_SIDE), "long");
+  EXPECT_EQ(messages.at(1).getElementList().at(0).getValue(CCAPI_EM_POSITION_MARGIN_TYPE), CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
+  EXPECT_EQ(messages.at(2).getElementList().at(0).getValue(CCAPI_EM_POSITION_SIDE), "net");
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, balanceTimestampFallback) {
+  Subscription subscription(this->exchange, "", CCAPI_EM_BALANCE_UPDATE);
+  this->receiveUpdate(subscription, "balances", GetParam() ? R"([{"currency":"usdt","balance":0}])" : R"([{"currency":"USDT","total":"0","available":"0"}])");
+  ASSERT_EQ(this->events.size(), 1);
+  EXPECT_EQ(this->events.at(0).getMessageList().at(0).getTime(), UtilTime::makeTimePointFromMilliseconds(1700000000123LL));
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, accountChannelSubscriptionStatus) {
+  for (const auto& channel : {"balances", "positions"}) {
+    if (!GetParam() && std::string(channel) == "positions") continue;
+    Subscription subscription(this->exchange, "", std::string(channel) == "positions" ? CCAPI_EM_POSITION_UPDATE : CCAPI_EM_BALANCE_UPDATE, "", "account");
+    for (const auto& error : {"null", R"({"code":2,"message":"invalid subscription"})"}) {
+      const auto text = "{\"channel\":\"" + this->prefix + channel + "\",\"event\":\"subscribe\",\"error\":" + error + "}";
+      this->service->onTextMessage(this->connection, subscription, text, this->now);
+      ASSERT_FALSE(this->events.empty());
+      const auto& event = this->events.back();
+      EXPECT_EQ(event.getType(), Event::Type::SUBSCRIPTION_STATUS);
+      const auto& message = event.getMessageList().at(0);
+      EXPECT_EQ(message.getType(), std::string(error) == "null" ? Message::Type::SUBSCRIPTION_STARTED : Message::Type::SUBSCRIPTION_FAILURE);
+      EXPECT_EQ(message.getCorrelationIdList(), std::vector<std::string>{"account"});
+    }
+  }
+}
+
+TEST_P(ExecutionManagementServiceGateioWebsocketTest, invalidFuturesSettlementFails) {
+  if (!GetParam()) return;
+  std::vector<Subscription> subscriptions{Subscription(this->exchange, "", CCAPI_EM_POSITION_UPDATE, "SETTLE_ASSET=invalid", "positions")};
+  this->service->subscribe(subscriptions);
+  this->context.ioContextPtr->poll();
+  const auto& connections = std::dynamic_pointer_cast<GateioWebsocketProbe<ExecutionManagementServiceGateioPerpetualFutures>>(this->service)->connections;
+  EXPECT_TRUE(connections.empty());
+  ASSERT_EQ(this->events.size(), 1);
+  EXPECT_EQ(this->events.at(0).getMessageList().at(0).getType(), Message::Type::SUBSCRIPTION_FAILURE);
 }
 
 INSTANTIATE_TEST_SUITE_P(SpotAndFutures, ExecutionManagementServiceGateioWebsocketTest, ::testing::Bool());

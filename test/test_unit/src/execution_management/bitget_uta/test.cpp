@@ -34,6 +34,13 @@ class ExecutionManagementServiceBitgetUtaTest : public ::testing::Test {
     EXPECT_EQ(req.base().at(beast::http::field::content_length), std::to_string(req.body().size()));
   }
 
+  Event createEvent(const Subscription& subscription, const std::string& textMessage) {
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(textMessage.c_str());
+    return this->service->createEvent(std::make_shared<WsConnection>(), subscription, textMessage, document,
+                                      document.HasMember("event") ? document["event"].GetString() : "", this->now);
+  }
+
   ServiceContext serviceContext;
   std::shared_ptr<ExecutionManagementServiceBitgetUta> service;
   std::map<std::string, std::string> credential;
@@ -140,6 +147,104 @@ TEST_F(ExecutionManagementServiceBitgetUtaTest, convertRequestCreateOrderUnchang
   EXPECT_EQ(std::string(document["qty"].GetString()), "0.02");
   EXPECT_EQ(std::string(document["price"].GetString()), "25000");
   EXPECT_EQ(std::string(document["orderType"].GetString()), "limit");
+}
+
+TEST_F(ExecutionManagementServiceBitgetUtaTest, createEventBalanceUpdate) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_BITGET_UTA, "BTCUSDT", CCAPI_EM_BALANCE_UPDATE, "", "balances");
+  for (const auto& action : {"snapshot", "update"}) {
+    const std::string textMessage = std::string(R"({"arg":{"instType":"UTA","topic":"account"},"action":")") + action + R"(",
+      "ts":1740546523244,"data":[{"totalEquity":"9999","coin":[
+        {"coin":"ETH","balance":"0.9992","available":"0.8992","locked":"0.1"},
+        {"coin":"USDT","balance":"354411.45536458","available":"344282.65536458","locked":"0"},
+        {"coin":"BTC","balance":"0","available":"0","locked":"0"}]}]})";
+    auto event = this->createEvent(subscription, textMessage);
+    EXPECT_EQ(event.getType(), Event::Type::SUBSCRIPTION_DATA);
+    const auto& messageList = event.getMessageList();
+    ASSERT_EQ(messageList.size(), 1);
+    verifyCorrelationId(messageList, "balances");
+    const auto& message = messageList.at(0);
+    EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_BALANCE_UPDATE);
+    EXPECT_EQ(message.getTime(), UtilTime::makeTimePointFromMilliseconds(1740546523244LL));
+    EXPECT_EQ(message.getTimeReceived(), this->now);
+    const auto& elements = message.getElementList();
+    ASSERT_EQ(elements.size(), 3);
+    EXPECT_EQ(elements.at(0).getValue(CCAPI_EM_ASSET), "ETH");
+    EXPECT_EQ(elements.at(0).getValue(CCAPI_EM_QUANTITY_TOTAL), "0.9992");
+    EXPECT_EQ(elements.at(0).getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "0.8992");
+    EXPECT_EQ(elements.at(1).getValue(CCAPI_EM_ASSET), "USDT");
+    EXPECT_EQ(elements.at(1).getValue(CCAPI_EM_QUANTITY_TOTAL), "354411.45536458");
+    EXPECT_EQ(elements.at(1).getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "344282.65536458");
+    EXPECT_EQ(elements.at(2).getValue(CCAPI_EM_QUANTITY_TOTAL), "0");
+  }
+}
+
+TEST_F(ExecutionManagementServiceBitgetUtaTest, createEventPositionUpdate) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_BITGET_UTA, "BTCUSDT", CCAPI_EM_POSITION_UPDATE, "", "positions");
+  for (const auto& action : {"snapshot", "update"}) {
+    for (const auto& marginMode : {"crossed", "isolated"}) {
+      const std::string textMessage = std::string(R"({"arg":{"instType":"UTA","topic":"position"},"action":")") + action + R"(",
+        "ts":1740546523244,"data":[{"symbol":"BTCUSDT","posSide":"long","size":"0.02","avgPrice":"94987.1",
+        "leverage":"20","marginCoin":"USDT","unrealisedPnl":"-1.25","marginMode":")" +
+                                      marginMode + R"(",
+        "updatedTime":"1736378720620","createdTime":"1736378720000"},
+        {"symbol":"ETHUSDT","posSide":"short","size":"1"}]})";
+      auto event = this->createEvent(subscription, textMessage);
+      EXPECT_EQ(event.getType(), Event::Type::SUBSCRIPTION_DATA);
+      const auto& messageList = event.getMessageList();
+      ASSERT_EQ(messageList.size(), 1);
+      verifyCorrelationId(messageList, "positions");
+      const auto& message = messageList.at(0);
+      EXPECT_EQ(message.getType(), Message::Type::EXECUTION_MANAGEMENT_EVENTS_POSITION_UPDATE);
+      EXPECT_EQ(message.getTime(), UtilTime::makeTimePointFromMilliseconds(1736378720620LL));
+      EXPECT_EQ(message.getTimeReceived(), this->now);
+      ASSERT_EQ(message.getElementList().size(), 1);
+      const auto& element = message.getElementList().at(0);
+      EXPECT_EQ(element.getValue(CCAPI_INSTRUMENT), "BTCUSDT");
+      EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_SIDE), "long");
+      EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_QUANTITY), "0.02");
+      EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_ENTRY_PRICE), "94987.1");
+      EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_LEVERAGE), "20");
+      EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_ASSET), "USDT");
+      EXPECT_EQ(element.getValue(CCAPI_MARGIN_ASSET), "USDT");
+      EXPECT_EQ(element.getValue(CCAPI_EM_UNREALIZED_PNL), "-1.25");
+      EXPECT_EQ(element.getValue(CCAPI_EM_POSITION_MARGIN_TYPE),
+                std::string(marginMode) == "crossed" ? CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN : CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
+    }
+  }
+}
+
+TEST_F(ExecutionManagementServiceBitgetUtaTest, createEventClosedPositionsAndTimestampFallback) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_BITGET_UTA, "", CCAPI_EM_POSITION_UPDATE, "", "positions");
+  const std::string textMessage = R"({"arg":{"instType":"UTA","topic":"position"},"action":"update","ts":1740546523244,
+    "data":[{"symbol":"BTCUSDT","posSide":"short","size":"0","avgPrice":"0","leverage":"20","marginCoin":"USDT",
+    "unrealisedPnl":"0","marginMode":"crossed","positionStatus":"ended","createdTime":"1736378720000"},
+    {"symbol":"ETHUSDT","posSide":"long","size":"0","avgPrice":"0","leverage":"10","marginCoin":"USDT",
+    "unrealisedPnl":"0","marginMode":"isolated","positionStatus":"ended"}]})";
+  const auto messageList = this->createEvent(subscription, textMessage).getMessageList();
+  ASSERT_EQ(messageList.size(), 2);
+  EXPECT_EQ(messageList.at(0).getTime(), UtilTime::makeTimePointFromMilliseconds(1736378720000LL));
+  EXPECT_EQ(messageList.at(1).getTime(), UtilTime::makeTimePointFromMilliseconds(1740546523244LL));
+  EXPECT_EQ(messageList.at(0).getElementList().at(0).getValue(CCAPI_EM_POSITION_SIDE), "short");
+  for (const auto& message : messageList) {
+    EXPECT_EQ(message.getElementList().at(0).getValue(CCAPI_EM_POSITION_QUANTITY), "0");
+  }
+}
+
+TEST_F(ExecutionManagementServiceBitgetUtaTest, createEventAccountAndPositionFieldFiltering) {
+  Subscription subscription(CCAPI_EXCHANGE_NAME_BITGET_UTA, "", CCAPI_EM_ORDER_UPDATE);
+  for (const auto& topic : {"account", "position"}) {
+    const std::string textMessage = std::string(R"({"arg":{"instType":"UTA","topic":")") + topic + R"("},"data":[{}]})";
+    EXPECT_TRUE(this->createEvent(subscription, textMessage).getMessageList().empty());
+  }
+}
+
+TEST_F(ExecutionManagementServiceBitgetUtaTest, createEventAccountAndPositionEmptyData) {
+  for (const auto& field : {CCAPI_EM_BALANCE_UPDATE, CCAPI_EM_POSITION_UPDATE}) {
+    Subscription subscription(CCAPI_EXCHANGE_NAME_BITGET_UTA, "", field);
+    const auto topic = std::string(field) == CCAPI_EM_BALANCE_UPDATE ? "account" : "position";
+    const std::string textMessage = std::string(R"({"arg":{"instType":"UTA","topic":")") + topic + R"("},"data":[],"ts":1740546523244})";
+    EXPECT_TRUE(this->createEvent(subscription, textMessage).getMessageList().empty());
+  }
 }
 
 }  // namespace ccapi

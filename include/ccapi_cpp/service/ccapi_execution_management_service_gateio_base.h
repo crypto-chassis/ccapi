@@ -465,18 +465,43 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         channel = this->websocketChannelUserTrades;
       } else if (field == CCAPI_EM_ORDER_UPDATE) {
         channel = this->websocketChannelOrders;
+      } else if (field == CCAPI_EM_BALANCE_UPDATE) {
+        channel = this->isDerivatives ? "futures.balances" : "spot.balances";
+      } else if (field == CCAPI_EM_POSITION_UPDATE && this->isDerivatives) {
+        channel = "futures.positions";
+      } else {
+        this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE, "Unsupported Gate.io subscription field: " + field,
+                      {subscription.getCorrelationId()});
+        continue;
       }
       document.AddMember("channel", rj::Value(channel.c_str(), allocator).Move(), allocator);
       document.AddMember("event", rj::Value("subscribe").Move(), allocator);
-      rj::Value payload(rj::kArrayType);
-      if (instrumentSet.empty()) {
-        payload.PushBack(rj::Value("!all").Move(), allocator);
-      } else {
-        for (const auto& instrument : instrumentSet) {
-          payload.PushBack(rj::Value(instrument.c_str(), allocator).Move(), allocator);
+      if (field != CCAPI_EM_BALANCE_UPDATE || this->isDerivatives) {
+        rj::Value payload(rj::kArrayType);
+        if (this->isDerivatives && (field == CCAPI_EM_BALANCE_UPDATE || field == CCAPI_EM_POSITION_UPDATE)) {
+          auto userId = mapGetWithDefault(subscription.getOptionMap(), std::string(CCAPI_EM_ACCOUNT_ID));
+          if (userId.empty()) {
+            if (field == CCAPI_EM_BALANCE_UPDATE) {
+              this->onError(Event::Type::SUBSCRIPTION_STATUS, Message::Type::SUBSCRIPTION_FAILURE,
+                            "Gate.io futures balances require the ACCOUNT_ID subscription option", {subscription.getCorrelationId()});
+              continue;
+            }
+            // The positions channel retains the deprecated user ID as a placeholder.
+            userId = "0";
+          }
+          payload.PushBack(rj::Value(userId.c_str(), allocator).Move(), allocator);
         }
+        if (field != CCAPI_EM_BALANCE_UPDATE) {
+          if (instrumentSet.empty()) {
+            payload.PushBack(rj::Value("!all").Move(), allocator);
+          } else {
+            for (const auto& instrument : instrumentSet) {
+              payload.PushBack(rj::Value(instrument.c_str(), allocator).Move(), allocator);
+            }
+          }
+        }
+        document.AddMember("payload", payload, allocator);
       }
-      document.AddMember("payload", payload, allocator);
       rj::Value auth(rj::kObjectType);
       auth.AddMember("method", rj::Value("api_key").Move(), allocator);
       auth.AddMember("KEY", rj::Value(apiKey.c_str(), allocator).Move(), allocator);
@@ -586,6 +611,29 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     return event;
   }
 
+  static std::string getStringOrEmpty(const rj::Value& value, const char* key) {
+    auto it = value.FindMember(key);
+    return it != value.MemberEnd() && it->value.IsString() ? it->value.GetString() : "";
+  }
+
+  static TimePoint getAccountUpdateTime(const rj::Value& value, const rj::Document& document) {
+    for (const auto* source : {&value, static_cast<const rj::Value*>(&document)}) {
+      for (const auto* key : {"timestamp_ms", "time_ms"}) {
+        auto timestamp = getStringOrEmpty(*source, key);
+        if (!timestamp.empty()) {
+          return UtilTime::makeTimePointMilli(UtilTime::divideMilli(timestamp));
+        }
+      }
+      for (const auto* key : {"timestamp", "time"}) {
+        auto timestamp = getStringOrEmpty(*source, key);
+        if (!timestamp.empty()) {
+          return UtilTime::makeTimePoint(UtilTime::divide(timestamp));
+        }
+      }
+    }
+    return TimePoint();
+  }
+
   Event createEvent(const std::shared_ptr<WsConnection> wsConnectionPtr, const Subscription& subscription, boost::beast::string_view textMessageView,
                     const rj::Document& document, const TimePoint& timeReceived) {
     if (document.HasMember("header")) {
@@ -610,9 +658,29 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         field = CCAPI_EM_PRIVATE_TRADE;
       } else if (channel == this->websocketChannelOrders) {
         field = CCAPI_EM_ORDER_UPDATE;
+      } else if (channel == (this->isDerivatives ? "futures.balances" : "spot.balances")) {
+        field = CCAPI_EM_BALANCE_UPDATE;
+      } else if (this->isDerivatives && channel == "futures.positions") {
+        field = CCAPI_EM_POSITION_UPDATE;
       }
       if (fieldSet.find(field) != fieldSet.end()) {
         for (const auto& x : document["result"].GetArray()) {
+          if (field == CCAPI_EM_BALANCE_UPDATE) {
+            Message message;
+            message.setTime(getAccountUpdateTime(x, document));
+            message.setTimeReceived(timeReceived);
+            message.setCorrelationIdList({subscription.getCorrelationId()});
+            message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_BALANCE_UPDATE);
+            Element element;
+            element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x[this->isDerivatives ? "balance" : "total"].GetString());
+            if (!this->isDerivatives) {
+              element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
+            }
+            message.setElementList({element});
+            messageList.emplace_back(std::move(message));
+            continue;
+          }
           std::string instrument = x[this->symbolName.c_str()].GetString();
           if (instrumentSet.empty() || instrumentSet.find(instrument) != instrumentSet.end()) {
             if (field == CCAPI_EM_PRIVATE_TRADE) {
@@ -657,6 +725,47 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
               std::vector<Element> elementList;
               elementList.emplace_back(std::move(info));
               message.setElementList(elementList);
+              messageList.emplace_back(std::move(message));
+            } else if (field == CCAPI_EM_POSITION_UPDATE) {
+              Message message;
+              message.setTime(getAccountUpdateTime(x, document));
+              message.setTimeReceived(timeReceived);
+              message.setCorrelationIdList({subscription.getCorrelationId()});
+              message.setType(Message::Type::EXECUTION_MANAGEMENT_EVENTS_POSITION_UPDATE);
+              Element element;
+              element.insert(CCAPI_INSTRUMENT, instrument);
+              std::string size = x["size"].GetString();
+              element.insert(CCAPI_EM_POSITION_QUANTITY, size);
+              std::string mode = getStringOrEmpty(x, "mode");
+              element.insert(CCAPI_EM_POSITION_SIDE, mode == "dual_long"    ? "long"
+                                                     : mode == "dual_short" ? "short"
+                                                     : std::stod(size) > 0  ? "long"
+                                                     : std::stod(size) < 0  ? "short"
+                                                                            : "net");
+              auto entryPrice = getStringOrEmpty(x, "entry_price");
+              if (!entryPrice.empty()) {
+                element.insert(CCAPI_EM_POSITION_ENTRY_PRICE, entryPrice);
+              }
+              auto leverage = getStringOrEmpty(x, "lever");
+              if (leverage.empty()) {
+                leverage = getStringOrEmpty(x, "leverage");
+              }
+              if (!leverage.empty()) {
+                element.insert(CCAPI_EM_POSITION_LEVERAGE, leverage);
+              }
+              auto marginMode = getStringOrEmpty(x, "pos_margin_mode");
+              auto legacyLeverage = getStringOrEmpty(x, "leverage");
+              if (marginMode == "cross" || marginMode == "isolated" || !legacyLeverage.empty()) {
+                bool isCross = marginMode == "cross" || (marginMode.empty() && std::stod(legacyLeverage) == 0);
+                element.insert(CCAPI_EM_POSITION_MARGIN_TYPE, isCross ? CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN : CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
+              }
+              for (const auto& asset : {"btc", "usdt", "usd1"}) {
+                if (UtilString::endsWith(wsConnectionPtr->url, std::string("/") + asset)) {
+                  element.insert(CCAPI_MARGIN_ASSET, UtilString::toUpper(asset));
+                  break;
+                }
+              }
+              message.setElementList({element});
               messageList.emplace_back(std::move(message));
             }
           }
