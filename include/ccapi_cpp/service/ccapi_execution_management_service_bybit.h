@@ -142,12 +142,15 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
                        {CCAPI_EM_CLIENT_ORDER_ID, "orderLinkId"},
                        {CCAPI_EM_ORDER_ID, "orderId"},
                        {CCAPI_LIMIT, "limit"},
+                       {CCAPI_EM_ORDER_TYPE, "orderType"},
                    }) {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "Buy" : "Sell";
+      } else if (key == "orderType") {
+        value = convertOrderType(value, "Limit", "Market");
       }
       if (value != "null") {
         rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
@@ -165,7 +168,28 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.set(beast::http::field::content_type, "application/json");
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param, "orderType")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+          // spot market orders require IOC, derivatives market orders take no time in force
+          if (param.find("category") == param.end() || param.at("category") == "spot") {
+            param["timeInForce"] = "IOC";
+          } else {
+            param.erase("timeInForce");
+          }
+        } else if (isLimitOrder(param, "orderType")) {
+          if (isRpi) {
+            param.emplace("timeInForce", "RPI");
+          } else if (isPostOnly) {
+            param.emplace("timeInForce", "PostOnly");
+          } else if (isIoc) {
+            param.emplace("timeInForce", "IOC");
+          }
+        }
         req.target(this->createOrderTarget);
         rj::Document document;
         document.SetObject();
@@ -174,7 +198,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         if (param.find("category") == param.end()) {
           document.AddMember("category", rj::Value("spot").Move(), allocator);
         }
-        if (param.find("orderType") == param.end()) {
+        if (param.find("orderType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           document.AddMember("orderType", rj::Value("Limit").Move(), allocator);
         }
         if (!symbolId.empty()) {
@@ -191,7 +215,10 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
       case Request::Operation::AMEND_ORDER: {
         req.method(http::verb::post);
         req.set(beast::http::field::content_type, "application/json");
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         req.target(this->amendOrderTarget);
         rj::Document document;
         document.SetObject();
@@ -639,13 +666,34 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         document.AddMember("op", rj::Value("order.create").Move(), allocator);
         rj::Value args(rj::kArrayType);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param, "orderType")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+          // spot market orders require IOC, derivatives market orders take no time in force
+          if (param.find("category") == param.end() || param.at("category") == "spot") {
+            param["timeInForce"] = "IOC";
+          } else {
+            param.erase("timeInForce");
+          }
+        } else if (isLimitOrder(param, "orderType")) {
+          if (isRpi) {
+            param.emplace("timeInForce", "RPI");
+          } else if (isPostOnly) {
+            param.emplace("timeInForce", "PostOnly");
+          } else if (isIoc) {
+            param.emplace("timeInForce", "IOC");
+          }
+        }
         rj::Value arg(rj::kObjectType);
         this->appendParam(arg, allocator, param);
         if (param.find("category") == param.end()) {
           arg.AddMember("category", rj::Value("spot").Move(), allocator);
         }
-        if (param.find("orderType") == param.end()) {
+        if (param.find("orderType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           arg.AddMember("orderType", rj::Value("Limit").Move(), allocator);
         }
         if (!symbolId.empty()) {

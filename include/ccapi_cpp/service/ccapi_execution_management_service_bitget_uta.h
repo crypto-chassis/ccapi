@@ -118,6 +118,8 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
       auto value = kv.second;
       if (key == "side") {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
+      } else if (key == "orderType") {
+        value = convertOrderType(value, "limit", "market");
       }
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
@@ -178,7 +180,22 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param, "orderType")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+        } else if (isLimitOrder(param, "orderType")) {
+          if (isRpi) {
+            param.emplace("timeInForce", "rpi");
+          } else if (isPostOnly) {
+            param.emplace("timeInForce", "post_only");
+          } else if (isIoc) {
+            param.emplace("timeInForce", "ioc");
+          }
+        }
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -196,7 +213,10 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
       case Request::Operation::AMEND_ORDER: {
         req.method(http::verb::post);
         req.target(this->amendOrderTarget);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -466,6 +486,9 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
     document.AddMember("op", rj::Value("trade").Move(), allocator);
     document.AddMember("id", rj::Value(std::to_string(wsRequestId).c_str(), allocator).Move(), allocator);
     std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+    bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+    bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+    bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
     rj::Value args(rj::kArrayType);
     rj::Value arg(rj::kObjectType);
     switch (request.getOperation()) {
@@ -483,6 +506,18 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
         param.erase(CCAPI_INSTRUMENT_TYPE);
         param.erase("category");
         document.AddMember("category", rj::Value(category.c_str(), allocator).Move(), allocator);
+        if (isMarketOrder(param, "orderType")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+        } else if (isLimitOrder(param, "orderType")) {
+          if (isRpi) {
+            param.emplace("timeInForce", "rpi");
+          } else if (isPostOnly) {
+            param.emplace("timeInForce", "post_only");
+          } else if (isIoc) {
+            param.emplace("timeInForce", "ioc");
+          }
+        }
         this->appendParam(arg, allocator, param,
                           {
                               {CCAPI_EM_ORDER_SIDE, "side"},

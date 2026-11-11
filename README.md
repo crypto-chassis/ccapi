@@ -583,6 +583,8 @@ Bye
 ```
 * Request operation types: `CREATE_ORDER`, `AMEND_ORDER`, `AMEND_ORDER_KEEP_PRIORITY`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS`, `GET_ACCOUNTS`, `GET_ACCOUNT_BALANCES`, `GET_ACCOUNT_POSITIONS`.
 * Request parameter names: `SIDE`, `QUANTITY`, `LIMIT_PRICE`, `ACCOUNT_ID`, `ACCOUNT_TYPE`, `ORDER_ID`, `CLIENT_ORDER_ID`, `PARTY_ID`, `ORDER_TYPE`, `LEVERAGE`. Instead of these convenient names you can also choose to use arbitrary parameter names and they will be passed to the exchange's native API. See [this example](example/execution_management_advanced_request/main.cpp).
+* `ORDER_TYPE` accepts the standardized values `LIMIT` (the default when omitted) and `MARKET` on Binance, Bybit, OKX, Bitget, and Gate.io. For a market order, `LIMIT_PRICE` is ignored.
+* Execution instruction flags `IS_POST_ONLY`, `IS_IOC`, and `IS_RPI` are accepted as request parameters on order creation. `IS_POST_ONLY` and `IS_IOC` are supported by Binance, Bybit, OKX, Bitget, and Gate.io; `IS_RPI` is supported by Binance futures, Bybit, OKX, and Bitget UTA and ignored by exchanges without retail price improvement orders. These flags apply to limit orders only, with `IS_RPI` taking precedence over `IS_POST_ONLY`, which takes precedence over `IS_IOC`.
 
 **Objective 2:**
 

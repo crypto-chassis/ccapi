@@ -47,6 +47,8 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
       auto value = kv.second;
       if (key == "side") {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
+      } else if (key == "orderType") {
+        value = convertOrderType(value, "limit", "market");
       }
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
@@ -78,15 +80,30 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
         req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        bool isMarket = isMarketOrder(param, "orderType");
+        if (isMarket) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+          param.erase("force");
+        } else if (isLimitOrder(param, "orderType")) {
+          if (isPostOnly) {
+            param.emplace("force", "post_only");
+          } else if (isIoc) {
+            param.emplace("force", "ioc");
+          }
+        }
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(operation, document, allocator, param);
-        if (param.find("orderType") == param.end()) {
+        if (param.find("orderType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           document.AddMember("orderType", rj::Value("limit").Move(), allocator);
         }
-        if (param.find("force") == param.end()) {
+        if (!isMarket && param.find("force") == param.end()) {
           document.AddMember("force", rj::Value("gtc").Move(), allocator);
         }
         if (!symbolId.empty()) {

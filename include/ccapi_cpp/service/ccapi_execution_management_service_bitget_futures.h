@@ -47,10 +47,14 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
                        {CCAPI_SYMBOL_ID, "symbol"},
                        {CCAPI_EM_ORDER_ID, "orderId"},
                        {CCAPI_INSTRUMENT_TYPE, "productType"},
+                       {CCAPI_EM_ORDER_TYPE, "orderType"},
                    }) {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
+      if (key == "orderType") {
+        value = convertOrderType(value, "limit", "market");
+      }
       rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
     }
   }
@@ -83,12 +87,26 @@ class ExecutionManagementServiceBitgetFutures : public ExecutionManagementServic
         req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param, "orderType")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+          param.erase("force");
+        } else if (isLimitOrder(param, "orderType")) {
+          if (isPostOnly) {
+            param.emplace("force", "post_only");
+          } else if (isIoc) {
+            param.emplace("force", "ioc");
+          }
+        }
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(operation, document, allocator, param);
-        if (param.find("orderType") == param.end()) {
+        if (param.find("orderType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           document.AddMember("orderType", rj::Value("limit").Move(), allocator);
         }
         if (!symbolId.empty()) {

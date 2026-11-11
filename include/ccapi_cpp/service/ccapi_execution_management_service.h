@@ -107,6 +107,43 @@ class ExecutionManagementService : public Service {
     }
     return output;
   }
+
+  static bool isMarketOrder(const std::map<std::string, std::string>& param, const std::string& orderTypeKey = "type") {
+    auto it = param.find(CCAPI_EM_ORDER_TYPE);
+    if (it == param.end()) {
+      it = param.find(orderTypeKey);
+    }
+    return it != param.end() && UtilString::toLower(it->second) == UtilString::toLower(CCAPI_EM_ORDER_TYPE_MARKET);
+  }
+
+  // a missing order type is treated as a limit order
+  static bool isLimitOrder(const std::map<std::string, std::string>& param, const std::string& orderTypeKey = "type") {
+    auto it = param.find(CCAPI_EM_ORDER_TYPE);
+    if (it == param.end()) {
+      it = param.find(orderTypeKey);
+    }
+    return it == param.end() || UtilString::toLower(it->second) == UtilString::toLower(CCAPI_EM_ORDER_TYPE_LIMIT);
+  }
+
+  // read an execution instruction flag and erase it so that it is not forwarded to the exchange API
+  static bool extractBooleanFlag(std::map<std::string, std::string>& param, const std::string& key) {
+    auto it = param.find(key);
+    bool enabled = it != param.end() && UtilString::toLower(it->second) == "true";
+    param.erase(key);
+    return enabled;
+  }
+
+  // translate the standardized order type into the exchange specific representation, leaving other values untouched
+  static std::string convertOrderType(const std::string& value, const std::string& exchangeLimitOrderType, const std::string& exchangeMarketOrderType) {
+    auto lowerCaseValue = UtilString::toLower(value);
+    if (lowerCaseValue == UtilString::toLower(CCAPI_EM_ORDER_TYPE_LIMIT)) {
+      return exchangeLimitOrderType;
+    }
+    if (lowerCaseValue == UtilString::toLower(CCAPI_EM_ORDER_TYPE_MARKET)) {
+      return exchangeMarketOrderType;
+    }
+    return value;
+  }
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  protected:

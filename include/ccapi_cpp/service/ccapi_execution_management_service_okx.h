@@ -83,12 +83,15 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
                        {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
                        {CCAPI_SYMBOL_ID, "instId"},
                        {CCAPI_EM_ORDER_ID, "ordId"},
+                       {CCAPI_EM_ORDER_TYPE, "ordType"},
                    }) {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
+      } else if (key == "ordType") {
+        value = convertOrderType(value, "limit", "market");
       }
       if (operation == Request::Operation::AMEND_ORDER && key == "cxlOnFail") {
         rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value == "true").Move(), allocator);
@@ -104,9 +107,11 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      queryString += standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
+      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
+      auto value = key == "ordType" ? convertOrderType(kv.second, "limit", "market") : kv.second;
+      queryString += key;
       queryString += "=";
-      queryString += Url::urlEncode(kv.second);
+      queryString += Url::urlEncode(value);
       queryString += "&";
     }
   }
@@ -142,7 +147,24 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         req.target(this->createOrderTarget);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param, "ordType")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("px");
+          param.erase("timeInForce");
+        } else if (isLimitOrder(param, "ordType") && (isPostOnly || isIoc || isRpi)) {
+          param.erase(CCAPI_EM_ORDER_TYPE);
+          if (isRpi) {
+            param["ordType"] = "rpi";
+          } else if (isPostOnly) {
+            param["ordType"] = "post_only";
+          } else {
+            param["ordType"] = "ioc";
+          }
+        }
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -150,7 +172,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         if (param.find("tdMode") == param.end()) {
           document.AddMember("tdMode", rj::Value("cash").Move(), allocator);
         }
-        if (param.find("ordType") == param.end()) {
+        if (param.find("ordType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           document.AddMember("ordType", rj::Value("limit").Move(), allocator);
         }
         if (!symbolId.empty()) {
@@ -165,7 +187,10 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
       case Request::Operation::AMEND_ORDER: {
         req.method(http::verb::post);
         req.target(this->amendOrderTarget);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -269,13 +294,30 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
       case Request::Operation::CREATE_ORDER: {
         document.AddMember("op", rj::Value("order").Move(), allocator);
         rj::Value args(rj::kArrayType);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param, "ordType")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("px");
+          param.erase("timeInForce");
+        } else if (isLimitOrder(param, "ordType") && (isPostOnly || isIoc || isRpi)) {
+          param.erase(CCAPI_EM_ORDER_TYPE);
+          if (isRpi) {
+            param["ordType"] = "rpi";
+          } else if (isPostOnly) {
+            param["ordType"] = "post_only";
+          } else {
+            param["ordType"] = "ioc";
+          }
+        }
         rj::Value arg(rj::kObjectType);
         this->appendParam(operation, arg, allocator, param);
         if (param.find("tdMode") == param.end()) {
           arg.AddMember("tdMode", rj::Value("cash").Move(), allocator);
         }
-        if (param.find("ordType") == param.end()) {
+        if (param.find("ordType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           arg.AddMember("ordType", rj::Value("limit").Move(), allocator);
         }
         if (!symbolId.empty()) {

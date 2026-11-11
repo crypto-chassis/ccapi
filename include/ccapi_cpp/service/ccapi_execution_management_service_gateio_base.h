@@ -88,6 +88,8 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       auto value = kv.second;
       if (key == "side") {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
+      } else if (key == "type") {
+        value = convertOrderType(value, "limit", "market");
       }
       if (value != "null") {
         if (value == "true" || value == "false") {
@@ -150,7 +152,41 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       } break;
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param, "type")) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+          if (this->isDerivatives) {
+            // Gate.io futures represent a market order by a zero price and reject the spot-only type field
+            param["price"] = "0";
+            if (param.find("tif") == param.end()) {
+              param["tif"] = "ioc";
+            }
+            param.erase(CCAPI_EM_ORDER_TYPE);
+            param.erase("type");
+          }
+        } else if (isLimitOrder(param, "type")) {
+          if (this->isDerivatives) {
+            // Gate.io futures use tif, spot uses time_in_force; poc means post only
+            if (isPostOnly) {
+              param.emplace("tif", "poc");
+            } else if (isIoc) {
+              param.emplace("tif", "ioc");
+            }
+          } else {
+            if (isPostOnly) {
+              param.emplace("time_in_force", "poc");
+            } else if (isIoc) {
+              param.emplace("time_in_force", "ioc");
+            }
+            if (param.find(CCAPI_EM_ORDER_TYPE) == param.end() && param.find("type") == param.end()) {
+              param["type"] = "limit";
+            }
+          }
+        }
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -169,6 +205,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       case Request::Operation::AMEND_ORDER: {
         req.method(this->isDerivatives ? http::verb::put : http::verb::patch);
         std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         std::string id = param.find(CCAPI_EM_ORDER_ID) != param.end()          ? param.at(CCAPI_EM_ORDER_ID)
                          : param.find(CCAPI_EM_CLIENT_ORDER_ID) != param.end() ? param.at(CCAPI_EM_CLIENT_ORDER_ID)
                                                                                : mapGetWithDefault(param, std::string("order_id"));
@@ -332,6 +371,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         return;
     }
     auto param = request.getFirstParamWithDefault();
+    bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+    bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+    extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
     if (operation != Request::Operation::CREATE_ORDER) {
       if (param.find(CCAPI_EM_ORDER_ID) != param.end()) {
         param["order_id"] = param.at(CCAPI_EM_ORDER_ID);
@@ -343,6 +385,39 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     }
     param.erase("settle");
     param.erase(CCAPI_SETTLE_ASSET);
+    if (operation == Request::Operation::CREATE_ORDER) {
+      if (isMarketOrder(param, "type")) {
+        param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+        param.erase("price");
+        if (this->isDerivatives) {
+          // Gate.io futures represent a market order by a zero price and reject the spot-only type field
+          param["price"] = "0";
+          if (param.find("tif") == param.end()) {
+            param["tif"] = "ioc";
+          }
+          param.erase(CCAPI_EM_ORDER_TYPE);
+          param.erase("type");
+        }
+      } else if (isLimitOrder(param, "type")) {
+        if (this->isDerivatives) {
+          // Gate.io futures use tif, spot uses time_in_force; poc means post only
+          if (isPostOnly) {
+            param.emplace("tif", "poc");
+          } else if (isIoc) {
+            param.emplace("tif", "ioc");
+          }
+        } else {
+          if (isPostOnly) {
+            param.emplace("time_in_force", "poc");
+          } else if (isIoc) {
+            param.emplace("time_in_force", "ioc");
+          }
+          if (param.find(CCAPI_EM_ORDER_TYPE) == param.end() && param.find("type") == param.end()) {
+            param["type"] = "limit";
+          }
+        }
+      }
+    }
     rj::Document reqParam;
     reqParam.SetObject();
     this->appendParam(reqParam, allocator, param,

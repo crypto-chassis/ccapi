@@ -194,9 +194,11 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
   void appendParam(std::string& queryString, const std::map<std::string, std::string>& param,
                    const std::map<std::string, std::string> standardizationMap = {}) {
     for (const auto& kv : param) {
-      queryString += standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
+      auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
+      auto value = key == "type" ? convertOrderType(kv.second, CCAPI_EM_ORDER_TYPE_LIMIT, CCAPI_EM_ORDER_TYPE_MARKET) : kv.second;
+      queryString += key;
       queryString += "=";
-      queryString += Url::urlEncode(kv.second);
+      queryString += Url::urlEncode(value);
       queryString += "&";
     }
   }
@@ -222,21 +224,42 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       case Request::Operation::CREATE_ORDER: {
         req.method(http::verb::post);
         std::string queryString;
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param)) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+          param.erase("timeInForce");
+        } else if (isLimitOrder(param)) {
+          param.erase(CCAPI_EM_ORDER_TYPE);
+          if (!this->isDerivatives && isPostOnly) {
+            // spot post-only orders use the dedicated LIMIT_MAKER type and take no time in force
+            param["type"] = "LIMIT_MAKER";
+            param.erase("timeInForce");
+          } else {
+            param["type"] = "LIMIT";
+            if (this->isDerivatives && isRpi) {
+              param["timeInForce"] = "RPI";
+            } else if (this->isDerivatives && isPostOnly) {
+              param["timeInForce"] = "GTX";
+            } else if (isIoc) {
+              param["timeInForce"] = "IOC";
+            } else if (param.find("timeInForce") == param.end()) {
+              param["timeInForce"] = "GTC";
+            }
+          }
+        }
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ORDER_SIDE, "side"},
                               {CCAPI_EM_ORDER_QUANTITY, "quantity"},
                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
                               {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"},
+                              {CCAPI_EM_ORDER_TYPE, "type"},
                           });
         this->appendSymbolId(queryString, symbolId);
-        if (param.find("type") == param.end()) {
-          queryString += "type=LIMIT&";
-          if (param.find("timeInForce") == param.end()) {
-            queryString += "timeInForce=GTC&";
-          }
-        }
         if (param.find("newClientOrderId") == param.end() && param.find(CCAPI_EM_CLIENT_ORDER_ID) == param.end()) {
           std::string nonce = std::to_string(this->generateNonce(now, request.getIndex()));
           queryString += std::string("newClientOrderId=x-") + (this->isDerivatives ? CCAPI_BINANCE_USDS_FUTURES_API_LINK_ID : CCAPI_BINANCE_API_LINK_ID) + "-" +
@@ -252,7 +275,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         // spot: cancel and replace; derivatives: modify order in place
         req.method(this->isDerivatives ? http::verb::put : http::verb::post);
         std::string queryString;
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ORDER_ID, this->isDerivatives ? "orderId" : "cancelOrderId"},
@@ -262,7 +288,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
                           });
         if (!this->isDerivatives) {
-          if (param.find("type") == param.end()) {
+          if (isPostOnly) {
+            queryString += "type=LIMIT_MAKER&";
+          } else if (param.find("type") == param.end()) {
             queryString += "type=LIMIT&";
             if (param.find("timeInForce") == param.end()) {
               queryString += "timeInForce=GTC&";
@@ -280,7 +308,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         // only the spot product keeps the queue priority of the amended order
         req.method(http::verb::put);
         std::string queryString;
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ORDER_ID, "orderId"},
@@ -745,17 +776,37 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         document.AddMember("id", rj::Value((this->websocketOrderEntryCreateOrderJsonIdPrefix + std::to_string(wsRequestId)).c_str(), allocator).Move(),
                            allocator);
         document.AddMember("method", rj::Value("order.place").Move(), allocator);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        bool isRpi = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+        if (isMarketOrder(param)) {
+          param.erase(CCAPI_EM_ORDER_LIMIT_PRICE);
+          param.erase("price");
+          param.erase("timeInForce");
+        } else if (isLimitOrder(param)) {
+          param.erase(CCAPI_EM_ORDER_TYPE);
+          if (!this->isDerivatives && isPostOnly) {
+            // spot post-only orders use the dedicated LIMIT_MAKER type and take no time in force
+            param["type"] = "LIMIT_MAKER";
+            param.erase("timeInForce");
+          } else {
+            param["type"] = "LIMIT";
+            if (this->isDerivatives && isRpi) {
+              param["timeInForce"] = "RPI";
+            } else if (this->isDerivatives && isPostOnly) {
+              param["timeInForce"] = "GTX";
+            } else if (isIoc) {
+              param["timeInForce"] = "IOC";
+            } else if (param.find("timeInForce") == param.end()) {
+              param["timeInForce"] = "GTC";
+            }
+          }
+        }
         rj::Value params(rj::kObjectType);
         this->appendParam(params, allocator, param);
         if (!symbolId.empty()) {
           ExecutionManagementService::appendSymbolId(params, allocator, symbolId, "symbol");
-        }
-        if (param.find("type") == param.end()) {
-          params.AddMember("type", "LIMIT", allocator);
-          if (param.find("timeInForce") == param.end()) {
-            params.AddMember("timeInForce", "GTC", allocator);
-          }
         }
         if (param.find("newClientOrderId") == param.end() && param.find(CCAPI_EM_CLIENT_ORDER_ID) == param.end()) {
           std::string nonce = std::to_string(this->generateNonce(now, request.getIndex()));
@@ -776,7 +827,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                            allocator);
         // spot: cancel and replace; derivatives: modify order in place
         document.AddMember("method", rj::Value(rj::StringRef(this->isDerivatives ? "order.modify" : "order.cancelReplace")).Move(), allocator);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         rj::Value params(rj::kObjectType);
         this->appendParam(params, allocator, param,
                           {
@@ -790,7 +844,9 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           ExecutionManagementService::appendSymbolId(params, allocator, symbolId, "symbol");
         }
         if (!this->isDerivatives) {
-          if (param.find("type") == param.end()) {
+          if (isPostOnly) {
+            params.AddMember("type", "LIMIT_MAKER", allocator);
+          } else if (param.find("type") == param.end()) {
             params.AddMember("type", "LIMIT", allocator);
             if (param.find("timeInForce") == param.end()) {
               params.AddMember("timeInForce", "GTC", allocator);
@@ -813,7 +869,10 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         document.AddMember("id", rj::Value((this->websocketOrderEntryAmendOrderJsonIdPrefix + std::to_string(wsRequestId)).c_str(), allocator).Move(),
                            allocator);
         document.AddMember("method", rj::Value("order.amend.keepPriority").Move(), allocator);
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
+        extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
         rj::Value params(rj::kObjectType);
         this->appendParam(params, allocator, param,
                           {
@@ -860,12 +919,15 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                        {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
                        {CCAPI_EM_CLIENT_ORDER_ID, "newClientOrderId"},
                        {CCAPI_EM_ORDER_ID, "orderId"},
+                       {CCAPI_EM_ORDER_TYPE, "type"},
                    }) {
     for (const auto& kv : param) {
       auto key = standardizationMap.find(kv.first) != standardizationMap.end() ? standardizationMap.at(kv.first) : kv.first;
       auto value = kv.second;
       if (key == "side") {
         value = value == CCAPI_EM_ORDER_SIDE_BUY ? "BUY" : "SELL";
+      } else if (key == "type") {
+        value = convertOrderType(value, CCAPI_EM_ORDER_TYPE_LIMIT, CCAPI_EM_ORDER_TYPE_MARKET);
       }
       if (value != "null") {
         rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
