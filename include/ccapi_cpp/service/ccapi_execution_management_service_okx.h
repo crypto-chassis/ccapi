@@ -24,6 +24,7 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     this->apiXSimulatedTradingName = CCAPI_OKX_API_X_SIMULATED_TRADING;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName, this->apiXSimulatedTradingName});
     this->createOrderTarget = "/api/v5/trade/order";
+    this->amendOrderTarget = "/api/v5/trade/amend-order";
     this->cancelOrderTarget = "/api/v5/trade/cancel-order";
     this->getOrderTarget = "/api/v5/trade/order";
     this->getOpenOrdersTarget = "/api/v5/trade/orders-pending";
@@ -89,7 +90,11 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
       if (key == "side") {
         value = (value == CCAPI_EM_ORDER_SIDE_BUY || value == "buy") ? "buy" : "sell";
       }
-      rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+      if (operation == Request::Operation::AMEND_ORDER && key == "cxlOnFail") {
+        rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value == "true").Move(), allocator);
+      } else {
+        rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
+      }
     }
     if (operation == Request::Operation::CREATE_ORDER && param.find("tag") == param.end()) {
       rjValue.AddMember("tag", CCAPI_OKX_API_BROKER_CODE, allocator);
@@ -148,6 +153,30 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         if (param.find("ordType") == param.end()) {
           document.AddMember("ordType", rj::Value("limit").Move(), allocator);
         }
+        if (!symbolId.empty()) {
+          this->appendSymbolId(document, allocator, symbolId);
+        }
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        auto body = stringBuffer.GetString();
+        this->signRequest(req, body, credential);
+      } break;
+      case Request::Operation::AMEND_ORDER: {
+        req.method(http::verb::post);
+        req.target(this->amendOrderTarget);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        this->appendParam(operation, document, allocator, param,
+                          {
+                              {CCAPI_EM_ORDER_QUANTITY, "newSz"},
+                              {CCAPI_EM_ORDER_LIMIT_PRICE, "newPx"},
+                              {CCAPI_EM_CLIENT_ORDER_ID, "clOrdId"},
+                              {CCAPI_SYMBOL_ID, "instId"},
+                              {CCAPI_EM_ORDER_ID, "ordId"},
+                          });
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
         }

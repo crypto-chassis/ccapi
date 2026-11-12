@@ -27,6 +27,7 @@ class ExecutionManagementServiceBinanceUsdsFutures : public ExecutionManagementS
                            this->websocketOrderEntryApiPrivateKeyPasswordName});
     this->websocketOrderEntryHost = CCAPI_BINANCE_USDS_FUTURES_HOST_WS_ORDER_ENTRY;
     this->createOrderTarget = CCAPI_BINANCE_USDS_FUTURES_CREATE_ORDER_PATH;
+    this->amendOrderTarget = "/fapi/v1/order";
     this->cancelOrderTarget = "/fapi/v1/order";
     this->getOrderTarget = "/fapi/v1/order";
     this->getOpenOrdersTarget = "/fapi/v1/openOrders";

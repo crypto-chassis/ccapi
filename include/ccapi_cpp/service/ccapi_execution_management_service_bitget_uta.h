@@ -21,6 +21,7 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
     this->apiDemoTradingName = CCAPI_BITGET_UTA_API_DEMO_TRADING;
     this->setupCredential({this->apiKeyName, this->apiSecretName, this->apiPassphraseName, this->apiDemoTradingName});
     this->createOrderTarget = "/api/v3/trade/place-order";
+    this->amendOrderTarget = "/api/v3/trade/modify-order";
     this->cancelOrderTarget = "/api/v3/trade/cancel-order";
     this->cancelOpenOrdersTarget = "/api/v3/trade/cancel-symbol-order";
     this->getOrderTarget = "/api/v3/trade/order-info";
@@ -186,6 +187,21 @@ class ExecutionManagementServiceBitgetUta : public ExecutionManagementService {
           document.AddMember("orderType", rj::Value("limit").Move(), allocator);
         }
         // timeInForce defaults to gtc for limit orders (ioc for market) on the exchange side, so it is not set here
+        if (!symbolId.empty()) {
+          this->appendSymbolId(document, allocator, symbolId);
+        }
+        this->signRequest(req, this->finalizeBody(document), credential);
+      } break;
+      case Request::Operation::AMEND_ORDER: {
+        req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
+        req.method(http::verb::post);
+        req.target(this->amendOrderTarget);
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        this->appendParam(document, allocator, param);
+        addDefaultCategory(document, allocator, param);
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId);
         }

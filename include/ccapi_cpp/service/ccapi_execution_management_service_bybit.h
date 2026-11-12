@@ -21,6 +21,7 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
     this->apiKeyName = CCAPI_BYBIT_API_KEY;
     this->apiSecretName = CCAPI_BYBIT_API_SECRET;
     this->setupCredential({this->apiKeyName, this->apiSecretName});
+    this->amendOrderTarget = "/v5/order/amend";
     this->createOrderTarget = "/v5/order/create";
     this->cancelOrderTarget = "/v5/order/cancel";
     this->getOrderTarget = "/v5/order/realtime";
@@ -175,6 +176,29 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         }
         if (param.find("orderType") == param.end()) {
           document.AddMember("orderType", rj::Value("Limit").Move(), allocator);
+        }
+        if (!symbolId.empty()) {
+          this->appendSymbolId(document, allocator, symbolId, "symbol");
+        }
+        rj::StringBuffer stringBuffer;
+        rj::Writer<rj::StringBuffer> writer(stringBuffer);
+        document.Accept(writer);
+        auto body = stringBuffer.GetString();
+        req.body() = body;
+        req.prepare_payload();
+        this->signRequest(req, body, now, credential);
+      } break;
+      case Request::Operation::AMEND_ORDER: {
+        req.method(http::verb::post);
+        req.set(beast::http::field::content_type, "application/json");
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        req.target(this->amendOrderTarget);
+        rj::Document document;
+        document.SetObject();
+        rj::Document::AllocatorType& allocator = document.GetAllocator();
+        this->appendParam(document, allocator, param);
+        if (param.find("category") == param.end()) {
+          document.AddMember("category", rj::Value("spot").Move(), allocator);
         }
         if (!symbolId.empty()) {
           this->appendSymbolId(document, allocator, symbolId, "symbol");

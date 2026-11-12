@@ -35,6 +35,7 @@ class ExecutionManagementService : public Service {
       : Service(eventHandler, sessionOptions, sessionConfigs, serviceContextPtr) {
     this->requestOperationToMessageTypeMap = {
         {Request::Operation::CREATE_ORDER, Message::Type::CREATE_ORDER},
+        {Request::Operation::AMEND_ORDER, Message::Type::AMEND_ORDER},
         {Request::Operation::CANCEL_ORDER, Message::Type::CANCEL_ORDER},
         {Request::Operation::GET_ORDER, Message::Type::GET_ORDER},
         {Request::Operation::GET_OPEN_ORDERS, Message::Type::GET_OPEN_ORDERS},
@@ -356,6 +357,7 @@ class ExecutionManagementService : public Service {
                                                        const TimePoint& now, const std::map<std::string, std::string>& credential) {}
 
   std::string createOrderTarget;
+  std::string amendOrderTarget;
   std::string cancelOrderTarget;
   std::string getOrderTarget;
   std::string getOpenOrdersTarget;

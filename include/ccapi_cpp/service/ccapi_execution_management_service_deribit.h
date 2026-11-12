@@ -22,6 +22,8 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
     this->restTarget = "/api/v2";
     this->createOrderBuyTarget = "/private/buy";
     this->createOrderSellTarget = "/private/sell";
+    this->amendOrderTarget = "/private/edit";
+    this->amendOrderByClientOrderIdTarget = "/private/edit_by_label";
     this->cancelOrderTarget = "/private/cancel";
     this->getOrderTarget = "/private/get_order_state";
     this->getOpenOrdersTarget = "/private/get_open_orders_by_instrument";
@@ -193,6 +195,24 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
                              {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
                          });
       } break;
+      case Request::Operation::AMEND_ORDER: {
+        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        if (param.find(CCAPI_EM_ORDER_ID) != param.end()) {
+          this->prepareReq(req, param, now, symbolId, credential, this->amendOrderTarget,
+                           {
+                               {CCAPI_EM_ORDER_ID, "order_id"},
+                               {CCAPI_EM_ORDER_QUANTITY, "amount"},
+                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                           });
+        } else {
+          this->prepareReq(req, param, now, symbolId, credential, this->amendOrderByClientOrderIdTarget,
+                           {
+                               {CCAPI_EM_CLIENT_ORDER_ID, "label"},
+                               {CCAPI_EM_ORDER_QUANTITY, "amount"},
+                               {CCAPI_EM_ORDER_LIMIT_PRICE, "price"},
+                           });
+        }
+      } break;
       case Request::Operation::CANCEL_ORDER: {
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->prepareReq(req, param, now, symbolId, credential, this->cancelOrderTarget,
@@ -243,8 +263,10 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
         {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("filled_amount", JsonDataType::STRING)},
         {CCAPI_EM_ORDER_STATUS, std::make_pair("order_state", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_name", JsonDataType::STRING)}};
-    if (operation == Request::Operation::CREATE_ORDER) {
+        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("instrument_name", JsonDataType::STRING)},
+        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("label", JsonDataType::STRING)},
+    };
+    if (operation == Request::Operation::CREATE_ORDER || operation == Request::Operation::AMEND_ORDER) {
       Element element;
       this->extractOrderInfo(element, document["result"]["order"], extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
@@ -530,6 +552,7 @@ class ExecutionManagementServiceDeribit : public ExecutionManagementService {
   std::string clientSecretName;
   std::string createOrderBuyTarget;
   std::string createOrderSellTarget;
+  std::string amendOrderByClientOrderIdTarget;
 };
 
 } /* namespace ccapi */

@@ -46,6 +46,7 @@ class Request {
     GET_BBOS,
     GET_TICKERS,
     CREATE_ORDER = CCAPI_REQUEST_OPERATION_TYPE_EXECUTION_MANAGEMENT_ORDER,
+    AMEND_ORDER,
     CANCEL_ORDER,
     GET_ORDER,
     GET_OPEN_ORDERS,
@@ -111,6 +112,9 @@ class Request {
         break;
       case Operation::CREATE_ORDER:
         output = "CREATE_ORDER";
+        break;
+      case Operation::AMEND_ORDER:
+        output = "AMEND_ORDER";
         break;
       case Operation::CANCEL_ORDER:
         output = "CANCEL_ORDER";
