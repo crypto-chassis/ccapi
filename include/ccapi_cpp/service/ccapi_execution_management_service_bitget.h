@@ -26,6 +26,14 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     this->getOrderTarget = "/api/v2/spot/trade/orderInfo";
     this->getOpenOrdersTarget = "/api/v2/spot/trade/unfilled-orders";
     this->getAccountBalancesTarget = "/api/v2/spot/account/assets";
+    this->createOrderCrossMarginTarget = "/api/v2/margin/crossed/place-order";
+    this->cancelOrderCrossMarginTarget = "/api/v2/margin/crossed/cancel-order";
+    this->getOpenOrdersCrossMarginTarget = "/api/v2/margin/crossed/open-orders";
+    this->getAccountBalancesCrossMarginTarget = "/api/v2/margin/crossed/account/assets";
+    this->createOrderIsolatedMarginTarget = "/api/v2/margin/isolated/place-order";
+    this->cancelOrderIsolatedMarginTarget = "/api/v2/margin/isolated/cancel-order";
+    this->getOpenOrdersIsolatedMarginTarget = "/api/v2/margin/isolated/open-orders";
+    this->getAccountBalancesIsolatedMarginTarget = "/api/v2/margin/isolated/account/assets";
   }
 
   virtual ~ExecutionManagementServiceBitget() {}
@@ -68,10 +76,25 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     }
   }
 
+  std::map<std::string, std::string> getStandardizationMap(bool isMargin) {
+    std::map<std::string, std::string> standardizationMap = {
+        {CCAPI_EM_ORDER_SIDE, "side"}, {CCAPI_EM_ORDER_QUANTITY, "size"}, {CCAPI_EM_ORDER_LIMIT_PRICE, "price"}, {CCAPI_EM_CLIENT_ORDER_ID, "clientOid"},
+        {CCAPI_SYMBOL_ID, "symbol"},   {CCAPI_EM_ORDER_ID, "orderId"},    {CCAPI_EM_ORDER_TYPE, "orderType"},
+    };
+    if (isMargin) {
+      standardizationMap[CCAPI_EM_ORDER_QUANTITY] = "baseSize";
+    }
+    return standardizationMap;
+  }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, request, now, symbolId, credential);
     Request::Operation operation = request.getOperation();
+    const auto& marginType = request.getMarginType();
+    const bool isCrossMargin = marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN;
+    const bool isIsolatedMargin = marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN;
+    const bool isMargin = isCrossMargin || isIsolatedMargin;
     switch (operation) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
@@ -79,7 +102,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
       case Request::Operation::CREATE_ORDER: {
         req.set("X-CHANNEL-API-CODE", CCAPI_BITGET_API_CHANNEL_API_CODE);
         req.method(http::verb::post);
-        req.target(this->createOrderTarget);
+        req.target(isMargin ? (isCrossMargin ? this->createOrderCrossMarginTarget : this->createOrderIsolatedMarginTarget) : this->createOrderTarget);
         std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
         bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
@@ -99,7 +122,10 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
-        this->appendParam(operation, document, allocator, param);
+        this->appendParam(operation, document, allocator, param, this->getStandardizationMap(isMargin));
+        if (isMargin && param.find("loanType") == param.end()) {
+          document.AddMember("loanType", rj::Value("normal").Move(), allocator);
+        }
         if (param.find("orderType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           document.AddMember("orderType", rj::Value("limit").Move(), allocator);
         }
@@ -117,7 +143,7 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
       } break;
       case Request::Operation::CANCEL_ORDER: {
         req.method(http::verb::post);
-        req.target(this->cancelOrderTarget);
+        req.target(isMargin ? (isCrossMargin ? this->cancelOrderCrossMarginTarget : this->cancelOrderIsolatedMarginTarget) : this->cancelOrderTarget);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         rj::Document document;
         document.SetObject();
@@ -133,6 +159,11 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
         this->signRequest(req, body, credential);
       } break;
       case Request::Operation::CANCEL_OPEN_ORDERS: {
+        if (isMargin) {
+          // Bitget exposes no cancel-all endpoint for spot margin orders
+          this->convertRequestForRestCustom(req, request, now, symbolId, credential);
+          break;
+        }
         req.method(http::verb::post);
         req.target(this->cancelOpenOrdersTarget);
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -157,10 +188,11 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
-        if (queryString.back() == '&') {
+        if (!queryString.empty() && queryString.back() == '&') {
           queryString.pop_back();
         }
-        req.target(this->getOrderTarget + "?" + queryString);
+        req.target((isMargin ? (isCrossMargin ? this->getOpenOrdersCrossMarginTarget : this->getOpenOrdersIsolatedMarginTarget) : this->getOrderTarget) + "?" +
+                   queryString);
         this->signRequest(req, "", credential);
       } break;
       case Request::Operation::GET_OPEN_ORDERS: {
@@ -168,14 +200,12 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
         std::string queryString;
         const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         this->appendParam(queryString, param);
-        std::string path;
-        if (symbolId.empty()) {
-          path = this->getOpenOrdersTarget;
-        } else {
+        std::string path =
+            isMargin ? (isCrossMargin ? this->getOpenOrdersCrossMarginTarget : this->getOpenOrdersIsolatedMarginTarget) : this->getOpenOrdersTarget;
+        if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
-          path = this->getOpenOrdersTarget;
         }
-        if (queryString.back() == '&') {
+        if (!queryString.empty() && queryString.back() == '&') {
           queryString.pop_back();
         }
         req.target(path + "?" + queryString);
@@ -183,7 +213,8 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
       } break;
       case Request::Operation::GET_ACCOUNT_BALANCES: {
         req.method(http::verb::get);
-        req.target(this->getAccountBalancesTarget);
+        req.target(isMargin ? (isCrossMargin ? this->getAccountBalancesCrossMarginTarget : this->getAccountBalancesIsolatedMarginTarget)
+                            : this->getAccountBalancesTarget);
         this->signRequest(req, "", credential);
       } break;
       default:
@@ -193,18 +224,39 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
 
   void extractOrderInfoFromRequest(std::vector<Element>& elementList, const Request& request, const Request::Operation operation,
                                    const rj::Document& document) override {
-    const std::map<std::string_view, std::pair<std::string_view, JsonDataType>>& extractionFieldNameMap = {
-        {CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
-        {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("baseVolume", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("quoteVolume", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
-        {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
+    const auto& marginType = request.getMarginType();
+    const bool isMargin = marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN;
+    std::map<std::string_view, std::pair<std::string_view, JsonDataType>> extractionFieldNameMap;
+    if (isMargin) {
+      extractionFieldNameMap = {{CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
+                                {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_QUANTITY, std::make_pair("baseSize", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("amount", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
+    } else {
+      extractionFieldNameMap = {{CCAPI_EM_ORDER_ID, std::make_pair("orderId", JsonDataType::STRING)},
+                                {CCAPI_EM_CLIENT_ORDER_ID, std::make_pair("clientOid", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_SIDE, std::make_pair("side", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_QUANTITY, std::make_pair("size", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_LIMIT_PRICE, std::make_pair("price", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUANTITY, std::make_pair("baseVolume", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_CUMULATIVE_FILLED_QUOTE_QUANTITY, std::make_pair("quoteVolume", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_STATUS, std::make_pair("status", JsonDataType::STRING)},
+                                {CCAPI_EM_ORDER_INSTRUMENT, std::make_pair("symbol", JsonDataType::STRING)}};
+    }
     const rj::Value& data = document["data"];
-    if (data.IsObject()) {
+    if (isMargin && data.IsObject() && data.HasMember("resultList")) {
+      // Margin open/history order endpoints wrap the order list under "resultList"
+      for (const auto& x : data["resultList"].GetArray()) {
+        Element element;
+        this->extractOrderInfo(element, x, extractionFieldNameMap);
+        elementList.emplace_back(std::move(element));
+      }
+    } else if (data.IsObject()) {
       Element element;
       this->extractOrderInfo(element, data, extractionFieldNameMap);
       elementList.emplace_back(std::move(element));
@@ -221,15 +273,34 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNT_BALANCES: {
-        for (const auto& x : document["data"].GetArray()) {
-          Element element;
-          element.insert(CCAPI_EM_ASSET, x["coin"].GetString());
-          std::string available = x["available"].GetString();
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
-          std::string frozen = x["frozen"].GetString();
-          std::string lock = x["locked"].GetString();
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, (ConvertDecimalToString(Decimal(available) + (Decimal(frozen)) + (Decimal(lock)))));
-          elementList.emplace_back(std::move(element));
+        const auto& marginType = request.getMarginType();
+        if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+          const bool isIsolatedMargin = marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN;
+          for (const auto& x : document["data"].GetArray()) {
+            Element element;
+            if (isIsolatedMargin) {
+              element.insert(CCAPI_EM_INSTRUMENT, x["symbol"].GetString());
+            }
+            element.insert(CCAPI_EM_ASSET, x["coin"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, x["totalAmount"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
+            Decimal liability = Decimal(x["borrow"].GetString()) + Decimal(x["interest"].GetString());
+            if (liability != Decimal::zero) {
+              element.insert(CCAPI_EM_QUANTITY_LIABILITY, ConvertDecimalToString(liability));
+            }
+            elementList.emplace_back(std::move(element));
+          }
+        } else {
+          for (const auto& x : document["data"].GetArray()) {
+            Element element;
+            element.insert(CCAPI_EM_ASSET, x["coin"].GetString());
+            std::string available = x["available"].GetString();
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
+            std::string frozen = x["frozen"].GetString();
+            std::string lock = x["locked"].GetString();
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, (ConvertDecimalToString(Decimal(available) + (Decimal(frozen)) + (Decimal(lock)))));
+            elementList.emplace_back(std::move(element));
+          }
         }
       } break;
       default:
@@ -448,6 +519,15 @@ class ExecutionManagementServiceBitget : public ExecutionManagementServiceBitget
     event.setMessageList(messageList);
     return event;
   }
+
+  std::string createOrderCrossMarginTarget;
+  std::string cancelOrderCrossMarginTarget;
+  std::string getOpenOrdersCrossMarginTarget;
+  std::string getAccountBalancesCrossMarginTarget;
+  std::string createOrderIsolatedMarginTarget;
+  std::string cancelOrderIsolatedMarginTarget;
+  std::string getOpenOrdersIsolatedMarginTarget;
+  std::string getAccountBalancesIsolatedMarginTarget;
 };
 
 } /* namespace ccapi */

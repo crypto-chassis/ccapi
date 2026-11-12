@@ -116,6 +116,16 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
     }
   }
 
+  std::string getTdModeFromMarginType(const std::string& marginType) {
+    if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
+      return "cross";
+    }
+    if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+      return "isolated";
+    }
+    return "cash";
+  }
+
   void appendSymbolId(rj::Value& rjValue, rj::Document::AllocatorType& allocator, const std::string& symbolId) {
     rjValue.AddMember("instId", rj::Value(symbolId.c_str(), allocator).Move(), allocator);
   }
@@ -170,7 +180,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Document::AllocatorType& allocator = document.GetAllocator();
         this->appendParam(operation, document, allocator, param);
         if (param.find("tdMode") == param.end()) {
-          document.AddMember("tdMode", rj::Value("cash").Move(), allocator);
+          const auto tdMode = this->getTdModeFromMarginType(request.getMarginType());
+          document.AddMember("tdMode", rj::Value(tdMode.c_str(), allocator).Move(), allocator);
         }
         if (param.find("ordType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           document.AddMember("ordType", rj::Value("limit").Move(), allocator);
@@ -315,7 +326,8 @@ class ExecutionManagementServiceOkx : public ExecutionManagementService {
         rj::Value arg(rj::kObjectType);
         this->appendParam(operation, arg, allocator, param);
         if (param.find("tdMode") == param.end()) {
-          arg.AddMember("tdMode", rj::Value("cash").Move(), allocator);
+          const auto tdMode = this->getTdModeFromMarginType(request.getMarginType());
+          arg.AddMember("tdMode", rj::Value(tdMode.c_str(), allocator).Move(), allocator);
         }
         if (param.find("ordType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           arg.AddMember("ordType", rj::Value("limit").Move(), allocator);

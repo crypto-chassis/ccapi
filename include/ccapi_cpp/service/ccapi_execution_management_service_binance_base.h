@@ -209,6 +209,19 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
     queryString += "&";
   }
 
+  void appendIsolatedMarginFlag(std::string& queryString, const Request& request) {
+    if (!this->isDerivatives && request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN && queryString.find("isIsolated=") == std::string::npos) {
+      queryString += "isIsolated=TRUE&";
+    }
+  }
+
+  void ensureMarginTypeSupportedByAmendOrder(const Request& request) {
+    const auto& marginType = request.getMarginType();
+    if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+      throw std::runtime_error("Binance does not support amending spot margin orders");
+    }
+  }
+
   void prepareReq(http::request<http::string_body>& req, const std::map<std::string, std::string>& credential) {
     auto apiKey = mapGetWithDefault(credential, this->apiKeyName);
     req.set("X-MBX-APIKEY", apiKey);
@@ -265,6 +278,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
           queryString += std::string("newClientOrderId=x-") + (this->isDerivatives ? CCAPI_BINANCE_USDS_FUTURES_API_LINK_ID : CCAPI_BINANCE_API_LINK_ID) + "-" +
                          nonce + "&";
         }
+        this->appendIsolatedMarginFlag(queryString, request);
         this->signRequest(queryString, param, now, credential);
         req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
                         ? this->createOrderMarginTarget
@@ -273,6 +287,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       } break;
       case Request::Operation::AMEND_ORDER: {
         // spot: cancel and replace; derivatives: modify order in place
+        this->ensureMarginTypeSupportedByAmendOrder(request);
         req.method(this->isDerivatives ? http::verb::put : http::verb::post);
         std::string queryString;
         std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -306,6 +321,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
       } break;
       case Request::Operation::AMEND_ORDER_KEEP_PRIORITY: {
         // only the spot product keeps the queue priority of the amended order
+        this->ensureMarginTypeSupportedByAmendOrder(request);
         req.method(http::verb::put);
         std::string queryString;
         std::map<std::string, std::string> param = request.getFirstParamWithDefault();
@@ -332,6 +348,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                               {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"},
                           });
         this->appendSymbolId(queryString, symbolId);
+        this->appendIsolatedMarginFlag(queryString, request);
         this->signRequest(queryString, param, now, credential);
         req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
                         ? this->cancelOrderMarginTarget
@@ -348,6 +365,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
                               {CCAPI_EM_CLIENT_ORDER_ID, "origClientOrderId"},
                           });
         this->appendSymbolId(queryString, symbolId);
+        this->appendIsolatedMarginFlag(queryString, request);
         this->signRequest(queryString, param, now, credential);
         req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
                         ? this->getOrderMarginTarget
@@ -361,6 +379,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         if (!symbolId.empty()) {
           this->appendSymbolId(queryString, symbolId);
         }
+        this->appendIsolatedMarginFlag(queryString, request);
         this->signRequest(queryString, {}, now, credential);
         req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
                         ? this->getOpenOrdersMarginTarget
@@ -372,6 +391,7 @@ class ExecutionManagementServiceBinanceBase : public ExecutionManagementService 
         std::string queryString;
         this->appendParam(queryString, {});
         this->appendSymbolId(queryString, symbolId);
+        this->appendIsolatedMarginFlag(queryString, request);
         this->signRequest(queryString, {}, now, credential);
         req.target((request.getMarginType() == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || request.getMarginType() == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN
                         ? this->cancelOpenOrdersMarginTarget

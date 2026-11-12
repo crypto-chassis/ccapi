@@ -143,9 +143,24 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     req.set("TIMESTAMP", std::to_string(std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count()));
   }
 
+  std::string getAccountFromMarginType(const std::string& marginType) {
+    if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
+      return "cross_margin";
+    }
+    if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+      return "margin";
+    }
+    return "";
+  }
+
   void convertRequestForRest(http::request<http::string_body>& req, const Request& request, const TimePoint& now, const std::string& symbolId,
                              const std::map<std::string, std::string>& credential) override {
     this->prepareReq(req, now, credential);
+    const auto& marginType = request.getMarginType();
+    const bool isCrossMargin = marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN;
+    const bool isIsolatedMargin = marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN;
+    const bool isSpotMargin = !this->isDerivatives && (isCrossMargin || isIsolatedMargin);
+    const std::string marginAccount = isSpotMargin ? this->getAccountFromMarginType(marginType) : "";
     switch (request.getOperation()) {
       case Request::Operation::GENERIC_PRIVATE_REQUEST: {
         ExecutionManagementService::convertRequestForRestGenericPrivateRequest(req, request, now, symbolId, credential);
@@ -187,6 +202,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
             }
           }
         }
+        if (isSpotMargin && param.find(CCAPI_EM_ACCOUNT_TYPE) == param.end() && param.find("account") == param.end()) {
+          param[CCAPI_EM_ACCOUNT_TYPE] = marginAccount;
+        }
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -223,6 +241,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         param.erase(CCAPI_EM_ORDER_ID);
         param.erase(CCAPI_EM_CLIENT_ORDER_ID);
         param.erase("order_id");
+        if (isSpotMargin && param.find(CCAPI_EM_ACCOUNT_TYPE) == param.end() && param.find("account") == param.end()) {
+          param[CCAPI_EM_ACCOUNT_TYPE] = marginAccount;
+        }
         rj::Document document;
         document.SetObject();
         rj::Document::AllocatorType& allocator = document.GetAllocator();
@@ -259,6 +280,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         param.erase(CCAPI_EM_ORDER_ID);
         param.erase(CCAPI_EM_CLIENT_ORDER_ID);
         param.erase("order_id");
+        if (isSpotMargin && param.find("account") == param.end() && param.find(CCAPI_EM_ACCOUNT_ID) == param.end()) {
+          param["account"] = marginAccount;
+        }
         std::string queryString;
         this->appendParam(queryString, param,
                           {
@@ -284,6 +308,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         param.erase(CCAPI_EM_ORDER_ID);
         param.erase(CCAPI_EM_CLIENT_ORDER_ID);
         param.erase("order_id");
+        if (isSpotMargin && param.find("account") == param.end() && param.find(CCAPI_EM_ACCOUNT_ID) == param.end()) {
+          param["account"] = marginAccount;
+        }
         std::string queryString;
         this->appendParam(queryString, param,
                           {
@@ -301,6 +328,9 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         std::string queryString;
         std::map<std::string, std::string> param = request.getFirstParamWithDefault();
         param["status"] = "open";
+        if (isSpotMargin && param.find("account") == param.end() && param.find(CCAPI_EM_ACCOUNT_ID) == param.end()) {
+          param["account"] = marginAccount;
+        }
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
@@ -316,7 +346,10 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
       case Request::Operation::CANCEL_OPEN_ORDERS: {
         req.method(http::verb::delete_);
         std::string queryString;
-        const std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        std::map<std::string, std::string> param = request.getFirstParamWithDefault();
+        if (isSpotMargin && param.find("account") == param.end() && param.find(CCAPI_EM_ACCOUNT_ID) == param.end()) {
+          param["account"] = marginAccount;
+        }
         this->appendParam(queryString, param,
                           {
                               {CCAPI_EM_ACCOUNT_ID, "account"},
@@ -335,12 +368,13 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
         std::string queryString;
         this->appendParam(queryString, param,
                           {
-                              {CCAPI_EM_ASSET, "currency"},
+                              {CCAPI_EM_ASSET, isSpotMargin ? "currency_pair" : "currency"},
                           });
         if (!queryString.empty()) {
           queryString.pop_back();
         }
-        std::string path = this->getAccountsTarget;
+        std::string path =
+            isSpotMargin ? (isCrossMargin ? this->getCrossMarginAccountsTarget : this->getIsolatedMarginAccountsTarget) : this->getAccountsTarget;
         if (this->isDerivatives) {
           this->substituteParamSettle(path, param, symbolId);
         }
@@ -374,6 +408,11 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
     bool isPostOnly = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_POST_ONLY);
     bool isIoc = extractBooleanFlag(param, CCAPI_EM_ORDER_IS_IOC);
     extractBooleanFlag(param, CCAPI_EM_ORDER_IS_RPI);
+    const auto& marginType = request.getMarginType();
+    if (!this->isDerivatives && (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN || marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) &&
+        param.find(CCAPI_EM_ACCOUNT_TYPE) == param.end() && param.find("account") == param.end()) {
+      param[CCAPI_EM_ACCOUNT_TYPE] = this->getAccountFromMarginType(marginType);
+    }
     if (operation != Request::Operation::CREATE_ORDER) {
       if (param.find(CCAPI_EM_ORDER_ID) != param.end()) {
         param["order_id"] = param.at(CCAPI_EM_ORDER_ID);
@@ -461,13 +500,49 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
                                      const rj::Document& document) override {
     switch (request.getOperation()) {
       case Request::Operation::GET_ACCOUNTS: {
-        for (const auto& x : document.GetArray()) {
+        const auto& marginType = request.getMarginType();
+        auto appendMarginBalance = [&elementList](const rj::Value& x, const std::string& currency, const std::string& instrument) {
           Element element;
-          element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
-          float total = std::stof(x["locked"].GetString()) + std::stof(x["available"].GetString());
-          element.insert(CCAPI_EM_QUANTITY_TOTAL, std::to_string(total));
+          if (!instrument.empty()) {
+            element.insert(CCAPI_EM_INSTRUMENT, instrument);
+          }
+          element.insert(CCAPI_EM_ASSET, currency);
+          const std::string available = x["available"].GetString();
+          const std::string locked = x.HasMember("locked") ? x["locked"].GetString() : "0";
+          element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, available);
+          element.insert(CCAPI_EM_QUANTITY_TOTAL, ConvertDecimalToString(Decimal(available) + Decimal(locked)));
+          if (x.HasMember("borrowed")) {
+            Decimal liability = Decimal(x["borrowed"].GetString());
+            if (x.HasMember("interest")) {
+              liability += Decimal(x["interest"].GetString());
+            }
+            element.insert(CCAPI_EM_QUANTITY_LIABILITY, ConvertDecimalToString(liability));
+          }
           elementList.emplace_back(std::move(element));
+        };
+        if (marginType == CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+          for (const auto& x : document.GetArray()) {
+            const std::string instrument = x.HasMember("currency_pair") ? x["currency_pair"].GetString() : "";
+            if (x.HasMember("base")) {
+              appendMarginBalance(x["base"], x["base"]["currency"].GetString(), instrument);
+            }
+            if (x.HasMember("quote")) {
+              appendMarginBalance(x["quote"], x["quote"]["currency"].GetString(), instrument);
+            }
+          }
+        } else if (marginType == CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN) {
+          for (const auto& x : document["balances"].GetObject()) {
+            appendMarginBalance(x.value, x.name.GetString(), "");
+          }
+        } else {
+          for (const auto& x : document.GetArray()) {
+            Element element;
+            element.insert(CCAPI_EM_ASSET, x["currency"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING, x["available"].GetString());
+            float total = std::stof(x["locked"].GetString()) + std::stof(x["available"].GetString());
+            element.insert(CCAPI_EM_QUANTITY_TOTAL, std::to_string(total));
+            elementList.emplace_back(std::move(element));
+          }
         }
       } break;
       default:
@@ -864,6 +939,8 @@ class ExecutionManagementServiceGateioBase : public ExecutionManagementService {
   std::string websocketChannelUserTrades;
   std::string websocketChannelOrders;
   std::string amountName;
+  std::string getCrossMarginAccountsTarget{"/api/v4/margin/cross/accounts"};
+  std::string getIsolatedMarginAccountsTarget{"/api/v4/margin/accounts"};
 };
 
 } /* namespace ccapi */

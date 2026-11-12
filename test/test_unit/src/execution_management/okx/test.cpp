@@ -83,6 +83,44 @@ TEST_F(ExecutionManagementServiceOkxTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
 }
 
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestCreateOrderInMarginMode) {
+  for (const auto& [marginType, expectedTdMode] :
+       std::vector<std::pair<std::string, std::string>>{{CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN, "cross"}, {CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN, "isolated"}}) {
+    Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
+    request.setMarginType(marginType);
+    request.appendParam({
+        {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+        {CCAPI_EM_ORDER_QUANTITY, "2"},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"},
+        {"ccy", "USDT"},
+    });
+    auto req = this->service->convertRequest(request, this->now);
+    EXPECT_EQ(req.method(), http::verb::post);
+    EXPECT_EQ(req.target(), "/api/v5/trade/order");
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
+    EXPECT_EQ(std::string(document["instId"].GetString()), "BTC-USDT");
+    EXPECT_EQ(std::string(document["tdMode"].GetString()), expectedTdMode);
+    EXPECT_EQ(std::string(document["ccy"].GetString()), "USDT");
+    verifySignature(req, this->credential.at(CCAPI_OKX_API_SECRET));
+  }
+}
+
+TEST_F(ExecutionManagementServiceOkxTest, convertRequestCreateOrderExplicitTdModeWins) {
+  Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
+  request.setMarginType(CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN);
+  request.appendParam({
+      {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+      {CCAPI_EM_ORDER_QUANTITY, "2"},
+      {CCAPI_EM_ORDER_LIMIT_PRICE, "2.15"},
+      {"tdMode", "cash"},
+  });
+  auto req = this->service->convertRequest(request, this->now);
+  rj::Document document;
+  document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
+  EXPECT_EQ(std::string(document["tdMode"].GetString()), "cash");
+}
+
 TEST_F(ExecutionManagementServiceOkxTest, convertTextMessageToMessageRestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_OKX, "BTC-USDT", "foo", this->credential);
   std::string textMessage =

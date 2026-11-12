@@ -71,6 +71,14 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
     req.set("X-BAPI-SIGN", signature);
   }
 
+  bool isSpotMarginRequest(const Request& request, const std::map<std::string, std::string>& param) {
+    const auto& marginType = request.getMarginType();
+    if (marginType != CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN && marginType != CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN) {
+      return false;
+    }
+    return param.find("category") == param.end() || param.at("category") == "spot";
+  }
+
   void appendParamToQueryString(std::string& queryString, const std::map<std::string, std::string>& param,
                                 const std::map<std::string, std::string> standardizationMap = {
                                     {CCAPI_EM_CLIENT_ORDER_ID, "orderLinkId"},
@@ -152,7 +160,15 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
       } else if (key == "orderType") {
         value = convertOrderType(value, "Limit", "Market");
       }
-      if (value != "null") {
+      if (value == "null") {
+        continue;
+      }
+      if (key == "isLeverage") {
+        if (value != "0" && value != "1") {
+          throw std::runtime_error("Bybit isLeverage must be 0 or 1");
+        }
+        rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value == "1" ? 1 : 0).Move(), allocator);
+      } else {
         rjValue.AddMember(rj::Value(key.c_str(), allocator).Move(), rj::Value(value.c_str(), allocator).Move(), allocator);
       }
     }
@@ -197,6 +213,9 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         this->appendParam(document, allocator, param);
         if (param.find("category") == param.end()) {
           document.AddMember("category", rj::Value("spot").Move(), allocator);
+        }
+        if (this->isSpotMarginRequest(request, param) && param.find("isLeverage") == param.end()) {
+          document.AddMember("isLeverage", 1, allocator);
         }
         if (param.find("orderType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           document.AddMember("orderType", rj::Value("Limit").Move(), allocator);
@@ -692,6 +711,9 @@ class ExecutionManagementServiceBybit : public ExecutionManagementService {
         this->appendParam(arg, allocator, param);
         if (param.find("category") == param.end()) {
           arg.AddMember("category", rj::Value("spot").Move(), allocator);
+        }
+        if (this->isSpotMarginRequest(request, param) && param.find("isLeverage") == param.end()) {
+          arg.AddMember("isLeverage", 1, allocator);
         }
         if (param.find("orderType") == param.end() && param.find(CCAPI_EM_ORDER_TYPE) == param.end()) {
           arg.AddMember("orderType", rj::Value("Limit").Move(), allocator);

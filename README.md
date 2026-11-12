@@ -783,9 +783,27 @@ Please follow the exchange's API documentations: e.g. https://bybit-exchange.git
 ```
 Request request(Request::Operation::CREATE_ORDER, "bybit", "BTCUSDT");
 request.appendParam({
-    {"isLeverage", "1"},
+    {"orderFilter", "Order"},
 });
 ```
+
+#### Spot margin trading
+Set the margin type of a `Request` to trade spot margin. `CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN` and `CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN` are defined in [`include/ccapi_cpp/ccapi_macro.h`](include/ccapi_cpp/ccapi_macro.h).
+```
+Request request(Request::Operation::CREATE_ORDER, "binance", "BTCUSDT");
+request.setMarginType(CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN);
+request.appendParam({
+    {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+    {CCAPI_EM_ORDER_QUANTITY, "0.001"},
+    {CCAPI_EM_ORDER_LIMIT_PRICE, "20000"},
+});
+```
+Spot margin is supported for these exchanges:
+* Binance: `CREATE_ORDER`, `CANCEL_ORDER`, `GET_ORDER`, `GET_OPEN_ORDERS`, `CANCEL_OPEN_ORDERS` and `GET_ACCOUNT_BALANCES` use the `/sapi/v1/margin/*` endpoints. Isolated margin requests also send `isIsolated=TRUE`. Binance offers no cancel-replace for margin orders, so `AMEND_ORDER` and `AMEND_ORDER_KEEP_PRIORITY` are rejected for margin.
+* Bybit: spot orders send `isLeverage=1`. Bybit does not distinguish cross and isolated margin per order, so either margin type enables leverage.
+* OKX: orders send `tdMode=cross` or `tdMode=isolated`. Spot margin orders in OKX futures mode also need the margin currency, e.g. `{"ccy", "USDT"}`.
+* Bitget: spot margin orders use `/api/v2/margin/crossed/*` and `/api/v2/margin/isolated/*`, where the base asset quantity is sent as `baseSize` and `loanType` defaults to `normal`. `AMEND_ORDER` and `CANCEL_OPEN_ORDERS` are unavailable for margin and `GET_ORDER` only reports orders that are still open, because Bitget publishes no matching spot margin endpoints.
+* Gate.io: spot order endpoints take `account=margin` for isolated margin or `account=cross_margin` for cross margin. `GET_ACCOUNTS` reads `/api/v4/margin/accounts` (isolated) or `/api/v4/margin/cross/accounts` (cross).
 
 #### Send request by Websocket API
 `CREATE_ORDER`, `AMEND_ORDER`, `AMEND_ORDER_KEEP_PRIORITY` and `CANCEL_ORDER` can be sent by the Websocket API. The response of the request is delivered as an `Event::Type::RESPONSE` event whose messages bear the correlation id of the request (or as `Event::Type::RESPONSE_ERROR` if the exchange rejects the request).

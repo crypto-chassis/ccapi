@@ -86,6 +86,97 @@ TEST_F(ExecutionManagementServiceGateioTest, convertRequestCreateOrder) {
   verifySignature(req, this->credential.at(CCAPI_GATEIO_API_SECRET));
 }
 
+TEST_F(ExecutionManagementServiceGateioTest, convertRequestCreateOrderInMarginAccount) {
+  for (const auto& [marginType, expectedAccount] : std::vector<std::pair<std::string, std::string>>{{CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN, "cross_margin"},
+                                                                                                    {CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN, "margin"}}) {
+    Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_GATEIO, "BTC_USDT", "foo", this->credential);
+    request.setMarginType(marginType);
+    request.appendParam({
+        {CCAPI_EM_ORDER_SIDE, CCAPI_EM_ORDER_SIDE_BUY},
+        {CCAPI_EM_ORDER_QUANTITY, "1"},
+        {CCAPI_EM_ORDER_LIMIT_PRICE, "0.1"},
+    });
+    auto req = this->service->convertRequest(request, this->now);
+    EXPECT_EQ(req.method(), http::verb::post);
+    EXPECT_EQ(req.target(), "/api/v4/spot/orders");
+    rj::Document document;
+    document.Parse<rj::kParseNumbersAsStringsFlag>(req.body().c_str());
+    EXPECT_EQ(std::string(document["account"].GetString()), expectedAccount);
+    EXPECT_EQ(std::string(document["currency_pair"].GetString()), "BTC_USDT");
+    EXPECT_EQ(std::string(document["side"].GetString()), "buy");
+    EXPECT_EQ(std::string(document["amount"].GetString()), "1");
+    verifySignature(req, this->credential.at(CCAPI_GATEIO_API_SECRET));
+  }
+}
+
+TEST_F(ExecutionManagementServiceGateioTest, convertRequestGetOpenOrdersInMarginAccount) {
+  for (const auto& [marginType, expectedAccount] : std::vector<std::pair<std::string, std::string>>{{CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN, "cross_margin"},
+                                                                                                    {CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN, "margin"}}) {
+    Request request(Request::Operation::GET_OPEN_ORDERS, CCAPI_EXCHANGE_NAME_GATEIO, "BTC_USDT", "foo", this->credential);
+    request.setMarginType(marginType);
+    auto req = this->service->convertRequest(request, this->now);
+    EXPECT_EQ(req.method(), http::verb::get);
+    auto splitted = UtilString::split(std::string(req.target()), "?");
+    EXPECT_EQ(splitted.at(0), "/api/v4/spot/orders");
+    auto paramMap = Url::convertQueryStringToMap(splitted.at(1));
+    EXPECT_EQ(paramMap.at("account"), expectedAccount);
+    EXPECT_EQ(paramMap.at("currency_pair"), "BTC_USDT");
+    verifySignature(req, this->credential.at(CCAPI_GATEIO_API_SECRET));
+  }
+}
+
+TEST_F(ExecutionManagementServiceGateioTest, convertTextMessageToMessageRestGetAccountsIsolatedMargin) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_GATEIO, "", "foo", this->credential);
+  request.setMarginType(CCAPI_EM_MARGIN_TYPE_ISOLATED_MARGIN);
+  std::string textMessage =
+      R"(
+        [
+          {
+            "currency_pair": "BTC_USDT",
+            "base": {"currency": "BTC", "available": "1", "locked": "0", "borrowed": "0.5", "interest": "0.01"},
+            "quote": {"currency": "USDT", "available": "100", "locked": "0"}
+          }
+        ]
+      )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNTS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 2);
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_INSTRUMENT), "BTC_USDT");
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_ASSET), "BTC");
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_QUANTITY_AVAILABLE_FOR_TRADING), "1");
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_QUANTITY_LIABILITY), "0.51");
+  EXPECT_EQ(elementList.at(1).getValue(CCAPI_EM_ASSET), "USDT");
+  EXPECT_EQ(elementList.at(1).getValue(CCAPI_EM_QUANTITY_TOTAL), "100");
+}
+
+TEST_F(ExecutionManagementServiceGateioTest, convertTextMessageToMessageRestGetAccountsCrossMargin) {
+  Request request(Request::Operation::GET_ACCOUNTS, CCAPI_EXCHANGE_NAME_GATEIO, "", "foo", this->credential);
+  request.setMarginType(CCAPI_EM_MARGIN_TYPE_CROSS_MARGIN);
+  std::string textMessage =
+      R"(
+        {
+          "balances": {
+            "BTC": {"available": "1", "locked": "0", "borrowed": "0.5"},
+            "USDT": {"available": "100", "locked": "50"}
+          }
+        }
+      )";
+  auto messageList = this->service->convertTextMessageToMessageRest(request, textMessage, this->now);
+  EXPECT_EQ(messageList.size(), 1);
+  auto message = messageList.at(0);
+  EXPECT_EQ(message.getType(), Message::Type::GET_ACCOUNTS);
+  auto elementList = message.getElementList();
+  EXPECT_EQ(elementList.size(), 2);
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_ASSET), "BTC");
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_QUANTITY_TOTAL), "1");
+  EXPECT_EQ(elementList.at(0).getValue(CCAPI_EM_QUANTITY_LIABILITY), "0.5");
+  EXPECT_EQ(elementList.at(1).getValue(CCAPI_EM_ASSET), "USDT");
+  EXPECT_EQ(elementList.at(1).getValue(CCAPI_EM_QUANTITY_TOTAL), "150");
+}
+
 TEST_F(ExecutionManagementServiceGateioTest, convertTextMessageToMessageRestCreateOrder) {
   Request request(Request::Operation::CREATE_ORDER, CCAPI_EXCHANGE_NAME_GATEIO, "BTC_USDT", "foo", this->credential);
   std::string textMessage =
